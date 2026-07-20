@@ -51,7 +51,13 @@
       data-learn-mode="cloze"
       href="/learn/{{ unit.id }}?mode=cloze"
     >Cloze</a>
-    <span class="mode-tab is-disabled" title="Coming in later sprints">Letters</span>
+    <a
+      class="mode-tab{% if learn_mode == 'letters' %} is-active{% endif %}"
+      role="tab"
+      aria-selected="{{ 'true' if learn_mode == 'letters' else 'false' }}"
+      data-learn-mode="letters"
+      href="/learn/{{ unit.id }}?mode=letters"
+    >Letters</a>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Type</span>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Recite</span>
     <a
@@ -93,6 +99,23 @@
     <noscript>
       <article class="unit-text learn-read-text">{{ unit.text }}</article>
       <p class="learn-hint">Enable JavaScript for tap-to-reveal cloze blanks.</p>
+    </noscript>
+  </div>
+
+  <div
+    class="learn-body learn-panel-letters"
+    data-learn-panel="letters"
+    data-letters-text="{{ unit.text | e }}"
+    data-letters-full="false"
+  >
+    <p class="learn-letters-text is-initials" data-letters-display></p>
+    <div class="learn-letters-controls">
+      <button type="button" class="learn-letters-btn" data-letters-toggle>Show full text</button>
+      <span class="learn-letters-hint">Recite from the initials, then check yourself.</span>
+    </div>
+    <noscript>
+      <article class="unit-text learn-read-text">{{ unit.text }}</article>
+      <p class="learn-hint">Enable JavaScript for first-letter recall.</p>
     </noscript>
   </div>
 

@@ -1,10 +1,28 @@
 /* Light progressive enhancement for the learning UI. */
 (function () {
-  const LEARN_MODES = new Set(["read", "cloze", "card"]);
+  const LEARN_MODES = new Set(["read", "cloze", "letters", "card"]);
   const DENSITY_THRESH = { light: 8, medium: 6, heavy: 4 };
+  const EN_SPACE = "\u2002";
 
   function letterLen(word) {
     return word.replace(/[^A-Za-z]/g, "").length;
+  }
+
+  /** First-letter cue string matching the design prototype. */
+  function toInitials(text) {
+    const words = text.trim() ? text.trim().split(/\s+/) : [];
+    return words
+      .map((word) => {
+        const match = word.match(/^[A-Za-z]/);
+        if (!match) {
+          return word;
+        }
+        const punct = word
+          .replace(/[A-Za-z]+/g, "")
+          .replace(/[^.,;\u2014()]/g, "");
+        return match[0] + punct;
+      })
+      .join(EN_SPACE);
   }
 
   function initCloze(panel) {
@@ -141,6 +159,48 @@
     };
   }
 
+  function initLetters(panel) {
+    if (!panel) {
+      return null;
+    }
+
+    const display = panel.querySelector("[data-letters-display]");
+    const toggle = panel.querySelector("[data-letters-toggle]");
+    const source = panel.getAttribute("data-letters-text") || "";
+    const initials = toInitials(source);
+    let full = panel.getAttribute("data-letters-full") === "true";
+
+    function render() {
+      if (!display) {
+        return;
+      }
+      display.textContent = full ? source : initials;
+      display.classList.toggle("is-full", full);
+      display.classList.toggle("is-initials", !full);
+      panel.setAttribute("data-letters-full", full ? "true" : "false");
+      if (toggle) {
+        toggle.textContent = full ? "Back to initials" : "Show full text";
+        toggle.setAttribute("aria-pressed", full ? "true" : "false");
+      }
+    }
+
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        full = !full;
+        render();
+      });
+    }
+
+    render();
+
+    return {
+      reset() {
+        full = false;
+        render();
+      },
+    };
+  }
+
   function initLearn() {
     const learn = document.querySelector(".learn");
     if (!learn) {
@@ -151,7 +211,9 @@
     const modeTabs = learn.querySelectorAll("[data-learn-mode]");
     const card = learn.querySelector(".learn-card");
     const clozePanel = learn.querySelector('[data-learn-panel="cloze"]');
+    const lettersPanel = learn.querySelector('[data-learn-panel="letters"]');
     const cloze = initCloze(clozePanel);
+    const letters = initLetters(lettersPanel);
 
     function setFlipped(flipped) {
       if (!card) {
@@ -175,6 +237,9 @@
       }
       if (next === "cloze" && cloze) {
         cloze.reset();
+      }
+      if (next === "letters" && letters) {
+        letters.reset();
       }
       try {
         const url = new URL(window.location.href);
@@ -213,7 +278,7 @@
       });
     }
 
-    // Honor server-rendered mode (e.g. hard navigation to ?mode=card|cloze).
+    // Honor server-rendered mode (e.g. hard navigation to ?mode=card|cloze|letters).
     if (learn.dataset.mode === "card") {
       setFlipped(false);
     }

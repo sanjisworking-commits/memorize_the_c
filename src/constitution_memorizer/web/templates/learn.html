@@ -44,7 +44,13 @@
       data-learn-mode="read"
       href="/learn/{{ unit.id }}?mode=read"
     >Read</a>
-    <span class="mode-tab is-disabled" title="Coming in later sprints">Cloze</span>
+    <a
+      class="mode-tab{% if learn_mode == 'cloze' %} is-active{% endif %}"
+      role="tab"
+      aria-selected="{{ 'true' if learn_mode == 'cloze' else 'false' }}"
+      data-learn-mode="cloze"
+      href="/learn/{{ unit.id }}?mode=cloze"
+    >Cloze</a>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Letters</span>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Type</span>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Recite</span>
@@ -57,12 +63,37 @@
     >Card</a>
   </div>
 
+  {% if stem_text %}
+  <p class="learn-stem">{{ stem_text }}</p>
+  {% endif %}
+
   <div class="learn-body learn-panel-read" data-learn-panel="read">
-    {% if stem_text %}
-    <p class="learn-stem">{{ stem_text }}</p>
-    {% endif %}
     <article class="unit-text learn-read-text">{{ unit.text }}</article>
     <p class="learn-hint">{{ read_hint }}</p>
+  </div>
+
+  <div
+    class="learn-body learn-panel-cloze"
+    data-learn-panel="cloze"
+    data-cloze-text="{{ unit.text | e }}"
+    data-cloze-density="medium"
+  >
+    <div class="learn-cloze-density" role="group" aria-label="Cloze density">
+      <span class="learn-cloze-density-label">Density</span>
+      <button type="button" class="learn-cloze-density-btn" data-cloze-density="light" aria-pressed="false">Light</button>
+      <button type="button" class="learn-cloze-density-btn is-active" data-cloze-density="medium" aria-pressed="true">Medium</button>
+      <button type="button" class="learn-cloze-density-btn" data-cloze-density="heavy" aria-pressed="false">Heavy</button>
+    </div>
+    <div class="learn-cloze-text" aria-live="polite"></div>
+    <div class="learn-cloze-controls">
+      <button type="button" class="learn-cloze-btn" data-cloze-action="reveal-all">Reveal all</button>
+      <button type="button" class="learn-cloze-btn" data-cloze-action="hide-again">Hide again</button>
+      <span class="learn-cloze-status" data-cloze-status>0 of 0 revealed — tap a blank</span>
+    </div>
+    <noscript>
+      <article class="unit-text learn-read-text">{{ unit.text }}</article>
+      <p class="learn-hint">Enable JavaScript for tap-to-reveal cloze blanks.</p>
+    </noscript>
   </div>
 
   <div class="learn-body learn-panel-card" data-learn-panel="card">

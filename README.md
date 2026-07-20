@@ -20,7 +20,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 5 | `cursor/sprint-5-browse-search-progress-1a75` | Done |
 | Sprint 6 | `cursor/sprint-6-design-tokens-1a75` | Done |
 | Sprint 7 | `cursor/sprint-7-sheet-nav-1a75` | Done |
-| Sprints 8–20 | design prototype (see plan) | Planned |
+| Sprint 8 | `cursor/sprint-8-home-screen-1a75` | Done |
+| Sprints 9–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -206,6 +207,16 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - `GET /calendar` stub (full month grid in Sprint 18)
 - Search page restyled to the same sheet tokens (`btn-accent`)
 - Tests: `tests/test_web_sprint7.py`
+
+### Sprint 8 — Home screen ✅
+
+**Branch:** `cursor/sprint-8-home-screen-1a75`
+
+- Prototype Home layout: date eyebrow, “Today” title, due lede
+- Continue card (kind + meta + Continue CTA) or “All caught up” empty state
+- Due list with accent status dots; quiet stats line; text “Reset all progress”
+- Helpers: `home_lede`, `unit_type_label`, `earliest_upcoming_revision` in `web/service.py`
+- Tests: `tests/test_web_sprint8.py`
 
 ### Split-choice behaviour (summary)
 

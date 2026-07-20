@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from constitution_memorizer.article_text import article_full_text, provision_text
 from constitution_memorizer.exceptions import InputValidationError
 from constitution_memorizer.learning.schemas import (
     LearningUnit,
@@ -44,49 +45,11 @@ def _strip_label_parens(label: str) -> str:
 
 
 def _provision_text(node: ProvisionNode) -> str:
-    """Flatten a provision node including children (roman inlined under letters)."""
-    parts: list[str] = []
-    head = f"{node.label} {node.text}".strip()
-    if head:
-        parts.append(head)
-    for child in node.children:
-        child_text = _provision_text(child)
-        if child_text:
-            parts.append(child_text)
-    for proviso in node.provisos:
-        parts.append(proviso)
-    for expl in node.explanations:
-        parts.append(expl)
-    return "\n".join(parts)
+    return provision_text(node)
 
 
 def _article_full_text(article: Article) -> str:
-    chunks: list[str] = []
-    opening = article.opening_text.strip()
-    body = article.body_text.strip()
-    if article.clauses:
-        if opening:
-            chunks.append(opening)
-        for clause in article.clauses:
-            chunks.append(_provision_text(clause))
-    else:
-        # Prefer a single copy when Docling stored the same string in both fields.
-        if opening and body:
-            if opening == body or body.startswith(opening) or opening.startswith(body):
-                chunks.append(body if len(body) >= len(opening) else opening)
-            else:
-                chunks.append(opening)
-                chunks.append(body)
-        elif opening:
-            chunks.append(opening)
-        elif body:
-            chunks.append(body)
-    for proviso in article.provisos:
-        chunks.append(proviso)
-    for expl in article.explanations:
-        chunks.append(expl)
-    return "\n".join(c for c in chunks if c).strip()
-
+    return article_full_text(article)
 
 def _part_tags(part: Part, article: Article | None = None) -> list[str]:
     tags: list[str] = []

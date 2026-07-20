@@ -183,6 +183,8 @@ Before rendering a Learn or Choose card (and before listing Home due/continue it
 
 Unready units show an **incomplete** panel instead of a Learn card; Browse only offers Learn CTAs for ready units. Prefer fixing corpus via `data/corrections/corrections.json` + `correct --force` + `generate-units --force` (do **not** mutate the Docling parse in place). Templates use `type_label` (plain `CLAUSE`, not `LEARNINGUNITTYPE.CLAUSE`) and show Part from unit tags when present.
 
+Article text assembly (`article_text.py`) collapses identical `opening_text`/`body_text` and skips provisos/explanations already present in the body — this is what caused cards like Article 21 to show the same sentence twice.
+
 ### Sprint 5 — Browse / Search / Progress ✅
 
 **Branch:** `cursor/sprint-5-browse-search-progress-1a75`

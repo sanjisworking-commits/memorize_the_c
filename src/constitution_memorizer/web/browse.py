@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from constitution_memorizer.article_text import article_full_text
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitType
 from constitution_memorizer.progress.scheduler import ReminderEngine
 from constitution_memorizer.schemas import Article, ConstitutionDocument
@@ -31,29 +32,7 @@ def load_reviewed_document(path: Path | None) -> ConstitutionDocument | None:
 
 
 def _article_full_text(article: Article) -> str:
-    chunks: list[str] = []
-    if article.opening_text.strip():
-        chunks.append(article.opening_text.strip())
-    if article.clauses:
-        for clause in article.clauses:
-            head = f"{clause.label} {clause.text}".strip()
-            if head:
-                chunks.append(head)
-            for child in clause.children:
-                child_head = f"{child.label} {child.text}".strip()
-                if child_head:
-                    chunks.append(child_head)
-                for grand in child.children:
-                    g = f"{grand.label} {grand.text}".strip()
-                    if g:
-                        chunks.append(g)
-    elif article.body_text.strip():
-        chunks.append(article.body_text.strip())
-    for proviso in article.provisos:
-        chunks.append(proviso)
-    for expl in article.explanations:
-        chunks.append(expl)
-    return "\n\n".join(c for c in chunks if c).strip()
+    return article_full_text(article, paragraph_sep="\n\n")
 
 
 def iter_articles(doc: ConstitutionDocument) -> list[Article]:

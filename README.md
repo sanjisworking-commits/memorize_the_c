@@ -22,7 +22,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 7 | `cursor/sprint-7-sheet-nav-1a75` | Done |
 | Sprint 8 | `cursor/sprint-8-home-screen-1a75` | Done |
 | Hotfix | `cursor/fix-articles-1-2-1a75` | Done |
-| Sprints 9–20 | design prototype (see plan) | Planned |
+| Sprint 9 | `cursor/sprint-9-choose-incomplete-1a75` | Done |
+| Sprints 10–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -218,6 +219,14 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Due list with accent status dots; quiet stats line; text “Reset all progress”
 - Helpers: `home_lede`, `unit_type_label`, `earliest_upcoming_revision` in `web/service.py`
 - Tests: `tests/test_web_sprint8.py`
+
+### Sprint 9 — Choose + incomplete panels ✅
+
+**Branch:** `cursor/sprint-9-choose-incomplete-1a75`
+
+- Choose screen matches prototype: Split choice eyebrow, solid / outline CTAs (`btn-accent`), remembered-choice note
+- New `incomplete.html` panel (design tokens) for future readiness gating — reasons list, Browse/Home links
+- Tests: `tests/test_web_sprint9.py`
 
 ### Split-choice behaviour (summary)
 

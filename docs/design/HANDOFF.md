@@ -19,7 +19,7 @@ Target repo: sanjisworking-commits/memorize_the_c (FastAPI + Jinja2 web layer in
 3. **Choose** — split-capable clause with no preference: "Learn whole clause" (solid) vs "Split into letters" (outline). Preference persists (`split_preference` table).
 4. **Calendar** — month grid; chips: solid black = memorized, gray = review done, accent-outline = due today, dashed = scheduled. Chips open the unit. Today cell ringed in accent.
 5. **Progress** — 4 stat tiles, mastery map (one row per Part, one 16px cell per Article: new/learning/review/mastered/due; tracked cells clickable), tracked-articles list with completion bars.
-6. **Browse** — Part index grid → Article reading view: every clause/letter row = mastery dot + verbatim text + "Learn" button (accent outline) or "Choose" for split-capable clauses without a preference; "Practice article" header CTA runs the article chain. **Amendment history** timeline (or quiet Unamended note) under the article; meta line includes amendment count. **Explain it back** (Sprint 22) free-text gloss below amendments.
+6. **Browse** — Part index grid → Article reading view: every clause/letter row = mastery dot + verbatim text + "Learn" button (accent outline) or "Choose" for split-capable clauses without a preference; "Practice article" header CTA runs the article chain. **Amendment history** timeline (or quiet Unamended note) under the article; meta line includes amendment count. **Explain it back** — per-article plain-language textarea (autosaved gloss; Clear only; never wiped by progress resets; does not affect mastery).
 7. **Learn footnote** — when curated, a faint `✦` one-liner under the unit subtitle explaining amendments / omitted letters (e.g. 19(1)(f)); does not change memorized text.
 
 ## Rules

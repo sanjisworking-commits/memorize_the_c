@@ -756,8 +756,111 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initLearn);
+    document.addEventListener("DOMContentLoaded", () => {
+      initLearn();
+      initExplainBack();
+    });
   } else {
     initLearn();
+    initExplainBack();
+  }
+
+  function wordCount(text) {
+    const trimmed = text.trim();
+    return trimmed ? trimmed.split(/\s+/).length : 0;
+  }
+
+  function initExplainBack() {
+    const root = document.querySelector("[data-gloss-article]");
+    if (!root) {
+      return;
+    }
+    const article = root.getAttribute("data-gloss-article");
+    const input = root.querySelector("[data-gloss-input]");
+    const meta = root.querySelector("[data-gloss-meta]");
+    const clearBtn = root.querySelector("[data-gloss-clear]");
+    if (!article || !input || !meta || !clearBtn) {
+      return;
+    }
+
+    const emptyHint =
+      "Saved automatically — rewrite it whenever your understanding sharpens.";
+    let timer = null;
+    let lastSaved = input.value;
+
+    function renderMeta(text) {
+      const n = wordCount(text);
+      if (n === 0) {
+        meta.textContent = emptyHint;
+        clearBtn.hidden = true;
+      } else {
+        meta.textContent = n + " word" + (n === 1 ? "" : "s") + " · saved";
+        clearBtn.hidden = false;
+      }
+    }
+
+    function persist(text) {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        return fetch("/browse/article/" + encodeURIComponent(article) + "/gloss", {
+          method: "DELETE",
+        }).then(() => {
+          lastSaved = "";
+          renderMeta("");
+        });
+      }
+      return fetch("/browse/article/" + encodeURIComponent(article) + "/gloss", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text }),
+      }).then((res) => {
+        if (!res.ok) {
+          throw new Error("save failed");
+        }
+        lastSaved = text;
+        renderMeta(text);
+      });
+    }
+
+    function scheduleSave() {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        timer = null;
+        const value = input.value;
+        if (value === lastSaved) {
+          renderMeta(value);
+          return;
+        }
+        persist(value).catch(() => {
+          meta.textContent = "Couldn’t save — try again.";
+        });
+      }, 500);
+    }
+
+    input.addEventListener("input", () => {
+      const value = input.value;
+      const n = wordCount(value);
+      if (n === 0) {
+        meta.textContent = emptyHint;
+        clearBtn.hidden = true;
+      } else {
+        meta.textContent = n + " word" + (n === 1 ? "" : "s") + " · saving…";
+        clearBtn.hidden = false;
+      }
+      scheduleSave();
+    });
+
+    clearBtn.addEventListener("click", () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      input.value = "";
+      persist("").catch(() => {
+        meta.textContent = "Couldn’t clear — try again.";
+      });
+    });
   }
 })();

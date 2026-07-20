@@ -103,3 +103,40 @@ def continue_unit_id(
         if progress.status == "review":
             continue
     return None
+
+
+def unit_type_label(unit: LearningUnit) -> str:
+    return unit.type.value if isinstance(unit.type, LearningUnitType) else str(unit.type)
+
+
+def earliest_upcoming_revision(
+    engine: ReminderEngine,
+    *,
+    as_of: date | None = None,
+) -> date | None:
+    """Soonest next_revision strictly after as_of (for Home 'caught up' copy)."""
+    today = as_of or date.today()
+    row = engine.repo.conn.execute(
+        """
+        SELECT next_revision FROM learning_unit_progress
+        WHERE status = 'review'
+          AND next_revision IS NOT NULL
+          AND next_revision > ?
+        ORDER BY next_revision ASC
+        LIMIT 1
+        """,
+        (today.isoformat(),),
+    ).fetchone()
+    if row is None or row["next_revision"] is None:
+        return None
+    return date.fromisoformat(str(row["next_revision"]))
+
+
+def home_lede(*, due_count: int, has_continue: bool) -> str:
+    if due_count == 1:
+        return "1 unit due for review."
+    if due_count > 1:
+        return f"{due_count} units due for review."
+    if has_continue:
+        return "Nothing due today — continue along the Constitution."
+    return "Nothing due today."

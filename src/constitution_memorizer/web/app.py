@@ -21,8 +21,11 @@ from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
     continue_unit_id,
     due_checklist,
+    earliest_upcoming_revision,
+    home_lede,
     needs_split_choice,
     resolve_learn_target,
+    unit_type_label,
 )
 
 WEB_DIR = Path(__file__).resolve().parent
@@ -76,14 +79,54 @@ def create_app(
         due = due_checklist(eng, as_of=today)
         cont = continue_unit_id(eng, as_of=today)
         cont_unit = eng.get_unit(cont) if cont else None
+        stats = eng.stats()
+        upcoming = earliest_upcoming_revision(eng, as_of=today)
+        all_caught_up = not due and cont_unit is None
+        caught_up_detail = "Nothing due today."
+        if all_caught_up and upcoming is not None:
+            caught_up_detail = (
+                f"Nothing due today. Next review lands "
+                f"{upcoming.day} {upcoming.strftime('%b')}."
+            )
+        elif all_caught_up:
+            caught_up_detail = "Nothing due today. Start from Browse when you are ready."
+
+        continue_meta = None
+        if cont_unit is not None:
+            bits = [
+                unit_type_label(cont_unit),
+                f"~{cont_unit.estimated_learning_time}s",
+                f"difficulty {cont_unit.difficulty}/5",
+            ]
+            continue_meta = " · ".join(bits)
+
         return templates.TemplateResponse(
             request,
             "home.html",
             {
                 "due_units": due,
                 "continue_unit": cont_unit,
-                "stats": eng.stats(),
-                "today": today.isoformat(),
+                "continue_kind": (
+                    unit_type_label(cont_unit) if cont_unit is not None else None
+                ),
+                "continue_meta": continue_meta,
+                "stats": stats,
+                "today": today,
+                "today_label": (
+                    f"{today.strftime('%A')}, {today.day} {today.strftime('%B %Y')}"
+                ),
+                "home_lede": home_lede(
+                    due_count=len(due),
+                    has_continue=cont_unit is not None,
+                ),
+                "all_caught_up": all_caught_up,
+                "caught_up_detail": caught_up_detail,
+                "stat_line": (
+                    f"{stats['review']} in review · "
+                    f"{stats['mastered']} mastered · "
+                    f"{stats['split_preferences']} split choices"
+                ),
+                "unit_type_label": unit_type_label,
             },
         )
 

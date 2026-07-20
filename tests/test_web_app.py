@@ -25,8 +25,9 @@ def test_home_renders(client: TestClient):
     response = client.get("/")
     assert response.status_code == 200
     assert "Constitution Memorizer" in response.text
+    assert "Today" in response.text
     assert "Due" in response.text
-    assert "Learn" in response.text
+    assert "Continue" in response.text or "All caught up" in response.text
 
 
 def test_learn_simple_unit(client: TestClient):

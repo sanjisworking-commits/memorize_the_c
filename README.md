@@ -41,7 +41,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 21 | `cursor/sprint-21-amendment-history-1a75` | Done |
 | Sprint 22 | `cursor/sprint-22-explain-it-back-1a75` | Done |
 | Sprint 23 | `cursor/sprint-23-mac-packaging-1a75` | Done |
-| Sprint 24 | `cursor/sprint-24-study-reminders-1a75` | Planned |
+| Sprint 24 | `cursor/sprint-24-study-reminders-1a75` | Done |
 | Sprint 25 | `cursor/sprint-25-mac-install-backup-1a75` | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
@@ -465,6 +465,73 @@ pip install -e .
 ```
 
 For the full PDF pipeline you need `pip install -r requirements.txt` instead (heavier).
+
+### Run on your MacBook (daily driver)
+
+Everyday use is a local server on **port 8001**. Your progress lives in `data/progress/progress.db` and survives reboots.
+
+**One-time setup** (from the repo root that contains `pyproject.toml`):
+
+```bash
+cd /path/to/memorize_the_c
+git checkout main && git pull
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements-ci.txt
+pip install -e .
+python -m constitution_memorizer.cli correct --force
+python -m constitution_memorizer.cli generate-units --force
+```
+
+**Start the UI** (pick one):
+
+```bash
+# Terminal
+source .venv/bin/activate
+python -m constitution_memorizer.cli serve --host 127.0.0.1 --port 8001
+
+# Or double-click in Finder:
+open scripts/mac/start-ui.command
+```
+
+Then bookmark **http://127.0.0.1:8001/**.
+
+**Stop:** `Ctrl+C` in the Terminal, or `bash scripts/mac/stop-ui.sh`.
+
+**Auto-start at login** (macOS LaunchAgent):
+
+```bash
+chmod +x scripts/mac/*.sh scripts/mac/*.command
+bash scripts/mac/install-serve-agent.sh
+```
+
+Unload later: `bash scripts/mac/uninstall-serve-agent.sh`.  
+Logs: `~/Library/Logs/constitution-memorizer-serve.log`.
+
+### Study reminders (ntfy)
+
+Daily push of today’s due units (same list as Home). Does **not** require the UI server to be running.
+
+1. Install the [ntfy](https://ntfy.sh/) app and subscribe to a private topic, e.g. `cm-yourname-study`.
+2. Test from the repo:
+
+```bash
+source .venv/bin/activate
+export NTFY_TOPIC=cm-yourname-study
+python -m constitution_memorizer.cli send-reminders --channel console --dry-run
+python -m constitution_memorizer.cli send-reminders --channel ntfy
+```
+
+3. Install the morning LaunchAgent (07:00 local):
+
+```bash
+export NTFY_TOPIC=cm-yourname-study
+bash scripts/mac/install-reminders-agent.sh
+```
+
+Optional env: `NTFY_SERVER` (default `https://ntfy.sh`), `NTFY_TOKEN`, `REMINDER_BASE_URL`.  
+Unload: `bash scripts/mac/uninstall-reminders-agent.sh`. Empty due lists skip the send.
 
 ### Try a sprint branch on your Mac (step by step)
 

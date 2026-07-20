@@ -5,7 +5,7 @@ Production-oriented tooling to help users **understand, revise and memorise the 
 Work proceeds in two layers:
 
 1. **Corpus pipeline (Phase 1–2)** — deterministic PDF → structured JSON for the Bare Act
-2. **Learning layer (Sprints 1–5)** — Learning Units, progress, reminders, and a small web UI on top of the reviewed corpus
+2. **Learning layer (Sprints 1–20)** — Learning Units, progress, reminders, and a web UI aligned to the design prototype
 
 Each sprint ships on its **own git branch** and updates this README so documentation stays in sync with merged capability.
 
@@ -18,6 +18,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 3 | `cursor/sprint-3-sqlite-scheduler-1a75` | Done |
 | Sprint 4 | `cursor/sprint-4-learn-home-ui-1a75` | Done |
 | Sprint 5 | `cursor/sprint-5-browse-search-progress-1a75` | Done |
+| Sprint 6 | `cursor/sprint-6-design-tokens-1a75` | In progress |
+| Sprints 7–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -185,6 +187,15 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Final metrics: [`docs/learning-layer-report.md`](docs/learning-layer-report.md)
 - Tests: `tests/test_web_sprint5.py`
 
+### Sprint 6 — Design tokens ✅
+
+**Branch:** `cursor/sprint-6-design-tokens-1a75`
+
+- Design prototypes checked into [`docs/design/`](docs/design/) (interactive App, anatomy/mobile reference, HANDOFF, `support.js`)
+- CSS tokens match HANDOFF: ink `#141414`, muted `#6b6b6b`, faint `#9a9a9a`, hairline `#dcdcdc`, page `#ececea`, paper `#fff`, accent `#141414`, destructive `#B42318`
+- Flat page background (no cream gradients); square corners; primary CTAs use ink accent (legacy `.btn-green` aliases to accent)
+- Fraunces + Source Sans 3 unchanged; **no route or layout changes** (sheet chrome / Home restyle = Sprint 7–8)
+
 ### Split-choice behaviour (summary)
 
 1. Opening a split-capable clause with no preference → **Choose** screen  
@@ -214,13 +225,86 @@ Editorial metadata, simplified explanations and memorisation aids must remain se
 
 ## Installation
 
+Needs **Python 3.10+** (3.9 will fail with `requires a different Python`).
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python3.12 -m venv .venv          # or: python3 -m venv .venv  if that is 3.10+
+source .venv/bin/activate         # Windows: .venv\Scripts\activate
+python --version                  # must show 3.10 / 3.11 / 3.12 …
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r requirements-ci.txt   # learning UI + tests (no Docling)
 pip install -e .
 ```
+
+For the full PDF pipeline you need `pip install -r requirements.txt` instead (heavier).
+
+### Try a sprint branch on your Mac (step by step)
+
+Example: **Sprint 6** design tokens ([PR #10](https://github.com/sanjisworking-commits/memorize_the_c/pull/10)).
+
+1. Open Terminal and go to your clone (the folder that contains `pyproject.toml`):
+
+```bash
+cd /Users/sanjwork/Desktop/MemorizeTheC/memorize_the_c/memorize_the_c
+```
+
+2. Activate the venv (recreate it with Python 3.12 if you still have 3.9):
+
+```bash
+source .venv/bin/activate
+python --version
+```
+
+3. Fetch and check out the sprint branch:
+
+```bash
+git fetch origin
+git checkout cursor/sprint-6-design-tokens-1a75
+git pull origin cursor/sprint-6-design-tokens-1a75
+```
+
+4. Re-install the package (needed after switching branches):
+
+```bash
+pip install -r requirements-ci.txt
+pip install -e .
+```
+
+5. Run regression tests (**required before merging any sprint into `main`**):
+
+```bash
+python -m pytest -m "not integration" -q
+```
+
+All tests must pass. If anything fails, do not merge.
+
+6. Start the learning UI:
+
+```bash
+python -m constitution_memorizer.cli serve --host 127.0.0.1 --port 8000
+```
+
+7. In your browser open: **http://127.0.0.1:8000/**
+
+You should see a flat grey page background (`#ececea`) and **black** Done / Continue buttons (not green). Stop the server with `Ctrl+C` in the Terminal.
+
+If port 8000 is busy:
+
+```bash
+python -m constitution_memorizer.cli serve --host 127.0.0.1 --port 8001
+```
+
+Then open `http://127.0.0.1:8001/`.
+
+### Merge gate (every sprint)
+
+Before merging a sprint PR into `main`:
+
+1. `python -m pytest -m "not integration" -q` — must be green  
+2. Spot-check the UI against that sprint’s scope (Sprint 6 = tokens only)  
+3. Then merge the PR on GitHub  
+
+Do not start the next sprint until the previous one is merged (or explicitly stacked).
 
 ## Place the Bare Act PDF
 

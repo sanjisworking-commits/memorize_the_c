@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ececea;font-family:"Source Sans 3","Segoe UI",sans-serif;color:#141414}
+a{color:#141414}a:hover{color:#0E7569}
+textarea::placeholder{color:#b5b5b3}
+</style>
+</helmet>
+<div style="min-height:100vh;padding:28px 16px;box-sizing:border-box">
+<div style="width:min(980px,100%);margin:0 auto;background:#fff;border:1px solid #cfcfcd;box-shadow:0 2px 10px rgba(0,0,0,0.05)">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;padding:18px 32px;border-bottom:1px solid #141414;flex-wrap:wrap">
+    <span onClick="{{goHome}}" style="font-family:Fraunces,Georgia,serif;font-size:18px;font-weight:700;letter-spacing:-0.02em;color:#141414;cursor:pointer">Constitution Memorizer</span>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      <sc-for list="{{navItems}}" as="n" hint-placeholder-count="5">
+        <button onClick="{{n.pick}}" style="{{n.style}}">{{n.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{isHome}}" hint-placeholder-val="{{true}}">
+  <div data-screen-label="Home" style="max-width:720px;margin:0 auto;padding:36px 32px 48px">
+    <p style="margin:0 0 4px;text-transform:uppercase;letter-spacing:0.08em;font-size:11.5px;font-weight:700;color:#6b6b6b">Monday, 20 July 2026</p>
+    <h1 style="font-family:Fraunces,Georgia,serif;font-size:42px;line-height:1.08;letter-spacing:-0.02em;margin:0 0 6px;font-weight:700">Today</h1>
+    <p style="margin:0 0 26px;color:#6b6b6b;font-size:16px">{{homeLede}}</p>
+    <sc-if value="{{hasContinue}}" hint-placeholder-val="{{true}}">
+    <div style="border:1px solid #141414;padding:22px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <p style="margin:0 0 2px;text-transform:uppercase;letter-spacing:0.08em;font-size:10.5px;font-weight:700;color:#6b6b6b">Continue · {{continueKind}}</p>
+        <p style="font-family:Fraunces,Georgia,serif;font-size:23px;font-weight:700;margin:0 0 2px">{{continueTitle}}</p>
+        <p style="margin:0;color:#6b6b6b;font-size:13.5px">{{continueMeta}}</p>
+      </div>
+      <button onClick="{{continuePick}}" style="{{ctaStyle}}">Continue</button>
+    </div>
+    </sc-if>
+    <sc-if value="{{allDone}}" hint-placeholder-val="{{false}}">
+    <div style="border:1px solid #141414;padding:26px 24px;text-align:center">
+      <p style="font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:700;margin:0 0 4px">All caught up</p>
+      <p style="margin:0;color:#6b6b6b;font-size:14px">Nothing due today. Next review lands Jul 24.</p>
+    </div>
+    </sc-if>
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:20px;margin:32px 0 12px;font-weight:700">Due</h2>
+    <div style="display:grid;border-top:1px solid #dcdcdc">
+      <sc-for list="{{dueRows}}" as="d" hint-placeholder-count="5">
+        <div onClick="{{d.pick}}" style="display:flex;align-items:baseline;gap:14px;padding:13px 2px;border-bottom:1px solid #dcdcdc;cursor:pointer" style-hover="background:#f7f7f6">
+          <span style="{{d.dotStyle}}"></span>
+          <span style="font-weight:700;font-size:15px;flex:1">{{d.title}}</span>
+          <span style="font-size:12.5px;color:#6b6b6b;text-transform:uppercase;letter-spacing:0.05em">{{d.kind}}</span>
+          <span style="font-size:12.5px;color:#9a9a9a;width:34px;text-align:right">{{d.time}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-top:30px;padding-top:18px;border-top:1px solid #dcdcdc;flex-wrap:wrap">
+      <span style="font-size:13px;color:#6b6b6b">{{statLine}}</span>
+      <button onClick="{{resetAll}}" style="background:none;border:none;padding:0;font:inherit;color:#B42318;font-size:13px;font-weight:600;cursor:pointer" style-hover="text-decoration:underline">Reset all progress</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isLearn}}" hint-placeholder-val="{{false}}">
+  <div data-screen-label="Learn" style="max-width:720px;margin:0 auto;padding:30px 32px 44px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b6b6b">Session</span>
+      <span style="font-size:13px;color:#6b6b6b">{{sessionCount}}</span>
+    </div>
+    <div style="height:3px;background:#e5e5e4;margin:8px 0 28px"><div style="{{sessionBarStyle}}"></div></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;flex-wrap:wrap">
+      <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#fff;background:#141414;padding:3px 8px">{{unitKind}}</span>
+      <span style="font-size:12px;color:#6b6b6b">{{unitCrumb}}</span>
+    </div>
+    <h1 style="font-family:Fraunces,Georgia,serif;font-size:37px;line-height:1.1;letter-spacing:-0.02em;margin:0 0 4px;font-weight:700">{{unitTitle}}</h1>
+    <p style="margin:0 0 16px;color:#6b6b6b;font-size:16px">{{unitSub}}</p>
+    <sc-if value="{{hasSiblings}}" hint-placeholder-val="{{false}}">
+    <div style="display:flex;gap:4px;margin:0 0 6px;flex-wrap:wrap">
+      <sc-for list="{{siblingChips}}" as="ch" hint-placeholder-count="4">
+        <button onClick="{{ch.pick}}" style="{{ch.style}}">{{ch.label}}</button>
+      </sc-for>
+    </div>
+    </sc-if>
+    <div style="display:flex;gap:2px;border-bottom:1px solid #dcdcdc;margin-top:12px;flex-wrap:wrap">
+      <sc-for list="{{modes}}" as="m" hint-placeholder-count="6">
+        <button onClick="{{m.pick}}" style="{{m.style}}">{{m.label}}</button>
+      </sc-for>
+    </div>
+    <div style="min-height:200px;padding:24px 0 4px">
+      <sc-if value="{{hasStem}}" hint-placeholder-val="{{false}}">
+        <p style="font-size:14px;line-height:1.6;margin:0 0 12px;color:#9a9a9a">{{stemText}}</p>
+      </sc-if>
+      <sc-if value="{{isRead}}" hint-placeholder-val="{{true}}">
+        <p style="font-size:18px;line-height:1.7;margin:0;white-space:pre-wrap">{{unitText}}</p>
+        <p style="font-size:13px;color:#9a9a9a;margin:18px 0 0">Bare Act wording, verbatim. Read it twice, then pick a recall mode.</p>
+      </sc-if>
+      <sc-if value="{{isCloze}}" hint-placeholder-val="{{false}}">
+        <div style="font-size:18px;line-height:1.95">
+          <sc-for list="{{clozeWords}}" as="w" hint-placeholder-count="10"><span onClick="{{w.reveal}}" style="{{w.style}}">{{w.text}}</span></sc-for>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:20px">
+          <button onClick="{{revealAllFn}}" style="background:none;border:1px solid #c9c9c7;padding:8px 14px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="border-color:#141414">Reveal all</button>
+          <button onClick="{{rehideFn}}" style="background:none;border:1px solid #c9c9c7;padding:8px 14px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="border-color:#141414">Hide again</button>
+          <span style="font-size:13px;color:#6b6b6b">{{clozeStatus}}</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{isLetters}}" hint-placeholder-val="{{false}}">
+        <p style="{{flStyle}}">{{flText}}</p>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:20px">
+          <button onClick="{{flToggle}}" style="background:none;border:1px solid #c9c9c7;padding:8px 14px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="border-color:#141414">{{flBtnLabel}}</button>
+          <span style="font-size:13px;color:#6b6b6b">Recite from the initials, then check yourself.</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{isType}}" hint-placeholder-val="{{false}}">
+        <p style="font-size:13px;color:#6b6b6b;margin:0 0 12px">Type it from memory — words are checked as you go.</p>
+        <textarea value="{{typed}}" onChange="{{onType}}" placeholder="Start typing…" style="width:100%;box-sizing:border-box;min-height:100px;padding:14px;border:1px solid #141414;font:inherit;font-size:16px;line-height:1.6;resize:vertical;background:#fff;color:#141414;outline:none"></textarea>
+        <div style="margin-top:14px;font-size:16px;line-height:1.8;min-height:28px">
+          <sc-for list="{{diffWords}}" as="w"><span style="{{w.style}}">{{w.text}}</span></sc-for>
+        </div>
+        <div style="font-size:13px;color:#6b6b6b;margin-top:6px">{{typeStats}}</div>
+      </sc-if>
+      <sc-if value="{{isRecite}}" hint-placeholder-val="{{false}}">
+        <p style="{{reciteStyle}}">{{unitText}}</p>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:22px">
+          <button onClick="{{recToggle}}" style="{{recBtnStyle}}">{{recLabel}}</button>
+          <button onMouseDown="{{peekOn}}" onMouseUp="{{peekOff}}" onMouseLeave="{{peekOff}}" onTouchStart="{{peekOn}}" onTouchEnd="{{peekOff}}" style="background:none;border:1px solid #c9c9c7;padding:8px 14px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="border-color:#141414">Hold to peek</button>
+          <span style="font-size:13px;color:#9a9a9a">Recite aloud with the text hidden.</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{isCard}}" hint-placeholder-val="{{false}}">
+        <div onClick="{{flip}}" style="border:1px solid #141414;min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;cursor:pointer;background:#fdfdfc">
+          <sc-if value="{{notFlipped}}" hint-placeholder-val="{{true}}">
+            <p style="margin:0 0 6px;text-transform:uppercase;letter-spacing:0.08em;font-size:11px;font-weight:700;color:#6b6b6b">{{unitKind}}</p>
+            <p style="font-family:Fraunces,Georgia,serif;font-size:29px;font-weight:700;margin:0 0 6px">{{unitTitle}}</p>
+            <p style="margin:0 0 18px;color:#6b6b6b;font-size:15px">{{unitSub}}</p>
+            <p style="margin:0;font-size:12.5px;color:#9a9a9a">Recite it, then tap to check</p>
+          </sc-if>
+          <sc-if value="{{flipped}}" hint-placeholder-val="{{false}}">
+            <p style="font-size:16.5px;line-height:1.65;margin:0 0 16px;max-width:540px;white-space:pre-wrap">{{unitText}}</p>
+            <p style="margin:0;font-size:12.5px;color:#9a9a9a">Tap to flip back</p>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:26px;padding-top:22px;border-top:1px solid #dcdcdc">
+      <button onClick="{{doneFn}}" style="{{ctaStyle}}">{{doneLabel}}</button>
+      <button onClick="{{againFn}}" style="background:none;border:1px solid #c9c9c7;padding:12px 18px;font:inherit;font-size:14px;font-weight:600;cursor:pointer" style-hover="border-color:#141414">Again tomorrow</button>
+      <span style="flex:1;font-size:13px;color:#6b6b6b">{{unitMeta}}</span>
+      <button onClick="{{resetUnitFn}}" style="background:none;border:none;padding:0;font:inherit;color:#B42318;font-size:13px;font-weight:600;cursor:pointer" style-hover="text-decoration:underline">Reset unit</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isChoose}}" hint-placeholder-val="{{false}}">
+  <div data-screen-label="Choose" style="max-width:640px;margin:0 auto;padding:44px 32px 56px">
+    <p style="margin:0 0 6px;text-transform:uppercase;letter-spacing:0.08em;font-size:11.5px;font-weight:700;color:#6b6b6b">Split choice</p>
+    <h1 style="font-family:Fraunces,Georgia,serif;font-size:37px;line-height:1.1;letter-spacing:-0.02em;margin:0 0 8px;font-weight:700">{{chooseTitle}}</h1>
+    <p style="margin:0 0 26px;color:#6b6b6b;font-size:16px">This clause has lettered parts (a), (b), …. Learn it as one piece, or split into letters?</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button onClick="{{chooseWhole}}" style="{{ctaStyle}}">Learn whole clause</button>
+      <button onClick="{{chooseLetters}}" style="{{ctaOutlineStyle}}">Split into letters</button>
+    </div>
+    <p style="margin:22px 0 0;font-size:13px;color:#6b6b6b">{{chooseCount}} letter units · your choice is remembered for this clause</p>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isBrowse}}" hint-placeholder-val="{{false}}">
+  <div data-screen-label="Browse" style="max-width:760px;margin:0 auto;padding:36px 32px 48px">
+    <h1 style="font-family:Fraunces,Georgia,serif;font-size:42px;line-height:1.08;letter-spacing:-0.02em;margin:0 0 6px;font-weight:700">Browse</h1>
+    <p style="margin:0 0 26px;color:#6b6b6b;font-size:16px">Part III — Fundamental Rights. Open an Article, then learn any clause from inside it.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+      <sc-for list="{{browseArticles}}" as="b" hint-placeholder-count="8">
+        <div onClick="{{b.pick}}" style="{{b.style}}">
+          <div style="font-weight:700;font-size:14.5px">{{b.label}}</div>
+          <div style="font-size:11.5px;color:#6b6b6b;line-height:1.35;margin-top:2px">{{b.sub}}</div>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:18px 0 0;font-size:12.5px;color:#9a9a9a">This prototype tracks Articles 14, 15, 19 and 21 — the rest of the corpus (930 units) follows the same pattern.</p>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isArticle}}" hint-placeholder-val="{{false}}">
+  <div data-screen-label="Browse article" style="max-width:720px;margin:0 auto;padding:34px 32px 48px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">
+      <div style="flex:1;min-width:280px">
+        <p style="margin:0 0 4px;text-transform:uppercase;letter-spacing:0.08em;font-size:11.5px;font-weight:700;color:#6b6b6b">Browse · Part III — Fundamental Rights</p>
+        <h1 style="font-family:Fraunces,Georgia,serif;font-size:36px;line-height:1.1;letter-spacing:-0.02em;margin:0 0 4px;font-weight:700">{{artTitle}}</h1>
+        <p style="margin:0;color:#6b6b6b;font-size:16px">{{artSub}}</p>
+      </div>
+      <button onClick="{{practiceArticle}}" style="{{ctaStyle}}">Practice article</button>
+    </div>
+    <p style="margin:14px 0 20px;font-size:12.5px;color:#9a9a9a">{{artMeta}}</p>
+    <div style="border-top:1px solid #141414">
+      <sc-for list="{{articleRows}}" as="r" hint-placeholder-count="4">
+        <div style="{{r.rowStyle}}" style-hover="background:#f7f7f6">
+          <span style="{{r.dotStyle}}"></span>
+          <p style="flex:1;font-size:16px;line-height:1.65;margin:0"><span style="font-weight:700">{{r.prefix}}</span> {{r.body}}</p>
+          <button onClick="{{r.pick}}" style="{{r.btnStyle}}">{{r.btnLabel}}</button>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:22px">
+      <button onClick="{{goBrowse}}" style="background:none;border:1px solid #c9c9c7;padding:10px 16px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="border-color:#141414">All articles</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isCalendar}}" hint-placeholder-val="{{false}}">
+  <div data-screen-label="Calendar" style="padding:34px 32px 46px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap;margin:0 0 6px">
+      <h1 style="font-family:Fraunces,Georgia,serif;font-size:38px;line-height:1.08;letter-spacing:-0.02em;margin:0;font-weight:700">July 2026</h1>
+      <div style="display:flex;gap:8px">
+        <button style="background:none;border:1px solid #c9c9c7;width:36px;height:36px;font:inherit;font-size:15px;font-weight:700;cursor:pointer" style-hover="border-color:#141414">←</button>
+        <button style="background:none;border:1px solid #c9c9c7;padding:0 14px;height:36px;font:inherit;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#141414">Today</button>
+        <button style="background:none;border:1px solid #c9c9c7;width:36px;height:36px;font:inherit;font-size:15px;font-weight:700;cursor:pointer" style-hover="border-color:#141414">→</button>
+      </div>
+    </div>
+    <p style="margin:0 0 16px;color:#6b6b6b;font-size:15px">9 units memorized this month · 11 reviews completed · 8 reviews scheduled</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 16px;font-size:12px;color:#6b6b6b;align-items:center">
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#141414;display:inline-block"></span>Memorized</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#8f8f8d;display:inline-block"></span>Review done</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="{{legendDueStyle}}"></span>Review due</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#fff;border:1px dashed #9a9a9a;box-sizing:border-box;display:inline-block"></span>Scheduled</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid #dcdcdc;border-top:1px solid #dcdcdc">
+      <sc-for list="{{calDows}}" as="d" hint-placeholder-count="7">
+        <div style="padding:8px 10px;border-right:1px solid #dcdcdc;border-bottom:1px solid #141414;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b6b6b;background:#fafaf9">{{d}}</div>
+      </sc-for>
+      <sc-for list="{{calDays}}" as="day" hint-placeholder-count="35">
+        <div style="{{day.cellStyle}}">
+          <div style="{{day.numStyle}}">{{day.num}}</div>
+          <sc-for list="{{day.events}}" as="e"><button onClick="{{e.pick}}" title="{{e.full}}" style="{{e.style}}">{{e.label}}</button></sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isProgress}}" hint-placeholder-val="{{false}}">
+  <div data-screen-label="Progress" style="max-width:820px;margin:0 auto;padding:36px 32px 48px">
+    <h1 style="font-family:Fraunces,Georgia,serif;font-size:42px;line-height:1.08;letter-spacing:-0.02em;margin:0 0 6px;font-weight:700">Progress</h1>
+    <p style="margin:0 0 26px;color:#6b6b6b;font-size:16px">{{progressLede}}</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#dcdcdc;border:1px solid #dcdcdc;margin:0 0 32px">
+      <sc-for list="{{statCards}}" as="s" hint-placeholder-count="4">
+        <div style="background:#fff;padding:16px 18px">
+          <div style="font-family:Fraunces,Georgia,serif;font-size:27px;font-weight:700">{{s.value}}</div>
+          <div style="font-size:12px;color:#6b6b6b;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">{{s.label}}</div>
+        </div>
+      </sc-for>
+    </div>
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:20px;margin:0 0 12px;font-weight:700">Mastery map</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 18px;font-size:12px;color:#6b6b6b;align-items:center">
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#fff;border:1px solid #d0d0d0;box-sizing:border-box;display:inline-block"></span>New</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#d8d8d6;display:inline-block"></span>Learning</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#8f8f8d;display:inline-block"></span>Review</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#141414;display:inline-block"></span>Mastered</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="{{legendDueStyle}}"></span>Due / continue</span>
+    </div>
+    <sc-for list="{{partsMap}}" as="p" hint-placeholder-count="4">
+      <div style="display:flex;gap:18px;padding:14px 0;border-bottom:1px solid #e5e5e4">
+        <div style="width:180px;flex:none">
+          <div style="font-weight:700;font-size:14px">Part {{p.num}}</div>
+          <div style="font-size:12px;color:#6b6b6b;line-height:1.35">{{p.name}}</div>
+          <div style="font-size:11px;color:#9a9a9a;margin-top:2px">Articles {{p.range}}</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:3px;align-content:flex-start">
+          <sc-for list="{{p.cells}}" as="c" hint-placeholder-count="8"><span onClick="{{c.pick}}" title="{{c.title}}" style="{{c.style}}"></span></sc-for>
+        </div>
+      </div>
+    </sc-for>
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:20px;margin:32px 0 12px;font-weight:700">Tracked articles</h2>
+    <div style="display:grid;border-top:1px solid #dcdcdc">
+      <sc-for list="{{inProgress}}" as="r" hint-placeholder-count="4">
+        <div onClick="{{r.pick}}" style="display:flex;align-items:center;gap:16px;padding:13px 2px;border-bottom:1px solid #dcdcdc;cursor:pointer" style-hover="background:#f7f7f6">
+          <span style="font-weight:700;font-size:15px;width:110px;flex:none">{{r.title}}</span>
+          <span style="flex:1;height:4px;background:#e5e5e4;display:block"><span style="{{r.barStyle}}"></span></span>
+          <span style="font-size:13px;color:#6b6b6b;width:90px;text-align:right;flex:none">{{r.frac}}</span>
+          <span style="{{r.tagStyle}}">{{r.tag}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+</div>
+<p style="max-width:980px;margin:14px auto 0;font-size:11.5px;color:#9a9a9a;text-align:center">Prototype — tracks Articles 14, 15, 19, 21. Bare Act text verbatim; scheduling follows the 1 → 3 → 7 → 14 → 30 → 60 day ladder.</p>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#141414&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#0E7569&quot;,&quot;#B42318&quot;,&quot;#141414&quot;],&quot;section&quot;:&quot;Theme&quot;},&quot;clozeDensity&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;medium&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;medium&quot;,&quot;heavy&quot;],&quot;section&quot;:&quot;Cloze mode&quot;}}">
+class Component extends DCLogic {
+  state = { page: 'home', unitId: 'art14', chooseId: null, browseArt: null, mode: 'read', revealed: {}, flFull: false, typed: '', flipped: false, peek: false, recOn: false, completed: {}, pref: {} };
+  units() {
+    if (this._U) return this._U;
+    const stem19 = 'All citizens shall have the right\u2014';
+    const stem152 = 'No citizen shall, on grounds only of religion, race, caste, sex, place of birth or any of them, be subject to any disability, liability, restriction or condition with regard to\u2014';
+    const L19 = { a: 'to freedom of speech and expression;', b: 'to assemble peaceably and without arms;', c: 'to form associations or unions;', d: 'to move freely throughout the territory of India;', e: 'to reside and settle in any part of the territory of India; and', g: 'to practise any profession, or to carry on any occupation, trade or business.' };
+    const L152 = { a: 'access to shops, public restaurants, hotels and places of public entertainment; or', b: 'the use of wells, tanks, bathing ghats, roads and places of public resort maintained wholly or partly out of State funds or dedicated to the use of the general public.' };
+    const U = {};
+    U.art14 = { id: 'art14', kind: 'Article', title: 'Article 14', sub: 'Equality before law.', art: '14', text: 'The State shall not deny to any person equality before the law or the equal protection of the laws within the territory of India.', next: 'art15-1', time: '35s', diff: '2/5' };
+    U['art15-1'] = { id: 'art15-1', kind: 'Clause', title: 'Article 15(1)', sub: 'Prohibition of discrimination on grounds of religion, race, caste, sex or place of birth.', art: '15', prefix: '(1)', text: 'The State shall not discriminate against any citizen on grounds only of religion, race, caste, sex, place of birth or any of them.', next: 'art15-2', clauses: ['art15-1', 'art15-2'], time: '25s', diff: '2/5' };
+    U['art15-2'] = { id: 'art15-2', kind: 'Clause', title: 'Article 15(2)', sub: 'Prohibition of discrimination on grounds of religion, race, caste, sex or place of birth.', art: '15', prefix: '(2)', stem: stem152, split: true, children: ['art15-2a', 'art15-2b'], text: stem152 + '\n(a) ' + L152.a + '\n(b) ' + L152.b, next: 'art19-1', clauses: ['art15-1', 'art15-2'], time: '55s', diff: '4/5' };
+    U['art15-2a'] = { id: 'art15-2a', kind: 'Subclause', title: 'Article 15(2)(a)', sub: 'Prohibition of discrimination…', art: '15', letter: '(a)', parent: 'art15-2', text: L152.a, nextLetter: 'art15-2b', time: '15s', diff: '1/5' };
+    U['art15-2b'] = { id: 'art15-2b', kind: 'Subclause', title: 'Article 15(2)(b)', sub: 'Prohibition of discrimination…', art: '15', letter: '(b)', parent: 'art15-2', text: L152.b, nextLetter: null, time: '20s', diff: '2/5' };
+    U['art19-1'] = { id: 'art19-1', kind: 'Clause', title: 'Article 19(1)', sub: 'Protection of certain rights regarding freedom of speech, etc.', art: '19', prefix: '(1)', stem: stem19, split: true, children: ['art19-1a', 'art19-1b', 'art19-1c', 'art19-1d', 'art19-1e', 'art19-1g'], text: stem19 + Object.entries(L19).map(([k, v]) => '\n(' + k + ') ' + v).join(''), next: 'art21', clauses: ['art19-1'], time: '80s', diff: '5/5' };
+    Object.entries(L19).forEach(([k, v], i, arr) => {
+      U['art19-1' + k] = { id: 'art19-1' + k, kind: 'Subclause', title: 'Article 19(1)(' + k + ')', sub: 'Protection of certain rights regarding freedom of speech, etc.', art: '19', letter: '(' + k + ')', parent: 'art19-1', text: v, nextLetter: i < arr.length - 1 ? 'art19-1' + arr[i + 1][0] : null, time: '15s', diff: '1/5' };
+    });
+    U.art21 = { id: 'art21', kind: 'Article', title: 'Article 21', sub: 'Protection of life and personal liberty.', art: '21', text: 'No person shall be deprived of his life or personal liberty except according to procedure established by law.', next: null, time: '25s', diff: '2/5' };
+    this._U = U;
+    return U;
+  }
+  chain() {
+    const U = this.units(), pref = this.state.pref, out = [];
+    let id = 'art14';
+    while (id) {
+      const u = U[id];
+      if (u.split && pref[id] === 'letters') u.children.forEach(c => out.push(c));
+      else out.push(id);
+      id = u.next;
+    }
+    return out;
+  }
+  openUnit(id) {
+    const U = this.units(), u = U[id];
+    if (!u) return;
+    if (u.split && !this.state.pref[id]) { this.setState({ page: 'choose', chooseId: id }); return; }
+    if (u.split && this.state.pref[id] === 'letters') {
+      const first = u.children.find(c => !this.state.completed[c]) || u.children[0];
+      this.openUnit(first); return;
+    }
+    const pref = u.kind === 'Subclause' ? { ...this.state.pref, [u.parent]: 'letters' } : this.state.pref;
+    this.setState({ page: 'learn', unitId: id, pref, mode: 'read', revealed: {}, flFull: false, typed: '', flipped: false, peek: false, recOn: false });
+  }
+  nextOf(id) {
+    const U = this.units(), u = U[id];
+    if (u.kind === 'Subclause') return u.nextLetter || U[u.parent].next;
+    return u.next;
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#0E7569';
+    const U = this.units();
+    const st = this.state;
+    const chain = this.chain();
+    const doneCount = chain.filter(id => st.completed[id]).length;
+    const continueId = chain.find(id => !st.completed[id]) || null;
+    const ctaStyle = 'background:' + accent + ';color:#fff;border:1px solid transparent;padding:12px 26px;font:inherit;font-size:15px;font-weight:700;cursor:pointer';
+    const ctaOutlineStyle = 'background:none;color:' + accent + ';border:1px solid ' + accent + ';padding:12px 26px;font:inherit;font-size:15px;font-weight:700;cursor:pointer';
+    const navPages = [['home', 'Home'], ['learn', 'Learn'], ['calendar', 'Calendar'], ['progress', 'Progress'], ['browse', 'Browse']];
+    const activeNav = st.page === 'choose' ? 'learn' : st.page === 'article' ? 'browse' : st.page;
+    const navItems = navPages.map(([p, label]) => ({
+      label,
+      pick: () => { if (p === 'learn') { this.openUnit(continueId || st.unitId); } else this.setState({ page: p, browseArt: null }); },
+      style: activeNav === p
+        ? 'background:#141414;color:#fff;border:none;padding:7px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer'
+        : 'background:none;color:#6b6b6b;border:none;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer'
+    }));
+    const dot = (kind) => kind === 'done' ? 'width:10px;height:10px;flex:none;background:#141414;display:inline-block;align-self:center'
+      : kind === 'due' ? 'width:10px;height:10px;flex:none;background:#fff;border:2px solid ' + accent + ';box-sizing:border-box;display:inline-block;align-self:center'
+      : 'width:10px;height:10px;flex:none;background:#fff;border:1px solid #d0d0d0;box-sizing:border-box;display:inline-block;align-self:center';
+    const dueIds = chain.filter(id => !st.completed[id]).slice(0, 6);
+    const dueRows = dueIds.map((id, i) => ({
+      title: U[id].title, kind: U[id].kind, time: U[id].time,
+      dotStyle: dot(i < 2 ? 'due' : 'new'),
+      pick: () => this.openUnit(id)
+    }));
+    const totalSec = dueIds.reduce((a, id) => a + parseInt(U[id].time), 0);
+    // ---- learn vals
+    const cur = U[st.unitId] || U.art14;
+    const words = cur.text.split(/\s+/);
+    const density = this.props.clozeDensity ?? 'medium';
+    const thresh = density === 'light' ? 8 : density === 'heavy' ? 4 : 6;
+    const strip = w => w.replace(/[^A-Za-z]/g, '');
+    let hiddenCount = 0, revealedCount = 0;
+    const clozeWords = words.map((w, i) => {
+      const hide = strip(w).length >= thresh;
+      if (!hide) return { text: w + ' ', style: 'cursor:default', reveal: () => {} };
+      hiddenCount++;
+      if (st.revealed[i]) { revealedCount++; return { text: w + ' ', style: 'color:' + accent + ';font-weight:600', reveal: () => {} }; }
+      return { text: w + ' ', style: 'color:transparent;border-bottom:2px solid #141414;cursor:pointer;user-select:none', reveal: () => this.setState(s => ({ revealed: { ...s.revealed, [i]: true } })) };
+    });
+    const allIdx = {};
+    words.forEach((w, i) => { if (strip(w).length >= thresh) allIdx[i] = true; });
+    const flText = st.flFull ? cur.text : words.map(w => { const m = w.match(/^[A-Za-z]/); return m ? m[0] + w.replace(/[A-Za-z]+/g, '').replace(/[^.,;\u2014()]/g, '') : w; }).join('\u2002');
+    const norm = t => t.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const typedWords = st.typed.trim() ? st.typed.trim().split(/\s+/) : [];
+    let correct = 0;
+    const diffWords = words.map((w, i) => {
+      if (i >= typedWords.length) return { text: w + ' ', style: 'color:#c4c4c2' };
+      if (norm(typedWords[i]) === norm(w)) { correct++; return { text: w + ' ', style: 'color:#141414' }; }
+      return { text: w + ' ', style: 'color:#B42318;text-decoration:line-through' };
+    });
+    const modeList = [['read', 'Read'], ['cloze', 'Cloze'], ['letters', 'Letters'], ['type', 'Type'], ['recite', 'Recite'], ['card', 'Card']];
+    const modes = modeList.map(([id, label]) => ({
+      label, pick: () => this.setState({ mode: id }),
+      style: st.mode === id
+        ? 'background:none;border:none;border-bottom:2px solid #141414;margin-bottom:-1px;padding:12px 14px;font:inherit;font-size:14px;font-weight:700;color:#141414;cursor:pointer'
+        : 'background:none;border:none;border-bottom:2px solid transparent;padding:12px 14px;font:inherit;font-size:14px;font-weight:600;color:#6b6b6b;cursor:pointer'
+    }));
+    let siblingChips = [];
+    if (cur.kind === 'Clause' && cur.clauses) siblingChips = cur.clauses.map(cid => ({
+      label: U[cid].prefix, pick: () => this.openUnit(cid),
+      style: (cid === cur.id ? 'background:#141414;color:#fff;border:1px solid #141414;' : 'background:none;color:#141414;border:1px solid #c9c9c7;') + 'width:38px;height:30px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer'
+    }));
+    if (cur.kind === 'Subclause') siblingChips = U[cur.parent].children.map(cid => ({
+      label: U[cid].letter, pick: () => this.openUnit(cid),
+      style: (cid === cur.id ? 'background:' + accent + ';color:#fff;border:1px solid ' + accent + ';' : (st.completed[cid] ? 'background:#141414;color:#fff;border:1px solid #141414;' : 'background:none;color:#141414;border:1px solid #c9c9c7;')) + 'width:38px;height:30px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer'
+    }));
+    const crumbParts = { '14': 'Equality before law', '15': 'Prohibition of discrimination\u2026', '19': 'Freedom of speech, etc.', '21': 'Life and personal liberty' };
+    const nextId = this.nextOf(cur.id);
+    // ---- calendar
+    const chip = {
+      learned: 'display:block;width:100%;box-sizing:border-box;text-align:left;font:inherit;font-size:11px;font-weight:600;line-height:1.3;padding:2px 6px;margin-top:3px;background:#141414;color:#fff;border:none;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
+      reviewed: 'display:block;width:100%;box-sizing:border-box;text-align:left;font:inherit;font-size:11px;font-weight:600;line-height:1.3;padding:2px 6px;margin-top:3px;background:#8f8f8d;color:#fff;border:none;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
+      due: 'display:block;width:100%;box-sizing:border-box;text-align:left;font:inherit;font-size:11px;font-weight:700;line-height:1.3;padding:1px 5px;margin-top:3px;background:#fff;border:2px solid ' + accent + ';color:' + accent + ';cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
+      scheduled: 'display:block;width:100%;box-sizing:border-box;text-align:left;font:inherit;font-size:11px;font-weight:600;line-height:1.3;padding:2px 6px;margin-top:3px;background:#fff;border:1px dashed #9a9a9a;color:#6b6b6b;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
+    };
+    const ev = (kind, label, uid, full) => ({ label, full: full || label, style: chip[kind], pick: () => this.openUnit(uid) });
+    const log = {
+      2: [ev('learned', 'Art 14', 'art14', 'Article 14 \u2014 memorized')],
+      3: [ev('reviewed', 'Art 14 \u2713', 'art14', '1-day review done')],
+      6: [ev('learned', 'Art 15(1)', 'art15-1'), ev('reviewed', 'Art 14 \u2713', 'art14', '3-day review done')],
+      7: [ev('reviewed', 'Art 15(1) \u2713', 'art15-1', '1-day review done')],
+      10: [ev('learned', 'Art 15(2)', 'art15-2')],
+      11: [ev('reviewed', 'Art 15(2) \u2713', 'art15-2', '1-day review done')],
+      13: [ev('learned', 'Art 19(1)(a)', 'art19-1a'), ev('learned', 'Art 19(1)(b)', 'art19-1b'), ev('reviewed', 'Art 14 \u2713', 'art14', '7-day review done')],
+      14: [ev('reviewed', 'Art 19(1)(a) \u2713', 'art19-1a', '1-day review done'), ev('reviewed', 'Art 19(1)(b) \u2713', 'art19-1b', '1-day review done')],
+      16: [ev('reviewed', 'Art 19(1)(a) \u2713', 'art19-1a', '3-day review done'), ev('reviewed', 'Art 15(2) \u2713', 'art15-2', '3-day review done')],
+      17: [ev('learned', 'Art 21', 'art21')],
+      18: [ev('reviewed', 'Art 21 \u2713', 'art21', '1-day review done')],
+      20: [ev('due', 'Art 15(2)', 'art15-2', '7-day review due'), ev('due', 'Art 19(1)(a)', 'art19-1a', '7-day review due')],
+      21: [ev('scheduled', 'Art 21', 'art21', '3-day review')],
+      24: [ev('scheduled', 'Art 14', 'art14', '14-day review')],
+      27: [ev('scheduled', 'Art 19(1)(b)', 'art19-1b', '7-day review'), ev('scheduled', 'Art 21', 'art21', '7-day review')],
+      30: [ev('scheduled', 'Art 15(1)', 'art15-1', '14-day review')]
+    };
+    const calDays = [];
+    const blank = { num: '', events: [], cellStyle: 'min-height:92px;padding:6px 8px;border-right:1px solid #dcdcdc;border-bottom:1px solid #dcdcdc;background:#fafaf9', numStyle: '' };
+    for (let i = 0; i < 3; i++) calDays.push(blank);
+    for (let d = 1; d <= 31; d++) {
+      const isToday = d === 20, isPast = d < 20;
+      calDays.push({
+        num: String(d), events: log[d] || [],
+        cellStyle: 'min-height:92px;padding:6px 8px;border-right:1px solid #dcdcdc;border-bottom:1px solid #dcdcdc;background:#fff;' + (isToday ? 'box-shadow:inset 0 0 0 2px ' + accent : ''),
+        numStyle: isToday ? 'font-size:12px;font-weight:700;color:#fff;background:' + accent + ';width:22px;height:22px;display:flex;align-items:center;justify-content:center'
+          : 'font-size:12px;font-weight:' + (isPast ? '600;color:#9a9a9a' : '700;color:#141414')
+      });
+    }
+    while (calDays.length % 7) calDays.push(blank);
+    // ---- progress
+    const trackedArts = ['14', '15', '19', '21'];
+    const artUnits = a => chain.filter(id => U[id].art === a);
+    const artState = a => {
+      const ids = artUnits(a);
+      const c = ids.filter(id => st.completed[id]).length;
+      if (ids.length && c === ids.length) return 'mastered';
+      if (continueId && U[continueId].art === a) return 'due';
+      if (c > 0) return 'review';
+      return 'new';
+    };
+    const cellS = {
+      new: 'width:16px;height:16px;background:#fff;border:1px solid #d0d0d0;box-sizing:border-box;display:inline-block',
+      learning: 'width:16px;height:16px;background:#d8d8d6;display:inline-block',
+      review: 'width:16px;height:16px;background:#8f8f8d;display:inline-block',
+      mastered: 'width:16px;height:16px;background:#141414;display:inline-block',
+      due: 'width:16px;height:16px;background:#fff;border:2px solid ' + accent + ';box-sizing:border-box;display:inline-block'
+    };
+    const partsData = [
+      ['I', 'The Union and its territory', '1\u20134', 1, 4],
+      ['II', 'Citizenship', '5\u201311', 5, 7],
+      ['III', 'Fundamental Rights', '12\u201335', 12, 24],
+      ['IV', 'Directive Principles', '36\u201351', 36, 16]
+    ];
+    const partsMap = partsData.map(([num, name, range, startArt, count]) => ({
+      num, name, range,
+      cells: Array.from({ length: count }, (_, i) => {
+        const artNo = String(startArt + i);
+        const tracked = trackedArts.includes(artNo);
+        const s = tracked ? artState(artNo) : 'new';
+        return {
+          title: 'Article ' + artNo + (tracked ? ' \u00b7 ' + s : ''),
+          style: cellS[s] + (tracked ? ';cursor:pointer' : ''),
+          pick: tracked ? () => this.openUnit(artUnits(artNo).find(id => !st.completed[id]) || artUnits(artNo)[0]) : () => {}
+        };
+      })
+    }));
+    const inProgress = trackedArts.map(a => {
+      const ids = artUnits(a), c = ids.filter(id => st.completed[id]).length;
+      const pct = ids.length ? Math.round(100 * c / ids.length) : 0;
+      const s = artState(a);
+      const pending = U['art' + a + '-1'] && U['art' + a + '-1'].split && !st.pref['art' + a + '-1'];
+      return {
+        title: 'Article ' + a, frac: c + '/' + ids.length + ' \u00b7 ' + pct + '%',
+        tag: s === 'mastered' ? 'mastered' : pending ? 'choice pending' : s === 'due' ? 'due' : '',
+        barStyle: 'display:block;height:4px;width:' + pct + '%;background:' + (s === 'mastered' ? '#141414' : '#8f8f8d'),
+        tagStyle: 'font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:' + (pending ? accent : '#141414') + ';width:110px;text-align:right;flex:none',
+        pick: () => this.openUnit(artUnits(a).find(id => !st.completed[id]) || artUnits(a)[0])
+      };
+    });
+    // ---- browse
+    const artInfo = { '14': 'Equality before law', '15': 'Prohibition of discrimination', '19': 'Freedom of speech, etc.', '21': 'Life and personal liberty' };
+    const p3 = Array.from({ length: 24 }, (_, i) => String(12 + i));
+    const browseArticles = p3.map(a => {
+      const tracked = trackedArts.includes(a);
+      return {
+        label: 'Article ' + a,
+        sub: tracked ? artInfo[a] : 'not in prototype',
+        pick: tracked ? () => this.setState({ page: 'article', browseArt: a }) : () => {},
+        style: tracked
+          ? 'border:1px solid #141414;background:#fff;padding:12px 14px;cursor:pointer'
+          : 'border:1px solid #e0e0de;background:#fafaf9;padding:12px 14px;color:#b5b5b3'
+      };
+    });
+    // browse article rows
+    const rowBase = 'display:flex;align-items:baseline;gap:14px;padding:14px 2px;border-bottom:1px solid #dcdcdc';
+    const learnBtn = 'flex:none;font:inherit;font-size:12.5px;font-weight:700;color:' + accent + ';background:none;border:1px solid ' + accent + ';padding:5px 12px;cursor:pointer';
+    const chooseBtn = 'flex:none;font:inherit;font-size:12.5px;font-weight:700;color:#141414;background:none;border:1px solid #141414;padding:5px 12px;cursor:pointer';
+    const rowsFor = a => {
+      const rows = [];
+      const push = (id, prefix, body, indent) => rows.push({
+        prefix, body,
+        rowStyle: rowBase + (indent ? ';padding-left:34px' : ''),
+        dotStyle: dot(st.completed[id] ? 'done' : (id === continueId ? 'due' : 'new')),
+        btnLabel: U[id].split && !st.pref[id] ? 'Choose' : 'Learn',
+        btnStyle: U[id].split && !st.pref[id] ? chooseBtn : learnBtn,
+        pick: () => this.openUnit(id)
+      });
+      if (a === '14') push('art14', '', U.art14.text, false);
+      if (a === '21') push('art21', '', U.art21.text, false);
+      if (a === '15') {
+        push('art15-1', '(1)', U['art15-1'].text, false);
+        push('art15-2', '(2)', U['art15-2'].stem, false);
+        U['art15-2'].children.forEach(c => push(c, U[c].letter, U[c].text, true));
+      }
+      if (a === '19') {
+        push('art19-1', '(1)', U['art19-1'].stem, false);
+        U['art19-1'].children.forEach(c => push(c, U[c].letter, U[c].text, true));
+      }
+      return rows;
+    };
+    const ba = st.browseArt;
+    const baUnits = ba ? artUnits(ba) : [];
+    const baDone = baUnits.filter(id => st.completed[id]).length;
+    const chooseU = st.chooseId ? U[st.chooseId] : null;
+    return {
+      accent, ctaStyle, ctaOutlineStyle, navItems,
+      goHome: () => this.setState({ page: 'home' }),
+      goBrowse: () => this.setState({ page: 'browse', browseArt: null }),
+      legendDueStyle: 'width:12px;height:12px;background:#fff;border:2px solid ' + accent + ';box-sizing:border-box;display:inline-block',
+      // home
+      isHome: st.page === 'home',
+      homeLede: dueIds.length ? dueIds.length + ' units due \u00b7 about ' + Math.max(1, Math.round(totalSec / 60)) + ' minute' + (totalSec >= 90 ? 's' : '') : 'Nothing due \u2014 you\u2019re ahead of the ladder.',
+      hasContinue: !!continueId, allDone: !continueId,
+      continueTitle: continueId ? U[continueId].title : '',
+      continueKind: continueId ? U[continueId].kind : '',
+      continueMeta: continueId ? (st.completed[continueId] ? 'review' : 'new') + ' \u00b7 ~' + U[continueId].time + ' \u00b7 difficulty ' + U[continueId].diff : '',
+      continuePick: () => this.openUnit(continueId),
+      dueRows,
+      statLine: doneCount + ' completed \u00b7 ' + (chain.length - doneCount) + ' remaining \u00b7 ' + Object.keys(st.pref).length + ' split choices',
+      resetAll: () => this.setState({ completed: {}, pref: {}, page: 'home' }),
+      // learn
+      isLearn: st.page === 'learn',
+      sessionCount: doneCount + ' of ' + chain.length,
+      sessionBarStyle: 'height:3px;background:' + accent + ';width:' + Math.round(100 * doneCount / chain.length) + '%',
+      unitKind: cur.kind,
+      unitCrumb: 'Part III \u2014 Fundamental Rights \u00b7 Article ' + cur.art + ' \u2014 ' + (crumbParts[cur.art] || ''),
+      unitTitle: cur.title, unitSub: cur.sub, unitText: cur.text,
+      hasSiblings: siblingChips.length > 1, siblingChips,
+      hasStem: cur.kind === 'Subclause' && st.mode !== 'card',
+      stemText: cur.kind === 'Subclause' ? (U[cur.parent].prefix + ' ' + U[cur.parent].stem) : '',
+      modes,
+      isRead: st.mode === 'read', isCloze: st.mode === 'cloze', isLetters: st.mode === 'letters',
+      isType: st.mode === 'type', isRecite: st.mode === 'recite', isCard: st.mode === 'card',
+      clozeWords, clozeStatus: revealedCount + ' of ' + hiddenCount + ' revealed \u2014 tap a blank',
+      revealAllFn: () => this.setState({ revealed: allIdx }),
+      rehideFn: () => this.setState({ revealed: {} }),
+      flText,
+      flStyle: st.flFull ? 'font-size:18px;line-height:1.7;margin:0;white-space:pre-wrap' : 'font-size:19px;line-height:1.9;margin:0;letter-spacing:0.08em;font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap',
+      flBtnLabel: st.flFull ? 'Back to initials' : 'Show full text',
+      flToggle: () => this.setState(s => ({ flFull: !s.flFull })),
+      typed: st.typed, onType: e => this.setState({ typed: e.target.value }),
+      diffWords, typeStats: typedWords.length + ' / ' + words.length + ' words \u00b7 ' + correct + ' correct',
+      reciteStyle: 'font-size:18px;line-height:1.7;margin:0;white-space:pre-wrap;transition:filter 0.2s ease;' + (st.peek ? '' : 'filter:blur(7px);user-select:none'),
+      peekOn: () => this.setState({ peek: true }), peekOff: () => this.setState({ peek: false }),
+      recLabel: st.recOn ? '\u25a0 Stop reciting' : '\u25b8 Start reciting',
+      recToggle: () => this.setState(s => ({ recOn: !s.recOn })),
+      recBtnStyle: (st.recOn ? 'background:#B42318;' : 'background:' + accent + ';') + 'color:#fff;border:1px solid transparent;padding:8px 16px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer',
+      flipped: st.flipped, notFlipped: !st.flipped,
+      flip: () => this.setState(s => ({ flipped: !s.flipped })),
+      doneLabel: cur.kind === 'Subclause' && cur.nextLetter ? 'Done \u2014 next letter' : 'Done \u2014 next unit',
+      doneFn: () => {
+        const completed = { ...st.completed, [cur.id]: true };
+        this.setState({ completed });
+        const nid = this.nextOf(cur.id);
+        if (nid) setTimeout(() => this.openUnit(nid), 120); else this.setState({ page: 'home' });
+      },
+      againFn: () => { const nid = this.nextOf(cur.id); if (nid) this.openUnit(nid); else this.setState({ page: 'home' }); },
+      resetUnitFn: () => { const completed = { ...st.completed }; delete completed[cur.id]; this.setState({ completed }); },
+      unitMeta: (st.completed[cur.id] ? 'review \u00b7 completed \u00b7 next Jul 27' : 'new \u00b7 ~' + cur.time + ' \u00b7 difficulty ' + cur.diff) + (nextId ? ' \u00b7 next: ' + U[nextId].title : ' \u00b7 end of chain'),
+      // choose
+      isChoose: st.page === 'choose',
+      chooseTitle: chooseU ? chooseU.title : '',
+      chooseCount: chooseU ? chooseU.children.length : 0,
+      chooseWhole: () => { const pref = { ...st.pref, [st.chooseId]: 'whole' }; this.setState({ pref, page: 'learn', unitId: st.chooseId, mode: 'read', revealed: {}, typed: '', flFull: false, flipped: false }); },
+      chooseLetters: () => { const pref = { ...st.pref, [st.chooseId]: 'letters' }; const first = chooseU.children[0]; this.setState({ pref, page: 'learn', unitId: first, mode: 'read', revealed: {}, typed: '', flFull: false, flipped: false }); },
+      // browse
+      isBrowse: st.page === 'browse', browseArticles,
+      isArticle: st.page === 'article',
+      artTitle: ba ? 'Article ' + ba : '',
+      artSub: ba ? ({ '14': 'Equality before law.', '15': 'Prohibition of discrimination on grounds of religion, race, caste, sex or place of birth.', '19': 'Protection of certain rights regarding freedom of speech, etc.', '21': 'Protection of life and personal liberty.' })[ba] : '',
+      artMeta: ba ? baUnits.length + ' unit' + (baUnits.length > 1 ? 's' : '') + ' \u00b7 ' + baDone + ' memorized \u2014 open any clause below in Learn' : '',
+      articleRows: ba ? rowsFor(ba) : [],
+      practiceArticle: () => { if (ba) this.openUnit(baUnits.find(id => !st.completed[id]) || baUnits[0]); },
+      // calendar
+      isCalendar: st.page === 'calendar',
+      calDows: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      calDays,
+      // progress
+      isProgress: st.page === 'progress',
+      progressLede: doneCount + ' of ' + chain.length + ' units memorized \u00b7 ' + trackedArts.filter(a => artState(a) === 'mastered').length + ' articles mastered',
+      statCards: [
+        { value: String(chain.length), label: 'Tracked units' },
+        { value: String(doneCount), label: 'Completed' },
+        { value: String(trackedArts.filter(a => artState(a) === 'mastered').length), label: 'Mastered' },
+        { value: String(chain.length - doneCount), label: 'Remaining' }
+      ],
+      partsMap, inProgress
+    };
+  }
+}
+</script>
+</body>
+</html>

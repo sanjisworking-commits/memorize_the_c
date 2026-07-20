@@ -47,6 +47,20 @@
     "article-20c": {
       "exclude": true,
       "manual_review_status": "excluded_schedule_paragraph"
+    },
+    "article-44": {
+      "title": "Uniform civil code for the citizens",
+      "part_number": "IV",
+      "opening_text": "",
+      "body_text": "The State shall endeavour to secure for the citizens a uniform civil code throughout the territory of India.",
+      "manual_review_status": "approved"
+    },
+    "article-45": {
+      "title": "Provision for early childhood care and education to children below the age of six years",
+      "part_number": "IV",
+      "opening_text": "",
+      "body_text": "The State shall endeavour to provide early childhood care and education for all children until they complete the age of six years.",
+      "manual_review_status": "approved"
     }
   },
   "notes": [
@@ -54,6 +68,8 @@
     "article-2: omitted Article 2A footnote was glued onto Article 2 body; stripped to the Bare Act sentence only.",
     "article-201: opening_text duplicated the start of body_text in Browse/Learn; cleared opening and kept a single Bare Act body.",
     "article-124: removed Docling formula-not-decoded markers, private-use glyph, footnote debris; restored clauses (1)–(7) Bare Act wording.",
-    "article-20b / 20ba / 20bb / 20c: Sixth Schedule paragraphs mis-parsed as Articles; excluded from reviewed corpus and learning units."
+    "article-20b / 20ba / 20bb / 20c: Sixth Schedule paragraphs mis-parsed as Articles; excluded from reviewed corpus and learning units.",
+    "article-44: Art 45 amendment footnote was glued onto Art 44; stripped to the Uniform civil code sentence.",
+    "article-45: Seventh Schedule List II entry 45 (land revenue + formula markers) replaced the DPSP article; restored Bare Act Art 45 and Part IV."
   ]
 }

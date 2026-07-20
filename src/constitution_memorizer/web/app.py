@@ -139,11 +139,17 @@ def create_app(
         )
 
     @app.get("/learn/{unit_id}", response_class=HTMLResponse)
-    async def learn(request: Request, unit_id: str) -> HTMLResponse:
+    async def learn(
+        request: Request,
+        unit_id: str,
+        mode: str = "read",
+    ) -> HTMLResponse:
         eng = _engine()
         unit = eng.get_unit(unit_id)
         if unit is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
+
+        learn_mode = mode if mode in {"read", "card"} else "read"
 
         if needs_split_choice(eng, unit):
             return RedirectResponse(
@@ -153,7 +159,11 @@ def create_app(
 
         target_id = resolve_learn_target(eng, unit_id)
         if target_id != unit_id:
-            return RedirectResponse(url=f"/learn/{target_id}", status_code=303)
+            suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
+            return RedirectResponse(
+                url=f"/learn/{target_id}{suffix}",
+                status_code=303,
+            )
 
         target = eng.get_unit(target_id)
         if target is None:
@@ -184,6 +194,7 @@ def create_app(
                 "stem_text": stem,
                 "learn_meta": learn_meta_line(target, progress),
                 "done_label": done_button_label(target),
+                "learn_mode": learn_mode,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),

@@ -11,6 +11,7 @@ from typing import Iterable
 from constitution_memorizer.normalization.line_normalizer import NormalizedLine
 from constitution_memorizer.parsing.article_parser import (
     looks_like_article_title_line,
+    looks_like_schedule_entry,
     parse_article_heading_line,
 )
 from constitution_memorizer.parsing.clause_parser import (
@@ -23,22 +24,27 @@ from constitution_memorizer.parsing.clause_parser import (
 )
 from constitution_memorizer.parsing.footnote_parser import (
     append_footnote_text,
+    associate_footnotes,
     build_footnote,
     detect_footnote_start,
 )
 from constitution_memorizer.parsing.patterns import (
     APPENDIX_RE,
     CHAPTER_RE,
+    CHAPTER_SUBSECTION_RE,
     CONTENTS_RE,
     ENACTMENT_DATE_RE,
+    LIST_OF_ABBREVIATIONS_RE,
     PART_RE,
     PREAMBLE_RE,
+    PREFACE_RE,
     SCHEDULE_PART_RE,
 )
 from constitution_memorizer.parsing.schedule_parser import (
     append_schedule_text,
     create_schedule,
     detect_list_heading,
+    extract_article_references,
     parse_schedule_heading,
     start_schedule_list,
 )
@@ -110,6 +116,10 @@ class ParserContext:
     # True once the operative Bare Act body begins (after TOC / preface).
     body_started: bool = False
     in_contents: bool = False
+    schedules_region: bool = False
+    seen_part_numbers: set[str] = field(default_factory=set)
+    seen_article_numbers: set[str] = field(default_factory=set)
+    chapter_subsections: list[str] = field(default_factory=list)
 
 
 def _transition(ctx: ParserContext, new_state: ParserState, reason: str) -> None:
@@ -210,17 +220,70 @@ def _finalize_article_body(article: Article) -> None:
     article.body_text = "\n".join(p for p in parts if p)
 
 
-def _start_part(ctx: ParserContext, number: str, title: str | None, raw: str) -> None:
+def _start_part(ctx: ParserContext, number: str, title: str | None, raw: str) -> bool:
+    """
+    Start a Constitution Part.
+
+    Returns False when the heading should not create a new Part (duplicate or
+    post-schedule/appendix territorial PART blocks).
+    """
+    normalized = number.upper().replace(" ", "")
+
+    # After schedules begin, constitutional PART I–XXII headings should not
+    # reopen the main Part list (appendix territorial PART I/II/III, etc.).
+    if ctx.schedules_region or ctx.state == ParserState.APPENDIX:
+        if ctx.current_appendix is not None:
+            if ctx.current_appendix.body_text:
+                ctx.current_appendix.body_text += f"\n{raw}"
+            else:
+                ctx.current_appendix.body_text = raw
+        elif ctx.current_schedule is not None:
+            append_schedule_text(ctx.current_schedule, raw)
+        else:
+            _add_unclassified(
+                ctx,
+                text=raw,
+                possible_type="appendix_part",
+                confidence=0.7,
+                reason="PART heading after schedules/appendix retained outside main parts",
+            )
+        return False
+
+    if normalized in ctx.seen_part_numbers:
+        # Re-enter existing Part (rare TOC bleed) instead of duplicating.
+        existing = next(
+            (p for p in ctx.document.parts if p.part_number == normalized),
+            None,
+        )
+        if existing is not None:
+            ctx.current_part = existing
+            ctx.current_chapter = None
+            ctx.current_article = None
+            ctx.current_clause = None
+            ctx.provision_stack = []
+            ctx.awaiting_part_title = title is None and not existing.title
+            _transition(ctx, ParserState.PART, f"reenter PART {normalized}")
+            return True
+        _add_unclassified(
+            ctx,
+            text=raw,
+            possible_type="duplicate_part",
+            confidence=0.8,
+            reason=f"Duplicate PART {normalized} demoted",
+        )
+        return False
+
     if ctx.current_article is not None:
         _finalize_article_body(ctx.current_article)
     part = Part(
         id=part_id(number),
-        part_number=number.upper().replace(" ", ""),
+        part_number=normalized,
         part_number_normalized=roman_to_int(number),
         title=title,
         source=SourceProvenance(raw_heading=raw),
     )
     ctx.document.parts.append(part)
+    ctx.seen_part_numbers.add(normalized)
     ctx.current_part = part
     ctx.current_chapter = None
     ctx.current_article = None
@@ -229,6 +292,7 @@ def _start_part(ctx: ParserContext, number: str, title: str | None, raw: str) ->
     ctx.awaiting_part_title = title is None
     ctx.last_element_id = part.id
     _transition(ctx, ParserState.PART, f"PART {part.part_number}")
+    return True
 
 
 def _start_chapter(ctx: ParserContext, number: str, title: str | None, raw: str) -> None:
@@ -258,10 +322,38 @@ def _start_article_from_heading(ctx: ParserContext, line: str) -> bool:
     if heading is None:
         return False
 
+    # Inside schedules, numbered entries are schedule items, not Articles.
+    if ctx.state == ParserState.SCHEDULE:
+        return False
+    if ctx.schedules_region and looks_like_schedule_entry(line):
+        return False
+
+    parts = heading.number_parts
+    # Keep first substantive occurrence; demote later collisions for review.
+    if parts.article_number in ctx.seen_article_numbers:
+        _add_unclassified(
+            ctx,
+            text=line,
+            possible_type="duplicate_article",
+            confidence=0.85,
+            reason=(
+                f"Duplicate Article {parts.article_number} demoted; "
+                "first occurrence retained"
+            ),
+        )
+        ctx.events.append(
+            NormalizationEvent(
+                event_type="demoted_duplicate_article",
+                original_text=line,
+                reason=f"Article {parts.article_number} already seen",
+                confidence=0.9,
+            )
+        )
+        return True
+
     if ctx.current_article is not None:
         _finalize_article_body(ctx.current_article)
 
-    parts = heading.number_parts
     article = Article(
         id=article_id(parts.article_number),
         article_number=parts.article_number,
@@ -280,11 +372,10 @@ def _start_article_from_heading(ctx: ParserContext, line: str) -> bool:
     if heading.footnote_marker:
         article.footnote_references.append(heading.footnote_marker)
 
-    # Title may follow on next line if number-only heading.
     await_title = heading.title is None and not heading.opening_text
 
     _attach_article(ctx, article)
-    # _attach_article clears awaiting_article_title; restore when needed.
+    ctx.seen_article_numbers.add(parts.article_number)
     ctx.awaiting_article_title = await_title
     _transition(ctx, ParserState.ARTICLE, f"Article {article.article_number}")
     return True
@@ -448,10 +539,10 @@ def _process_line(ctx: ParserContext, line_obj: NormalizedLine) -> None:
     if not working:
         return
 
-    if CONTENTS_RE.match(working):
+    if CONTENTS_RE.match(working) or PREFACE_RE.match(working) or LIST_OF_ABBREVIATIONS_RE.match(working):
         ctx.in_contents = True
         ctx.front_matter_lines.append(working)
-        _transition(ctx, ParserState.DOCUMENT_FRONT_MATTER, "CONTENTS table")
+        _transition(ctx, ParserState.DOCUMENT_FRONT_MATTER, "preface/contents")
         return
 
     # Body starts at the operative preamble text.
@@ -473,34 +564,44 @@ def _process_line(ctx: ParserContext, line_obj: NormalizedLine) -> None:
     ):
         ctx.body_started = True
 
-    # Inside schedules/appendices, do not invent Articles from numbered list items.
+    # Inside schedules, never invent Articles / Parts from numbered list items.
     if ctx.state == ParserState.SCHEDULE and ctx.current_schedule is not None:
         schedule_heading = parse_schedule_heading(working)
         if schedule_heading:
-            schedule = create_schedule(schedule_heading)
-            ctx.document.schedules.append(schedule)
+            # Reuse schedule object if same number already created.
+            existing = next(
+                (
+                    s
+                    for s in ctx.document.schedules
+                    if s.schedule_number == schedule_heading.schedule_number
+                ),
+                None,
+            )
+            if existing is None:
+                schedule = create_schedule(schedule_heading)
+                ctx.document.schedules.append(schedule)
+            else:
+                schedule = existing
             ctx.current_schedule = schedule
+            ctx.schedules_region = True
             ctx.last_element_id = schedule.id
             return
         if APPENDIX_RE.match(working):
             pass  # fall through to appendix handling below
-        elif PART_RE.match(working) and ctx.body_started:
-            pass  # fall through — rare, but allow leaving schedule into a Part
         else:
-            sched_part = SCHEDULE_PART_RE.match(working)
+            # PART I/II/III inside schedules stay in schedule text.
+            sched_part = SCHEDULE_PART_RE.match(working) or PART_RE.match(working)
             if sched_part:
-                title = sched_part.group("title")
-                label = f"PART {sched_part.group('letter').upper()}"
-                if title:
-                    label = f"{label}—{title.strip()}"
                 from constitution_memorizer.parsing.schedule_parser import add_section
 
-                add_section(ctx.current_schedule, label)
+                add_section(ctx.current_schedule, working)
                 append_schedule_text(ctx.current_schedule, working)
                 return
             list_name = detect_list_heading(working)
             if list_name:
                 start_schedule_list(ctx.current_schedule, list_name)
+                return
+            if _handle_footnote(ctx, working):
                 return
             if ctx.current_schedule.lists:
                 ctx.current_schedule.lists[-1].items.append(working)
@@ -597,16 +698,71 @@ def _process_line(ctx: ParserContext, line_obj: NormalizedLine) -> None:
     if chapter_match:
         number = chapter_match.group("number")
         title = chapter_match.group("title")
-        _start_chapter(ctx, number, title.strip() if title else None, working)
+        # CHAPTER heading may include trailing article text on same Docling line.
+        title_text = title.strip() if title else None
+        if title_text and re.search(r"\b\d+[A-Za-z]{0,3}\.\s", title_text):
+            # Split off trailing article-like content later via unclassified continuation.
+            m = re.split(r"(?=\b\d+[A-Za-z]{0,3}\.\s)", title_text, maxsplit=1)
+            title_text = m[0].strip() or None
+            _start_chapter(ctx, number, title_text, working)
+            if len(m) > 1 and m[1].strip():
+                _process_line(
+                    ctx,
+                    NormalizedLine(index=line_obj.index, text=m[1].strip()),
+                )
+            return
+        _start_chapter(ctx, number, title_text, working)
+        return
+
+    if CHAPTER_SUBSECTION_RE.match(working):
+        if ctx.current_chapter is not None:
+            # Store as editorial note on the chapter via source raw text trail.
+            note = working
+            if ctx.current_chapter.source.raw_text:
+                ctx.current_chapter.source.raw_text += f"\n[subsection] {note}"
+            else:
+                ctx.current_chapter.source.raw_text = f"[subsection] {note}"
+            ctx.chapter_subsections.append(note)
+            ctx.events.append(
+                NormalizationEvent(
+                    event_type="chapter_subsection",
+                    original_text=note,
+                    reason="Classified chapter subsection heading",
+                    confidence=0.9,
+                )
+            )
+            return
+        _add_unclassified(
+            ctx,
+            text=working,
+            possible_type="chapter_subsection",
+            confidence=0.7,
+            reason="Chapter subsection without active chapter",
+        )
         return
 
     schedule_heading = parse_schedule_heading(working)
     if schedule_heading:
         if ctx.current_article is not None:
             _finalize_article_body(ctx.current_article)
-        schedule = create_schedule(schedule_heading)
-        ctx.document.schedules.append(schedule)
+        existing = next(
+            (
+                s
+                for s in ctx.document.schedules
+                if s.schedule_number == schedule_heading.schedule_number
+            ),
+            None,
+        )
+        if existing is None:
+            schedule = create_schedule(schedule_heading)
+            refs = extract_article_references(working)
+            if refs:
+                schedule.references.extend(refs)
+            ctx.document.schedules.append(schedule)
+        else:
+            schedule = existing
         ctx.current_schedule = schedule
+        ctx.schedules_region = True
         ctx.current_article = None
         ctx.current_clause = None
         ctx.provision_stack = []
@@ -616,15 +772,18 @@ def _process_line(ctx: ParserContext, line_obj: NormalizedLine) -> None:
 
     appendix_match = APPENDIX_RE.match(working)
     if appendix_match:
-        label = appendix_match.group("label") or str(len(ctx.document.appendices) + 1)
+        label = (appendix_match.group("label") or "").strip() or str(
+            len(ctx.document.appendices) + 1
+        )
         appendix = Appendix(
-            id=f"appendix-{label.lower() or len(ctx.document.appendices) + 1}",
+            id=f"appendix-{label.lower()}",
             title=working,
             source=SourceProvenance(raw_heading=working),
         )
         ctx.document.appendices.append(appendix)
         ctx.current_appendix = appendix
         ctx.current_schedule = None
+        ctx.schedules_region = True
         _transition(ctx, ParserState.APPENDIX, "appendix")
         return
 
@@ -778,6 +937,9 @@ def parse_lines(
                 confidence=0.55,
                 reason="Document front matter retained for review",
             )
+
+    # Best-effort footnote association (no invented links).
+    associate_footnotes(ctx.document)
 
     ctx.document.extraction_summary = _build_summary(ctx.document)
     return ctx.document, ctx.events

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConstitutionMemorizerCorrections",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "articles"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "description": { "type": "string" },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "articles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": { "type": ["string", "null"] },
+          "status": {
+            "type": ["string", "null"],
+            "enum": ["active", "omitted", "repealed", "substituted", "historical", "unknown", null]
+          },
+          "part_number": { "type": ["string", "null"] },
+          "chapter_number": { "type": ["string", "null"] },
+          "manual_review_status": { "type": ["string", "null"] },
+          "body_text": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

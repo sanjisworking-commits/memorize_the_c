@@ -11,7 +11,11 @@ from constitution_memorizer.schemas import (
     Issue,
     ReportStatus,
 )
-from constitution_memorizer.validation.validator import collect_counts, validate_document
+from constitution_memorizer.validation.validator import (
+    collect_counts,
+    validate_against_expectations,
+    validate_document,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +29,14 @@ def build_report(
     repeated_headers_removed: int = 0,
     extra_warnings: list[Issue] | None = None,
     extra_errors: list[Issue] | None = None,
+    check_expectations: bool = True,
 ) -> ExtractionReport:
     """Validate ``doc`` and build an ``ExtractionReport``."""
     warnings, errors = validate_document(doc)
+    if check_expectations:
+        exp_warnings, exp_errors = validate_against_expectations(doc)
+        warnings.extend(exp_warnings)
+        errors.extend(exp_errors)
     if extra_warnings:
         warnings.extend(extra_warnings)
     if extra_errors:

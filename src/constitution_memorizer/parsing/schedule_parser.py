@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from constitution_memorizer.parsing.patterns import LIST_HEADING_RE, SCHEDULE_RE
@@ -28,15 +29,40 @@ class ParsedScheduleHeading:
 
 
 def parse_schedule_heading(line: str) -> ParsedScheduleHeading | None:
-    """Detect a Schedule heading line."""
+    """Detect a Schedule heading line, including glued Docling variants."""
     stripped = line.strip()
+    stripped = re.sub(r"^[-*]\s+", "", stripped)
+    stripped = re.sub(r"^#{1,6}\s*", "", stripped)
+    # Diglot body headings often look like: "1 [FOURTH SCHEDULE" / "1[NINTH SCHEDULE"
+    stripped = re.sub(r"^\d+\s*\[\s*", "", stripped)
+    stripped = stripped.rstrip("]").strip()
+    # Normalize odd spacing: "THIRD  SCHEDULE", "FOURTH  SCHEDULE -Allocation"
+    stripped = re.sub(r"\s+", " ", stripped)
+
     match = SCHEDULE_RE.match(stripped)
     if not match:
-        return None
+        # Fallback for glued forms already mostly handled by SCHEDULE_RE.
+        loose = re.match(
+            r"^(?:THE\s+)?"
+            r"(FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|"
+            r"TENTH|ELEVENTH|TWELFTH)\s*SCHEDULE\b(.*)$",
+            stripped,
+            re.I,
+        )
+        if not loose:
+            return None
+        number = loose.group(1).upper()
+        rest = loose.group(2).strip(" -—–⎯−:.")
+        return ParsedScheduleHeading(
+            schedule_number=number,
+            title=rest or None,
+            raw_heading=stripped,
+        )
+
     number = match.group("number").strip().upper()
     title = match.group("title")
     if title:
-        title = title.strip() or None
+        title = title.strip(" -—–⎯−:.") or None
     return ParsedScheduleHeading(
         schedule_number=number,
         title=title,
@@ -57,7 +83,9 @@ def create_schedule(heading: ParsedScheduleHeading) -> Schedule:
 
 def detect_list_heading(line: str) -> str | None:
     """Detect Union/State/Concurrent list headings in the Seventh Schedule."""
-    match = LIST_HEADING_RE.match(line.strip())
+    stripped = re.sub(r"^#{1,6}\s*", "", line.strip())
+    stripped = re.sub(r"^[-*]\s+", "", stripped)
+    match = LIST_HEADING_RE.match(stripped)
     if not match:
         return None
     return match.group("name").strip()
@@ -118,3 +146,15 @@ def add_section(schedule: Schedule, title: str, body: str = "") -> ScheduleSecti
     )
     schedule.sections.append(section)
     return section
+
+
+def extract_article_references(text: str) -> list[str]:
+    """Extract 'Articles 246 and 248' style references from schedule intros."""
+    refs: list[str] = []
+    for match in re.finditer(
+        r"Articles?\s+([\dA-Za-z,\s]+(?:\s+and\s+[\dA-Za-z]+)?)",
+        text,
+        re.I,
+    ):
+        refs.append(match.group(0).strip())
+    return refs

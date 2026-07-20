@@ -240,3 +240,34 @@ class ProgressRepository:
             "SELECT parent_clause_id, mode FROM split_preference"
         ).fetchall()
         return {str(r["parent_clause_id"]): r["mode"] for r in rows}  # type: ignore[misc]
+
+    def get_gloss(self, article_number: str) -> str | None:
+        row = self._conn.execute(
+            "SELECT text FROM article_gloss WHERE article_number = ?",
+            (article_number,),
+        ).fetchone()
+        if row is None:
+            return None
+        return str(row["text"])
+
+    def upsert_gloss(self, article_number: str, text: str) -> None:
+        """Store gloss text. Caller must pass non-empty trimmed text."""
+        now = _utc_now_iso()
+        self._conn.execute(
+            """
+            INSERT INTO article_gloss (article_number, text, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(article_number) DO UPDATE SET
+                text = excluded.text,
+                updated_at = excluded.updated_at
+            """,
+            (article_number, text, now),
+        )
+        self._conn.commit()
+
+    def delete_gloss(self, article_number: str) -> None:
+        self._conn.execute(
+            "DELETE FROM article_gloss WHERE article_number = ?",
+            (article_number,),
+        )
+        self._conn.commit()

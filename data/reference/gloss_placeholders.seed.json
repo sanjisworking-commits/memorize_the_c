@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "fallback": "e.g. Explain this article in your own words…",
+  "placeholders": {
+    "14": "e.g. The State must treat every person equally under the law…",
+    "15": "e.g. The State cannot single you out for worse treatment because of religion, race, caste, sex, or where you were born…",
+    "19": "e.g. Citizens get freedoms like speech and movement, but Parliament can set reasonable limits…",
+    "21": "e.g. Nobody's life or liberty can be taken away without a fair legal process…"
+  }
+}

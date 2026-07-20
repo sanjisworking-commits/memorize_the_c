@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -19,6 +19,7 @@ from constitution_memorizer.web.browse import (
     load_reviewed_document,
 )
 from constitution_memorizer.web.calendar_view import build_calendar_month
+from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
 from constitution_memorizer.web.progress_stats import progress_dashboard
 from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
@@ -49,6 +50,7 @@ def create_app(
     db_path: Path | str | None = None,
     reviewed_path: Path | str | None = None,
     amendments_path: Path | str | None = None,
+    gloss_placeholders_path: Path | str | None = None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -64,6 +66,11 @@ def create_app(
         if amendments_path is not None
         else root / "data" / "reference" / "amendments.seed.json"
     )
+    resolved_gloss_placeholders = Path(
+        gloss_placeholders_path
+        if gloss_placeholders_path is not None
+        else root / "data" / "reference" / "gloss_placeholders.seed.json"
+    )
 
     if not resolved_units.exists():
         raise FileNotFoundError(
@@ -78,12 +85,16 @@ def create_app(
     amendments = load_amendments(
         resolved_amendments if resolved_amendments.exists() else None
     )
+    gloss_placeholders = load_gloss_placeholders(
+        resolved_gloss_placeholders if resolved_gloss_placeholders.exists() else None
+    )
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     app = FastAPI(title="Constitution Memorizer", version="0.5.0")
     app.state.engine = engine
     app.state.reviewed = reviewed
     app.state.amendments = amendments
+    app.state.gloss_placeholders = gloss_placeholders
     app.state.units_path = resolved_units
     app.state.db_path = resolved_db
     app.state.reviewed_path = resolved_reviewed
@@ -331,6 +342,10 @@ def create_app(
         prev_number, next_number = adjacent_article_numbers(
             eng, app.state.reviewed, view.article_number
         )
+        gloss_text = eng.repo.get_gloss(view.article_number) or ""
+        gloss_ph = gloss_placeholder_for(
+            app.state.gloss_placeholders, view.article_number
+        )
         return templates.TemplateResponse(
             request,
             "browse_article.html",
@@ -338,8 +353,41 @@ def create_app(
                 "article": view,
                 "prev_article": prev_number,
                 "next_article": next_number,
+                "gloss_text": gloss_text,
+                "gloss_placeholder": gloss_ph,
             },
         )
+
+    @app.put("/browse/article/{article_number}/gloss")
+    async def put_article_gloss(article_number: str, request: Request) -> JSONResponse:
+        eng = _engine()
+        numbers = {n.lower() for n in list_article_numbers(eng, app.state.reviewed)}
+        if article_number.lower() not in numbers:
+            # Allow gloss for units-known articles even if not in reviewed list
+            has_units = any(
+                (u.article_number or "").lower() == article_number.lower()
+                for u in eng.units.values()
+            )
+            if not has_units:
+                raise HTTPException(status_code=404, detail="Article not found")
+        try:
+            payload = await request.json()
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=400, detail="Invalid JSON") from exc
+        text = str(payload.get("text", "")) if isinstance(payload, dict) else ""
+        trimmed = text.strip()
+        if not trimmed:
+            eng.repo.delete_gloss(article_number)
+            return JSONResponse({"ok": True, "text": "", "words": 0})
+        eng.repo.upsert_gloss(article_number, text)
+        words = len(trimmed.split())
+        return JSONResponse({"ok": True, "text": text, "words": words})
+
+    @app.delete("/browse/article/{article_number}/gloss")
+    async def delete_article_gloss(article_number: str) -> JSONResponse:
+        eng = _engine()
+        eng.repo.delete_gloss(article_number)
+        return JSONResponse({"ok": True, "text": "", "words": 0})
 
     @app.get("/search", response_class=HTMLResponse)
     async def search_page(

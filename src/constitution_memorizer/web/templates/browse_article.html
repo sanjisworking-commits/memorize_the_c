@@ -61,6 +61,39 @@
   <p class="amendment-unamended">Unamended — this article reads today exactly as adopted in 1950.</p>
   {% endif %}
 
+  <section
+    class="explain-back"
+    data-gloss-article="{{ article.article_number }}"
+    aria-label="Explain it back"
+  >
+    <h2 class="explain-back-title">Explain it back</h2>
+    <p class="explain-back-lede">
+      Memorizing gives you the words; this checks you own the meaning. Explain the article in plain language, as if to a friend — no legal phrasing.
+    </p>
+    <textarea
+      class="explain-back-input"
+      data-gloss-input
+      rows="4"
+      placeholder="{{ gloss_placeholder }}"
+    >{{ gloss_text }}</textarea>
+    <div class="explain-back-meta">
+      <span class="explain-back-hint" data-gloss-meta>
+        {% if gloss_text.strip() %}
+          {% set words = gloss_text.strip().split()|length %}
+          {{ words }} word{% if words != 1 %}s{% endif %} · saved
+        {% else %}
+          Saved automatically — rewrite it whenever your understanding sharpens.
+        {% endif %}
+      </span>
+      <button
+        type="button"
+        class="explain-back-clear"
+        data-gloss-clear
+        {% if not gloss_text.strip() %}hidden{% endif %}
+      >Clear</button>
+    </div>
+  </section>
+
   <p class="actions">
     <a class="btn btn-ghost" href="/browse">All articles</a>
     <a class="btn btn-ghost" href="/">Home</a>

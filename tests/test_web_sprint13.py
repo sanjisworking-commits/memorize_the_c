@@ -34,7 +34,7 @@ def test_learn_enables_card_tab_and_flashcard_markup(client: TestClient):
     assert "Tap to flip back" in html
     assert "learn-panel-card" in html
     assert 'data-mode="read"' in html
-    assert "app.js?v=sprint20" in html
+    assert "app.js?v=sprint21" in html
 
 
 def test_card_mode_query_param_renders_card_active(client: TestClient):
@@ -54,7 +54,7 @@ def test_card_mode_query_param_renders_card_active(client: TestClient):
 
 
 def test_card_css_drives_panel_visibility(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint20")
+    css = client.get("/static/styles.css?v=sprint21")
     assert css.status_code == 200
     text = css.text
     assert '.learn[data-mode="card"] .learn-panel-card' in text

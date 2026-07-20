@@ -38,6 +38,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Hotfix | `cursor/fix-articles-365-plus-1a75` | Done |
 | Sprint 19 | `cursor/sprint-19-calendar-1a75` | Done |
 | Sprint 20 | `cursor/sprint-20-progress-mastery-1a75` | Done |
+| Sprint 21 | `cursor/sprint-21-amendment-history-1a75` | Done |
+| Sprint 22 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -357,8 +359,18 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - `/progress` matches the prototype: 4 stat tiles, mastery map, tracked-articles list
 - Mastery map: one row per Part from reviewed JSON; 16px Article cells (`new` / `learning` / `review` / `mastered` / `due`)
 - Tracked cells link into Learn/Choose; tracked rows show completion bars and status tags
-- States respect split preference paths and the Home continue / due unit
+- States: mastered (all complete past 1-day) · learning (all complete on 1-day rung) · due (continue pointer) · review (partial) · new
 - Tests: `tests/test_web_sprint20.py`
+
+### Sprint 21 — Amendment history ✅
+
+**Branch:** `cursor/sprint-21-amendment-history-1a75`
+
+- Curated seed `data/reference/amendments.seed.json` for Arts 14 / 15 / 19 / 21
+- Browse: Amendment history timeline (or quiet Unamended line) + meta line with amendment count
+- Learn: `✦` footnote under the subtitle when a hand-quality `learn_note` exists
+- Read-only context; memorized text remains current Bare Act wording
+- Tests: `tests/test_web_sprint21.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

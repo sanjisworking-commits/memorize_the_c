@@ -4,10 +4,15 @@ from __future__ import annotations
 
 import calendar as pycal
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal
 
-from constitution_memorizer.progress.scheduler import ReminderEngine
+from constitution_memorizer.progress.repository import ProgressRecord
+from constitution_memorizer.progress.scheduler import (
+    INTERVAL_LADDER,
+    ReminderEngine,
+    advance_interval,
+)
 
 ChipKind = Literal["memorized", "review_done", "due", "scheduled"]
 
@@ -70,6 +75,29 @@ def _chip_label(display_title: str) -> str:
     return text
 
 
+def remaining_review_schedule(row: ProgressRecord) -> list[tuple[date, int]]:
+    """
+    Project remaining spaced-repetition dates for a progress row.
+
+    Starts at ``next_revision`` (current rung = ``interval_days``), then assumes
+    on-time completion for each later step of ``INTERVAL_LADDER``
+    (1 → 3 → 7 → 14 → 30 → 60).
+    """
+    if row.next_revision is None or row.status not in ("review", "mastered"):
+        return []
+    cursor = row.next_revision
+    current = row.interval_days if row.interval_days > 0 else INTERVAL_LADDER[0]
+    out: list[tuple[date, int]] = [(cursor, current)]
+    while True:
+        nxt = advance_interval(current)
+        if nxt is None:
+            break
+        cursor = cursor + timedelta(days=nxt)
+        out.append((cursor, nxt))
+        current = nxt
+    return out
+
+
 def build_calendar_month(
     engine: ReminderEngine,
     *,
@@ -77,7 +105,7 @@ def build_calendar_month(
     month: int,
     today: date | None = None,
 ) -> CalendarMonth:
-    """Build a Sunday-first month grid with best-effort progress chips."""
+    """Build a Sunday-first month grid with progress + projected ladder chips."""
     if month < 1 or month > 12:
         raise ValueError("month must be 1–12")
     today = today or date.today()
@@ -119,25 +147,24 @@ def build_calendar_month(
                 )
             )
 
-        if (
-            row.status in ("review", "mastered")
-            and row.next_revision is not None
-            and month_start <= row.next_revision <= month_end
-        ):
-            if row.next_revision <= today:
+        for rev_date, rung in remaining_review_schedule(row):
+            if not (month_start <= rev_date <= month_end):
+                continue
+            if rev_date <= today:
+                # Only the actionable next_revision is due; skip past projections.
+                if row.next_revision is None or rev_date != row.next_revision:
+                    continue
                 kind = "due"
-                tip = f"{full} — review due"
-                chip_label = label
+                tip = f"{full} — {rung}-day review due"
             else:
                 kind = "scheduled"
-                tip = f"{full} — scheduled"
-                chip_label = label
+                tip = f"{full} — {rung}-day review"
                 scheduled_count += 1
-            by_day[row.next_revision.day].append(
+            by_day[rev_date.day].append(
                 CalendarChip(
                     kind=kind,
                     unit_id=row.learning_unit_id,
-                    label=chip_label,
+                    label=label,
                     title=tip,
                 )
             )

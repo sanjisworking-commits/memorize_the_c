@@ -345,8 +345,9 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 
 - `GET /calendar?year=&month=` renders a Sunday-first month grid (Prev / Today / Next)
 - Chips from progress rows: solid black = memorized, gray = review done, accent outline = due, dashed = scheduled
+- Scheduled chips project the **remaining** spaced-repetition ladder (1 → 3 → 7 → 14 → 30 → 60) from `next_revision`, assuming on-time completion
 - Chips link to `/learn/{unit_id}`; today cell has an accent ring
-- Best-effort only (current progress row — no event history table); legend + month summary
+- Best-effort history (current progress row only — no event log); legend + month summary
 - Tests: `tests/test_web_sprint19.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅

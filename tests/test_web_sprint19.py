@@ -91,9 +91,50 @@ def test_build_calendar_future_scheduled_chip(engine: ReminderEngine):
     today = date(2026, 7, 5)
     engine.mark_done("clause-1", as_of=date(2026, 7, 5))
     view = build_calendar_month(engine, year=2026, month=7, today=today)
-    assert view.scheduled_count == 1
-    day6 = next(d for d in view.days if d.day == 6)
-    assert any(c.kind == "scheduled" and c.unit_id == "clause-1" for c in day6.chips)
+    # Full remaining ladder in July after memorize on the 5th:
+    # +1 → 6, +3 → 9, +7 → 16, +14 → 30 (30-day and 60-day fall in later months)
+    assert view.scheduled_count == 4
+    expected = {
+        6: "1-day review",
+        9: "3-day review",
+        16: "7-day review",
+        30: "14-day review",
+    }
+    for day_num, tip_part in expected.items():
+        day = next(d for d in view.days if d.day == day_num)
+        chips = [c for c in day.chips if c.kind == "scheduled" and c.unit_id == "clause-1"]
+        assert len(chips) == 1
+        assert tip_part in chips[0].title
+
+
+def test_remaining_ladder_projects_full_intervals(engine: ReminderEngine):
+    from constitution_memorizer.web.calendar_view import remaining_review_schedule
+
+    engine.mark_done("clause-1", as_of=date(2026, 7, 5))
+    row = engine.repo.get_progress("clause-1")
+    assert row is not None
+    schedule = remaining_review_schedule(row)
+    assert [rung for _, rung in schedule] == [1, 3, 7, 14, 30, 60]
+    assert [d for d, _ in schedule] == [
+        date(2026, 7, 6),
+        date(2026, 7, 9),
+        date(2026, 7, 16),
+        date(2026, 7, 30),
+        date(2026, 8, 29),
+        date(2026, 10, 28),
+    ]
+
+
+def test_ladder_after_review_starts_at_next_rung(engine: ReminderEngine):
+    from constitution_memorizer.web.calendar_view import remaining_review_schedule
+
+    engine.mark_done("clause-1", as_of=date(2026, 7, 5))
+    engine.mark_done("clause-1", as_of=date(2026, 7, 6))  # completed 1-day → next is 3
+    row = engine.repo.get_progress("clause-1")
+    assert row is not None
+    schedule = remaining_review_schedule(row)
+    assert [rung for _, rung in schedule] == [3, 7, 14, 30, 60]
+    assert schedule[0][0] == date(2026, 7, 9)
 
 
 def test_build_calendar_review_done_and_due_chips(engine: ReminderEngine):
@@ -108,10 +149,13 @@ def test_build_calendar_review_done_and_due_chips(engine: ReminderEngine):
     day11 = next(d for d in view.days if d.day == 11)
     assert any(c.kind == "review_done" and "✓" in c.label for c in day11.chips)
 
-    # After second completion interval is 3 days → due/scheduled July 14
+    # After second completion interval is 3 days → due July 14; later rungs past today skipped
     day14 = next(d for d in view.days if d.day == 14)
-    # July 14 is past relative to today=20 → due
     assert any(c.kind == "due" and c.unit_id == "clause-1" for c in day14.chips)
+    day21 = next(d for d in view.days if d.day == 21)  # 14 + 7 projected, still future
+    assert any(
+        c.kind == "scheduled" and "7-day" in c.title for c in day21.chips
+    )
 
 
 def test_calendar_page_shows_chips_from_progress(client: TestClient, engine: ReminderEngine):

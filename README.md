@@ -15,7 +15,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Phase 2 | `cursor/phase-2-parser-hardening-1a75` | Done |
 | Sprint 1 | `cursor/sprint-1-learning-unit-generator-1a75` | Done |
 | Sprint 2 | `cursor/sprint-2-alphabetic-fallback-1a75` | Done |
-| Sprint 3 | `cursor/sprint-3-sqlite-scheduler-1a75` | Planned |
+| Sprint 3 | `cursor/sprint-3-sqlite-scheduler-1a75` | Done |
 | Sprint 4 | `cursor/sprint-4-learn-home-ui-1a75` | Planned |
 | Sprint 5 | `cursor/sprint-5-browse-search-progress-1a75` | Planned |
 
@@ -83,11 +83,50 @@ The learning layer reads `constitution.reviewed.json` and produces schedulable *
 
 **Out of scope in Sprint 2:** UI choice screen, SQLite preference persistence.
 
-### Sprint 3 — SQLite progress + reminder engine (planned)
+### Sprint 3 — SQLite progress + reminder engine ✅
 
-- `learning_unit_progress` + `split_preference` (`whole` | `letters`)
-- Deterministic interval ladder: `1 → 3 → 7 → 14 → 30 → 60` days
-- Preference-aware next-unit resolution
+**Branch:** `cursor/sprint-3-sqlite-scheduler-1a75`
+
+- Package `src/constitution_memorizer/progress/`
+  - `db.py` — SQLite open + schema
+  - `repository.py` — progress + `split_preference` CRUD
+  - `scheduler.py` — `ReminderEngine` (`mark_done`, `due_today`, `stats`, next-unit resolution)
+- Tables in `data/progress/progress.db` (local; gitignored except directory placeholder):
+
+```sql
+learning_unit_progress(
+  learning_unit_id, status, times_completed, last_completed,
+  next_revision, interval_days, ease_factor, created_at, updated_at
+)
+split_preference(
+  parent_clause_id, mode CHECK IN ('whole','letters'), updated_at
+)
+```
+
+- Statuses: `new` → `review` → `mastered`
+- Interval ladder: `1 → 3 → 7 → 14 → 30 → 60` days; completing at 60 → `mastered`
+- Default split mode is **whole** (clause-level `next_unit`); `letters` walks `letter_sequence_*` then resumes the global chain
+- `next_to_learn_from_clause(parent_id)` — entry point after a future Choose-screen preference
+- Tests: `tests/test_reminder_engine.py` (temp DB only; no HTTP)
+
+**Out of scope in Sprint 3:** FastAPI / templates.
+
+### Example (library API)
+
+```python
+from datetime import date
+from constitution_memorizer.progress import ReminderEngine
+
+engine = ReminderEngine.from_paths(
+    "data/progress/progress.db",
+    "data/output/learning_units.json",
+)
+engine.set_split_preference("article-25-clause-2", "letters")
+result = engine.mark_done("article-25-clause-2-subclause-a", as_of=date.today())
+print(result.progress.interval_days, result.next_unit_id)
+print(engine.due_today())
+print(engine.stats())
+```
 
 ### Sprint 4 — Core learning UI (planned)
 
@@ -242,6 +281,7 @@ Shared flags: `--force` / `--overwrite`, `--verbose`, `--output-dir`, `--config`
 | `data/output/corpus_review_report.json` | Human-review summary (Phase 2) |
 | `data/output/learning_units.json` | Learning Units document (Sprints 1–2; tracked) |
 | `data/output/learning_units.min.json` | Minified twin of learning units |
+| `data/progress/progress.db` | SQLite progress + split preferences (Sprint 3; local) |
 | `data/corrections/corrections.json` | Manual correction overlay (does not rewrite raw text) |
 | `data/expected/structure_expectations.json` | Expected Parts/Schedules/article-count band |
 | `data/rejected/unclassified_text.json` | Content that could not be confidently classified |
@@ -262,6 +302,7 @@ pytest -m integration
 - Pipeline fixtures: `tests/fixtures/`
 - Learning fixtures: `tests/fixtures/learning/`
 - Learning tests: `tests/test_learning_unit_generator.py`
+- Progress / scheduler tests: `tests/test_reminder_engine.py`
 
 Unit tests **do not** require running Docling on the full PDF.
 
@@ -322,11 +363,13 @@ src/constitution_memorizer/
   parsing/          # Constitution state machine and domain parsers
   validation/       # Structural checks and reports
   learning/         # Learning Units generator (Sprints 1–2+)
+  progress/         # SQLite progress + ReminderEngine (Sprint 3+)
   schemas.py        # Bare Act Pydantic models
   cli.py            # CLI entry
 tests/              # Pytest suite and fixtures
   fixtures/learning/
 data/               # Input PDF and generated artefacts
+  progress/         # Local progress.db (gitignored)
 ```
 
 ## Documentation discipline

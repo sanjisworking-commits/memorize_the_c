@@ -59,3 +59,4 @@ def test_learn_read_anatomy(client: TestClient):
     assert "Again tomorrow" in response.text
     assert 'action="/learn/clause-1/again"' in response.text
     assert "learn-actions" in response.text
+    assert "label-short" not in response.text

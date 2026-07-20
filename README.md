@@ -34,6 +34,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 15 | `cursor/sprint-15-learn-letters-1a75` | Done |
 | Sprint 16 | `cursor/sprint-16-learn-type-1a75` | Done |
 | Sprint 17 | `cursor/sprint-17-learn-recite-1a75` | Done |
+| Sprint 18 | `cursor/sprint-18-recite-voice-1a75` | Done |
 | Hotfix | `cursor/fix-articles-365-plus-1a75` | Done |
 | Sprints 14–20 | design prototype (see plan) | Planned |
 
@@ -324,6 +325,18 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Hint: “Recite aloud with the text hidden.”
 - All six recall modes enabled (Read · Cloze · Letters · Type · Recite · Card)
 - Tests: `tests/test_web_sprint17.py`
+
+### Sprint 18 — Recite voice accuracy ✅
+
+**Branch:** `cursor/sprint-18-recite-voice-1a75`
+
+- Recite uses the browser **Web Speech API** (Chrome/Edge) to capture spoken recall
+- Live transcript while listening; on Stop, LCS-align transcript vs Bare Act tokens
+- Accuracy map: hit = ink, miss = gray; stats `N / M recalled · P%`; extras line for unmatched heard words
+- Shared align helper: `web/recall_align.py` + `static/recall_align.js` (Type can reuse later)
+- Unsupported / mic denied / **network** (speech cloud unreachable): clear message + manual “type what you recited” fallback with Check accuracy
+- No server-side audio storage
+- Tests: `tests/test_recall_align.py`, `tests/test_web_sprint18.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

@@ -14,7 +14,7 @@ Target repo: sanjisworking-commits/memorize_the_c (FastAPI + Jinja2 web layer in
 ## Screens & behavior (all in the prototype)
 1. **Home** — date, due lede, Continue card (next unit in chain), Due list (rows open that unit), quiet stats, red "Reset all progress".
 2. **Learn** — session progress bar; unit badge + breadcrumb; sibling rail (clause chips / letter rail); six recall modes on the same unit text:
-   Read · Cloze (tap-to-reveal blanks; density light/medium/heavy = hide words ≥8/≥6/≥4 letters) · Letters (first-letter initials ⇄ full text) · Type (textarea, per-word diff: gray = unreached, black = correct, red strikethrough = wrong) · Recite (blurred text, hold-to-peek, start/stop recite) · Card (flip title ⇄ text).
+   Read · Cloze (tap-to-reveal blanks; density light/medium/heavy = hide words ≥8/≥6/≥4 letters) · Letters (first-letter initials ⇄ full text) · Type (textarea, per-word diff: gray = unreached, black = correct, red strikethrough = wrong) · Recite (blurred text, hold-to-peek; **Start/Stop** uses Web Speech API for spoken recall, then LCS accuracy map vs Bare Act — Chrome/Edge) · Card (flip title ⇄ text).
    Footer: accent "Done — next unit" (marks complete, advances chain), ghost "Again tomorrow", meta line, red "Reset unit".
 3. **Choose** — split-capable clause with no preference: "Learn whole clause" (solid) vs "Split into letters" (outline). Preference persists (`split_preference` table).
 4. **Calendar** — month grid; chips: solid black = memorized, gray = review done, accent-outline = due today, dashed = scheduled. Chips open the unit. Today cell ringed in accent.

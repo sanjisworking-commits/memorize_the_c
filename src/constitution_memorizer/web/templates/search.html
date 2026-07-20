@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Search · Constitution Memorizer{% endblock %}
+{% block content %}
+<section class="panel search">
+  <h1 class="display">Search</h1>
+  <p class="lede">Jump by Article, clause, or letter — e.g. <code>20</code>, <code>20(2)</code>, <code>25(2)(a)</code>.</p>
+
+  <form class="search-form" method="get" action="/search">
+    <label class="sr-only" for="q">Query</label>
+    <input id="q" name="q" type="search" value="{{ q }}" placeholder="20(2)" autofocus>
+    <button type="submit" class="btn btn-green">Go</button>
+  </form>
+
+  {% if hit and not hit.redirect_url %}
+  <p class="empty">{{ hit.message or "No match." }}</p>
+  {% endif %}
+</section>
+{% endblock %}

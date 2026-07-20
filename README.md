@@ -17,7 +17,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 2 | `cursor/sprint-2-alphabetic-fallback-1a75` | Done |
 | Sprint 3 | `cursor/sprint-3-sqlite-scheduler-1a75` | Done |
 | Sprint 4 | `cursor/sprint-4-learn-home-ui-1a75` | Done |
-| Sprint 5 | `cursor/sprint-5-browse-search-progress-1a75` | Planned |
+| Sprint 5 | `cursor/sprint-5-browse-search-progress-1a75` | Done |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -158,16 +158,43 @@ python -m constitution_memorizer.cli serve \
   --output-dir data
 ```
 
-Then open `http://127.0.0.1:8000/`. Progress is stored in `data/progress/progress.db`.
+Optional paths: `--units`, `--db`, `--reviewed`.
 
-Split-capable clauses open a Choose screen before learning. Choosing **letters** walks `(a)(b)…` units; **whole** keeps the clause-level path.
+Then open `http://127.0.0.1:8000/`.
 
-### Sprint 5 — Browse / Search / Progress (planned)
+| Path | Role |
+|------|------|
+| `data/output/learning_units.json` | Schedulable units (tracked) |
+| `data/output/constitution.reviewed.json` | Browse source (read-only; local) |
+| `data/progress/progress.db` | Progress + split preferences (local) |
 
-- Browse full Article, search deep-links, progress stats
-- Final README polish and distribution report
+UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{id}`.
+
+### Sprint 5 — Browse / Search / Progress ✅
+
+**Branch:** `cursor/sprint-5-browse-search-progress-1a75`
+
+- **Browse** — `GET /browse`, `GET /browse/article/{number}`  
+  Full Article text from `constitution.reviewed.json` + Learn CTAs for that Article’s units
+- **Search** — `GET /search?q=`  
+  - `20` → browse Article  
+  - `20(2)` → learn clause (or Choose if split-capable and unset)  
+  - `19(1)(a)` / `25(2)(a)` → set `letters` preference on parent, open subclause
+- **Progress** — `GET /progress`  
+  Unit totals by type; Article completion % from the chosen whole/letters path
+- Final metrics: [`docs/learning-layer-report.md`](docs/learning-layer-report.md)
+- Tests: `tests/test_web_sprint5.py`
+
+### Split-choice behaviour (summary)
+
+1. Opening a split-capable clause with no preference → **Choose** screen  
+2. **Learn whole clause** → store `split_preference.mode = whole`; study the parent `CLAUSE`  
+3. **Split into letters** → `mode = letters`; study `SUBCLAUSE` children via `letter_sequence_*`  
+4. Search to a letter unit also sets `letters` and deep-links into that subclause  
+5. Home due list / continue respect the chosen path  
 
 ---
+
 
 ## Why exact legal text is preserved
 
@@ -332,7 +359,7 @@ pytest -m integration
 - Learning fixtures: `tests/fixtures/learning/`
 - Learning tests: `tests/test_learning_unit_generator.py`
 - Progress / scheduler tests: `tests/test_reminder_engine.py`
-- Web UI tests: `tests/test_web_app.py`
+- Web UI tests: `tests/test_web_app.py`, `tests/test_web_sprint5.py`
 
 Unit tests **do not** require running Docling on the full PDF.
 

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Article {{ article.article_number }} · Browse{% endblock %}
+{% block content %}
+<section class="panel browse-article">
+  <p class="eyebrow">
+    Browse
+    {% if article.part_number %}· Part {{ article.part_number }}{% endif %}
+    · {{ article.status }}
+  </p>
+  <h1 class="display">Article {{ article.article_number }}</h1>
+  {% if article.title %}<p class="lede">{{ article.title }}</p>{% endif %}
+
+  <article class="unit-text">{{ article.full_text }}</article>
+
+  <h2 class="section-title">Learn</h2>
+  {% if article.learn_units %}
+  <ul class="checklist">
+    {% for unit in article.learn_units %}
+    <li>
+      <a class="checklist-item" href="/learn/{{ unit.id }}">
+        <span class="checklist-title">{{ unit.display_title }}</span>
+        <span class="checklist-meta">{{ unit.type }} · {{ unit.estimated_learning_time }}s</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">No learning units mapped to this Article yet.</p>
+  {% endif %}
+
+  <p class="actions">
+    <a class="btn btn-ghost" href="/browse">All articles</a>
+    <a class="btn btn-ghost" href="/">Home</a>
+  </p>
+</section>
+{% endblock %}

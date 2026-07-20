@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Browse · Constitution Memorizer{% endblock %}
+{% block content %}
+<section class="panel browse">
+  <h1 class="display">Browse</h1>
+  <p class="lede">
+    Open a full Article
+    {% if has_reviewed %}from the reviewed Bare Act{% else %}from learning units{% endif %},
+    then jump into Learn.
+  </p>
+
+  <ul class="article-index">
+    {% for number in article_numbers %}
+    <li><a href="/browse/article/{{ number }}">Article {{ number }}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

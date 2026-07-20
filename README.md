@@ -5,7 +5,7 @@ Production-oriented tooling to help users **understand, revise and memorise the 
 Work proceeds in two layers:
 
 1. **Corpus pipeline (Phase 1–2)** — deterministic PDF → structured JSON for the Bare Act
-2. **Learning layer (Sprints 1–20)** — Learning Units, progress, reminders, and a web UI aligned to the design prototype
+2. **Learning layer (Sprints 1–25)** — Learning Units, progress, reminders, and a web UI aligned to the design prototype
 
 Each sprint ships on its **own git branch** and updates this README so documentation stays in sync with merged capability.
 
@@ -40,6 +40,9 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 20 | `cursor/sprint-20-progress-mastery-1a75` | Done |
 | Sprint 21 | `cursor/sprint-21-amendment-history-1a75` | Done |
 | Sprint 22 | `cursor/sprint-22-explain-it-back-1a75` | Done |
+| Sprint 23 | `cursor/sprint-23-mac-packaging-1a75` | Done |
+| Sprint 24 | `cursor/sprint-24-study-reminders-1a75` | Planned |
+| Sprint 25 | `cursor/sprint-25-mac-install-backup-1a75` | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 

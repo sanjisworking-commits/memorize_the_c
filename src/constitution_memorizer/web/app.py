@@ -362,18 +362,15 @@ def create_app(
 
     @app.get("/progress", response_class=HTMLResponse)
     async def progress_page(request: Request) -> HTMLResponse:
-        dashboard = progress_dashboard(_engine())
-        # Show articles with any progress first, then a short head of the rest.
-        started = [a for a in dashboard["articles"] if a.completed > 0]
-        rest = [a for a in dashboard["articles"] if a.completed == 0][:40]
+        dashboard = progress_dashboard(
+            _engine(),
+            reviewed=app.state.reviewed,
+            today=date.today(),
+        )
         return templates.TemplateResponse(
             request,
             "progress.html",
-            {
-                "dashboard": dashboard,
-                "started_articles": started,
-                "sample_articles": rest,
-            },
+            {"dashboard": dashboard},
         )
 
     return app

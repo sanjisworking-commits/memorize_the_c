@@ -3,54 +3,70 @@
 {% block content %}
 <section class="panel progress">
   <h1 class="display">Progress</h1>
-  <p class="lede">Unit totals and Article completion from your chosen whole/letters paths.</p>
+  <p class="lede">{{ dashboard.lede }}</p>
 
-  <div class="stat-line" aria-label="Engine stats">
-    <span>{{ dashboard.engine.tracked }} tracked</span>
-    <span>{{ dashboard.engine.review }} in review</span>
-    <span>{{ dashboard.engine.mastered }} mastered</span>
-    <span>{{ dashboard.engine.split_preferences }} split choices</span>
-  </div>
-
-  <h2 class="section-title">Learning units</h2>
-  <div class="stat-line">
-    {% for kind, count in dashboard.by_type.items()|sort %}
-    <span>{{ kind }}: {{ count }}</span>
+  <div class="progress-stat-grid" aria-label="Progress totals">
+    {% for card in dashboard.stat_cards %}
+    <div class="progress-stat-card">
+      <div class="progress-stat-value">{{ card.value }}</div>
+      <div class="progress-stat-label">{{ card.label }}</div>
+    </div>
     {% endfor %}
   </div>
 
-  <h2 class="section-title">Articles</h2>
-  <div class="stat-line">
-    <span>{{ dashboard.articles_complete }} / {{ dashboard.articles_total }} complete</span>
-    <span>{{ dashboard.articles_started }} started</span>
-    <span>avg {{ dashboard.avg_article_percent }}%</span>
+  <h2 class="section-title">Mastery map</h2>
+  <div class="mastery-legend" aria-label="Legend">
+    <span class="mastery-legend-item"><span class="mastery-swatch is-new" aria-hidden="true"></span>New</span>
+    <span class="mastery-legend-item"><span class="mastery-swatch is-learning" aria-hidden="true"></span>Learning</span>
+    <span class="mastery-legend-item"><span class="mastery-swatch is-review" aria-hidden="true"></span>Review</span>
+    <span class="mastery-legend-item"><span class="mastery-swatch is-mastered" aria-hidden="true"></span>Mastered</span>
+    <span class="mastery-legend-item"><span class="mastery-swatch is-due" aria-hidden="true"></span>Due / continue</span>
   </div>
 
-  {% if started_articles %}
-  <h3 class="section-title">In progress</h3>
-  <ul class="progress-list">
-    {% for row in started_articles %}
-    <li>
-      <a href="/browse/article/{{ row.article_number }}">Article {{ row.article_number }}</a>
-      <span>{{ row.completed }}/{{ row.required }} · {{ row.percent }}%</span>
-      {% if row.pending_choice %}<span class="tag">choice pending</span>{% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-
-  <h3 class="section-title">Not started (sample)</h3>
-  <ul class="progress-list muted-list">
-    {% for row in sample_articles %}
-    <li>
-      <a href="/browse/article/{{ row.article_number }}">Article {{ row.article_number }}</a>
-      <span>0/{{ row.required }}</span>
-    </li>
+  <div class="mastery-map" role="list">
+    {% for part in dashboard.parts_map %}
+    <div class="mastery-row" role="listitem">
+      <div class="mastery-part">
+        <div class="mastery-part-num">Part {{ part.part_number }}</div>
+        <div class="mastery-part-name">{{ part.part_title }}</div>
+        <div class="mastery-part-range">Articles {{ part.article_range }}</div>
+      </div>
+      <div class="mastery-cells" aria-label="Part {{ part.part_number }} articles">
+        {% for cell in part.cells %}
+          {% if cell.href %}
+          <a
+            class="mastery-cell is-{{ cell.state }}{% if cell.tracked %} is-tracked{% endif %}"
+            href="{{ cell.href }}"
+            title="{{ cell.title }}"
+          ><span class="visually-hidden">{{ cell.title }}</span></a>
+          {% else %}
+          <span
+            class="mastery-cell is-{{ cell.state }}"
+            title="{{ cell.title }}"
+          ></span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
     {% else %}
-    <li class="empty">No remaining sample rows.</li>
+    <p class="empty">No articles available for the mastery map.</p>
     {% endfor %}
-  </ul>
+  </div>
 
-  <p class="actions"><a class="btn btn-ghost" href="/">Home</a></p>
+  <h2 class="section-title mastery-tracked-heading">Tracked articles</h2>
+  <div class="tracked-articles" role="list">
+    {% for row in dashboard.tracked_rows %}
+    <a class="tracked-article-row" href="{{ row.href }}" role="listitem">
+      <span class="tracked-article-title">{{ row.title }}</span>
+      <span class="tracked-progress-track" aria-hidden="true">
+        <span class="tracked-progress-bar{% if row.tag == 'mastered' %} is-mastered{% endif %}" style="width: {{ row.bar_percent }}%"></span>
+      </span>
+      <span class="tracked-article-frac">{{ row.frac }}</span>
+      <span class="tracked-article-tag{% if row.pending_choice %} is-pending{% endif %}">{{ row.tag }}</span>
+    </a>
+    {% else %}
+    <p class="empty">No tracked articles yet — start from Home or Browse.</p>
+    {% endfor %}
+  </div>
 </section>
 {% endblock %}

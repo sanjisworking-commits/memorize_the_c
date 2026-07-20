@@ -37,7 +37,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 18 | `cursor/sprint-18-recite-voice-1a75` | Done |
 | Hotfix | `cursor/fix-articles-365-plus-1a75` | Done |
 | Sprint 19 | `cursor/sprint-19-calendar-1a75` | Done |
-| Sprint 20 | design prototype (see plan) | Planned |
+| Sprint 20 | `cursor/sprint-20-progress-mastery-1a75` | Done |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -349,6 +349,16 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Chips link to `/learn/{unit_id}`; today cell has an accent ring
 - Best-effort history (current progress row only — no event log); legend + month summary
 - Tests: `tests/test_web_sprint19.py`
+
+### Sprint 20 — Progress mastery map ✅
+
+**Branch:** `cursor/sprint-20-progress-mastery-1a75`
+
+- `/progress` matches the prototype: 4 stat tiles, mastery map, tracked-articles list
+- Mastery map: one row per Part from reviewed JSON; 16px Article cells (`new` / `learning` / `review` / `mastered` / `due`)
+- Tracked cells link into Learn/Choose; tracked rows show completion bars and status tags
+- States respect split preference paths and the Home continue / due unit
+- Tests: `tests/test_web_sprint20.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

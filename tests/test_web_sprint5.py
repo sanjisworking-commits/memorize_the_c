@@ -117,4 +117,5 @@ def test_progress_page_and_article_completion(client: TestClient, engine: Remind
     page = client.get("/progress")
     assert page.status_code == 200
     assert "Progress" in page.text
-    assert "Learning units" in page.text
+    assert "Mastery map" in page.text
+    assert "Tracked articles" in page.text

@@ -83,6 +83,24 @@ def list_article_numbers(
     return numbers
 
 
+def adjacent_article_numbers(
+    engine: ReminderEngine,
+    reviewed: ConstitutionDocument | None,
+    article_number: str,
+) -> tuple[str | None, str | None]:
+    """Return (previous, next) article numbers in Browse order."""
+    numbers = list_article_numbers(engine, reviewed)
+    if not numbers:
+        return None, None
+    target = article_number.lower()
+    for index, number in enumerate(numbers):
+        if number.lower() == target:
+            prev_n = numbers[index - 1] if index > 0 else None
+            next_n = numbers[index + 1] if index + 1 < len(numbers) else None
+            return prev_n, next_n
+    return None, None
+
+
 def get_article(
     reviewed: ConstitutionDocument | None,
     article_number: str,

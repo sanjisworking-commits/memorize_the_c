@@ -10,6 +10,20 @@
   <h1 class="display">Article {{ article.article_number }}</h1>
   {% if article.title %}<p class="lede">{{ article.title }}</p>{% endif %}
 
+  <nav class="article-adjacent" aria-label="Adjacent articles">
+    {% if prev_article %}
+    <a class="article-adjacent-link is-prev" href="/browse/article/{{ prev_article }}">← Article {{ prev_article }}</a>
+    {% else %}
+    <span class="article-adjacent-link is-disabled">← First article</span>
+    {% endif %}
+    <a class="article-adjacent-index" href="/browse">All articles</a>
+    {% if next_article %}
+    <a class="article-adjacent-link is-next" href="/browse/article/{{ next_article }}">Article {{ next_article }} →</a>
+    {% else %}
+    <span class="article-adjacent-link is-disabled">Last article →</span>
+    {% endif %}
+  </nav>
+
   <article class="unit-text">{{ article.full_text }}</article>
 
   <h2 class="section-title">Learn</h2>
@@ -27,6 +41,19 @@
   {% else %}
   <p class="empty">No learning units mapped to this Article yet.</p>
   {% endif %}
+
+  <nav class="article-adjacent article-adjacent-footer" aria-label="Adjacent articles footer">
+    {% if prev_article %}
+    <a class="article-adjacent-link is-prev" href="/browse/article/{{ prev_article }}">← Article {{ prev_article }}</a>
+    {% else %}
+    <span class="article-adjacent-link is-disabled">← First article</span>
+    {% endif %}
+    {% if next_article %}
+    <a class="article-adjacent-link is-next" href="/browse/article/{{ next_article }}">Article {{ next_article }} →</a>
+    {% else %}
+    <span class="article-adjacent-link is-disabled">Last article →</span>
+    {% endif %}
+  </nav>
 
   <p class="actions">
     <a class="btn btn-ghost" href="/browse">All articles</a>

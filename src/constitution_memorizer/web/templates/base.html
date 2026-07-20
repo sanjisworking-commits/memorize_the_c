@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=sprint22">
+  <link rel="stylesheet" href="/static/styles.css?v=sprint26">
 </head>
 <body>
   {% set path = request.url.path %}
@@ -20,6 +20,7 @@
           <a href="/browse" class="nav-link{% if path.startswith('/browse') %} is-active{% endif %}">Browse</a>
           <a href="/calendar" class="nav-link{% if path.startswith('/calendar') %} is-active{% endif %}">Calendar</a>
           <a href="/progress" class="nav-link{% if path.startswith('/progress') %} is-active{% endif %}">Progress</a>
+          <a href="/settings" class="nav-link{% if path.startswith('/settings') %} is-active{% endif %}">Settings</a>
           <a href="/search" class="nav-link{% if path.startswith('/search') %} is-active{% endif %}">Search</a>
         </nav>
       </header>

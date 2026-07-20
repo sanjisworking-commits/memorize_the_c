@@ -233,6 +233,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override today's date (YYYY-MM-DD) for tests",
     )
     remind_p.add_argument(
+        "--at",
+        type=str,
+        default=None,
+        help="Override local datetime for schedule gate (YYYY-MM-DDTHH:MM)",
+    )
+    remind_p.add_argument(
         "--host-url",
         default=None,
         help="Base URL in the message (default: REMINDER_BASE_URL or http://127.0.0.1:8001)",
@@ -625,9 +631,10 @@ def cmd_serve(args: argparse.Namespace, config: PipelineConfig) -> int:
 def cmd_send_reminders(args: argparse.Namespace, config: PipelineConfig) -> int:
     """Build today's due digest and send via the selected notifier."""
     import os
-    from datetime import date
+    from datetime import date, datetime
 
     from constitution_memorizer.notifications import build_study_digest, get_notifier
+    from constitution_memorizer.notifications.schedule import should_notify
     from constitution_memorizer.progress.scheduler import ReminderEngine
 
     output_dir: Path = args.output_dir
@@ -636,7 +643,20 @@ def cmd_send_reminders(args: argparse.Namespace, config: PipelineConfig) -> int:
     if not units_path.exists():
         raise ConstitutionMemorizerError(f"learning units not found: {units_path}")
 
-    as_of = date.fromisoformat(args.as_of) if args.as_of else date.today()
+    now = datetime.now().astimezone().replace(second=0, microsecond=0)
+    if args.at:
+        raw = args.at.strip()
+        try:
+            parsed = datetime.fromisoformat(raw)
+        except ValueError as exc:
+            raise ConstitutionMemorizerError(
+                f"Invalid --at datetime (use YYYY-MM-DDTHH:MM): {args.at}"
+            ) from exc
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=now.tzinfo)
+        now = parsed.replace(second=0, microsecond=0)
+
+    as_of = date.fromisoformat(args.as_of) if args.as_of else now.date()
     base_url = (
         args.host_url
         or os.environ.get("REMINDER_BASE_URL")
@@ -656,12 +676,33 @@ def cmd_send_reminders(args: argparse.Namespace, config: PipelineConfig) -> int:
             print(f"  continue: {digest.continue_title}")
         return 0
 
+    frequency = engine.get_notification_frequency()
+    last_slot = engine.repo.get_notification_last_slot()
+    # --notify-empty bypasses cadence so tests/manual pings still work.
+    if not args.notify_empty:
+        decision = should_notify(
+            frequency=frequency,
+            now=now,
+            due_count=digest.due_count,
+            last_slot=last_slot,
+        )
+        if not decision.should_send:
+            print(
+                f"{as_of.isoformat()} {now.strftime('%H:%M')} "
+                f"({frequency}): skip — {decision.reason}"
+            )
+            return 0
+
     title = digest.notification_title()
     body = digest.notification_body()
     channel = "console" if args.dry_run else args.channel
     notifier = get_notifier(channel)
     notifier.send(title, body)
-    print(f"Sent via {channel}: {digest.due_count} due ({as_of.isoformat()})")
+    engine.repo.set_notification_last_slot(now)
+    print(
+        f"Sent via {channel}: {digest.due_count} due "
+        f"({as_of.isoformat()} {now.strftime('%H:%M')}, {frequency})"
+    )
     return 0
 
 

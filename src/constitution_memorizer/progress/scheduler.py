@@ -10,6 +10,7 @@ from typing import Iterable, Mapping
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitsDocument
 from constitution_memorizer.progress.db import open_progress_db
 from constitution_memorizer.progress.repository import (
+    NotificationFrequency,
     ProgressRecord,
     ProgressRepository,
     SplitMode,
@@ -98,6 +99,12 @@ class ReminderEngine:
 
     def get_split_preference(self, parent_clause_id: str) -> SplitMode | None:
         return self.repo.get_split_preference(parent_clause_id)
+
+    def get_notification_frequency(self) -> NotificationFrequency:
+        return self.repo.get_notification_frequency()
+
+    def set_notification_frequency(self, frequency: NotificationFrequency) -> None:
+        self.repo.set_notification_frequency(frequency)
 
     def mark_done(
         self,

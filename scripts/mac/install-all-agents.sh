@@ -35,5 +35,5 @@ bash "$MAC/install-reminders-agent.sh"
 echo
 echo "Both agents installed."
 echo "  UI:        http://127.0.0.1:8001/"
-echo "  Reminders: topic \$NTFY_TOPIC at 07:00"
+echo "  Reminders: hourly ticks; cadence in Settings (default thrice)"
 echo "Optional weekly backup: bash scripts/mac/install-backup-agent.sh"

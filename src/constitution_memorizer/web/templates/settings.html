@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Settings · Constitution Memorizer{% endblock %}
+{% block content %}
+<section class="panel settings">
+  <h1 class="display">Settings</h1>
+  <p class="lede">Choose how often study reminders fire while today’s due list still has work.</p>
+
+  {% if saved %}
+  <p class="settings-saved" role="status">Reminder frequency saved.</p>
+  {% endif %}
+
+  <h2 class="section-title">Study reminders</h2>
+  <p class="settings-note">
+    Reminders use the same due list as Home. They stop for the day once every due unit is Done or deferred.
+    Phone delivery still needs the ntfy LaunchAgent (<code>NTFY_TOPIC</code>).
+  </p>
+
+  <form class="settings-form" method="post" action="/settings">
+    <fieldset class="settings-fieldset">
+      <legend class="visually-hidden">Reminder frequency</legend>
+
+      <label class="settings-option">
+        <input
+          type="radio"
+          name="notification_frequency"
+          value="twice"
+          {% if frequency == 'twice' %}checked{% endif %}
+        >
+        <span class="settings-option-body">
+          <span class="settings-option-title">Twice</span>
+          <span class="settings-option-desc">08:00 and 18:00 local, while units are still due.</span>
+        </span>
+      </label>
+
+      <label class="settings-option">
+        <input
+          type="radio"
+          name="notification_frequency"
+          value="thrice"
+          {% if frequency == 'thrice' %}checked{% endif %}
+        >
+        <span class="settings-option-body">
+          <span class="settings-option-title">Thrice</span>
+          <span class="settings-option-desc">08:00, 13:00, and 18:00 local (default).</span>
+        </span>
+      </label>
+
+      <label class="settings-option">
+        <input
+          type="radio"
+          name="notification_frequency"
+          value="hourly"
+          {% if frequency == 'hourly' %}checked{% endif %}
+        >
+        <span class="settings-option-body">
+          <span class="settings-option-title">Every hour</span>
+          <span class="settings-option-desc">Nag each hour until today’s due checklist is empty.</span>
+        </span>
+      </label>
+    </fieldset>
+
+    <button type="submit" class="btn btn-accent">Save</button>
+  </form>
+</section>
+{% endblock %}

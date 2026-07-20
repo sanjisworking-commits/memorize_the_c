@@ -440,4 +440,32 @@ def create_app(
             {"dashboard": dashboard},
         )
 
+    @app.get("/settings", response_class=HTMLResponse)
+    async def settings_page(
+        request: Request,
+        saved: int | None = Query(default=None),
+    ) -> HTMLResponse:
+        frequency = _engine().get_notification_frequency()
+        return templates.TemplateResponse(
+            request,
+            "settings.html",
+            {
+                "frequency": frequency,
+                "saved": bool(saved),
+            },
+        )
+
+    @app.post("/settings")
+    async def settings_save(
+        notification_frequency: str = Form(...),
+    ) -> RedirectResponse:
+        from constitution_memorizer.progress.repository import (
+            VALID_NOTIFICATION_FREQUENCIES,
+        )
+
+        if notification_frequency not in VALID_NOTIFICATION_FREQUENCIES:
+            raise HTTPException(status_code=400, detail="Invalid notification frequency")
+        _engine().set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
+        return RedirectResponse(url="/settings?saved=1", status_code=303)
+
     return app

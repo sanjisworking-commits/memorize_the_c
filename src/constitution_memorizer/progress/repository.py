@@ -1,4 +1,4 @@
-"""CRUD for learning_unit_progress and split_preference."""
+"""CRUD for learning_unit_progress, split_preference, and app_settings."""
 
 from __future__ import annotations
 
@@ -9,6 +9,14 @@ from typing import Literal
 
 SplitMode = Literal["whole", "letters"]
 ProgressStatus = Literal["new", "review", "mastered"]
+NotificationFrequency = Literal["twice", "thrice", "hourly"]
+
+NOTIFICATION_FREQUENCY_KEY = "notification_frequency"
+NOTIFICATION_LAST_SLOT_KEY = "notification_last_slot"
+DEFAULT_NOTIFICATION_FREQUENCY: NotificationFrequency = "thrice"
+VALID_NOTIFICATION_FREQUENCIES: frozenset[str] = frozenset(
+    ("twice", "thrice", "hourly")
+)
 
 
 def _utc_now_iso() -> str:
@@ -271,3 +279,52 @@ class ProgressRepository:
             (article_number,),
         )
         self._conn.commit()
+
+    def get_setting(self, key: str) -> str | None:
+        row = self._conn.execute(
+            "SELECT value FROM app_settings WHERE key = ?",
+            (key,),
+        ).fetchone()
+        if row is None:
+            return None
+        return str(row["value"])
+
+    def set_setting(self, key: str, value: str) -> None:
+        now = _utc_now_iso()
+        self._conn.execute(
+            """
+            INSERT INTO app_settings (key, value, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = excluded.updated_at
+            """,
+            (key, value, now),
+        )
+        self._conn.commit()
+
+    def get_notification_frequency(self) -> NotificationFrequency:
+        raw = self.get_setting(NOTIFICATION_FREQUENCY_KEY)
+        if raw in VALID_NOTIFICATION_FREQUENCIES:
+            return raw  # type: ignore[return-value]
+        return DEFAULT_NOTIFICATION_FREQUENCY
+
+    def set_notification_frequency(self, frequency: NotificationFrequency) -> None:
+        if frequency not in VALID_NOTIFICATION_FREQUENCIES:
+            raise ValueError(f"Invalid notification frequency: {frequency}")
+        self.set_setting(NOTIFICATION_FREQUENCY_KEY, frequency)
+
+    def get_notification_last_slot(self) -> datetime | None:
+        raw = self.get_setting(NOTIFICATION_LAST_SLOT_KEY)
+        if not raw:
+            return None
+        try:
+            return datetime.fromisoformat(raw)
+        except ValueError:
+            return None
+
+    def set_notification_last_slot(self, when: datetime) -> None:
+        self.set_setting(
+            NOTIFICATION_LAST_SLOT_KEY,
+            when.replace(microsecond=0).isoformat(),
+        )

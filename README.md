@@ -43,6 +43,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 23 | `cursor/sprint-23-mac-packaging-1a75` | Done |
 | Sprint 24 | `cursor/sprint-24-study-reminders-1a75` | Done |
 | Sprint 25 | `cursor/sprint-25-mac-install-backup-1a75` | Done |
+| Sprint 26 | `cursor/sprint-26-notification-settings-1a75` | Done |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -412,6 +413,15 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Optional weekly backup LaunchAgent (`install-backup-agent.sh`)
 - README: first Mac setup, what survives reboot, restore, smoke checklist
 
+### Sprint 26 — Notification settings ✅
+
+**Branch:** `cursor/sprint-26-notification-settings-1a75`
+
+- Settings UI (`/settings`): choose reminder cadence **twice** (08:00 / 18:00), **thrice** (08:00 / 13:00 / 18:00, default), or **hourly** until today’s due list is empty
+- Prefs in SQLite `app_settings`; hourly LaunchAgent ticks gate via `should_notify`
+- Same Home `due_checklist` — Done / Again tomorrow clear dues and silence nags
+- Tests: `tests/test_notification_schedule.py`, `tests/test_web_sprint26.py`, CLI schedule skips
+
 ### Hotfix — Browse / Learn corpus artefacts ✅
 
 **Branch:** `cursor/fix-browse-artefacts-1a75`
@@ -522,7 +532,7 @@ open scripts/mac/start-ui.command
 Bookmark **http://127.0.0.1:8001/**.  
 **Stop:** `Ctrl+C`, or `bash scripts/mac/stop-ui.sh`.
 
-**Install both LaunchAgents** (UI at login + morning reminders):
+**Install both LaunchAgents** (UI at login + hourly reminder ticks):
 
 ```bash
 # Subscribe in the ntfy app to the same topic first
@@ -532,23 +542,25 @@ bash scripts/mac/install-all-agents.sh
 
 Or install separately: `install-serve-agent.sh` / `install-reminders-agent.sh`.  
 Unload: `uninstall-serve-agent.sh` / `uninstall-reminders-agent.sh`.  
-Logs: `~/Library/Logs/constitution-memorizer-*.log`.
+Logs: `~/Library/Logs/constitution-memorizer-*.log`.  
+Choose cadence in the UI: **http://127.0.0.1:8001/settings** (default thrice). Re-run `install-reminders-agent.sh` after pulling Sprint 26 so the agent uses hourly ticks.
 
 ### Study reminders (ntfy)
 
-Daily push of today’s due units (same list as Home). Does **not** require the UI server to be running.
+Pushes today’s due units (same list as Home). Cadence is set under **Settings**. Does **not** require the UI server to be running for the send itself.
 
 1. Install the [ntfy](https://ntfy.sh/) app and subscribe to a private topic, e.g. `cm-yourname-study`.
-2. Test from the repo:
+2. In the UI open **Settings** and pick Twice / Thrice / Every hour.
+3. Test from the repo:
 
 ```bash
 source .venv/bin/activate
 export NTFY_TOPIC=cm-yourname-study
-python -m constitution_memorizer.cli send-reminders --channel console --dry-run
-python -m constitution_memorizer.cli send-reminders --channel ntfy
+python -m constitution_memorizer.cli send-reminders --channel console --dry-run --at 2026-07-20T08:00
+python -m constitution_memorizer.cli send-reminders --channel ntfy --at "$(date +%Y-%m-%dT%H:%M)"
 ```
 
-3. Prefer `install-all-agents.sh` (above), or:
+4. Prefer `install-all-agents.sh` (above), or:
 
 ```bash
 export NTFY_TOPIC=cm-yourname-study
@@ -556,13 +568,13 @@ bash scripts/mac/install-reminders-agent.sh
 ```
 
 Optional env: `NTFY_SERVER` (default `https://ntfy.sh`), `NTFY_TOKEN`, `REMINDER_BASE_URL`.  
-Empty due lists skip the send.
+Empty due lists skip the send; fixed slots and hourly also debounce within the same clock hour.
 
 ### What survives reboot
 
 | Asset | Survives power-off? | Notes |
 |-------|---------------------|-------|
-| `data/progress/progress.db` | Yes | Mastery, schedule, glosses (Explain it back) |
+| `data/progress/progress.db` | Yes | Mastery, schedule, glosses, notification settings |
 | `data/output/learning_units.json` | Yes | Regenerate with `generate-units` if missing |
 | LaunchAgents | Yes | Under `~/Library/LaunchAgents/` |
 | ntfy subscription | On phone | Topic secret in env / plist `EnvironmentVariables` |
@@ -583,10 +595,10 @@ Time Machine also covers the repo (and Documents backups) if those paths are inc
 ### Smoke checklist (Mac daily driver)
 
 1. Login → UI responds at http://127.0.0.1:8001/ (serve LaunchAgent)
-2. Morning → ntfy digest lists today’s due units (or silent if nothing due)
-3. Study a unit → progress updates in the UI
+2. Settings → pick thrice or hourly; at a reminder hour, ntfy lists today’s due units (silent if nothing due / wrong hour)
+3. Study a unit → Done clears it from Home; further hourly ticks stay silent once the due list is empty
 4. `bash scripts/mac/backup-progress.sh` → file appears under Documents backups
-5. Reboot → same progress and glosses still present (same `progress.db`)
+5. Reboot → same progress, glosses, and reminder settings (same `progress.db`)
 
 ### Try a sprint branch on your Mac (step by step)
 

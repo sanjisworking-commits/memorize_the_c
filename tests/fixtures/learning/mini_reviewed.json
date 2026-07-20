@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0.0",
+  "document": {
+    "title": "Mini reviewed fixture",
+    "schema_version": "1.0.0"
+  },
+  "parts": [
+    {
+      "id": "part-iii",
+      "part_number": "III",
+      "part_number_normalized": 3,
+      "title": "FUNDAMENTAL RIGHTS",
+      "articles": [
+        {
+          "id": "article-20",
+          "article_number": "20",
+          "numeric_component": 20,
+          "title": "Protection in respect of conviction for offences",
+          "part_number": "III",
+          "body_text": "",
+          "clauses": [
+            {
+              "id": "article-20-clause-1",
+              "label": "(1)",
+              "label_type": "numeric",
+              "text": "No person shall be convicted of any offence except for violation of a law in force.",
+              "children": []
+            },
+            {
+              "id": "article-20-clause-3",
+              "label": "(3)",
+              "label_type": "numeric",
+              "text": "No person accused of any offence shall be compelled to be a witness against himself unless-",
+              "children": [
+                {
+                  "id": "article-20-clause-3-subclause-a",
+                  "label": "(a)",
+                  "label_type": "alphabetic",
+                  "text": "the accusation is in writing;",
+                  "children": []
+                },
+                {
+                  "id": "article-20-clause-3-subclause-b",
+                  "label": "(b)",
+                  "label_type": "alphabetic",
+                  "text": "the person has counsel.",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "article-21",
+          "article_number": "21",
+          "numeric_component": 21,
+          "title": "Protection of life and personal liberty",
+          "part_number": "III",
+          "body_text": "No person shall be deprived of his life or personal liberty except according to procedure established by law.",
+          "clauses": []
+        }
+      ]
+    }
+  ],
+  "schedules": [],
+  "appendices": [],
+  "footnotes": [],
+  "unclassified_content": []
+}

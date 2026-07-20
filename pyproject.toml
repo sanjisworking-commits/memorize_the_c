@@ -29,7 +29,7 @@ dev = [
 
 [tool.setuptools.package-data]
 constitution_memorizer = [
-    "web/templates/*.html",
+    "web/templates/*",
     "web/static/*",
 ]
 

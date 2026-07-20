@@ -5,12 +5,19 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from constitution_memorizer.progress.scheduler import ReminderEngine
+from constitution_memorizer.web.browse import (
+    build_article_view,
+    list_article_numbers,
+    load_reviewed_document,
+)
+from constitution_memorizer.web.progress_stats import progress_dashboard
+from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
     continue_unit_id,
     due_checklist,
@@ -27,11 +34,17 @@ def create_app(
     *,
     units_path: Path | str | None = None,
     db_path: Path | str | None = None,
+    reviewed_path: Path | str | None = None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
     resolved_units = Path(units_path or root / "data" / "output" / "learning_units.json")
     resolved_db = Path(db_path or root / "data" / "progress" / "progress.db")
+    resolved_reviewed = Path(
+        reviewed_path
+        if reviewed_path is not None
+        else root / "data" / "output" / "constitution.reviewed.json"
+    )
 
     if not resolved_units.exists():
         raise FileNotFoundError(
@@ -40,12 +53,17 @@ def create_app(
         )
 
     engine = ReminderEngine.from_paths(resolved_db, resolved_units)
+    reviewed = load_reviewed_document(
+        resolved_reviewed if resolved_reviewed.exists() else None
+    )
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-    app = FastAPI(title="Constitution Memorizer", version="0.4.0")
+    app = FastAPI(title="Constitution Memorizer", version="0.5.0")
     app.state.engine = engine
+    app.state.reviewed = reviewed
     app.state.units_path = resolved_units
     app.state.db_path = resolved_db
+    app.state.reviewed_path = resolved_reviewed
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     def _engine() -> ReminderEngine:
@@ -177,36 +195,63 @@ def create_app(
         return RedirectResponse(url="/", status_code=303)
 
     @app.get("/browse", response_class=HTMLResponse)
-    async def browse_stub(request: Request) -> HTMLResponse:
+    async def browse_index(request: Request) -> HTMLResponse:
+        eng = _engine()
+        numbers = list_article_numbers(eng, app.state.reviewed)
         return templates.TemplateResponse(
             request,
-            "stub.html",
+            "browse_index.html",
             {
-                "title": "Browse",
-                "message": "Full Article browse arrives in Sprint 5.",
+                "article_numbers": numbers,
+                "has_reviewed": app.state.reviewed is not None,
             },
         )
 
-    @app.get("/search", response_class=HTMLResponse)
-    async def search_stub(request: Request) -> HTMLResponse:
+    @app.get("/browse/article/{article_number}", response_class=HTMLResponse)
+    async def browse_article(request: Request, article_number: str) -> HTMLResponse:
+        eng = _engine()
+        view = build_article_view(eng, app.state.reviewed, article_number)
+        if view is None:
+            raise HTTPException(status_code=404, detail="Article not found")
         return templates.TemplateResponse(
             request,
-            "stub.html",
+            "browse_article.html",
+            {"article": view},
+        )
+
+    @app.get("/search", response_class=HTMLResponse)
+    async def search_page(
+        request: Request,
+        q: str | None = Query(default=None),
+    ) -> HTMLResponse:
+        eng = _engine()
+        hit = None
+        if q and q.strip():
+            hit = resolve_search(eng, q.strip())
+            if hit.redirect_url:
+                return RedirectResponse(url=hit.redirect_url, status_code=303)
+        return templates.TemplateResponse(
+            request,
+            "search.html",
             {
-                "title": "Search",
-                "message": "Article / clause search arrives in Sprint 5.",
+                "q": q or "",
+                "hit": hit,
             },
         )
 
     @app.get("/progress", response_class=HTMLResponse)
-    async def progress_stub(request: Request) -> HTMLResponse:
+    async def progress_page(request: Request) -> HTMLResponse:
+        dashboard = progress_dashboard(_engine())
+        # Show articles with any progress first, then a short head of the rest.
+        started = [a for a in dashboard["articles"] if a.completed > 0]
+        rest = [a for a in dashboard["articles"] if a.completed == 0][:40]
         return templates.TemplateResponse(
             request,
-            "stub.html",
+            "progress.html",
             {
-                "title": "Progress",
-                "message": "Detailed progress stats arrive in Sprint 5.",
-                "stats": _engine().stats(),
+                "dashboard": dashboard,
+                "started_articles": started,
+                "sample_articles": rest,
             },
         )
 

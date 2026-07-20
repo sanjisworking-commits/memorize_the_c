@@ -211,6 +211,56 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_shared_flags(serve_p)
 
+    remind_p = sub.add_parser(
+        "send-reminders",
+        help="Send today's study reminder (due units) via console or ntfy",
+    )
+    remind_p.add_argument(
+        "--channel",
+        choices=("console", "ntfy"),
+        default="console",
+        help="Delivery channel (default: console)",
+    )
+    remind_p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print digest to stdout without calling the transport",
+    )
+    remind_p.add_argument(
+        "--as-of",
+        type=str,
+        default=None,
+        help="Override today's date (YYYY-MM-DD) for tests",
+    )
+    remind_p.add_argument(
+        "--host-url",
+        default=None,
+        help="Base URL in the message (default: REMINDER_BASE_URL or http://127.0.0.1:8001)",
+    )
+    remind_p.add_argument(
+        "--units",
+        type=Path,
+        default=None,
+        help="learning_units.json path (default: <output-dir>/output/learning_units.json)",
+    )
+    remind_p.add_argument(
+        "--db",
+        type=Path,
+        default=None,
+        help="SQLite progress DB (default: <output-dir>/progress/progress.db)",
+    )
+    remind_p.add_argument(
+        "--include-continue",
+        action="store_true",
+        help="Mention continue unit when the due list is empty (still skips send by default)",
+    )
+    remind_p.add_argument(
+        "--notify-empty",
+        action="store_true",
+        help="Send a notification even when nothing is due",
+    )
+    _add_shared_flags(remind_p)
+
     return parser
 
 
@@ -572,6 +622,49 @@ def cmd_serve(args: argparse.Namespace, config: PipelineConfig) -> int:
     return 0
 
 
+def cmd_send_reminders(args: argparse.Namespace, config: PipelineConfig) -> int:
+    """Build today's due digest and send via the selected notifier."""
+    import os
+    from datetime import date
+
+    from constitution_memorizer.notifications import build_study_digest, get_notifier
+    from constitution_memorizer.progress.scheduler import ReminderEngine
+
+    output_dir: Path = args.output_dir
+    units_path = args.units or (output_dir / "output" / "learning_units.json")
+    db_path = args.db or (output_dir / "progress" / "progress.db")
+    if not units_path.exists():
+        raise ConstitutionMemorizerError(f"learning units not found: {units_path}")
+
+    as_of = date.fromisoformat(args.as_of) if args.as_of else date.today()
+    base_url = (
+        args.host_url
+        or os.environ.get("REMINDER_BASE_URL")
+        or "http://127.0.0.1:8001/"
+    )
+    engine = ReminderEngine.from_paths(db_path, units_path)
+    digest = build_study_digest(
+        engine,
+        as_of=as_of,
+        base_url=base_url,
+        include_continue=bool(args.include_continue or args.notify_empty),
+    )
+
+    if digest.is_empty and not args.notify_empty:
+        print(f"{as_of.isoformat()}: nothing due — skip send")
+        if args.include_continue and digest.continue_title:
+            print(f"  continue: {digest.continue_title}")
+        return 0
+
+    title = digest.notification_title()
+    body = digest.notification_body()
+    channel = "console" if args.dry_run else args.channel
+    notifier = get_notifier(channel)
+    notifier.send(title, body)
+    print(f"Sent via {channel}: {digest.due_count} due ({as_of.isoformat()})")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
     parser = build_parser()
@@ -599,6 +692,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_generate_units(args, config)
         if command == "serve":
             return cmd_serve(args, config)
+        if command == "send-reminders":
+            return cmd_send_reminders(args, config)
         parser.error(f"Unknown command: {command}")
         return 2
     except OverwriteRefusedError as exc:

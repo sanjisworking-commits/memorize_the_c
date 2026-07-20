@@ -450,6 +450,52 @@ a:hover {
   font-size: 16px;
 }
 
+.sibling-rail {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 6px;
+  flex-wrap: wrap;
+}
+
+.sibling-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #c9c9c7;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sibling-chip:hover {
+  border-color: var(--ink);
+}
+
+.sibling-chip.is-current {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  cursor: default;
+}
+
+.sibling-rail.is-letters .sibling-chip.is-current {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.sibling-chip.is-done {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
 .mode-tabs {
   display: flex;
   gap: 2px;
@@ -481,6 +527,14 @@ a:hover {
 .learn-body {
   min-height: 200px;
   padding: 24px 0 4px;
+}
+
+.learn-stem {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 12px;
+  color: var(--faint);
+  white-space: pre-wrap;
 }
 
 .learn-read-text {

@@ -24,7 +24,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Hotfix | `cursor/fix-articles-1-2-1a75` | Done |
 | Sprint 9 | `cursor/sprint-9-choose-incomplete-1a75` | Done |
 | Sprint 10 | `cursor/sprint-10-learn-read-1a75` | Done |
-| Sprints 11–20 | design prototype (see plan) | Planned |
+| Sprint 11 | `cursor/sprint-11-sibling-rails-1a75` | Done |
+| Sprints 12–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -237,6 +238,16 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Mode tab strip (Read active; other modes disabled until later sprints)
 - Ink **Done — next unit** + text Reset unit (Again tomorrow in Sprint 12)
 - Tests: `tests/test_web_sprint10.py`
+
+### Sprint 11 — Sibling rails + subclause stem ✅
+
+**Branch:** `cursor/sprint-11-sibling-rails-1a75`
+
+- Clause sibling chips under the title when an article has multiple clauses
+- Letter rail for `SUBCLAUSE` units (current / done / idle states)
+- Gray parent stem above letter text (Bare Act wording with letter bodies removed)
+- CTA becomes **Done — next letter** while a letter sequence continues
+- Tests: `tests/test_web_sprint11.py`
 
 ### Split-choice behaviour (summary)
 

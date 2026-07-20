@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0.0",
+  "articles": {
+    "14": {
+      "amendments": [],
+      "learn_note": null
+    },
+    "15": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Inserted clause (4) — special provision for the advancement of socially and educationally backward classes, SCs and STs."
+        },
+        {
+          "no": "93rd",
+          "year": "2005",
+          "text": "Inserted clause (5) — reservation in educational institutions, including private unaided ones."
+        },
+        {
+          "no": "103rd",
+          "year": "2019",
+          "text": "Inserted clause (6) — up to 10% reservation for economically weaker sections."
+        }
+      ],
+      "learn_note": "Amended thrice — clauses (4)–(6) were added by the 1st, 93rd and 103rd Amendments. See Amendment history under Browse."
+    },
+    "19": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Substituted clause (2) — allowed \"reasonable restrictions\" on freedom of speech and expression."
+        },
+        {
+          "no": "16th",
+          "year": "1963",
+          "text": "Widened clause (2) — restrictions in the interest of the sovereignty and integrity of India."
+        },
+        {
+          "no": "44th",
+          "year": "1978",
+          "text": "Omitted sub-clause (1)(f) — the right to acquire, hold and dispose of property."
+        }
+      ],
+      "learn_note": "The letters run (a)–(e), (g): sub-clause (f) — property — was omitted by the 44th Amendment (1978)."
+    },
+    "21": {
+      "amendments": [
+        {
+          "no": "86th",
+          "year": "2002",
+          "text": "Inserted companion Article 21A — free and compulsory education for children aged 6–14. Article 21 itself is unchanged."
+        }
+      ],
+      "learn_note": "Unamended since 1950; the 86th Amendment (2002) added the companion Article 21A on education."
+    }
+  }
+}

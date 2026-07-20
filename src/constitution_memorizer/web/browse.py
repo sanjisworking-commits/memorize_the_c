@@ -1,4 +1,4 @@
-"""Browse helpers: Article views from reviewed Bare Act JSON (Sprint 5)."""
+"""Browse helpers: Article views from reviewed Bare Act JSON (Sprint 5 / 21)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,12 @@ from constitution_memorizer.progress.scheduler import ReminderEngine
 from constitution_memorizer.schemas import Article, ConstitutionDocument
 from constitution_memorizer.utils.identifiers import article_sort_key
 from constitution_memorizer.utils.json_io import read_json
+from constitution_memorizer.web.amendments import (
+    Amendment,
+    ArticleAmendments,
+    get_article_amendments,
+)
+from constitution_memorizer.web.progress_stats import path_units_for_article
 
 
 @dataclass
@@ -22,6 +28,10 @@ class ArticleBrowseView:
     status: str
     full_text: str
     learn_units: list[LearningUnit] = field(default_factory=list)
+    # None = article not in amendment seed; [] = curated unamended
+    amendments: list[Amendment] | None = None
+    amendment_meta: str | None = None
+    show_unamended: bool = False
 
 
 def load_reviewed_document(path: Path | None) -> ConstitutionDocument | None:
@@ -145,16 +155,54 @@ def learn_units_for_article(
     return units
 
 
+def _is_unit_memorized(engine: ReminderEngine, unit_id: str) -> bool:
+    progress = engine.repo.get_progress(unit_id)
+    if progress is None:
+        return False
+    return progress.times_completed > 0 or progress.status in {"review", "mastered"}
+
+
+def build_amendment_meta(
+    engine: ReminderEngine,
+    article_number: str,
+    curated: ArticleAmendments | None,
+) -> str | None:
+    """Meta line under the article title (units · memorized · amendments)."""
+    if curated is None:
+        return None
+    path_units, _ = path_units_for_article(engine, article_number)
+    unit_n = len(path_units)
+    memorized_n = sum(1 for u in path_units if _is_unit_memorized(engine, u.id))
+    unit_label = "1 unit" if unit_n == 1 else f"{unit_n} units"
+    mem_label = "1 memorized" if memorized_n == 1 else f"{memorized_n} memorized"
+    return (
+        f"{unit_label} · {mem_label} · {curated.count_label} — "
+        "open any clause below in Learn"
+    )
+
+
 def build_article_view(
     engine: ReminderEngine,
     reviewed: ConstitutionDocument | None,
     article_number: str,
+    *,
+    amendments_catalog: dict[str, ArticleAmendments] | None = None,
 ) -> ArticleBrowseView | None:
     article = get_article(reviewed, article_number)
     learn_units = learn_units_for_article(engine, article_number)
 
     if article is None and not learn_units:
         return None
+
+    curated = get_article_amendments(amendments_catalog or {}, article_number)
+    amendments_list: list[Amendment] | None
+    show_unamended = False
+    if curated is None:
+        amendments_list = None
+    else:
+        amendments_list = list(curated.amendments)
+        show_unamended = not curated.has_amendments
+    meta = build_amendment_meta(engine, article_number, curated)
 
     if article is not None:
         return ArticleBrowseView(
@@ -164,9 +212,11 @@ def build_article_view(
             status=article.status.value if hasattr(article.status, "value") else str(article.status),
             full_text=_article_full_text(article),
             learn_units=learn_units,
+            amendments=amendments_list,
+            amendment_meta=meta,
+            show_unamended=show_unamended,
         )
 
-    # Fallback: stitch learning-unit text when reviewed JSON is unavailable.
     text = "\n\n".join(u.text for u in learn_units if u.text)
     return ArticleBrowseView(
         article_number=article_number,
@@ -175,4 +225,7 @@ def build_article_view(
         status="unknown",
         full_text=text,
         learn_units=learn_units,
+        amendments=amendments_list,
+        amendment_meta=meta,
+        show_unamended=show_unamended,
     )

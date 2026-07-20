@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from constitution_memorizer.progress.scheduler import ReminderEngine
+from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
     build_article_view,
@@ -47,6 +48,7 @@ def create_app(
     units_path: Path | str | None = None,
     db_path: Path | str | None = None,
     reviewed_path: Path | str | None = None,
+    amendments_path: Path | str | None = None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -56,6 +58,11 @@ def create_app(
         reviewed_path
         if reviewed_path is not None
         else root / "data" / "output" / "constitution.reviewed.json"
+    )
+    resolved_amendments = Path(
+        amendments_path
+        if amendments_path is not None
+        else root / "data" / "reference" / "amendments.seed.json"
     )
 
     if not resolved_units.exists():
@@ -68,11 +75,15 @@ def create_app(
     reviewed = load_reviewed_document(
         resolved_reviewed if resolved_reviewed.exists() else None
     )
+    amendments = load_amendments(
+        resolved_amendments if resolved_amendments.exists() else None
+    )
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     app = FastAPI(title="Constitution Memorizer", version="0.5.0")
     app.state.engine = engine
     app.state.reviewed = reviewed
+    app.state.amendments = amendments
     app.state.units_path = resolved_units
     app.state.db_path = resolved_db
     app.state.reviewed_path = resolved_reviewed
@@ -180,6 +191,8 @@ def create_app(
             if target.type.value == "SUBCLAUSE"
             else ("clauses" if chips else None)
         )
+        curated = get_article_amendments(app.state.amendments, target.article_number)
+        amend_note = curated.learn_note if curated is not None else None
         return templates.TemplateResponse(
             request,
             "learn.html",
@@ -196,6 +209,7 @@ def create_app(
                 "learn_meta": learn_meta_line(target, progress),
                 "done_label": done_button_label(target),
                 "learn_mode": learn_mode,
+                "amend_note": amend_note,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),
@@ -306,7 +320,12 @@ def create_app(
     @app.get("/browse/article/{article_number}", response_class=HTMLResponse)
     async def browse_article(request: Request, article_number: str) -> HTMLResponse:
         eng = _engine()
-        view = build_article_view(eng, app.state.reviewed, article_number)
+        view = build_article_view(
+            eng,
+            app.state.reviewed,
+            article_number,
+            amendments_catalog=app.state.amendments,
+        )
         if view is None:
             raise HTTPException(status_code=404, detail="Article not found")
         prev_number, next_number = adjacent_article_numbers(

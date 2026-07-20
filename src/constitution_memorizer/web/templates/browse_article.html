@@ -8,6 +8,9 @@
   </p>
   <h1 class="display">Article {{ article.article_number }}</h1>
   {% if article.title %}<p class="lede">{{ article.title }}</p>{% endif %}
+  {% if article.amendment_meta %}
+  <p class="browse-article-meta">{{ article.amendment_meta }}</p>
+  {% endif %}
 
   <nav class="article-adjacent" aria-label="Adjacent articles">
     {% if prev_article %}
@@ -38,6 +41,24 @@
   </ul>
   {% else %}
   <p class="empty">No learning units mapped to this Article yet.</p>
+  {% endif %}
+
+  {% if article.amendments is not none and article.amendments|length > 0 %}
+  <section class="amendment-history" aria-label="Amendment history">
+    <h2 class="amendment-history-title">Amendment history</h2>
+    <p class="amendment-history-lede">How this article changed since 1950 — you memorize the current wording.</p>
+    <div class="amendment-timeline">
+      {% for am in article.amendments %}
+      <div class="amendment-row">
+        <span class="amendment-badge">{{ am.no }} Amdt</span>
+        <span class="amendment-year">{{ am.year }}</span>
+        <span class="amendment-text">{{ am.text }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% elif article.show_unamended %}
+  <p class="amendment-unamended">Unamended — this article reads today exactly as adopted in 1950.</p>
   {% endif %}
 
   <p class="actions">

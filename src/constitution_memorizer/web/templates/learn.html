@@ -17,6 +17,9 @@
 
   <h1 class="display learn-title">{{ unit.display_title }}</h1>
   {% if unit.title %}<p class="lede learn-sub">{{ unit.title }}</p>{% endif %}
+  {% if amend_note %}
+  <p class="learn-amend-note">✦ {{ amend_note }}</p>
+  {% endif %}
 
   {% if sibling_chips %}
   <nav

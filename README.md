@@ -39,7 +39,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 19 | `cursor/sprint-19-calendar-1a75` | Done |
 | Sprint 20 | `cursor/sprint-20-progress-mastery-1a75` | Done |
 | Sprint 21 | `cursor/sprint-21-amendment-history-1a75` | Done |
-| Sprint 22 | design prototype (see plan) | Planned |
+| Sprint 22 | `cursor/sprint-22-explain-it-back-1a75` | Done |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -371,6 +371,16 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Learn: `✦` footnote under the subtitle when a hand-quality `learn_note` exists
 - Read-only context; memorized text remains current Bare Act wording
 - Tests: `tests/test_web_sprint21.py`
+
+### Sprint 22 — Explain it back ✅
+
+**Branch:** `cursor/sprint-22-explain-it-back-1a75`
+
+- Browse article: “Explain it back” free-text gloss under amendments (every article)
+- Debounced autosave (~500ms) to SQLite `article_gloss`; Clear deletes the row
+- Survives Reset unit / Reset all progress; never affects mastery or scheduling
+- Per-article placeholders in `data/reference/gloss_placeholders.seed.json`
+- Tests: `tests/test_web_sprint22.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

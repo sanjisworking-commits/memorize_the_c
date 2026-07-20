@@ -71,17 +71,22 @@ def test_browse_article_shows_text_and_learn_cta(client: TestClient):
     assert "Learn" in response.text
     assert "/learn/" in response.text
     assert "article-adjacent" in response.text
+    assert "article-adjacent-footer" not in response.text
+    assert response.text.count("Article 21 →") == 1
     assert 'href="/browse/article/21"' in response.text
-    assert "Article 21 →" in response.text
     assert "← First article" in response.text
+    assert "LearningUnitType" not in response.text
+    assert "checklist-meta" not in response.text
+    assert " · 60s" not in response.text and " · 30s" not in response.text
 
 
 def test_browse_article_prev_next_on_last(client: TestClient):
     response = client.get("/browse/article/21")
     assert response.status_code == 200
     assert 'href="/browse/article/20"' in response.text
-    assert "← Article 20" in response.text
+    assert response.text.count("← Article 20") == 1
     assert "Last article →" in response.text
+    assert "article-adjacent-footer" not in response.text
 
 
 def test_browse_index(client: TestClient):

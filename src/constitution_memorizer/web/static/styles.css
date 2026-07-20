@@ -646,11 +646,6 @@ a:hover {
   font-weight: 700;
 }
 
-.checklist-meta {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
 .article-adjacent {
   display: flex;
   align-items: baseline;
@@ -662,10 +657,6 @@ a:hover {
   border-bottom: 1px solid var(--hairline);
   font-size: 13px;
   flex-wrap: wrap;
-}
-
-.article-adjacent-footer {
-  margin: 1.5rem 0 0;
 }
 
 .article-adjacent-link {

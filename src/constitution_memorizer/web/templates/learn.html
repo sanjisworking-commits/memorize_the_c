@@ -58,7 +58,13 @@
       data-learn-mode="letters"
       href="/learn/{{ unit.id }}?mode=letters"
     >Letters</a>
-    <span class="mode-tab is-disabled" title="Coming in later sprints">Type</span>
+    <a
+      class="mode-tab{% if learn_mode == 'type' %} is-active{% endif %}"
+      role="tab"
+      aria-selected="{{ 'true' if learn_mode == 'type' else 'false' }}"
+      data-learn-mode="type"
+      href="/learn/{{ unit.id }}?mode=type"
+    >Type</a>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Recite</span>
     <a
       class="mode-tab{% if learn_mode == 'card' %} is-active{% endif %}"
@@ -116,6 +122,32 @@
     <noscript>
       <article class="unit-text learn-read-text">{{ unit.text }}</article>
       <p class="learn-hint">Enable JavaScript for first-letter recall.</p>
+    </noscript>
+  </div>
+
+  <div
+    class="learn-body learn-panel-type"
+    data-learn-panel="type"
+    data-type-text="{{ unit.text | e }}"
+  >
+    <p class="learn-type-lede">Type it from memory — words are checked as you go.</p>
+    <label class="visually-hidden" for="learn-type-input">Type the Bare Act text from memory</label>
+    <textarea
+      id="learn-type-input"
+      class="learn-type-input"
+      data-type-input
+      rows="4"
+      placeholder="Start typing…"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+    ></textarea>
+    <div class="learn-type-diff" data-type-diff aria-live="polite"></div>
+    <p class="learn-type-stats" data-type-stats>0 / 0 words · 0 correct</p>
+    <noscript>
+      <article class="unit-text learn-read-text">{{ unit.text }}</article>
+      <p class="learn-hint">Enable JavaScript for typed recall checking.</p>
     </noscript>
   </div>
 

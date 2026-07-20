@@ -32,6 +32,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 13 | `cursor/sprint-13-learn-card-1a75` | Done |
 | Sprint 14 | `cursor/sprint-14-learn-cloze-1a75` | Done |
 | Sprint 15 | `cursor/sprint-15-learn-letters-1a75` | Done |
+| Sprint 16 | `cursor/sprint-16-learn-type-1a75` | Done |
 | Sprints 14–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
@@ -300,6 +301,17 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Subclause stem shows in Letters (hidden only on Card)
 - Mode tabs: Read + Cloze + Letters + Card; Type / Recite still disabled
 - Tests: `tests/test_web_sprint15.py`
+
+### Sprint 16 — Learn Type ✅
+
+**Branch:** `cursor/sprint-16-learn-type-1a75`
+
+- **Type** recall mode: textarea from memory with live per-word diff
+- Diff colors: gray = unreached, ink = correct, red strikethrough = wrong
+- Stats: `N / M words · K correct` (punctuation-insensitive normalize)
+- Subclause stem shows in Type (hidden only on Card)
+- Mode tabs: Read + Cloze + Letters + Type + Card; Recite still disabled
+- Tests: `tests/test_web_sprint16.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

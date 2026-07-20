@@ -149,6 +149,30 @@ def build_parser() -> argparse.ArgumentParser:
     pipeline_p.add_argument("--pdf", type=Path, required=True, help="Path to Bare Act PDF")
     _add_shared_flags(pipeline_p)
 
+    units_p = sub.add_parser(
+        "generate-units",
+        help="Generate learning_units.json from constitution.reviewed.json",
+    )
+    units_p.add_argument(
+        "--input",
+        type=Path,
+        default=None,
+        help=(
+            "Reviewed constitution JSON "
+            "(default: <output-dir>/output/constitution.reviewed.json)"
+        ),
+    )
+    units_p.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help=(
+            "Output path for learning units "
+            "(default: <output-dir>/output/learning_units.json)"
+        ),
+    )
+    _add_shared_flags(units_p)
+
     return parser
 
 
@@ -454,6 +478,36 @@ def cmd_pipeline(args: argparse.Namespace, config: PipelineConfig) -> int:
     return rc
 
 
+def cmd_generate_units(args: argparse.Namespace, config: PipelineConfig) -> int:
+    """Generate learning units from the reviewed Bare Act JSON (Sprint 1)."""
+    from constitution_memorizer.learning.learning_unit_generator import (
+        generate_learning_units_from_path,
+        summarize_units,
+    )
+
+    output_dir: Path = args.output_dir
+    input_path: Path = args.input or (
+        output_dir / "output" / "constitution.reviewed.json"
+    )
+    output_path: Path = args.output or (output_dir / "output" / "learning_units.json")
+
+    result = generate_learning_units_from_path(
+        input_path,
+        output_path,
+        force=args.force,
+    )
+    stats = summarize_units(result)
+    print(
+        f"Generated {stats['unit_count']} learning units "
+        f"(avg_chars={stats['avg_chars']}, "
+        f"min={stats['min_chars']}, max={stats['max_chars']})"
+    )
+    for unit_type, count in sorted(stats["by_type"].items()):
+        print(f"  {unit_type}: {count}")
+    print(f"Wrote {output_path}")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
     parser = build_parser()
@@ -477,6 +531,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_review_report(args, config)
         if command == "pipeline":
             return cmd_pipeline(args, config)
+        if command == "generate-units":
+            return cmd_generate_units(args, config)
         parser.error(f"Unknown command: {command}")
         return 2
     except OverwriteRefusedError as exc:

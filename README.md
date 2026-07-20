@@ -24,6 +24,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Hotfix | `cursor/fix-articles-1-2-1a75` | Done |
 | Hotfix | `cursor/fix-browse-artefacts-1a75` | Done |
 | Hotfix | `cursor/fix-articles-44-45-1a75` | Done |
+| Hotfix | `cursor/corpus-artefact-sweep-1a75` | Done |
 | Sprint 9 | `cursor/sprint-9-choose-incomplete-1a75` | Done |
 | Sprint 10 | `cursor/sprint-10-learn-read-1a75` | Done |
 | Sprint 11 | `cursor/sprint-11-sibling-rails-1a75` | Done |
@@ -279,6 +280,17 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - **Article 44:** amendment footnote had glued Art 45 onto the Uniform civil code sentence — stripped to Bare Act only
 - **Article 45:** Seventh Schedule “Land revenue…” + `formula-not-decoded` debris replaced the DPSP article — restored early-childhood-care text and Part IV
 - Tests: `tests/test_articles_44_45_corrections.py`
+
+### Hotfix — Corpus artefact sweep ✅
+
+**Branch:** `cursor/corpus-artefact-sweep-1a75`
+
+- Global scrub in `apply_corrections`: strip `<!-- formula-not-decoded -->`, private-use glyphs, dash debris; clear `opening_text` that duplicates/prefixes `body_text` (fixes mass Browse/Learn repetition)
+- Exclude more schedule mis-parses (Sixth/Seventh Schedule entries posing as Articles)
+- Restore real Articles **71, 131, 150, 230** (and omitted **257A**) overwritten by schedule list junk
+- Browse/unit builders also skip redundant openings as defense in depth
+- Tests: `tests/test_corpus_artefact_scrub.py`
+- Regenerate: `correct --force` then `generate-units --force`
 
 ### Split-choice behaviour (summary)
 

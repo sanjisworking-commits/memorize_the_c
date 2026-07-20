@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from constitution_memorizer.exceptions import InputValidationError
+from constitution_memorizer.corrections.artefact_scrub import scrub_display_text
 from constitution_memorizer.learning.schemas import (
     LearningUnit,
     LearningUnitsDocument,
@@ -62,13 +63,23 @@ def _provision_text(node: ProvisionNode) -> str:
 
 def _article_full_text(article: Article) -> str:
     chunks: list[str] = []
-    if article.opening_text.strip():
-        chunks.append(article.opening_text.strip())
+    opening = article.opening_text.strip()
+    body = article.body_text.strip()
     if article.clauses:
+        if opening:
+            chunks.append(opening)
         for clause in article.clauses:
             chunks.append(_provision_text(clause))
-    elif article.body_text.strip():
-        chunks.append(article.body_text.strip())
+    elif body:
+        from constitution_memorizer.corrections.artefact_scrub import (  # noqa: PLC0415
+            should_include_opening,
+        )
+
+        if should_include_opening(opening, body):
+            chunks.append(opening)
+        chunks.append(body)
+    elif opening:
+        chunks.append(opening)
     for proviso in article.provisos:
         chunks.append(proviso)
     for expl in article.explanations:
@@ -297,7 +308,9 @@ def _units_for_schedule(schedule: Schedule) -> list[LearningUnit]:
     units: list[LearningUnit] = []
 
     for section in schedule.sections:
-        text = section.body_text.strip() or (section.title or "")
+        text = scrub_display_text(section.body_text).strip() or (
+            scrub_display_text(section.title or "")
+        )
         if not text and not section.title:
             continue
         section_id = section.id or f"{schedule.id}-section-{len(units) + 1}"
@@ -321,7 +334,7 @@ def _units_for_schedule(schedule: Schedule) -> list[LearningUnit]:
         items = lst.items or []
         if items:
             for index, item in enumerate(items, start=1):
-                item_text = item.strip()
+                item_text = scrub_display_text(item).strip()
                 if not item_text:
                     continue
                 entry_id = f"{lst.id or schedule.id}-item-{index}"
@@ -350,13 +363,13 @@ def _units_for_schedule(schedule: Schedule) -> list[LearningUnit]:
                         f"Schedule {schedule.schedule_number}: {lst.name or 'List'}"
                     ),
                     title=lst.name,
-                    text=lst.body_text.strip(),
+                    text=scrub_display_text(lst.body_text).strip(),
                     tags=tags,
                 )
             )
 
     if not units:
-        text = schedule.body_text.strip()
+        text = scrub_display_text(schedule.body_text).strip()
         if text:
             units.append(
                 _make_unit(

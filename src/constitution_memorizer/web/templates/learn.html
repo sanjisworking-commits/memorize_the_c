@@ -37,20 +37,52 @@
   {% endif %}
 
   <div class="mode-tabs" role="tablist" aria-label="Recall modes">
-    <span class="mode-tab is-active" role="tab" aria-selected="true">Read</span>
+    <button
+      type="button"
+      class="mode-tab is-active"
+      role="tab"
+      aria-selected="true"
+      data-learn-mode="read"
+    >Read</button>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Cloze</span>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Letters</span>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Type</span>
     <span class="mode-tab is-disabled" title="Coming in later sprints">Recite</span>
-    <span class="mode-tab is-disabled" title="Coming in later sprints">Card</span>
+    <button
+      type="button"
+      class="mode-tab"
+      role="tab"
+      aria-selected="false"
+      data-learn-mode="card"
+    >Card</button>
   </div>
 
-  <div class="learn-body">
+  <div class="learn-body learn-panel-read" data-learn-panel="read">
     {% if stem_text %}
     <p class="learn-stem">{{ stem_text }}</p>
     {% endif %}
     <article class="unit-text learn-read-text">{{ unit.text }}</article>
     <p class="learn-hint">{{ read_hint }}</p>
+  </div>
+
+  <div class="learn-body learn-panel-card" data-learn-panel="card" hidden>
+    <button
+      type="button"
+      class="learn-card"
+      data-flipped="false"
+      aria-label="Flip flashcard"
+    >
+      <span class="learn-card-face learn-card-front">
+        <span class="learn-card-kind">{{ kind_badge }}</span>
+        <span class="learn-card-title">{{ unit.display_title }}</span>
+        {% if unit.title %}<span class="learn-card-sub">{{ unit.title }}</span>{% endif %}
+        <span class="learn-card-prompt">Recite it, then tap to check</span>
+      </span>
+      <span class="learn-card-face learn-card-back" hidden>
+        <span class="learn-card-text">{{ unit.text }}</span>
+        <span class="learn-card-prompt">Tap to flip back</span>
+      </span>
+    </button>
   </div>
 
   <div class="learn-footer">

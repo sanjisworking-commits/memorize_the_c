@@ -54,11 +54,22 @@
   </div>
 
   <div class="learn-footer">
-    <form method="post" action="/learn/{{ unit.id }}/done">
-      <button type="submit" class="btn btn-accent">{{ done_label }}</button>
-    </form>
+    <div class="learn-actions">
+      <form class="learn-action-done" method="post" action="/learn/{{ unit.id }}/done">
+        <button type="submit" class="btn btn-accent">
+          <span class="label-full">{{ done_label }}</span>
+          <span class="label-short">Done</span>
+        </button>
+      </form>
+      <form class="learn-action-again" method="post" action="/learn/{{ unit.id }}/again">
+        <button type="submit" class="btn btn-ghost">
+          <span class="label-full">Again tomorrow</span>
+          <span class="label-short">Again</span>
+        </button>
+      </form>
+    </div>
     <span class="learn-meta">{{ learn_meta }}</span>
-    <form method="post" action="/learn/{{ unit.id }}/reset">
+    <form class="learn-action-reset" method="post" action="/learn/{{ unit.id }}/reset">
       <button type="submit" class="link-reset">Reset unit</button>
     </form>
   </div>

@@ -12,6 +12,12 @@ _MULTI_SPACE_RE = re.compile(r"[^\S\n\r]{2,}")
 _MULTI_BLANK_RE = re.compile(r"\n{3,}")
 _LEADING_DASH_RE = re.compile(r"(?m)^-\s+")
 _TRAILING_DASH_RE = re.compile(r"[ \t]+-[ \t]*$", re.MULTILINE)
+# Diglot page running header glued into body, e.g. "(Part II.-Citizenship)".
+_PART_RUNNING_HEADER_RE = re.compile(
+    r"\s*\(Part\s+[IVXLC]+[A-Z]?\s*\.?\s*-\s*[^)]+\)\s*",
+    re.IGNORECASE,
+)
+_WS_RE = re.compile(r"\s+")
 
 
 def scrub_display_text(text: str) -> str:
@@ -31,6 +37,35 @@ def scrub_display_text(text: str) -> str:
     cleaned = _MULTI_BLANK_RE.sub("\n\n", cleaned)
     cleaned = "\n".join(line.rstrip() for line in cleaned.split("\n"))
     return cleaned.strip()
+
+
+def strip_part_running_headers(text: str) -> str:
+    """Remove diglot Part running headers glued into article text."""
+    if not text:
+        return text
+    cleaned = _PART_RUNNING_HEADER_RE.sub(" ", text)
+    cleaned = _MULTI_SPACE_RE.sub(" ", cleaned)
+    cleaned = _MULTI_BLANK_RE.sub("\n\n", cleaned)
+    return cleaned.strip()
+
+
+def _norm_ws(text: str) -> str:
+    return _WS_RE.sub(" ", text).strip()
+
+
+def fragment_already_present(haystack: str, fragment: str) -> bool:
+    """True when fragment (or a long prefix) already appears in haystack."""
+    hay = _norm_ws(haystack)
+    frag = _norm_ws(fragment)
+    if not frag:
+        return True
+    if not hay:
+        return False
+    if frag in hay:
+        return True
+    if len(frag) >= 60 and frag[:80] in hay:
+        return True
+    return False
 
 
 def _scrub_provision(node: ProvisionNode) -> bool:
@@ -79,12 +114,48 @@ def _dedupe_opening_against_body(article: Article) -> str | None:
     return None
 
 
+def _dedupe_list_against_body(
+    article: Article,
+    field_name: str,
+) -> list[str]:
+    """
+    Drop provisos/explanations already present in body/opening.
+
+    Browse and Learn append these arrays after body_text; when the parser
+    also left the same proviso inside body_text, the UI shows it twice.
+    """
+    notes: list[str] = []
+    values: list[str] = getattr(article, field_name)
+    if not values:
+        return notes
+    blob = f"{article.opening_text}\n{article.body_text}"
+    kept: list[str] = []
+    dropped = 0
+    for item in values:
+        cleaned = scrub_display_text(item)
+        if not cleaned:
+            dropped += 1
+            continue
+        if fragment_already_present(blob, cleaned):
+            dropped += 1
+            continue
+        kept.append(cleaned)
+    if dropped or kept != values:
+        setattr(article, field_name, kept)
+        if dropped:
+            notes.append(
+                f"{article.id}: dropped {dropped} duplicate/empty {field_name}"
+            )
+    return notes
+
+
 def scrub_article(article: Article) -> list[str]:
     """Scrub one article; return human-readable change notes."""
     notes: list[str] = []
     for field in ("opening_text", "body_text"):
         raw = getattr(article, field) or ""
         cleaned = scrub_display_text(raw)
+        cleaned = strip_part_running_headers(cleaned)
         if cleaned != raw:
             setattr(article, field, cleaned)
             notes.append(f"{article.id}: scrubbed {field}")
@@ -105,6 +176,9 @@ def scrub_article(article: Article) -> list[str]:
         if cleaned != expl:
             article.explanations[index] = cleaned
             notes.append(f"{article.id}: scrubbed explanation")
+
+    notes.extend(_dedupe_list_against_body(article, "provisos"))
+    notes.extend(_dedupe_list_against_body(article, "explanations"))
 
     for clause in article.clauses:
         if _scrub_provision(clause):

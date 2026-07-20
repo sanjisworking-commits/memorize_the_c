@@ -18,8 +18,9 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 3 | `cursor/sprint-3-sqlite-scheduler-1a75` | Done |
 | Sprint 4 | `cursor/sprint-4-learn-home-ui-1a75` | Done |
 | Sprint 5 | `cursor/sprint-5-browse-search-progress-1a75` | Done |
-| Sprint 6 | `cursor/sprint-6-design-tokens-1a75` | In progress |
-| Sprints 7–20 | design prototype (see plan) | Planned |
+| Sprint 6 | `cursor/sprint-6-design-tokens-1a75` | Done |
+| Sprint 7 | `cursor/sprint-7-sheet-nav-1a75` | In progress |
+| Sprints 8–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -195,6 +196,16 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - CSS tokens match HANDOFF: ink `#141414`, muted `#6b6b6b`, faint `#9a9a9a`, hairline `#dcdcdc`, page `#ececea`, paper `#fff`, accent `#141414`, destructive `#B42318`
 - Flat page background (no cream gradients); square corners; primary CTAs use ink accent (legacy `.btn-green` aliases to accent)
 - Fraunces + Source Sans 3 unchanged; **no route or layout changes** (sheet chrome / Home restyle = Sprint 7–8)
+
+### Sprint 7 — Sheet chrome + navigation ✅
+
+**Branch:** `cursor/sprint-7-sheet-nav-1a75`
+
+- Outer paper **sheet** (max 980px, 1px border, light shadow) wrapping all pages
+- Header nav: **Home · Browse · Calendar · Progress · Search** with active ink pill
+- `GET /calendar` stub (full month grid in Sprint 18)
+- Search page restyled to the same sheet tokens (`btn-accent`)
+- Tests: `tests/test_web_sprint7.py`
 
 ### Split-choice behaviour (summary)
 

@@ -49,10 +49,27 @@ a:hover {
   color: #0e7569;
 }
 
-.page {
-  width: min(720px, calc(100% - 2rem));
+.page-wrap {
+  min-height: 100vh;
+  padding: 28px 16px;
+  box-sizing: border-box;
+}
+
+.sheet {
+  width: min(980px, 100%);
   margin: 0 auto;
-  padding: 1.25rem 0 3rem;
+  background: var(--paper);
+  border: 1px solid #cfcfcd;
+  box-shadow: var(--shadow);
+  border-radius: 0;
+}
+
+.sheet-footnote {
+  width: min(980px, 100%);
+  margin: 14px auto 0;
+  font-size: 11.5px;
+  color: var(--faint);
+  text-align: center;
 }
 
 .site-header {
@@ -60,45 +77,78 @@ a:hover {
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.75rem 1.5rem;
-  margin-bottom: 1.75rem;
-  padding-bottom: 0.85rem;
+  gap: 24px;
+  padding: 18px 32px;
+  margin: 0;
   border-bottom: 1px solid var(--ink);
 }
 
 .brand {
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: 18px;
   font-weight: 700;
   color: var(--ink);
   text-decoration: none;
   letter-spacing: -0.02em;
+  cursor: pointer;
+}
+
+.brand:hover {
+  color: var(--ink);
 }
 
 .nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.85rem;
+  gap: 4px;
 }
 
-.nav a {
+.nav-link {
   color: var(--muted);
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 13px;
+  padding: 7px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
 }
 
-.nav a:hover {
+.nav-link:hover {
   color: var(--ink);
 }
 
+.nav-link.is-active {
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+}
+
+.nav-link.is-active:hover {
+  color: #fff;
+}
+
+.main {
+  /* Content width constrained inside the sheet like the prototype */
+}
+
 .panel {
-  background: var(--paper);
-  border: 1px solid var(--hairline);
+  background: transparent;
+  border: none;
   border-radius: 0;
   box-shadow: none;
-  padding: clamp(1.25rem, 3vw, 2rem);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 36px 32px 48px;
   animation: rise 0.45s ease both;
+}
+
+.panel.search {
+  max-width: 720px;
+}
+
+.panel.calendar-stub {
+  max-width: 720px;
 }
 
 .display {
@@ -388,9 +438,19 @@ code {
 }
 
 @media (max-width: 560px) {
+  .page-wrap {
+    padding: 12px 10px 24px;
+  }
+
   .site-header {
     flex-direction: column;
     align-items: flex-start;
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .panel {
+    padding: 28px 16px 36px;
   }
 
   .actions,

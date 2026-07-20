@@ -2,13 +2,14 @@
 {% block title %}Search · Constitution Memorizer{% endblock %}
 {% block content %}
 <section class="panel search">
+  <p class="eyebrow">Jump</p>
   <h1 class="display">Search</h1>
-  <p class="lede">Jump by Article, clause, or letter — e.g. <code>20</code>, <code>20(2)</code>, <code>25(2)(a)</code>.</p>
+  <p class="lede">Open an Article, clause, or letter — e.g. <code>20</code>, <code>20(2)</code>, <code>25(2)(a)</code>.</p>
 
   <form class="search-form" method="get" action="/search">
     <label class="sr-only" for="q">Query</label>
-    <input id="q" name="q" type="search" value="{{ q }}" placeholder="20(2)" autofocus>
-    <button type="submit" class="btn btn-green">Go</button>
+    <input id="q" name="q" type="search" value="{{ q }}" placeholder="20(2)" autofocus autocomplete="off">
+    <button type="submit" class="btn btn-accent">Go</button>
   </form>
 
   {% if hit and not hit.redirect_url %}

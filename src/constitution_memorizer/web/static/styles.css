@@ -516,6 +516,8 @@ a:hover {
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .mode-tab.is-active {

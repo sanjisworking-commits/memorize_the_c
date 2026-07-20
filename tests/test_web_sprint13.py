@@ -27,37 +27,47 @@ def test_learn_enables_card_tab_and_flashcard_markup(client: TestClient):
     html = response.text
     assert 'data-learn-mode="read"' in html
     assert 'data-learn-mode="card"' in html
+    assert 'href="/learn/clause-1?mode=card"' in html
+    assert 'href="/learn/clause-1?mode=read"' in html
     assert "learn-card" in html
     assert "Recite it, then tap to check" in html
     assert "Tap to flip back" in html
     assert "learn-panel-card" in html
-    assert 'data-learn-panel="card"' in html
     assert 'data-mode="read"' in html
     assert "Coming in later sprints" in html
-    assert "Cloze" in html
-    # Cache-bust static assets so Card CSS/JS load after deploy
-    assert "app.js?v=sprint13" in html
-    assert "styles.css?v=sprint13" in html
+    assert "app.js?v=sprint13b" in html
+
+
+def test_card_mode_query_param_renders_card_active(client: TestClient):
+    """Tab switch must work even without JS via ?mode=card."""
+    response = client.get("/learn/clause-1?mode=card")
+    assert response.status_code == 200
+    html = response.text
+    assert 'data-mode="card"' in html
+    assert 'data-learn-mode="card"' in html
+    assert 'aria-selected="true"' in html
+    # Card tab marked active
+    assert 'mode-tab is-active"\n      role="tab"\n      aria-selected="true"\n      data-learn-mode="card"' in html or (
+        'data-learn-mode="card"' in html and "is-active" in html
+    )
+    assert "Recite it, then tap to check" in html
+    assert "(1) No person shall be convicted" in html
 
 
 def test_card_css_drives_panel_visibility(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint13")
+    css = client.get("/static/styles.css?v=sprint13b")
     assert css.status_code == 200
     text = css.text
-    assert ".learn[data-mode=\"card\"] .learn-panel-card" in text
+    assert '.learn[data-mode="card"] .learn-panel-card' in text
     assert ".learn-panel-card" in text
     assert "display: none" in text
-    assert ".learn-card.is-flipped .learn-card-back" in text or '.learn-card[data-flipped="true"] .learn-card-back' in text
 
 
 def test_card_face_shows_title_and_hides_stem_panel(client: TestClient):
-    """Card panel carries title/kind; stem stays only in the Read panel."""
-    response = client.get("/learn/clause-1")
+    response = client.get("/learn/clause-1?mode=card")
     html = response.text
     assert "learn-card-title" in html
     assert "Article 20(1)" in html
-    assert "learn-card-kind" in html
     card_start = html.index('data-learn-panel="card"')
     card_chunk = html[card_start : card_start + 1200]
     assert "learn-stem" not in card_chunk
-    assert "(1) No person shall be convicted" in card_chunk

@@ -1,0 +1,75 @@
+"""Sprint 15 — Learn Letters recall mode (first-letter initials ⇄ full text)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from constitution_memorizer.web.app import create_app
+
+MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
+
+
+@pytest.fixture
+def client(tmp_path: Path) -> TestClient:
+    app = create_app(
+        units_path=MINI_UNITS,
+        db_path=tmp_path / "progress.db",
+    )
+    return TestClient(app)
+
+
+def test_learn_enables_letters_tab_and_panel_markup(client: TestClient):
+    response = client.get("/learn/clause-1")
+    assert response.status_code == 200
+    html = response.text
+    assert 'data-learn-mode="letters"' in html
+    assert 'href="/learn/clause-1?mode=letters"' in html
+    assert "learn-panel-letters" in html
+    assert "data-letters-text=" in html
+    assert "data-letters-toggle" in html
+    assert "Show full text" in html
+    assert "Recite from the initials, then check yourself." in html
+    assert "app.js?v=sprint15" in html
+    assert "Coming in later sprints" in html
+
+
+def test_letters_mode_query_param_renders_letters_active(client: TestClient):
+    response = client.get("/learn/clause-1?mode=letters")
+    assert response.status_code == 200
+    html = response.text
+    assert 'data-mode="letters"' in html
+    assert 'data-learn-mode="letters"' in html
+    assert "learn-panel-letters" in html
+    assert "(1) No person shall be convicted" in html
+
+
+def test_letters_css_drives_panel_and_initials_styles(client: TestClient):
+    css = client.get("/static/styles.css?v=sprint15")
+    assert css.status_code == 200
+    text = css.text
+    assert '.learn[data-mode="letters"] .learn-panel-letters' in text
+    assert ".learn-letters-text.is-initials" in text
+    assert "ui-monospace" in text
+    assert "letter-spacing: 0.08em" in text
+    assert ".learn-letters-text.is-full" in text
+
+
+def test_letters_js_builds_initials_like_prototype(client: TestClient):
+    js = client.get("/static/app.js?v=sprint15")
+    assert js.status_code == 200
+    text = js.text
+    assert "toInitials" in text
+    assert "Back to initials" in text
+    assert "Show full text" in text
+    assert r"/^[A-Za-z]/" in text or "/^[A-Za-z]/" in text
+    assert "\\u2002" in text or "\u2002" in text
+
+
+def test_letters_shows_stem_for_subclause(client: TestClient):
+    client.post("/learn/clause-2/choose", data={"mode": "letters"})
+    response = client.get("/learn/clause-2-a?mode=letters")
+    assert response.status_code == 200
+    assert "learn-stem" in response.text

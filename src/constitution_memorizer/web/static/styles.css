@@ -538,12 +538,14 @@ a:hover {
 
 /* Mode panels: CSS-driven so modes never rely on hidden vs display:flex. */
 .learn-panel-card,
-.learn-panel-cloze {
+.learn-panel-cloze,
+.learn-panel-letters {
   display: none;
 }
 
 .learn[data-mode="card"] .learn-panel-read,
-.learn[data-mode="cloze"] .learn-panel-read {
+.learn[data-mode="cloze"] .learn-panel-read,
+.learn[data-mode="letters"] .learn-panel-read {
   display: none;
 }
 
@@ -552,6 +554,10 @@ a:hover {
 }
 
 .learn[data-mode="cloze"] .learn-panel-cloze {
+  display: block;
+}
+
+.learn[data-mode="letters"] .learn-panel-letters {
   display: block;
 }
 
@@ -650,6 +656,54 @@ a:hover {
 }
 
 .learn-cloze-status {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.learn-letters-text {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--ink);
+}
+
+.learn-letters-text.is-initials {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 19px;
+  line-height: 1.9;
+  letter-spacing: 0.08em;
+}
+
+.learn-letters-text.is-full {
+  font-family: inherit;
+  font-size: 18px;
+  line-height: 1.7;
+  letter-spacing: normal;
+}
+
+.learn-letters-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.learn-letters-btn {
+  background: none;
+  border: 1px solid #c9c9c7;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.learn-letters-btn:hover {
+  border-color: var(--ink);
+}
+
+.learn-letters-hint {
   font-size: 13px;
   color: var(--muted);
 }

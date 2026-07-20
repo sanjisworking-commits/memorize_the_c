@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from constitution_memorizer.corrections.apply_corrections import (
     apply_corrections,
     load_corrections,
@@ -16,6 +18,11 @@ from constitution_memorizer.utils.json_io import read_json
 ROOT = Path(__file__).resolve().parents[1]
 CORRECTIONS = ROOT / "data" / "corrections" / "corrections.json"
 RAW = ROOT / "data" / "output" / "constitution.json"
+
+needs_raw = pytest.mark.skipif(
+    not RAW.exists(),
+    reason="parsed corpus (data/output/constitution.json) not present",
+)
 
 
 def _article_map(doc: ConstitutionDocument) -> dict[str, object]:
@@ -48,6 +55,7 @@ def test_corrections_file_covers_365_plus_keys():
         assert key in arts
 
 
+@needs_raw
 def test_apply_restores_366_368_371e_394_and_creates_missing():
     source = ConstitutionDocument.model_validate(read_json(RAW))
     doc, _changes = apply_corrections(source, load_corrections(CORRECTIONS))
@@ -91,6 +99,7 @@ def test_apply_restores_366_368_371e_394_and_creates_missing():
     assert arts["383"].body_text == "[Omitted.]"
 
 
+@needs_raw
 def test_learning_units_for_368_and_371e_are_sensible():
     source = ConstitutionDocument.model_validate(read_json(RAW))
     doc, _ = apply_corrections(source, load_corrections(CORRECTIONS))

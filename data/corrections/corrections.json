@@ -215,6 +215,13 @@
       "opening_text": "",
       "body_text": "(1) While a Proclamation of Emergency declaring that the security of India or any part of the territory thereof is threatened by war or by external aggression is in operation, nothing in article 19 shall restrict the power of the State as defined in Part III to make any law or to take any executive action which the State would but for the provisions contained in that Part be competent to make or to take, but any law so made shall, to the extent of the incompetency, cease to have effect as soon as the Proclamation ceases to operate, except as respects things done or omitted to be done before the law so ceases to have effect:\nProvided that where such Proclamation of Emergency is in operation only in any part of the territory of India, any such law may be made, or any such executive action may be taken, under this article in relation to or in any State or Union territory in which or in any part of which the Proclamation of Emergency is not in operation, if and in so far as the security of India or any part of the territory thereof is threatened by activities in or in relation to the part of the territory of India in which the Proclamation of Emergency is in operation.\n(2) Nothing in clause (1) shall apply—\n(a) to any law which does not contain a recital to the effect that such law is in relation to the Proclamation of Emergency in operation when it is made; or\n(b) to any executive action taken otherwise than under a law containing such a recital.",
       "manual_review_status": "approved"
+    },
+    "article-18": {
+      "title": "Abolition of titles",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "(1) No title, not being a military or academic distinction, shall be conferred by the State.\n(2) No citizen of India shall accept any title from any foreign State.\n(3) No person who is not a citizen of India shall, while he holds any office of profit or trust under the State, accept without the consent of the President any title from any foreign State.\n(4) No person holding any office of profit or trust under the State shall, without the consent of the President, accept any present, emolument, or office of any kind from or under any foreign State.",
+      "manual_review_status": "approved"
     }
   },
   "notes": [
@@ -235,6 +242,7 @@
     "article-15 / 51 / 168 / 353: hyphen stems with missing letters/clauses; restored Bare Act bodies.",
     "article-60 / 69: oath articles truncated after 'that is to say-'; restored including oath forms.",
     "corpus scrub: also strips (Part ….-…) running headers and drops provisos/explanations already present in body_text (fixes Art 7-style Browse/Learn repetition).",
-    "article-82 / 197 / 217 / 358: same incomplete hyphen-stem pattern; restored Bare Act bodies."
+    "article-82 / 197 / 217 / 358: same incomplete hyphen-stem pattern; restored Bare Act bodies.",
+    "article-18 / corpus: structured clauses often started at (2) while body retained (1); artefact_scrub clears those incomplete clause trees and strips trailing section headers (e.g. 'Right to Freedom') so Browse/Learn show clause (1)."
   ]
 }

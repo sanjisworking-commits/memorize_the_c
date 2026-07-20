@@ -126,6 +126,7 @@ class Article(BaseModel):
     footnote_references: list[str] = Field(default_factory=list)
     cross_references: list[str] = Field(default_factory=list)
     source: SourceProvenance = Field(default_factory=SourceProvenance)
+    manual_review_status: str | None = None
 
 
 class Chapter(BaseModel):

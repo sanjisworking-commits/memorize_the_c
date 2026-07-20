@@ -26,6 +26,13 @@ SCHEDULE_PART_RE = re.compile(
 
 CONTENTS_RE = re.compile(r"^CONTENTS\s*$", re.IGNORECASE)
 
+PREFACE_RE = re.compile(r"^PREFACE\s*$", re.IGNORECASE)
+
+LIST_OF_ABBREVIATIONS_RE = re.compile(
+    r"^LIST OF ABBREVIATIONS(?:\s+USED)?\s*$",
+    re.IGNORECASE,
+)
+
 # Reject absurd Article numbers (Bare Act tops out near 395).
 MAX_ARTICLE_NUMBER = 450
 
@@ -40,19 +47,47 @@ CHAPTER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Chapter subsection labels (not Articles).
+CHAPTER_SUBSECTION_RE = re.compile(
+    r"^(?:"
+    r"General|"
+    r"The President and Vice-?President|"
+    r"The Governor|"
+    r"Conduct of Government Business|"
+    r"Legislative Procedure|"
+    r"Procedure in Financial Matters|"
+    r"Procedure Generally|"
+    r"Disqualifications of Members|"
+    r"Officers of (?:the )?Parliament|"
+    r"Powers[, ]+Privileges and Immunities of Parliament and its Members|"
+    r"Distribution of Legislative Powers|"
+    r"Distributionof Legislative Powers|"
+    r"Administrative Relations|"
+    r"Finance|"
+    r"Miscellaneous Financial Provisions|"
+    r"Borrowing|"
+    r"Property[, ]+Contracts[, ]+Rights[, ]+Liabilities[, ]+Obligations and Suits|"
+    r"Right to Property|"
+    r"Services|"
+    r"Public Service Commissions|"
+    r"Language of the Union|"
+    r"Regional Languages|"
+    r"Language of the Supreme Court[, ]+High Courts[, ]+etc\.?|"
+    r"Special Directives"
+    r")\s*$",
+    re.IGNORECASE,
+)
+
 # Optional leading footnote marker like 1[ before article number.
-# 14. Title.   /  21A. Right to education.—Body
-# 1[21A. Right to education.—Body
 ARTICLE_HEADING_RE = re.compile(
-    r"^(?P<fn_marker>\d+\[)?"
+    r"^(?P<fn_marker>\d+\s*\[)?"
     r"(?P<number>\d+[A-Za-z]{0,3})"
     r"\.\s*"
     r"(?P<title_and_body>.*)$"
 )
 
-# Bare article number alone on a line (title may follow on next line).
 ARTICLE_NUMBER_ONLY_RE = re.compile(
-    r"^(?P<fn_marker>\d+\[)?"
+    r"^(?P<fn_marker>\d+\s*\[)?"
     r"(?P<number>\d+[A-Za-z]{0,3})"
     r"\.?\s*$"
 )
@@ -67,7 +102,6 @@ REPEALED_RE = re.compile(
     re.IGNORECASE,
 )
 
-# (1) (1A) (2) (a) (b) (i) (ii) (A) (B)
 CLAUSE_LABEL_RE = re.compile(
     r"^\((?P<label>\d+[A-Za-z]?|[a-z]|[ivxlcdm]+|[A-Z])\)\s*(?P<body>.*)$"
 )
@@ -92,7 +126,6 @@ ILLUSTRATION_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Footnotes: "1. Subs. by the Constitution..."
 FOOTNOTE_RE = re.compile(
     r"^(?P<marker>\d+)\.\s+(?P<text>.+)$"
 )
@@ -102,28 +135,33 @@ FOOTNOTE_CONTINUATION_HINT_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Allow glued titles: "EIGHTH SCHEDULELanguages." / trailing hyphen.
 SCHEDULE_RE = re.compile(
     r"^(?:THE\s+)?"
     r"(?P<number>FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|"
     r"TENTH|ELEVENTH|TWELFTH|[IVXLCDM]+|\d+)"
-    r"(?:TH|ST|ND|RD)?\s+SCHEDULE"
-    r"(?:\s*[—\-–:\-]\s*(?P<title>.+))?$",
+    r"(?:TH|ST|ND|RD)?\s*SCHEDULE"
+    rf"(?:\s*[{_DASH}\-]?\s*(?P<title>.+))?$",
     re.IGNORECASE,
 )
 
 PREAMBLE_RE = re.compile(r"^PREAMBLE\s*$", re.IGNORECASE)
 
 APPENDIX_RE = re.compile(
-    r"^(?:APPENDIX|ANNEXURE)\s*(?P<label>[IVXLCDM\d]*)\s*$",
+    r"^(?:APPENDIX|ANNEXURE|APPENDICES)\s*(?P<label>[IVXLCDM\d]*)\s*\.?\s*"
+    r"(?P<title>.*)$",
     re.IGNORECASE,
 )
 
-# Em-dash / en-dash / Docling bar separator after title.
 TITLE_BODY_SPLIT_RE = re.compile(
-    r"^(?P<title>.*?)\s*[—–⎯−]\s*(?P<body>.*)$"
+    rf"^(?P<title>.*?)\s*[{_DASH}]\s*(?P<body>.*)$"
 )
 
-# Title ending with period then body on same line without em-dash.
+# Also split on ".-" / ". -" diglot separators.
+TITLE_DOT_DASH_BODY_RE = re.compile(
+    r"^(?P<title>.+?)\.\s*[-—–⎯−]\s*(?P<body>.*)$"
+)
+
 TITLE_PERIOD_BODY_RE = re.compile(
     r"^(?P<title>[A-Z][^.]{0,200}\.)\s*(?P<body>[A-Z].*)$"
 )
@@ -155,7 +193,7 @@ OPERATION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 LIST_HEADING_RE = re.compile(
-    r"^(?P<name>List\s+(?:I|II|III|1|2|3)\b.*)$",
+    r"^(?P<name>List\s*(?:I|II|III|1|2|3)\b.*)$",
     re.IGNORECASE,
 )
 
@@ -163,3 +201,6 @@ ENACTMENT_DATE_RE = re.compile(
     r"^(?P<line>.*\b(?:twentieth|26th|twenty-sixth)\s+day\s+of\s+\w+.*\d{4}.*)$",
     re.IGNORECASE,
 )
+
+# Inline footnote marker references in body text: 1[, 2[, etc.
+INLINE_FOOTNOTE_MARKER_RE = re.compile(r"(?<!\w)(\d+)\s*\[")

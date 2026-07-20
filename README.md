@@ -2,9 +2,14 @@
 
 Production-oriented tooling to help users **understand, revise and memorise the Constitution of India**.
 
-This repository currently implements **Phase 1 only**: a deterministic **PDF → structured JSON** pipeline for the Constitution of India Bare Act.
+This repository currently implements **Phase 1 + Phase 2**:
 
-## Current scope (Phase 1)
+1. Deterministic **PDF → structured JSON** pipeline for the Constitution of India Bare Act
+2. **Corpus review and parser hardening** against diglot Bare Act extraction artefacts
+
+## Current scope
+
+### Phase 1
 
 - Project foundation (Python package, CLI, configuration)
 - PDF extraction with [Docling](https://github.com/docling-project/docling)
@@ -12,11 +17,21 @@ This repository currently implements **Phase 1 only**: a deterministic **PDF →
 - Constitution-specific parsing into schema-validated JSON
 - Validation and extraction reports
 - Pytest coverage for the parsing pipeline
-- Documentation for running the parser
+
+### Phase 2
+
+- Structural boundary hardening (CONTENTS, schedules, appendices)
+- Duplicate Article demotion with audit events
+- Schedule recovery (including glued Docling headings)
+- Footnote association pass (no invented links)
+- Structure expectations (`data/expected/structure_expectations.json`)
+- External correction overlay (`data/corrections/corrections.json`)
+- Corpus review report CLI
+- Regression fixtures from real Markdown failures
 
 ## Future scope (not implemented)
 
-Later phases may add corpus review, a canonical content model, database storage, search, memorisation units, spaced repetition, learning modes, explanation layers, APIs, frontend, accounts, and admin review. **Do not treat the current JSON as a finished learning product or an authoritative legal database.**
+Later phases may add a canonical content model, database storage, search, memorisation units, spaced repetition, learning modes, explanation layers, APIs, frontend, accounts, and admin review. **Do not treat the current JSON as a finished learning product or an authoritative legal database.**
 
 ## Why exact legal text is preserved
 
@@ -102,6 +117,31 @@ python -m constitution_memorizer.cli pipeline \
   --verbose
 ```
 
+### Apply corrections overlay (Phase 2)
+
+Corrections never mutate `data/raw/` or intermediate Markdown. They produce a reviewed twin:
+
+```bash
+python -m constitution_memorizer.cli correct \
+  --input data/output/constitution.json \
+  --corrections data/corrections/corrections.json \
+  --output-dir data \
+  --force
+```
+
+Output: `data/output/constitution.reviewed.json`
+
+### Corpus review report (Phase 2)
+
+```bash
+python -m constitution_memorizer.cli review-report \
+  --input data/output/constitution.json \
+  --output-dir data \
+  --force
+```
+
+Output: `data/output/corpus_review_report.json`
+
 Shared flags: `--force` / `--overwrite`, `--verbose`, `--output-dir`, `--config`.
 
 ## Output files
@@ -116,6 +156,10 @@ Shared flags: `--force` / `--overwrite`, `--verbose`, `--output-dir`, `--config`
 | `data/output/constitution.json` | Structured, human-readable Constitution JSON |
 | `data/output/constitution.min.json` | Minified twin of the above |
 | `data/output/extraction_report.json` | Counts, warnings and errors |
+| `data/output/constitution.reviewed.json` | Correction-overlay result (Phase 2) |
+| `data/output/corpus_review_report.json` | Human-review summary (Phase 2) |
+| `data/corrections/corrections.json` | Manual correction overlay (does not rewrite raw text) |
+| `data/expected/structure_expectations.json` | Expected Parts/Schedules/article-count band |
 | `data/rejected/unclassified_text.json` | Content that could not be confidently classified |
 
 ## Tests

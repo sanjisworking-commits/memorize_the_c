@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter
+from pathlib import Path
+from typing import Any
 
 from constitution_memorizer.schemas import (
     Article,
@@ -321,6 +324,108 @@ def validate_document(doc: ConstitutionDocument) -> tuple[list[Issue], list[Issu
                 Issue(
                     code="duplicate_text_blocks",
                     message=f"Identical body text appears in {count} articles (length={len(body)})",
+                )
+            )
+
+    return warnings, errors
+
+
+def load_structure_expectations(path: Path | None = None) -> dict[str, Any] | None:
+    """Load structure expectations JSON if present."""
+    if path is None:
+        path = Path("data/expected/structure_expectations.json")
+    if not path.exists():
+        return None
+    with path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def validate_against_expectations(
+    doc: ConstitutionDocument,
+    expectations: dict[str, Any] | None = None,
+) -> tuple[list[Issue], list[Issue]]:
+    """
+    Compare parsed structure against corpus expectations.
+
+    Missing optional schedules are warnings; core-part / count-band failures
+    are errors when clearly outside the expected band.
+    """
+    if expectations is None:
+        expectations = load_structure_expectations()
+    if not expectations:
+        return [], []
+
+    warnings: list[Issue] = []
+    errors: list[Issue] = []
+    articles = _iter_articles(doc)
+    unique_numbers = {a.article_number for a in articles}
+    part_numbers = {p.part_number for p in doc.parts if p.part_number != "UNKNOWN"}
+    schedule_numbers = {s.schedule_number.upper() for s in doc.schedules}
+
+    for required in expectations.get("required_parts_core", []):
+        if required not in part_numbers:
+            warnings.append(
+                Issue(
+                    code="missing_expected_part",
+                    message=f"Expected core Part {required} was not found",
+                )
+            )
+
+    max_parts = expectations.get("max_main_parts")
+    if isinstance(max_parts, int) and len(doc.parts) > max_parts:
+        warnings.append(
+            Issue(
+                code="too_many_parts",
+                message=(
+                    f"Found {len(doc.parts)} parts; expected at most {max_parts} "
+                    "(possible appendix/schedule pollution)"
+                ),
+            )
+        )
+
+    amin = expectations.get("article_count_min")
+    amax = expectations.get("article_count_max")
+    unique_count = len(unique_numbers)
+    if isinstance(amin, int) and unique_count < amin:
+        errors.append(
+            Issue(
+                code="article_count_below_expected",
+                message=(
+                    f"Unique article count {unique_count} is below expected minimum {amin}"
+                ),
+                severity="error",
+            )
+        )
+    if isinstance(amax, int) and unique_count > amax:
+        errors.append(
+            Issue(
+                code="article_count_above_expected",
+                message=(
+                    f"Unique article count {unique_count} is above expected maximum {amax}"
+                ),
+                severity="error",
+            )
+        )
+
+    for required in expectations.get("required_schedules", []):
+        if required.upper() not in schedule_numbers:
+            warnings.append(
+                Issue(
+                    code="missing_expected_schedule",
+                    message=f"Expected schedule {required} was not found",
+                )
+            )
+
+    for optional in expectations.get("optional_schedules", []):
+        if optional.upper() not in schedule_numbers:
+            warnings.append(
+                Issue(
+                    code="missing_optional_schedule",
+                    message=f"Optional schedule {optional} was not found",
+                    severity="warning",
                 )
             )
 

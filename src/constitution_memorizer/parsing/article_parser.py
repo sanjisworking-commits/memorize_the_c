@@ -12,6 +12,7 @@ from constitution_memorizer.parsing.patterns import (
     OMITTED_RE,
     REPEALED_RE,
     TITLE_BODY_SPLIT_RE,
+    TITLE_DOT_DASH_BODY_RE,
     TITLE_PERIOD_BODY_RE,
 )
 from constitution_memorizer.schemas import ArticleStatus
@@ -35,7 +36,15 @@ class ParsedArticleHeading:
 
 
 def _strip_trailing_punctuation(title: str) -> str:
-    return title.strip().rstrip(".—–- ").strip()
+    return title.strip().rstrip(".—–-⎯ ").strip()
+
+
+def _clean_bracket_noise(text: str) -> str:
+    """Normalize diglot bracket wrappers around titles."""
+    text = text.strip()
+    text = re.sub(r"^\[\s*", "[", text)
+    text = re.sub(r"\s*\]", "]", text)
+    return text
 
 
 def _detect_status_from_body(body: str) -> ArticleStatus:
@@ -49,6 +58,8 @@ def _detect_status_from_body(body: str) -> ArticleStatus:
         return ArticleStatus.OMITTED
     if re.search(r"[-—–⎯]\s*omitted by\b", stripped, re.I):
         return ArticleStatus.OMITTED
+    if re.search(r"\.\s*[-—–⎯]\s*Omitted\b", stripped, re.I):
+        return ArticleStatus.OMITTED
     # Diglot editions often use "Title. - Omitted." / "Title.—Omitted."
     if re.search(r"\bOmitted\.?\s*\]?\s*$", stripped, re.I) and len(stripped) < 160:
         return ArticleStatus.OMITTED
@@ -59,13 +70,44 @@ def _detect_status_from_body(body: str) -> ArticleStatus:
 
 def split_title_and_body(title_and_body: str) -> tuple[str | None, str]:
     """Split combined title/body text after an Article number."""
-    text = title_and_body.strip()
+    text = _clean_bracket_noise(title_and_body)
     if not text:
         return None, ""
 
     status = _detect_status_from_body(text)
     if status in {ArticleStatus.OMITTED, ArticleStatus.REPEALED}:
+        bracketed = re.match(
+            r"^\[\s*(?P<title>.+?)\s*\]\s*\.?\s*[-—–⎯].*$",
+            text,
+        )
+        if bracketed:
+            return _strip_trailing_punctuation(bracketed.group("title")), ""
+        # "Title. - Omitted."
+        omitted_split = re.match(
+            r"^(?P<title>.+?)\.\s*[-—–⎯]\s*Omitted\b.*$",
+            text,
+            re.I,
+        )
+        if omitted_split:
+            return _strip_trailing_punctuation(omitted_split.group("title")), ""
         return text.strip("[] "), ""
+
+    # Bracketed title with body after: "[Title.]—Body" or "[Title.]. -Body"
+    bracket_title = re.match(
+        r"^\[\s*(?P<title>.+?)\s*\]\s*\.?\s*[-—–⎯]?\s*(?P<body>.*)$",
+        text,
+    )
+    if bracket_title and bracket_title.group("title"):
+        title = _strip_trailing_punctuation(bracket_title.group("title"))
+        body = bracket_title.group("body").strip()
+        if body or title:
+            return (title or None), body
+
+    dot_dash = TITLE_DOT_DASH_BODY_RE.match(text)
+    if dot_dash:
+        title = _strip_trailing_punctuation(dot_dash.group("title"))
+        body = dot_dash.group("body").strip()
+        return (title or None), body
 
     em_match = TITLE_BODY_SPLIT_RE.match(text)
     if em_match:
@@ -85,7 +127,7 @@ def split_title_and_body(title_and_body: str) -> tuple[str | None, str]:
         return _strip_trailing_punctuation(text), ""
 
     # Ambiguous: treat whole string as title if short; else opening body.
-    if len(text) <= 80 and not text.endswith((";", ",")):
+    if len(text) <= 100 and not text.endswith((";", ",")):
         return _strip_trailing_punctuation(text), ""
 
     return None, text
@@ -95,9 +137,11 @@ def parse_article_heading_line(line: str) -> ParsedArticleHeading | None:
     """
     Detect and parse an Article heading from a single line.
 
-    Supports footnote prefixes like ``1[21A. ...``.
+    Supports footnote prefixes like ``1[21A. ...`` and ``1 [21A. ...``.
     """
     stripped = line.strip()
+    # Markdown list bullets from Docling.
+    stripped = re.sub(r"^[-*]\s+", "", stripped)
     if not stripped:
         return None
 
@@ -116,9 +160,6 @@ def parse_article_heading_line(line: str) -> ParsedArticleHeading | None:
     if parts.numeric_component > MAX_ARTICLE_NUMBER:
         return None
 
-    # Guard: footnote-like lines "1. Subs. by..." should not match as articles.
-    # Short status-only Article forms such as "238. Repealed." / "31. [Omitted.]"
-    # must still be accepted.
     fn_marker_group = match.groupdict().get("fn_marker")
     title_and_body = "" if number_only else (match.groupdict().get("title_and_body") or "")
     if not fn_marker_group and not number_only:
@@ -136,14 +177,11 @@ def parse_article_heading_line(line: str) -> ParsedArticleHeading | None:
             lower_body,
         ):
             return None
-        # Editorial footnote verbs followed by "by" are never Article titles.
         if re.match(
             r"^(subs\.|ins\.|omitted|repealed|added|renumbered)\s+by\b",
             lower_body,
         ):
             return None
-        # Bare Act footnotes often embed amendment operations mid-title.
-        # Exception: Article status lines that include "Omitted by …" after a title.
         article_status_line = bool(
             re.search(r"\]\s*\.\s*[-—–⎯].*\bomitted by\b", lower_body)
             or re.search(r"\.\s*[-—–⎯]\s*omitted by\b", lower_body)
@@ -160,33 +198,24 @@ def parse_article_heading_line(line: str) -> ParsedArticleHeading | None:
 
     fn_marker = None
     if fn_marker_group:
-        fn_marker = fn_marker_group.rstrip("[")
+        fn_marker = re.sub(r"\s*\[$", "", fn_marker_group).strip()
 
     title, opening = split_title_and_body(title_and_body)
     status = ArticleStatus.ACTIVE
-    if title and _detect_status_from_body(title) != ArticleStatus.ACTIVE:
-        status = _detect_status_from_body(title)
-    elif opening:
-        maybe = _detect_status_from_body(opening)
-        if maybe != ArticleStatus.ACTIVE:
-            status = maybe
-
-    # Also check combined for [Omitted.] / Repealed. after number with no other title.
     combined = title_and_body.strip()
     if combined:
         maybe = _detect_status_from_body(combined)
         if maybe != ArticleStatus.ACTIVE:
             status = maybe
             if status in {ArticleStatus.OMITTED, ArticleStatus.REPEALED}:
-                bracketed = re.match(
-                    r"^\[\s*(?P<title>.+?)\s*\]\s*\.?\s*[-—–⎯].*$",
-                    combined,
-                )
-                if bracketed:
-                    title = _strip_trailing_punctuation(bracketed.group("title"))
-                else:
-                    title = combined.strip("[] ").rstrip(".")
-                opening = ""
+                title, opening = split_title_and_body(combined)
+    else:
+        if title and _detect_status_from_body(title) != ArticleStatus.ACTIVE:
+            status = _detect_status_from_body(title)
+        elif opening:
+            maybe = _detect_status_from_body(opening)
+            if maybe != ArticleStatus.ACTIVE:
+                status = maybe
 
     return ParsedArticleHeading(
         number_parts=parts,
@@ -208,5 +237,32 @@ def looks_like_article_title_line(line: str) -> bool:
         return False
     if stripped.startswith("("):
         return False
-    # Prefer title-case / sentence starting with capital.
     return bool(re.match(r"^[A-Z\[\"]", stripped))
+
+
+def looks_like_schedule_entry(line: str) -> bool:
+    """
+    Heuristic for schedule/list entries that mimic Article headings.
+
+    Examples: ``1. Defence of India.``, ``1. Assamese.``, ``1. Andhra Pradesh``.
+    """
+    heading = parse_article_heading_line(line)
+    if heading is None:
+        return False
+    # Real constitutional Articles usually have longer juridical titles or body.
+    title = (heading.title or "").strip()
+    opening = (heading.opening_text or "").strip()
+    if heading.status != ArticleStatus.ACTIVE:
+        return False
+    if opening and len(opening) > 40:
+        return False
+    if not title:
+        return True
+    # Short noun-phrase titles without "shall"/legal verbs are often schedule items.
+    if len(title) <= 60 and not re.search(
+        r"\b(shall|may|means|includes|power|right|duty|constitution)\b",
+        title,
+        re.I,
+    ):
+        return True
+    return False

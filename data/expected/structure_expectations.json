@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "expected_parts": [
+    "I", "II", "III", "IV", "IVA", "V", "VI", "VII", "VIII", "IX", "IXA", "IXB",
+    "X", "XI", "XII", "XIII", "XIV", "XIVA", "XIVB", "XV", "XVI", "XVII",
+    "XVIII", "XIX", "XX", "XXI", "XXII"
+  ],
+  "required_parts_core": [
+    "I", "II", "III", "IV", "V", "VI", "XI", "XII", "XV", "XVIII", "XX", "XXII"
+  ],
+  "article_count_min": 350,
+  "article_count_max": 450,
+  "required_schedules": [
+    "FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH", "SIXTH", "SEVENTH", "EIGHTH"
+  ],
+  "optional_schedules": ["NINTH", "TENTH", "ELEVENTH", "TWELFTH"],
+  "max_main_parts": 30,
+  "notes": "Expectations for diglot Bare Act corpus review (Phase 2)."
+}

@@ -112,6 +112,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_shared_flags(validate_p)
 
+    correct_p = sub.add_parser(
+        "correct",
+        help="Apply corrections.json overlay to produce constitution.reviewed.json",
+    )
+    correct_p.add_argument(
+        "--input",
+        type=Path,
+        default=None,
+        help="constitution.json path (default: <output-dir>/output/constitution.json)",
+    )
+    correct_p.add_argument(
+        "--corrections",
+        type=Path,
+        default=Path("data/corrections/corrections.json"),
+        help="Corrections overlay JSON",
+    )
+    _add_shared_flags(correct_p)
+
+    review_p = sub.add_parser(
+        "review-report",
+        help="Write corpus_review_report.json for human review",
+    )
+    review_p.add_argument(
+        "--input",
+        type=Path,
+        default=None,
+        help="constitution.json path (default: <output-dir>/output/constitution.json)",
+    )
+    _add_shared_flags(review_p)
+
     pipeline_p = sub.add_parser(
         "pipeline",
         help="Run extract → normalize → parse → validate → report",
@@ -349,6 +379,54 @@ def cmd_validate(args: argparse.Namespace, config: PipelineConfig) -> int:
     return 0
 
 
+def cmd_correct(args: argparse.Namespace, config: PipelineConfig) -> int:
+    """Apply correction overlay and write constitution.reviewed.json."""
+    from constitution_memorizer.corrections.apply_corrections import (
+        apply_corrections,
+        load_corrections,
+    )
+
+    output_dir: Path = args.output_dir
+    input_path: Path = args.input or (output_dir / "output" / "constitution.json")
+    if not input_path.exists():
+        raise ConstitutionMemorizerError(f"Correct input not found: {input_path}")
+
+    doc = ConstitutionDocument.model_validate(read_json(input_path))
+    corrections = load_corrections(args.corrections)
+    reviewed, changes = apply_corrections(doc, corrections)
+    out_path = output_dir / "output" / "constitution.reviewed.json"
+    write_json(out_path, model_to_dict(reviewed), force=args.force)
+    print(f"Applied corrections from {args.corrections}")
+    for change in changes[:30]:
+        print(f"  - {change}")
+    if len(changes) > 30:
+        print(f"  ... and {len(changes) - 30} more")
+    print(f"Reviewed JSON: {out_path}")
+    return 0
+
+
+def cmd_review_report(args: argparse.Namespace, config: PipelineConfig) -> int:
+    """Write corpus_review_report.json summarizing uncertain parse areas."""
+    from constitution_memorizer.validation.review_report import build_corpus_review_report
+
+    output_dir: Path = args.output_dir
+    input_path: Path = args.input or (output_dir / "output" / "constitution.json")
+    if not input_path.exists():
+        raise ConstitutionMemorizerError(f"Review input not found: {input_path}")
+
+    doc = ConstitutionDocument.model_validate(read_json(input_path))
+    report = build_corpus_review_report(doc)
+    out_path = output_dir / "output" / "corpus_review_report.json"
+    write_json(out_path, report, force=args.force)
+    print(
+        f"Corpus review: unique_articles={report['unique_article_numbers']} "
+        f"dup_candidates={len(report['duplicate_article_candidates'])} "
+        f"missing_schedules={report['missing_schedules']}"
+    )
+    print(f"Report written to {out_path}")
+    return 0
+
+
 def cmd_pipeline(args: argparse.Namespace, config: PipelineConfig) -> int:
     """Run the full extract → normalize → parse → validate pipeline."""
     print("=== extract ===")
@@ -393,6 +471,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_parse(args, config)
         if command == "validate":
             return cmd_validate(args, config)
+        if command == "correct":
+            return cmd_correct(args, config)
+        if command == "review-report":
+            return cmd_review_report(args, config)
         if command == "pipeline":
             return cmd_pipeline(args, config)
         parser.error(f"Unknown command: {command}")

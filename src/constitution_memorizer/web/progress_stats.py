@@ -110,18 +110,6 @@ def _is_completed(engine: ReminderEngine, unit_id: str) -> bool:
     return progress.times_completed > 0 or progress.status in {"review", "mastered"}
 
 
-def _is_mastered(engine: ReminderEngine, unit_id: str) -> bool:
-    progress = engine.repo.get_progress(unit_id)
-    return progress is not None and progress.status == "mastered"
-
-
-def _is_due(engine: ReminderEngine, unit_id: str, *, today: date) -> bool:
-    progress = engine.repo.get_progress(unit_id)
-    if progress is None or progress.status != "review":
-        return False
-    return progress.next_revision is not None and progress.next_revision <= today
-
-
 def article_progress(
     engine: ReminderEngine,
     article_number: str,
@@ -179,6 +167,18 @@ def _article_range_label(numbers: list[str]) -> str:
     return f"{numbers[0]}–{numbers[-1]}"
 
 
+def _is_on_first_review_rung(engine: ReminderEngine, unit_id: str) -> bool:
+    """True when the unit was memorized and is still waiting on the 1-day rung."""
+    progress = engine.repo.get_progress(unit_id)
+    if progress is None:
+        return False
+    return (
+        progress.status == "review"
+        and progress.times_completed > 0
+        and progress.interval_days == 1
+    )
+
+
 def article_mastery_state(
     engine: ReminderEngine,
     article_number: str,
@@ -186,25 +186,37 @@ def article_mastery_state(
     today: date,
     continue_id: str | None,
 ) -> MasteryState | None:
-    """Return mastery state for an article that has learning units, else None."""
+    """
+    Return mastery state for an article that has learning units, else None.
+
+    Priority (Progress handoff):
+    1. mastered — every path unit complete and past the 1-day learning window
+    2. learning — every path unit complete but still on the 1-day rung
+    3. due — global continue pointer sits in this article
+    4. review — some but not all units complete
+    5. new — none complete
+    """
+    del today  # continue pointer is the only due signal for the map
     required, _pending = path_units_for_article(engine, article_number)
     if not required:
         return None
 
-    cont = engine.get_unit(continue_id) if continue_id else None
-    if cont is not None and (cont.article_number or "").lower() == article_number.lower():
-        return "due"
-    if any(_is_due(engine, u.id, today=today) for u in required):
-        return "due"
-
     completed = sum(1 for u in required if _is_completed(engine, u.id))
-    mastered = sum(1 for u in required if _is_mastered(engine, u.id))
-    if required and mastered == len(required):
-        return "mastered"
+    cont = engine.get_unit(continue_id) if continue_id else None
+    continue_here = (
+        cont is not None
+        and (cont.article_number or "").lower() == article_number.lower()
+    )
+
     if completed == len(required):
-        return "review"
+        if all(_is_on_first_review_rung(engine, u.id) for u in required):
+            return "learning"
+        return "mastered"
+
+    if continue_here:
+        return "due"
     if completed > 0:
-        return "learning"
+        return "review"
     return "new"
 
 
@@ -240,17 +252,14 @@ def _build_mastery_cell(
     continue_id: str | None,
     article_title: str | None = None,
 ) -> MasteryCell:
+    del article_title  # Tooltip is Article N · state only (Progress handoff)
     state = article_mastery_state(
         engine, article_number, today=today, continue_id=continue_id
     )
     tracked = state is not None
     if state is None:
         state = "new"
-    label = f"Article {article_number}"
-    if article_title:
-        tip = f"{label} — {article_title} · {state}"
-    else:
-        tip = f"{label} · {state}"
+    tip = f"Article {article_number} · {state}"
     href = article_learn_href(engine, article_number, continue_id=continue_id) if tracked else None
     return MasteryCell(
         article_number=article_number,
@@ -338,16 +347,13 @@ def build_tracked_article_rows(
         state = article_mastery_state(
             engine, prog.article_number, today=today, continue_id=continue_id
         ) or "new"
-        if prog.pending_choice:
-            tag = "choice pending"
-        elif state == "mastered":
+        # Tag priority: mastered · choice pending · due · empty
+        if state == "mastered":
             tag = "mastered"
+        elif prog.pending_choice:
+            tag = "choice pending"
         elif state == "due":
             tag = "due"
-        elif state == "learning":
-            tag = "learning"
-        elif state == "review":
-            tag = "review"
         else:
             tag = ""
         rows.append(

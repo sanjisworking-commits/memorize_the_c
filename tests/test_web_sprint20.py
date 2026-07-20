@@ -9,9 +9,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from constitution_memorizer.progress.scheduler import ReminderEngine
+from constitution_memorizer.schemas import ConstitutionDocument
+from constitution_memorizer.utils.json_io import read_json
 from constitution_memorizer.web.app import create_app
 from constitution_memorizer.web.progress_stats import (
     article_mastery_state,
+    path_units_for_article,
     progress_dashboard,
 )
 
@@ -55,6 +58,7 @@ def test_progress_page_has_stat_tiles_and_mastery_map(client: TestClient):
     assert "Part III" in html
     assert "Fundamental Rights" in html
     assert "mastery-cell" in html
+    assert 'title="Article 20 · new"' in html
     assert "styles.css?v=sprint20" in html
 
 
@@ -73,30 +77,35 @@ def test_progress_css_mastery_cell_states(client: TestClient):
 
 def test_mastery_map_article_20_is_clickable(client: TestClient):
     html = client.get("/progress").text
-    assert 'title="Article 20' in html
+    assert 'title="Article 20 · new"' in html
     assert "mastery-cell is-new is-tracked" in html or "mastery-cell is-due is-tracked" in html
     assert 'href="/learn/' in html
 
 
-def test_article_states_learning_due_and_tracked_row(client: TestClient, engine: ReminderEngine):
+def test_partial_completion_is_review_or_due(engine: ReminderEngine):
     today = date(2026, 7, 20)
     engine.mark_done("clause-1", as_of=today)
-    # Partial article 20 → learning; continue may mark due
-    state = article_mastery_state(
-        engine, "20", today=today, continue_id="clause-2"
+    # Partial without continue pointer → review
+    assert (
+        article_mastery_state(engine, "20", today=today, continue_id=None) == "review"
     )
-    assert state in {"learning", "due"}
+    # Continue pointer in article → due
+    assert (
+        article_mastery_state(engine, "20", today=today, continue_id="clause-2")
+        == "due"
+    )
 
-    from constitution_memorizer.schemas import ConstitutionDocument
-    from constitution_memorizer.utils.json_io import read_json
 
+def test_tracked_row_tags_and_bar(client: TestClient, engine: ReminderEngine):
+    today = date(2026, 7, 20)
+    engine.mark_done("clause-1", as_of=today)
     reviewed = ConstitutionDocument.model_validate(read_json(MINI_REVIEWED))
     dash = progress_dashboard(engine, reviewed=reviewed, today=today)
-    assert any(r.article_number == "20" for r in dash["tracked_rows"])
     row20 = next(r for r in dash["tracked_rows"] if r.article_number == "20")
     assert row20.completed >= 1
     assert row20.bar_percent > 0
-    assert "Article 20" in row20.title
+    assert row20.tag in {"", "due", "choice pending", "mastered"}
+    assert row20.tag not in {"learning", "review"}
 
     html = client.get("/progress").text
     assert "tracked-article-row" in html
@@ -104,20 +113,39 @@ def test_article_states_learning_due_and_tracked_row(client: TestClient, engine:
     assert "Article 20" in html
 
 
-def test_mastered_article_state(engine: ReminderEngine):
+def test_all_complete_on_first_rung_is_learning(engine: ReminderEngine):
     today = date(2026, 7, 20)
-    # Master every required unit for article 21 (single ARTICLE unit)
-    engine.mark_done("article-end", as_of=today)
-    # Climb ladder to mastered
-    for _ in range(6):
-        engine.mark_done("article-end", as_of=today)
-    state = article_mastery_state(engine, "21", today=today, continue_id=None)
-    assert state == "mastered"
+    engine.set_split_preference("clause-2", "whole")
+    engine.mark_done("clause-1", as_of=today)
+    engine.mark_done("clause-2", as_of=today)
+    state = article_mastery_state(engine, "20", today=today, continue_id=None)
+    assert state == "learning"
+
+
+def test_all_complete_past_first_rung_is_mastered(engine: ReminderEngine):
+    today = date(2026, 7, 20)
+    engine.mark_done("article-end", as_of=today)  # interval 1 → learning
+    assert (
+        article_mastery_state(engine, "21", today=today, continue_id=None) == "learning"
+    )
+    engine.mark_done("article-end", as_of=today)  # advances to interval 3
+    assert (
+        article_mastery_state(engine, "21", today=today, continue_id=None) == "mastered"
+    )
+
+
+def test_choice_pending_tag(engine: ReminderEngine):
+    today = date(2026, 7, 20)
+    # Touch article 20 without choosing split on clause-2
+    engine.mark_done("clause-1", as_of=today)
+    reviewed = ConstitutionDocument.model_validate(read_json(MINI_REVIEWED))
+    dash = progress_dashboard(engine, reviewed=reviewed, today=today)
+    row20 = next(r for r in dash["tracked_rows"] if r.article_number == "20")
+    assert row20.pending_choice is True
+    assert row20.tag == "choice pending"
 
 
 def test_split_preference_still_affects_required_counts(engine: ReminderEngine):
-    from constitution_memorizer.web.progress_stats import path_units_for_article
-
     engine.set_split_preference("clause-2", "letters")
     required, pending = path_units_for_article(engine, "20")
     assert pending is False

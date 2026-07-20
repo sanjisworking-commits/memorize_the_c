@@ -1,8 +1,9 @@
-"""Generate Learning Units from constitution.reviewed.json (Sprint 1)."""
+"""Generate Learning Units from constitution.reviewed.json (Sprint 1–2)."""
 
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from constitution_memorizer.learning.schemas import (
     LearningUnitsDocument,
     LearningUnitType,
 )
+from constitution_memorizer.learning.text_fallback_splitter import split_flat_article_body
 from constitution_memorizer.learning.time_difficulty import (
     estimate_difficulty,
     estimate_learning_time_seconds,
@@ -20,16 +22,18 @@ from constitution_memorizer.schemas import (
     Article,
     ArticleStatus,
     ConstitutionDocument,
+    LabelType,
     Part,
     ProvisionNode,
     Schedule,
 )
-from constitution_memorizer.utils.identifiers import article_sort_key
+from constitution_memorizer.utils.identifiers import article_sort_key, subclause_id
 from constitution_memorizer.utils.json_io import read_json, write_json
 
 logger = logging.getLogger(__name__)
 
 _FUNDAMENTAL_RIGHTS_PARTS = {"III"}
+_LETTER_LABEL_RE = re.compile(r"^[a-z]$")
 
 
 def _strip_label_parens(label: str) -> str:
@@ -40,7 +44,7 @@ def _strip_label_parens(label: str) -> str:
 
 
 def _provision_text(node: ProvisionNode) -> str:
-    """Flatten a provision node including children for Sprint 1 clause units."""
+    """Flatten a provision node including children (roman inlined under letters)."""
     parts: list[str] = []
     head = f"{node.label} {node.text}".strip()
     if head:
@@ -99,6 +103,19 @@ def _has_nested_children(clauses: list[ProvisionNode]) -> bool:
     return any(bool(c.children) for c in clauses)
 
 
+def _is_alphabetic_node(node: ProvisionNode) -> bool:
+    """True for (a)(b) letter labels; roman (i)(ii) are excluded."""
+    if node.label_type == LabelType.ALPHABETIC:
+        return True
+    if node.label_type in {LabelType.ROMAN, LabelType.NUMERIC, LabelType.ALPHANUMERIC}:
+        return False
+    return bool(_LETTER_LABEL_RE.fullmatch(_strip_label_parens(node.label).lower()))
+
+
+def _alphabetic_children(clause: ProvisionNode) -> list[ProvisionNode]:
+    return [child for child in clause.children if _is_alphabetic_node(child)]
+
+
 def _make_unit(
     *,
     unit_id: str,
@@ -111,6 +128,9 @@ def _make_unit(
     tags: list[str] | None = None,
     clause_count: int = 0,
     has_nested_children: bool = False,
+    allows_letter_split: bool = False,
+    child_unit_ids: list[str] | None = None,
+    parent_clause_id: str | None = None,
 ) -> LearningUnit:
     return LearningUnit(
         id=unit_id,
@@ -128,14 +148,36 @@ def _make_unit(
         ),
         estimated_learning_time=estimate_learning_time_seconds(text),
         tags=list(tags or []),
+        allows_letter_split=allows_letter_split,
+        child_unit_ids=list(child_unit_ids or []),
+        parent_clause_id=parent_clause_id,
     )
 
 
+def _link_letter_sequence(units: list[LearningUnit]) -> None:
+    for index, unit in enumerate(units):
+        unit.letter_sequence_prev = units[index - 1].id if index > 0 else None
+        unit.letter_sequence_next = (
+            units[index + 1].id if index + 1 < len(units) else None
+        )
+
+
+def _resolve_clauses(article: Article) -> list[ProvisionNode]:
+    """Return structured clauses, or synthetic clauses from flat body text."""
+    if article.clauses:
+        return list(article.clauses)
+
+    body = article.body_text.strip() or article.opening_text.strip()
+    if not body:
+        return []
+    return split_flat_article_body(article.article_number, body)
+
+
 def _units_for_article(part: Part, article: Article) -> list[LearningUnit]:
-    """Sprint 1: ARTICLE or CLAUSE units only (no SUBCLAUSE emission yet)."""
+    """ARTICLE / CLAUSE units; SUBCLAUSE dual units when alphabetic children exist."""
     tags = _part_tags(part)
     parent_article_id = article.id
-    clauses = article.clauses
+    clauses = _resolve_clauses(article)
 
     if not clauses:
         text = _article_full_text(article)
@@ -169,21 +211,56 @@ def _units_for_article(part: Part, article: Article) -> list[LearningUnit]:
         if not text:
             continue
         unit_id = clause.id or f"{article.id}-clause-{label.lower()}"
-        units.append(
-            _make_unit(
-                unit_id=unit_id,
-                unit_type=LearningUnitType.CLAUSE,
-                parent_id=parent_article_id,
-                article_number=article.article_number,
-                display_title=f"Article {article.article_number}({label})",
-                title=article.title,
-                text=text,
-                tags=tags,
-                clause_count=len(clauses),
-                has_nested_children=nested or bool(clause.children),
-            )
+        letter_kids = _alphabetic_children(clause)
+        child_ids = [
+            (kid.id or subclause_id(unit_id, kid.label)) for kid in letter_kids
+        ]
+
+        clause_unit = _make_unit(
+            unit_id=unit_id,
+            unit_type=LearningUnitType.CLAUSE,
+            parent_id=parent_article_id,
+            article_number=article.article_number,
+            display_title=f"Article {article.article_number}({label})",
+            title=article.title,
+            text=text,
+            tags=tags,
+            clause_count=len(clauses),
+            has_nested_children=nested or bool(clause.children),
+            allows_letter_split=bool(letter_kids),
+            child_unit_ids=child_ids,
         )
-    # If clauses existed but produced no text, fall back to whole article.
+        units.append(clause_unit)
+
+        if letter_kids:
+            letter_units: list[LearningUnit] = []
+            for kid, kid_id in zip(letter_kids, child_ids, strict=True):
+                kid_label = _strip_label_parens(kid.label)
+                # Roman children stay inlined inside the letter unit.
+                kid_text = _provision_text(kid)
+                if not kid_text:
+                    continue
+                letter_units.append(
+                    _make_unit(
+                        unit_id=kid_id,
+                        unit_type=LearningUnitType.SUBCLAUSE,
+                        parent_id=unit_id,
+                        article_number=article.article_number,
+                        display_title=(
+                            f"Article {article.article_number}({label})({kid_label})"
+                        ),
+                        title=article.title,
+                        text=kid_text,
+                        tags=tags,
+                        clause_count=len(letter_kids),
+                        has_nested_children=bool(kid.children),
+                        parent_clause_id=unit_id,
+                    )
+                )
+            _link_letter_sequence(letter_units)
+            clause_unit.child_unit_ids = [u.id for u in letter_units]
+            units.extend(letter_units)
+
     if not units:
         text = _article_full_text(article)
         if text:
@@ -286,19 +363,26 @@ def _units_for_schedule(schedule: Schedule) -> list[LearningUnit]:
     return units
 
 
-def _link_sequence(units: list[LearningUnit]) -> None:
-    for index, unit in enumerate(units):
+def _link_global_chain(units: list[LearningUnit]) -> None:
+    """
+    Link revision_order / previous / next on the default whole-clause path.
+
+    SUBCLAUSE units are available for the letter-split path but are excluded
+    from the global chain.
+    """
+    chain = [u for u in units if u.type != LearningUnitType.SUBCLAUSE]
+    for index, unit in enumerate(chain):
         unit.revision_order = index + 1
-        unit.previous_unit = units[index - 1].id if index > 0 else None
-        unit.next_unit = units[index + 1].id if index + 1 < len(units) else None
+        unit.previous_unit = chain[index - 1].id if index > 0 else None
+        unit.next_unit = chain[index + 1].id if index + 1 < len(chain) else None
 
 
 def generate_learning_units(doc: ConstitutionDocument) -> LearningUnitsDocument:
     """
-    Generate Sprint 1 learning units from a reviewed ConstitutionDocument.
+    Generate learning units from a reviewed ConstitutionDocument.
 
-    Alphabetic letter-splitting choice is deferred to Sprint 2; clauses with
-    alphabetic children are kept as single CLAUSE units with nested text inlined.
+    When a clause has alphabetic children, both the parent CLAUSE and child
+    SUBCLAUSE units are emitted. The default global chain stays clause-level.
     """
     units: list[LearningUnit] = []
 
@@ -319,18 +403,18 @@ def generate_learning_units(doc: ConstitutionDocument) -> LearningUnitsDocument:
         )
 
     for part, article in _iter_articles(doc):
-        if part.part_number == "UNKNOWN":
-            # Still include articles attached to unknown part.
-            pass
         units.extend(_units_for_article(part, article))
 
     for schedule in sorted(
         doc.schedules,
-        key=lambda s: (s.schedule_number_normalized is None, s.schedule_number_normalized or 0),
+        key=lambda s: (
+            s.schedule_number_normalized is None,
+            s.schedule_number_normalized or 0,
+        ),
     ):
         units.extend(_units_for_schedule(schedule))
 
-    _link_sequence(units)
+    _link_global_chain(units)
     return LearningUnitsDocument(
         schema_version="1.0.0",
         source_document="constitution.reviewed.json",
@@ -368,12 +452,16 @@ def summarize_units(doc: LearningUnitsDocument) -> dict[str, Any]:
     """Return simple distribution stats for CLI output."""
     by_type: dict[str, int] = {}
     lengths: list[int] = []
+    split_capable = 0
     for unit in doc.units:
         by_type[unit.type.value] = by_type.get(unit.type.value, 0) + 1
         lengths.append(len(unit.text))
+        if unit.allows_letter_split:
+            split_capable += 1
     return {
         "unit_count": doc.unit_count,
         "by_type": by_type,
+        "allows_letter_split": split_capable,
         "avg_chars": round(sum(lengths) / len(lengths), 1) if lengths else 0,
         "min_chars": min(lengths) if lengths else 0,
         "max_chars": max(lengths) if lengths else 0,

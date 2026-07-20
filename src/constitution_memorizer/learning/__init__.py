@@ -9,6 +9,9 @@ from constitution_memorizer.learning.schemas import (
     LearningUnitsDocument,
     LearningUnitType,
 )
+from constitution_memorizer.learning.text_fallback_splitter import (
+    split_flat_article_body,
+)
 
 __all__ = [
     "LearningUnit",
@@ -16,4 +19,5 @@ __all__ = [
     "LearningUnitsDocument",
     "generate_learning_units",
     "generate_learning_units_from_path",
+    "split_flat_article_body",
 ]

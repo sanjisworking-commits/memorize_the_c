@@ -51,6 +51,9 @@ data/intermediate/*
 !data/intermediate/.gitkeep
 data/output/*
 !data/output/.gitkeep
+# Learning-layer artifacts (derived from reviewed corpus; safe to commit)
+!data/output/learning_units.json
+!data/output/learning_units.min.json
 data/rejected/*
 !data/rejected/.gitkeep
 

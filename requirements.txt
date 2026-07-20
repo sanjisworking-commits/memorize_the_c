@@ -1,0 +1,7 @@
+# Runtime dependencies for Constitution Memorizer (Phase 1: PDF-to-JSON)
+docling>=2.0.0
+pydantic>=2.0.0
+rapidfuzz>=3.0.0
+
+# Development / tests
+pytest>=7.0.0

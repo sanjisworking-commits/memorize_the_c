@@ -27,6 +27,8 @@ class ArticleCorrection(BaseModel):
     manual_review_status: str | None = None
     body_text: str | None = None
     opening_text: str | None = None
+    # Drop mis-parsed nodes (e.g. Sixth Schedule paragraphs mistaken for Articles).
+    exclude: bool | None = None
 
 
 class CorrectionsFile(BaseModel):
@@ -60,6 +62,26 @@ def _iter_articles(doc: ConstitutionDocument) -> list[Article]:
     return articles
 
 
+def _remove_articles(doc: ConstitutionDocument, article_ids: set[str]) -> list[str]:
+    """Remove articles by id from parts/chapters. Returns change notes."""
+    changes: list[str] = []
+    for part in doc.parts:
+        kept = [a for a in part.articles if a.id not in article_ids]
+        removed = len(part.articles) - len(kept)
+        if removed:
+            part.articles = kept
+        for chapter in part.chapters:
+            kept_ch = [a for a in chapter.articles if a.id not in article_ids]
+            removed_ch = len(chapter.articles) - len(kept_ch)
+            if removed_ch:
+                chapter.articles = kept_ch
+                removed += removed_ch
+        # per-part notes emitted below via article_ids loop
+    for article_id in sorted(article_ids):
+        changes.append(f"{article_id}: excluded from reviewed corpus")
+    return changes
+
+
 def apply_corrections(
     doc: ConstitutionDocument,
     corrections: CorrectionsFile,
@@ -73,8 +95,17 @@ def apply_corrections(
     reviewed = doc.model_copy(deep=True)
     by_id = {a.id: a for a in _iter_articles(reviewed)}
     changes: list[str] = []
+    exclude_ids: set[str] = set()
 
     for article_id, corr in corrections.articles.items():
+        if corr.exclude:
+            if article_id not in by_id:
+                changes.append(f"SKIP {article_id}: article not found (exclude)")
+                logger.warning("Correction exclude target not found: %s", article_id)
+                continue
+            exclude_ids.add(article_id)
+            continue
+
         article = by_id.get(article_id)
         if article is None:
             changes.append(f"SKIP {article_id}: article not found")
@@ -105,6 +136,10 @@ def apply_corrections(
         if corr.body_text is not None and corr.body_text != article.body_text:
             changes.append(f"{article_id}: body_text updated")
             article.body_text = corr.body_text
+            # Prefer corrected flat body over stale structured clauses.
+            if article.clauses:
+                article.clauses = []
+                changes.append(f"{article_id}: clauses cleared for corrected body")
         if corr.opening_text is not None and corr.opening_text != article.opening_text:
             changes.append(f"{article_id}: opening_text updated")
             article.opening_text = corr.opening_text
@@ -113,6 +148,9 @@ def apply_corrections(
                 f"{article_id}: manual_review_status → {corr.manual_review_status!r}"
             )
             article.manual_review_status = corr.manual_review_status
+
+    if exclude_ids:
+        changes.extend(_remove_articles(reviewed, exclude_ids))
 
     reviewed.extraction_summary.warnings.append(
         f"Applied {len(corrections.articles)} correction entr(y/ies); "

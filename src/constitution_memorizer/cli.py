@@ -173,6 +173,35 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_shared_flags(units_p)
 
+    serve_p = sub.add_parser(
+        "serve",
+        help="Run the learning web UI (FastAPI)",
+    )
+    serve_p.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Bind host (default: 127.0.0.1)",
+    )
+    serve_p.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Bind port (default: 8000)",
+    )
+    serve_p.add_argument(
+        "--units",
+        type=Path,
+        default=None,
+        help="learning_units.json path (default: <output-dir>/output/learning_units.json)",
+    )
+    serve_p.add_argument(
+        "--db",
+        type=Path,
+        default=None,
+        help="SQLite progress DB (default: <output-dir>/progress/progress.db)",
+    )
+    _add_shared_flags(serve_p)
+
     return parser
 
 
@@ -509,6 +538,23 @@ def cmd_generate_units(args: argparse.Namespace, config: PipelineConfig) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace, config: PipelineConfig) -> int:
+    """Run the FastAPI learning UI with uvicorn."""
+    import uvicorn
+
+    from constitution_memorizer.web.app import create_app
+
+    output_dir: Path = args.output_dir
+    units_path = args.units or (output_dir / "output" / "learning_units.json")
+    db_path = args.db or (output_dir / "progress" / "progress.db")
+    app = create_app(units_path=units_path, db_path=db_path)
+    print(f"Serving learning UI on http://{args.host}:{args.port}")
+    print(f"  units={units_path}")
+    print(f"  db={db_path}")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entry point."""
     parser = build_parser()
@@ -534,6 +580,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_pipeline(args, config)
         if command == "generate-units":
             return cmd_generate_units(args, config)
+        if command == "serve":
+            return cmd_serve(args, config)
         parser.error(f"Unknown command: {command}")
         return 2
     except OverwriteRefusedError as exc:

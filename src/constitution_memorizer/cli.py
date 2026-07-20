@@ -200,6 +200,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="SQLite progress DB (default: <output-dir>/progress/progress.db)",
     )
+    serve_p.add_argument(
+        "--reviewed",
+        type=Path,
+        default=None,
+        help=(
+            "Reviewed Bare Act JSON for Browse "
+            "(default: <output-dir>/output/constitution.reviewed.json)"
+        ),
+    )
     _add_shared_flags(serve_p)
 
     return parser
@@ -547,10 +556,18 @@ def cmd_serve(args: argparse.Namespace, config: PipelineConfig) -> int:
     output_dir: Path = args.output_dir
     units_path = args.units or (output_dir / "output" / "learning_units.json")
     db_path = args.db or (output_dir / "progress" / "progress.db")
-    app = create_app(units_path=units_path, db_path=db_path)
+    reviewed_path = args.reviewed or (
+        output_dir / "output" / "constitution.reviewed.json"
+    )
+    app = create_app(
+        units_path=units_path,
+        db_path=db_path,
+        reviewed_path=reviewed_path,
+    )
     print(f"Serving learning UI on http://{args.host}:{args.port}")
     print(f"  units={units_path}")
     print(f"  db={db_path}")
+    print(f"  reviewed={reviewed_path}")
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
     return 0
 

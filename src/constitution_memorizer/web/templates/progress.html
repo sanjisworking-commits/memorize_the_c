@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Progress · Constitution Memorizer{% endblock %}
+{% block content %}
+<section class="panel progress">
+  <h1 class="display">Progress</h1>
+  <p class="lede">Unit totals and Article completion from your chosen whole/letters paths.</p>
+
+  <div class="stat-line" aria-label="Engine stats">
+    <span>{{ dashboard.engine.tracked }} tracked</span>
+    <span>{{ dashboard.engine.review }} in review</span>
+    <span>{{ dashboard.engine.mastered }} mastered</span>
+    <span>{{ dashboard.engine.split_preferences }} split choices</span>
+  </div>
+
+  <h2 class="section-title">Learning units</h2>
+  <div class="stat-line">
+    {% for kind, count in dashboard.by_type.items()|sort %}
+    <span>{{ kind }}: {{ count }}</span>
+    {% endfor %}
+  </div>
+
+  <h2 class="section-title">Articles</h2>
+  <div class="stat-line">
+    <span>{{ dashboard.articles_complete }} / {{ dashboard.articles_total }} complete</span>
+    <span>{{ dashboard.articles_started }} started</span>
+    <span>avg {{ dashboard.avg_article_percent }}%</span>
+  </div>
+
+  {% if started_articles %}
+  <h3 class="section-title">In progress</h3>
+  <ul class="progress-list">
+    {% for row in started_articles %}
+    <li>
+      <a href="/browse/article/{{ row.article_number }}">Article {{ row.article_number }}</a>
+      <span>{{ row.completed }}/{{ row.required }} · {{ row.percent }}%</span>
+      {% if row.pending_choice %}<span class="tag">choice pending</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <h3 class="section-title">Not started (sample)</h3>
+  <ul class="progress-list muted-list">
+    {% for row in sample_articles %}
+    <li>
+      <a href="/browse/article/{{ row.article_number }}">Article {{ row.article_number }}</a>
+      <span>0/{{ row.required }}</span>
+    </li>
+    {% else %}
+    <li class="empty">No remaining sample rows.</li>
+    {% endfor %}
+  </ul>
+
+  <p class="actions"><a class="btn btn-ghost" href="/">Home</a></p>
+</section>
+{% endblock %}

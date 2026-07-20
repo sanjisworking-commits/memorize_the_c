@@ -24,7 +24,7 @@
     <li>
       <a class="checklist-item" href="/learn/{{ unit.id }}">
         <span class="checklist-title">{{ unit.display_title }}</span>
-        <span class="checklist-meta">{{ unit.type }} · {{ unit.estimated_learning_time }}s</span>
+        <span class="checklist-meta">{{ unit.type.value }} · {{ unit.estimated_learning_time }}s</span>
       </a>
     </li>
     {% endfor %}

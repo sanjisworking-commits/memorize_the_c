@@ -5,27 +5,33 @@
   <p class="eyebrow">
     Browse
     {% if article.part_number %}· Part {{ article.part_number }}{% endif %}
-    · {{ article.status }}
+    · {{ status_label }}
   </p>
   <h1 class="display">Article {{ article.article_number }}</h1>
   {% if article.title %}<p class="lede">{{ article.title }}</p>{% endif %}
 
+  {% if not readiness.ok %}
+  <p class="meta-line">Readiness flags:
+    {% for reason in readiness.reasons %}<code>{{ reason }}</code>{% if not loop.last %}, {% endif %}{% endfor %}
+  </p>
+  {% endif %}
+
   <article class="unit-text">{{ article.full_text }}</article>
 
   <h2 class="section-title">Learn</h2>
-  {% if article.learn_units %}
+  {% if ready_learn_units %}
   <ul class="checklist">
-    {% for unit in article.learn_units %}
+    {% for unit in ready_learn_units %}
     <li>
       <a class="checklist-item" href="/learn/{{ unit.id }}">
         <span class="checklist-title">{{ unit.display_title }}</span>
-        <span class="checklist-meta">{{ unit.type }} · {{ unit.estimated_learning_time }}s</span>
+        <span class="checklist-meta">{{ unit.type.value }} · {{ unit.estimated_learning_time }}s</span>
       </a>
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p class="empty">No learning units mapped to this Article yet.</p>
+  <p class="empty">No ready learning units for this Article yet (extraction incomplete or still under review).</p>
   {% endif %}
 
   <p class="actions">

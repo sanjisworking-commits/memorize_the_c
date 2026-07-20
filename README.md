@@ -170,6 +170,21 @@ Then open `http://127.0.0.1:8000/`.
 
 UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{id}`.
 
+### Card readiness (Learn / Browse / Choose)
+
+Before rendering a Learn or Choose card (and before listing Home due/continue items), the UI runs a **card readiness** check (`web/card_readiness.py`):
+
+| Signal | Meaning |
+|--------|---------|
+| `truncated_open_clause` | Body ends on `:` / dash with no following proviso or list items (e.g. Art. 243C(1) cut before “Provided that…”) |
+| `garbage_fragment` | Diglot/amendment debris in title or body (e.g. `w.e.f.`, `1-1977).`) |
+| `duplicate_paragraphs` | Opening duplicated into body |
+| missing fields | No `display_title` / empty text / etc. |
+
+`generate-units` and `serve` print a readiness summary (`ready` / `unready` + top flags). Unready units show an **incomplete** panel instead of a Learn card; Browse only offers Learn CTAs for ready units. Prefer fixing corpus via `data/corrections/corrections.json` + `correct --force` + `generate-units --force` (do **not** mutate the Docling parse in place). Templates use `type_label` (plain `CLAUSE`, not `LEARNINGUNITTYPE.CLAUSE`) and show Part from unit tags when present.
+
+Article text assembly (`article_text.py`) collapses identical `opening_text`/`body_text` and skips provisos/explanations already present in the body — this is what caused cards like Article 21 to show the same sentence twice.
+
 ### Sprint 5 — Browse / Search / Progress ✅
 
 **Branch:** `cursor/sprint-5-browse-search-progress-1a75`

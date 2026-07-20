@@ -543,6 +543,17 @@ def cmd_generate_units(args: argparse.Namespace, config: PipelineConfig) -> int:
     )
     for unit_type, count in sorted(stats["by_type"].items()):
         print(f"  {unit_type}: {count}")
+    from constitution_memorizer.web.card_readiness import summarize_readiness
+
+    readiness = summarize_readiness(result.units)
+    print(
+        f"Card readiness: ready={readiness['ready']} "
+        f"unready={readiness['unready']}"
+    )
+    flags = readiness["flags"]
+    if isinstance(flags, dict) and flags:
+        top = ", ".join(f"{name}={count}" for name, count in list(flags.items())[:8])
+        print(f"  flags: {top}")
     print(f"Wrote {output_path}")
     return 0
 
@@ -564,10 +575,17 @@ def cmd_serve(args: argparse.Namespace, config: PipelineConfig) -> int:
         db_path=db_path,
         reviewed_path=reviewed_path,
     )
+    from constitution_memorizer.web.card_readiness import summarize_readiness
+
+    readiness = summarize_readiness(list(app.state.engine.units.values()))
     print(f"Serving learning UI on http://{args.host}:{args.port}")
     print(f"  units={units_path}")
     print(f"  db={db_path}")
     print(f"  reviewed={reviewed_path}")
+    print(
+        f"  card readiness: ready={readiness['ready']} "
+        f"unready={readiness['unready']}"
+    )
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
     return 0
 

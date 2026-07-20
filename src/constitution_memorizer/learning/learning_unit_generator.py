@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from constitution_memorizer.article_text import article_full_text, provision_text
 from constitution_memorizer.exceptions import InputValidationError
 from constitution_memorizer.learning.schemas import (
     LearningUnit,
@@ -44,45 +45,24 @@ def _strip_label_parens(label: str) -> str:
 
 
 def _provision_text(node: ProvisionNode) -> str:
-    """Flatten a provision node including children (roman inlined under letters)."""
-    parts: list[str] = []
-    head = f"{node.label} {node.text}".strip()
-    if head:
-        parts.append(head)
-    for child in node.children:
-        child_text = _provision_text(child)
-        if child_text:
-            parts.append(child_text)
-    for proviso in node.provisos:
-        parts.append(proviso)
-    for expl in node.explanations:
-        parts.append(expl)
-    return "\n".join(parts)
+    return provision_text(node)
 
 
 def _article_full_text(article: Article) -> str:
-    chunks: list[str] = []
-    if article.opening_text.strip():
-        chunks.append(article.opening_text.strip())
-    if article.clauses:
-        for clause in article.clauses:
-            chunks.append(_provision_text(clause))
-    elif article.body_text.strip():
-        chunks.append(article.body_text.strip())
-    for proviso in article.provisos:
-        chunks.append(proviso)
-    for expl in article.explanations:
-        chunks.append(expl)
-    return "\n".join(c for c in chunks if c).strip()
+    return article_full_text(article)
 
-
-def _part_tags(part: Part) -> list[str]:
+def _part_tags(part: Part, article: Article | None = None) -> list[str]:
     tags: list[str] = []
-    if part.part_number and part.part_number != "UNKNOWN":
-        tags.append(f"Part {part.part_number}")
-    if part.title:
+    part_number = (
+        article.part_number
+        if article is not None and article.part_number
+        else part.part_number
+    )
+    if part_number and part_number != "UNKNOWN":
+        tags.append(f"Part {part_number}")
+    if part.title and not (article and article.part_number and article.part_number != part.part_number):
         tags.append(part.title.strip())
-    if part.part_number in _FUNDAMENTAL_RIGHTS_PARTS:
+    if part_number in _FUNDAMENTAL_RIGHTS_PARTS:
         tags.append("Fundamental Rights")
     return tags
 
@@ -175,7 +155,7 @@ def _resolve_clauses(article: Article) -> list[ProvisionNode]:
 
 def _units_for_article(part: Part, article: Article) -> list[LearningUnit]:
     """ARTICLE / CLAUSE units; SUBCLAUSE dual units when alphabetic children exist."""
-    tags = _part_tags(part)
+    tags = _part_tags(part, article)
     parent_article_id = article.id
     clauses = _resolve_clauses(article)
 

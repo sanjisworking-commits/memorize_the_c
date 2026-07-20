@@ -26,6 +26,9 @@ class ArticleCorrection(BaseModel):
     chapter_number: str | None = None
     manual_review_status: str | None = None
     body_text: str | None = None
+    opening_text: str | None = None
+    clear_clauses: bool = False
+    provisos: list[str] | None = None
 
 
 class CorrectionsFile(BaseModel):
@@ -104,6 +107,15 @@ def apply_corrections(
         if corr.body_text is not None and corr.body_text != article.body_text:
             changes.append(f"{article_id}: body_text updated")
             article.body_text = corr.body_text
+        if corr.opening_text is not None and corr.opening_text != article.opening_text:
+            changes.append(f"{article_id}: opening_text updated")
+            article.opening_text = corr.opening_text
+        if corr.clear_clauses and article.clauses:
+            changes.append(f"{article_id}: cleared {len(article.clauses)} clause(s)")
+            article.clauses = []
+        if corr.provisos is not None:
+            changes.append(f"{article_id}: provisos updated")
+            article.provisos = list(corr.provisos)
         if corr.manual_review_status is not None:
             changes.append(
                 f"{article_id}: manual_review_status → {corr.manual_review_status!r}"

@@ -4,21 +4,39 @@ from __future__ import annotations
 
 import re
 
-# PART I  /  PART III—THE UNION ...  /  PART IV A
+# Em dash, en dash, hyphen, and Docling's horizontal-bar (U+23AF).
+_DASH = r"—\-–⎯−:"
+
+# Constitution Parts only (I–XXII, including IVA / IXA / XIVA / XIVB).
+# Schedule-internal "PART A/B/C…" headings are handled separately.
 PART_RE = re.compile(
-    r"^PART\s+(?P<number>[IVXLCDM]+(?:\s*[A-Z])?)"
-    r"(?:\s*[—\-–:]\s*(?P<title>.+))?$",
+    r"^PART\s+"
+    r"(?P<number>XXII|XXI|XX|XIX|XVIII|XVII|XVI|XV|XIVA|XIVB|XIV|XIII|XII|XI|X|"
+    r"IXA|IX|VIII|VII|VI|V|IVA|IV|III|II|I)"
+    rf"(?:\s*[{_DASH}]\s*(?P<title>.+))?$",
     re.IGNORECASE,
 )
+
+# Fifth/Sixth Schedule internal parts (PART A … PART E)
+SCHEDULE_PART_RE = re.compile(
+    r"^PART\s+(?P<letter>[A-E])"
+    rf"(?:\s*[{_DASH}.]?\s*(?P<title>.+))?$",
+    re.IGNORECASE,
+)
+
+CONTENTS_RE = re.compile(r"^CONTENTS\s*$", re.IGNORECASE)
+
+# Reject absurd Article numbers (Bare Act tops out near 395).
+MAX_ARTICLE_NUMBER = 450
 
 PART_TITLE_ONLY_RE = re.compile(
     r"^(?P<title>THE\s+[A-Z][A-Z\s,'\-]+)$"
 )
 
-# CHAPTER I  /  CHAPTER II—THE EXECUTIVE
+# CHAPTER I  /  CHAPTER II.—THE EXECUTIVE  /  CHAPTER I.-LANGUAGE
 CHAPTER_RE = re.compile(
-    r"^CHAPTER\s+(?P<number>[IVXLCDM]+)"
-    r"(?:\s*[—\-–:]\s*(?P<title>.+))?$",
+    r"^CHAPTER\s+(?P<number>[IVXLCDM]+)\.?"
+    rf"(?:\s*[{_DASH}]\s*(?P<title>.+))?$",
     re.IGNORECASE,
 )
 
@@ -89,7 +107,7 @@ SCHEDULE_RE = re.compile(
     r"(?P<number>FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|"
     r"TENTH|ELEVENTH|TWELFTH|[IVXLCDM]+|\d+)"
     r"(?:TH|ST|ND|RD)?\s+SCHEDULE"
-    r"(?:\s*[—\-–:]\s*(?P<title>.+))?$",
+    r"(?:\s*[—\-–:\-]\s*(?P<title>.+))?$",
     re.IGNORECASE,
 )
 
@@ -100,9 +118,9 @@ APPENDIX_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Em-dash / en-dash body separator after title.
+# Em-dash / en-dash / Docling bar separator after title.
 TITLE_BODY_SPLIT_RE = re.compile(
-    r"^(?P<title>.*?)\s*[—–]\s*(?P<body>.*)$"
+    r"^(?P<title>.*?)\s*[—–⎯−]\s*(?P<body>.*)$"
 )
 
 # Title ending with period then body on same line without em-dash.

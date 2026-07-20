@@ -44,6 +44,9 @@ def _is_known_header(text: str, known_headers: list[str], threshold: float) -> b
     stripped = text.strip()
     if not stripped:
         return False
+    # Docling may emit Markdown headings around running headers.
+    stripped = re.sub(r"^#{1,6}\s*", "", stripped).strip()
+    stripped = re.sub(r"^\*\*(.+)\*\*$", r"\1", stripped).strip()
     for header in known_headers:
         if stripped == header:
             return True

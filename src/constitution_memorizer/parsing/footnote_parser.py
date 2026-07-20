@@ -103,6 +103,15 @@ def detect_footnote_start(line: str) -> ParsedFootnoteStart | None:
     marker = match.group("marker")
     text = match.group("text").strip()
 
+    # Short status-only Article forms (e.g. ``238. [Omitted.]``).
+    if re.fullmatch(r"\[?\s*(Omitted|Repealed)\.?\s*\]?\.?", text, re.I):
+        return None
+
+    # Article-shaped omitted lines with a bracketed title must stay Articles:
+    # ``[ Compulsory acquisition of property. ]. -Omitted by the ...``
+    if re.match(r"^\[", text) and re.search(r"\bomitted by\b", text, re.I):
+        return None
+
     # If this looks like a normal Article (number + title), reject.
     # Articles usually have a capitalized title word not starting with Subs./Ins.
     if not _looks_like_footnote_body(text):
@@ -123,6 +132,7 @@ def _looks_like_footnote_body(text: str) -> bool:
 
     starters = (
         "subs.",
+        "sub.",
         "ins.",
         "omitted by",
         "repealed by",
@@ -132,15 +142,37 @@ def _looks_like_footnote_body(text: str) -> bool:
         "the word",
         "w.e.f.",
         "clause",
+        "cl.",
+        "cls.",
         "article",
+        "art.",
+        "arts.",
         "sub-clause",
         "subclause",
         "paragraph",
         "for the",
         "inserted",
         "substituted",
+        "see ",
+        "see the ",
+        "see c.",
+        "see notif",
+        "original ",
+        "part ",
+        "entries ",
+        "entry ",
+        "in exercise of",
+        "there shall be paid",
     )
-    return any(lower.startswith(s) for s in starters)
+    if any(lower.startswith(s) for s in starters):
+        return True
+    # Mid-line editorial cues common in Bare Act footnotes.
+    if re.search(
+        r"\b(ins\.|subs\.|omitted by|repealed by|renumbered as|w\.e\.f\.)\b",
+        lower,
+    ):
+        return True
+    return False
 
 
 def detect_operation(text: str) -> FootnoteOperation:

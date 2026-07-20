@@ -168,11 +168,17 @@ Defaults live in `src/constitution_memorizer/config.py`. Prefer extending config
 ## Known limitations
 
 - Parser heuristics are deterministic but not perfect across every publisher layout
+- Diglot / pocket editions with CONTENTS tables, schedule entry lists and appendix territorial “PART I/II/III” blocks can still create duplicate Article numbers; review `extraction_report.json`
+- Chapters and omitted Articles depend on heading punctuation variants (including Docling’s `⎯` bar)
 - Table structure depends on what Docling extracts; plain-text tables are preserved as body text when structural tables are absent
 - Footnote ↔ Article association is best-effort
 - Page/bounding-box provenance is only as rich as Docling metadata allows
 - Real-PDF verification quality depends on the edition supplied in `data/input/`
 - The JSON is a **content foundation** for later phases, not a certified legal database
+
+## Real-PDF verification (this repository)
+
+The pipeline has been run against `data/input/constitution_bare_act.pdf` (Legislative Department diglot pocket edition, Docling reported **402 pages**). Outputs are written under `data/` locally (gitignored). Expect `completed_with_warnings` or `failed` status when duplicate Article IDs remain — that is intentional honesty, not a silent success. Phase 2 corpus review should harden publisher-specific rules.
 
 ## Project layout
 

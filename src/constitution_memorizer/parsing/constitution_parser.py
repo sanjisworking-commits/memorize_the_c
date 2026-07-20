@@ -29,9 +29,11 @@ from constitution_memorizer.parsing.footnote_parser import (
 from constitution_memorizer.parsing.patterns import (
     APPENDIX_RE,
     CHAPTER_RE,
+    CONTENTS_RE,
     ENACTMENT_DATE_RE,
     PART_RE,
     PREAMBLE_RE,
+    SCHEDULE_PART_RE,
 )
 from constitution_memorizer.parsing.schedule_parser import (
     append_schedule_text,
@@ -105,6 +107,9 @@ class ParserContext:
     unclassified_index: int = 0
     last_element_id: str | None = None
     front_matter_lines: list[str] = field(default_factory=list)
+    # True once the operative Bare Act body begins (after TOC / preface).
+    body_started: bool = False
+    in_contents: bool = False
 
 
 def _transition(ctx: ParserContext, new_state: ParserState, reason: str) -> None:
@@ -416,6 +421,18 @@ def _append_article_text(ctx: ParserContext, text: str) -> None:
         ctx.current_article.source.raw_text = text
 
 
+def _strip_markdown_noise(text: str) -> str:
+    """Remove common Docling Markdown wrappers without altering legal words."""
+    working = re.sub(r"^#{1,6}\s*", "", text.strip())
+    working = re.sub(r"^\*\*(.+)\*\*$", r"\1", working).strip()
+    # Table cell lines from TOC: "| 1. | Name and territory |"
+    if working.startswith("|"):
+        cells = [c.strip() for c in working.strip("|").split("|")]
+        cells = [c for c in cells if c and not re.fullmatch(r":?-{3,}:?", c)]
+        working = " ".join(cells).strip()
+    return working
+
+
 def _process_line(ctx: ParserContext, line_obj: NormalizedLine) -> None:
     line = line_obj.text
     stripped = line.strip()
@@ -427,9 +444,85 @@ def _process_line(ctx: ParserContext, line_obj: NormalizedLine) -> None:
                 ctx.document.preamble.paragraphs.append("")
         return
 
-    # Strip simple markdown heading markers from Docling output.
-    working = re.sub(r"^#{1,6}\s*", "", stripped)
-    working = re.sub(r"^\*\*(.+)\*\*$", r"\1", working).strip()
+    working = _strip_markdown_noise(stripped)
+    if not working:
+        return
+
+    if CONTENTS_RE.match(working):
+        ctx.in_contents = True
+        ctx.front_matter_lines.append(working)
+        _transition(ctx, ParserState.DOCUMENT_FRONT_MATTER, "CONTENTS table")
+        return
+
+    # Body starts at the operative preamble text.
+    if working.upper().startswith("WE, THE PEOPLE"):
+        ctx.body_started = True
+        ctx.in_contents = False
+
+    # While inside CONTENTS/TOC, retain lines for review but do not build structure.
+    if ctx.in_contents and not ctx.body_started:
+        ctx.front_matter_lines.append(working)
+        return
+
+    # Editions/fixtures without a TOC: first operative structural marker opens the body.
+    if not ctx.body_started and (
+        PART_RE.match(working)
+        or CHAPTER_RE.match(working)
+        or parse_schedule_heading(working) is not None
+        or parse_article_heading_line(working) is not None
+    ):
+        ctx.body_started = True
+
+    # Inside schedules/appendices, do not invent Articles from numbered list items.
+    if ctx.state == ParserState.SCHEDULE and ctx.current_schedule is not None:
+        schedule_heading = parse_schedule_heading(working)
+        if schedule_heading:
+            schedule = create_schedule(schedule_heading)
+            ctx.document.schedules.append(schedule)
+            ctx.current_schedule = schedule
+            ctx.last_element_id = schedule.id
+            return
+        if APPENDIX_RE.match(working):
+            pass  # fall through to appendix handling below
+        elif PART_RE.match(working) and ctx.body_started:
+            pass  # fall through — rare, but allow leaving schedule into a Part
+        else:
+            sched_part = SCHEDULE_PART_RE.match(working)
+            if sched_part:
+                title = sched_part.group("title")
+                label = f"PART {sched_part.group('letter').upper()}"
+                if title:
+                    label = f"{label}—{title.strip()}"
+                from constitution_memorizer.parsing.schedule_parser import add_section
+
+                add_section(ctx.current_schedule, label)
+                append_schedule_text(ctx.current_schedule, working)
+                return
+            list_name = detect_list_heading(working)
+            if list_name:
+                start_schedule_list(ctx.current_schedule, list_name)
+                return
+            if ctx.current_schedule.lists:
+                ctx.current_schedule.lists[-1].items.append(working)
+                if ctx.current_schedule.lists[-1].body_text:
+                    ctx.current_schedule.lists[-1].body_text += f"\n{working}"
+                else:
+                    ctx.current_schedule.lists[-1].body_text = working
+            append_schedule_text(ctx.current_schedule, working)
+            return
+
+    if ctx.state == ParserState.APPENDIX and ctx.current_appendix is not None:
+        # Keep appendix-internal PART I/II/III territorial divisions out of
+        # the Constitution Part list; only leave for a new Schedule heading.
+        if parse_schedule_heading(working) is None and not PREAMBLE_RE.match(working):
+            if APPENDIX_RE.match(working):
+                pass  # fall through to start another appendix
+            else:
+                if ctx.current_appendix.body_text:
+                    ctx.current_appendix.body_text += f"\n{working}"
+                else:
+                    ctx.current_appendix.body_text = working
+                return
 
     # Awaited titles
     if ctx.awaiting_part_title and ctx.current_part is not None:
@@ -478,10 +571,25 @@ def _process_line(ctx: ParserContext, line_obj: NormalizedLine) -> None:
         _transition(ctx, ParserState.PREAMBLE, "PREAMBLE")
         return
 
+    # Before the operative body, keep preface lines as front matter.
+    # Footnotes may still appear in preface/endnotes regions — parse them.
+    if not ctx.body_started:
+        if PREAMBLE_RE.match(working):
+            if ctx.document.preamble is None:
+                ctx.document.preamble = Preamble(source=SourceProvenance(raw_heading=working))
+            _transition(ctx, ParserState.PREAMBLE, "PREAMBLE")
+            return
+        if _handle_footnote(ctx, working):
+            return
+        ctx.front_matter_lines.append(working)
+        _transition(ctx, ParserState.DOCUMENT_FRONT_MATTER, "front matter before body")
+        return
+
     part_match = PART_RE.match(working)
     if part_match:
         number = part_match.group("number").replace(" ", "")
         title = part_match.group("title")
+        ctx.current_schedule = None
         _start_part(ctx, number, title.strip() if title else None, working)
         return
 
@@ -516,6 +624,7 @@ def _process_line(ctx: ParserContext, line_obj: NormalizedLine) -> None:
         )
         ctx.document.appendices.append(appendix)
         ctx.current_appendix = appendix
+        ctx.current_schedule = None
         _transition(ctx, ParserState.APPENDIX, "appendix")
         return
 

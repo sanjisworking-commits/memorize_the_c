@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from constitution_memorizer.parsing.patterns import (
     ARTICLE_HEADING_RE,
     ARTICLE_NUMBER_ONLY_RE,
+    MAX_ARTICLE_NUMBER,
     OMITTED_RE,
     REPEALED_RE,
     TITLE_BODY_SPLIT_RE,
@@ -43,6 +44,14 @@ def _detect_status_from_body(body: str) -> ArticleStatus:
         return ArticleStatus.OMITTED
     if REPEALED_RE.match(stripped) or re.search(r"\[Repealed\.?\]", stripped, re.I):
         return ArticleStatus.REPEALED
+    # Diglot editions: "[ Title. ]. -Omitted by the Constitution ..."
+    if re.search(r"\]\s*\.\s*[-—–⎯].*\bomitted\b", stripped, re.I):
+        return ArticleStatus.OMITTED
+    if re.search(r"[-—–⎯]\s*omitted by\b", stripped, re.I):
+        return ArticleStatus.OMITTED
+    # Diglot editions often use "Title. - Omitted." / "Title.—Omitted."
+    if re.search(r"\bOmitted\.?\s*\]?\s*$", stripped, re.I) and len(stripped) < 160:
+        return ArticleStatus.OMITTED
     if re.search(r"\bRepealed\b", stripped, re.I) and len(stripped) < 40:
         return ArticleStatus.REPEALED
     return ArticleStatus.ACTIVE
@@ -104,6 +113,8 @@ def parse_article_heading_line(line: str) -> ParsedArticleHeading | None:
     parts = parse_article_number(number_raw)
     if parts is None:
         return None
+    if parts.numeric_component > MAX_ARTICLE_NUMBER:
+        return None
 
     # Guard: footnote-like lines "1. Subs. by..." should not match as articles.
     # Short status-only Article forms such as "238. Repealed." / "31. [Omitted.]"
@@ -119,7 +130,9 @@ def parse_article_heading_line(line: str) -> ParsedArticleHeading | None:
             or re.fullmatch(r"\[?\s*Repealed\.?\s*\]?\.?", title_and_body.strip(), re.I)
         )
         if not status_only and re.match(
-            r"^(subs\.|ins\.|omitted\b|repealed\b|added\b|renumbered\b)",
+            r"^(subs\.|sub\.|ins\.|omitted\b|repealed\b|added\b|renumbered\b|"
+            r"art\.|arts\.|cl\.|cls\.|see\b|original\b|entries\b|entry\b|"
+            r"part\s+[ivxlc]|in exercise of)",
             lower_body,
         ):
             return None
@@ -127,6 +140,21 @@ def parse_article_heading_line(line: str) -> ParsedArticleHeading | None:
         if re.match(
             r"^(subs\.|ins\.|omitted|repealed|added|renumbered)\s+by\b",
             lower_body,
+        ):
+            return None
+        # Bare Act footnotes often embed amendment operations mid-title.
+        # Exception: Article status lines that include "Omitted by …" after a title.
+        article_status_line = bool(
+            re.search(r"\]\s*\.\s*[-—–⎯].*\bomitted by\b", lower_body)
+            or re.search(r"\.\s*[-—–⎯]\s*omitted by\b", lower_body)
+            or re.search(r"\[?\s*omitted\.?\s*\]?", lower_body)
+        )
+        if (
+            not article_status_line
+            and re.search(
+                r"\b(ins\. by|subs\. by|omitted by|renumbered as|w\.e\.f\.)\b",
+                lower_body,
+            )
         ):
             return None
 
@@ -150,7 +178,14 @@ def parse_article_heading_line(line: str) -> ParsedArticleHeading | None:
         if maybe != ArticleStatus.ACTIVE:
             status = maybe
             if status in {ArticleStatus.OMITTED, ArticleStatus.REPEALED}:
-                title = combined.strip("[] ").rstrip(".")
+                bracketed = re.match(
+                    r"^\[\s*(?P<title>.+?)\s*\]\s*\.?\s*[-—–⎯].*$",
+                    combined,
+                )
+                if bracketed:
+                    title = _strip_trailing_punctuation(bracketed.group("title"))
+                else:
+                    title = combined.strip("[] ").rstrip(".")
                 opening = ""
 
     return ParsedArticleHeading(

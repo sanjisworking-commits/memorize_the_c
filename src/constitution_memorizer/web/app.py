@@ -17,6 +17,7 @@ from constitution_memorizer.web.browse import (
     list_article_numbers,
     load_reviewed_document,
 )
+from constitution_memorizer.web.calendar_view import build_calendar_month
 from constitution_memorizer.web.progress_stats import progress_dashboard
 from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
@@ -342,12 +343,21 @@ def create_app(
         )
 
     @app.get("/calendar", response_class=HTMLResponse)
-    async def calendar_stub(request: Request) -> HTMLResponse:
-        """Sheet nav target; full month grid arrives in Sprint 18."""
+    async def calendar_page(
+        request: Request,
+        year: int | None = Query(default=None),
+        month: int | None = Query(default=None),
+    ) -> HTMLResponse:
+        today = date.today()
+        y = year if year is not None else today.year
+        m = month if month is not None else today.month
+        if m < 1 or m > 12 or y < 1 or y > 9999:
+            raise HTTPException(status_code=400, detail="Invalid year or month")
+        view = build_calendar_month(_engine(), year=y, month=m, today=today)
         return templates.TemplateResponse(
             request,
             "calendar.html",
-            {},
+            {"calendar": view},
         )
 
     @app.get("/progress", response_class=HTMLResponse)

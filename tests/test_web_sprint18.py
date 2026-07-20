@@ -38,12 +38,12 @@ def test_recite_panel_has_voice_and_map_markup(client: TestClient):
     assert "data-recite-manual" in html
     assert "data-recite-check" in html
     assert "Check accuracy" in html
-    assert "recall_align.js?v=sprint18b" in html
-    assert "app.js?v=sprint18b" in html
+    assert "recall_align.js?v=sprint19" in html
+    assert "app.js?v=sprint19" in html
 
 
 def test_recite_css_map_and_listening_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint18b")
+    css = client.get("/static/styles.css?v=sprint19")
     assert css.status_code == 200
     text = css.text
     assert ".learn-recite-map-word.is-hit" in text
@@ -54,7 +54,7 @@ def test_recite_css_map_and_listening_styles(client: TestClient):
 
 
 def test_recite_js_wires_speech_recognition_and_align(client: TestClient):
-    js = client.get("/static/app.js?v=sprint18b")
+    js = client.get("/static/app.js?v=sprint19")
     assert js.status_code == 200
     text = js.text
     assert "SpeechRecognition" in text
@@ -70,7 +70,7 @@ def test_recite_js_wires_speech_recognition_and_align(client: TestClient):
 
 
 def test_recall_align_js_served(client: TestClient):
-    js = client.get("/static/recall_align.js?v=sprint18b")
+    js = client.get("/static/recall_align.js?v=sprint19")
     assert js.status_code == 200
     text = js.text
     assert "alignTokens" in text

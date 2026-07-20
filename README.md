@@ -36,7 +36,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 17 | `cursor/sprint-17-learn-recite-1a75` | Done |
 | Sprint 18 | `cursor/sprint-18-recite-voice-1a75` | Done |
 | Hotfix | `cursor/fix-articles-365-plus-1a75` | Done |
-| Sprints 14–20 | design prototype (see plan) | Planned |
+| Sprint 19 | `cursor/sprint-19-calendar-1a75` | Done |
+| Sprint 20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -220,7 +221,7 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 
 - Outer paper **sheet** (max 980px, 1px border, light shadow) wrapping all pages
 - Header nav: **Home · Browse · Calendar · Progress · Search** with active ink pill
-- `GET /calendar` stub (full month grid in Sprint 18)
+- `GET /calendar` stub (full month grid in Sprint 19)
 - Search page restyled to the same sheet tokens (`btn-accent`)
 - Tests: `tests/test_web_sprint7.py`
 
@@ -337,6 +338,17 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Unsupported / mic denied / **network** (speech cloud unreachable): clear message + manual “type what you recited” fallback with Check accuracy
 - No server-side audio storage
 - Tests: `tests/test_recall_align.py`, `tests/test_web_sprint18.py`
+
+### Sprint 19 — Calendar month grid ✅
+
+**Branch:** `cursor/sprint-19-calendar-1a75`
+
+- `GET /calendar?year=&month=` renders a Sunday-first month grid (Prev / Today / Next)
+- Chips from progress rows: solid black = memorized, gray = review done, accent outline = due, dashed = scheduled
+- Scheduled chips project the **remaining** spaced-repetition ladder (1 → 3 → 7 → 14 → 30 → 60) from `next_revision`, assuming on-time completion
+- Chips link to `/learn/{unit_id}`; today cell has an accent ring
+- Best-effort history (current progress row only — no event log); legend + month summary
+- Tests: `tests/test_web_sprint19.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

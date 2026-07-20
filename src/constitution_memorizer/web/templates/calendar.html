@@ -1,16 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Calendar · Constitution Memorizer{% endblock %}
+{% block title %}{{ calendar.title }} · Calendar{% endblock %}
 {% block content %}
-<section class="panel calendar-stub">
-  <p class="eyebrow">Coming in Sprint 18</p>
-  <h1 class="display">Calendar</h1>
-  <p class="lede">
-    Month grid with memorized, review-done, due, and scheduled chips will land here.
-    Navigation is wired now so the shell matches the prototype.
-  </p>
-  <p class="actions">
-    <a class="btn btn-accent" href="/">Home</a>
-    <a class="btn btn-ghost" href="/progress">Progress</a>
-  </p>
+<section class="panel calendar">
+  <div class="calendar-header">
+    <h1 class="display calendar-title">{{ calendar.title }}</h1>
+    <div class="calendar-nav" aria-label="Month navigation">
+      <a
+        class="calendar-nav-btn"
+        href="/calendar?year={{ calendar.prev_year }}&amp;month={{ calendar.prev_month }}"
+        aria-label="Previous month"
+      >←</a>
+      <a class="calendar-nav-today" href="/calendar">Today</a>
+      <a
+        class="calendar-nav-btn"
+        href="/calendar?year={{ calendar.next_year }}&amp;month={{ calendar.next_month }}"
+        aria-label="Next month"
+      >→</a>
+    </div>
+  </div>
+
+  <p class="calendar-summary">{{ calendar.summary }}</p>
+
+  <div class="calendar-legend" aria-label="Legend">
+    <span class="calendar-legend-item"><span class="calendar-swatch is-memorized" aria-hidden="true"></span>Memorized</span>
+    <span class="calendar-legend-item"><span class="calendar-swatch is-review-done" aria-hidden="true"></span>Review done</span>
+    <span class="calendar-legend-item"><span class="calendar-swatch is-due" aria-hidden="true"></span>Review due</span>
+    <span class="calendar-legend-item"><span class="calendar-swatch is-scheduled" aria-hidden="true"></span>Scheduled</span>
+  </div>
+
+  <div class="calendar-grid" role="grid" aria-label="{{ calendar.title }}">
+    {% for dow in calendar.weekdays %}
+    <div class="calendar-dow" role="columnheader">{{ dow }}</div>
+    {% endfor %}
+    {% for day in calendar.days %}
+      {% if day.is_blank %}
+      <div class="calendar-cell is-blank" role="gridcell"></div>
+      {% else %}
+      <div
+        class="calendar-cell{% if day.is_today %} is-today{% endif %}{% if day.is_past %} is-past{% endif %}"
+        role="gridcell"
+        data-date="{{ day.iso }}"
+      >
+        <div class="calendar-daynum">{{ day.day }}</div>
+        {% for chip in day.chips %}
+        <a
+          class="calendar-chip is-{{ chip.kind | replace('_', '-') }}"
+          href="/learn/{{ chip.unit_id }}"
+          title="{{ chip.title }}"
+        >{{ chip.label }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
 </section>
 {% endblock %}

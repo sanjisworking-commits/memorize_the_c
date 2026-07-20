@@ -333,7 +333,7 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Live transcript while listening; on Stop, LCS-align transcript vs Bare Act tokens
 - Accuracy map: hit = ink, miss = gray; stats `N / M recalled · P%`; extras line for unmatched heard words
 - Shared align helper: `web/recall_align.py` + `static/recall_align.js` (Type can reuse later)
-- Unsupported / mic denied: Start disabled with clear message; blur + peek still work
+- Unsupported / mic denied / **network** (speech cloud unreachable): clear message + manual “type what you recited” fallback with Check accuracy
 - No server-side audio storage
 - Tests: `tests/test_recall_align.py`, `tests/test_web_sprint18.py`
 

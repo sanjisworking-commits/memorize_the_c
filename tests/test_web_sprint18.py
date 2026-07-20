@@ -34,35 +34,43 @@ def test_recite_panel_has_voice_and_map_markup(client: TestClient):
     assert "data-recite-status" in html
     assert "Speak the Bare Act aloud" in html
     assert "Hold to peek" in html
-    assert "recall_align.js?v=sprint18" in html
-    assert "app.js?v=sprint18" in html
+    assert "data-recite-fallback" in html
+    assert "data-recite-manual" in html
+    assert "data-recite-check" in html
+    assert "Check accuracy" in html
+    assert "recall_align.js?v=sprint18b" in html
+    assert "app.js?v=sprint18b" in html
 
 
 def test_recite_css_map_and_listening_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint18")
+    css = client.get("/static/styles.css?v=sprint18b")
     assert css.status_code == 200
     text = css.text
     assert ".learn-recite-map-word.is-hit" in text
     assert ".learn-recite-map-word.is-miss" in text
     assert ".learn-recite-status.is-listening" in text
     assert ".learn-recite-transcript.is-live" in text
+    assert ".learn-recite-fallback" in text
 
 
 def test_recite_js_wires_speech_recognition_and_align(client: TestClient):
-    js = client.get("/static/app.js?v=sprint18")
+    js = client.get("/static/app.js?v=sprint18b")
     assert js.status_code == 200
     text = js.text
     assert "SpeechRecognition" in text
     assert "webkitSpeechRecognition" in text
     assert "RecallAlign" in text
     assert "alignText" in text
-    assert "renderAccuracyMap" in text or "Accuracy map" in text
+    assert "Accuracy map" in text
     assert "en-IN" in text
     assert "microphone access" in text
+    assert 'err === "network"' in text
+    assert "Speech service unreachable" in text
+    assert "abortForServiceFailure" in text
 
 
 def test_recall_align_js_served(client: TestClient):
-    js = client.get("/static/recall_align.js?v=sprint18")
+    js = client.get("/static/recall_align.js?v=sprint18b")
     assert js.status_code == 200
     text = js.text
     assert "alignTokens" in text

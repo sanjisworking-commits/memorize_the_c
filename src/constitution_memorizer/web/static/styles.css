@@ -873,6 +873,47 @@ a:hover {
   color: var(--ink);
 }
 
+.learn-recite-fallback {
+  margin-top: 14px;
+}
+
+.learn-recite-fallback-lede {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.learn-recite-manual {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid var(--ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: vertical;
+  background: #fff;
+  color: var(--ink);
+}
+
+.learn-recite-check {
+  margin-top: 10px;
+  background: none;
+  border: 1px solid #c9c9c7;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.learn-recite-check:hover {
+  border-color: var(--ink);
+}
+
 .learn-recite-map {
   margin-top: 18px;
   font-size: 18px;

@@ -172,6 +172,20 @@
     </div>
     <p class="learn-recite-status" data-recite-status hidden></p>
     <p class="learn-recite-transcript" data-recite-transcript hidden aria-live="polite"></p>
+    <div class="learn-recite-fallback" data-recite-fallback hidden>
+      <p class="learn-recite-fallback-lede">Speech service unavailable. Type or paste what you recited, then check accuracy.</p>
+      <label class="visually-hidden" for="learn-recite-manual">What you recited</label>
+      <textarea
+        id="learn-recite-manual"
+        class="learn-recite-manual"
+        data-recite-manual
+        rows="3"
+        placeholder="Type what you said…"
+        autocomplete="off"
+        spellcheck="false"
+      ></textarea>
+      <button type="button" class="learn-recite-check" data-recite-check>Check accuracy</button>
+    </div>
     <div class="learn-recite-map" data-recite-map hidden aria-live="polite"></div>
     <p class="learn-recite-stats" data-recite-stats hidden></p>
     <p class="learn-recite-extras" data-recite-extras hidden></p>

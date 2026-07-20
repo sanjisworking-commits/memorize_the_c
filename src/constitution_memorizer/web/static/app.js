@@ -275,6 +275,9 @@
     const peekBtn = panel.querySelector("[data-recite-peek]");
     const statusEl = panel.querySelector("[data-recite-status]");
     const transcriptEl = panel.querySelector("[data-recite-transcript]");
+    const fallbackEl = panel.querySelector("[data-recite-fallback]");
+    const manualEl = panel.querySelector("[data-recite-manual]");
+    const checkBtn = panel.querySelector("[data-recite-check]");
     const mapEl = panel.querySelector("[data-recite-map]");
     const statsEl = panel.querySelector("[data-recite-stats]");
     const extrasEl = panel.querySelector("[data-recite-extras]");
@@ -289,12 +292,20 @@
     let finalTranscript = "";
     let interimTranscript = "";
     let unsupported = !SpeechRecognition;
+    let stopping = false;
 
     function setHidden(el, hidden) {
       if (!el) {
         return;
       }
       el.hidden = hidden;
+    }
+
+    function showFallback(show) {
+      setHidden(fallbackEl, !show);
+      if (show && manualEl) {
+        manualEl.focus();
+      }
     }
 
     function clearResults() {
@@ -313,10 +324,14 @@
       if (extrasEl) {
         extrasEl.textContent = "";
       }
+      if (manualEl) {
+        manualEl.value = "";
+      }
       setHidden(transcriptEl, true);
       setHidden(mapEl, true);
       setHidden(statsEl, true);
       setHidden(extrasEl, true);
+      showFallback(false);
     }
 
     function showStatus(message, kind) {
@@ -345,7 +360,7 @@
       setHidden(transcriptEl, false);
     }
 
-    function renderAccuracyMap(spokenText) {
+    function renderAccuracyMap(spokenText, labelPrefix) {
       const align = window.RecallAlign;
       if (!align || !mapEl) {
         return;
@@ -378,8 +393,9 @@
       if (transcriptEl) {
         transcriptEl.classList.remove("is-live");
         const heard = (spokenText || "").trim();
+        const prefix = labelPrefix || "Heard";
         if (heard) {
-          transcriptEl.textContent = "Heard: " + heard;
+          transcriptEl.textContent = prefix + ": " + heard;
           setHidden(transcriptEl, false);
         } else {
           transcriptEl.textContent = "";
@@ -394,28 +410,49 @@
           recognition.onresult = null;
           recognition.onerror = null;
           recognition.onend = null;
-          recognition.stop();
+          recognition.abort();
         } catch (_err) {
-          /* ignore */
+          try {
+            recognition.stop();
+          } catch (_err2) {
+            /* ignore */
+          }
         }
         recognition = null;
       }
     }
 
+    function abortForServiceFailure(message) {
+      recOn = false;
+      stopping = true;
+      stopRecognition();
+      stopping = false;
+      render();
+      showStatus(message, "error");
+      showFallback(true);
+    }
+
     function finishRecite() {
+      stopping = true;
       recOn = false;
       stopRecognition();
+      stopping = false;
       const spoken = (finalTranscript + " " + interimTranscript).trim();
       finalTranscript = spoken;
       interimTranscript = "";
       render();
       if (spoken) {
         showStatus("Accuracy map from your recital.", null);
-        renderAccuracyMap(spoken);
+        showFallback(false);
+        renderAccuracyMap(spoken, "Heard");
       } else {
-        showStatus("No speech captured — try again.", "error");
+        showStatus(
+          "No speech captured. Check your connection, or type what you recited below.",
+          "error",
+        );
         clearResults();
         setHidden(statusEl, false);
+        showFallback(true);
       }
     }
 
@@ -427,6 +464,7 @@
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
+      // Prefer Indian English for Bare Act wording; browsers fall back if missing.
       recognition.lang = "en-IN";
 
       recognition.onresult = (event) => {
@@ -445,35 +483,50 @@
 
       recognition.onerror = (event) => {
         const err = event && event.error ? event.error : "error";
+        if (err === "aborted") {
+          return;
+        }
         if (err === "not-allowed" || err === "service-not-allowed") {
           unsupported = true;
-          recOn = false;
-          stopRecognition();
-          showStatus(
+          abortForServiceFailure(
             "Voice recite needs Chrome or Edge with microphone access.",
-            "error",
           );
           if (toggle) {
             toggle.disabled = true;
           }
-          render();
           return;
         }
         if (err === "no-speech") {
+          // Benign while continuous; keep listening.
           showStatus("Listening… speak the Bare Act aloud.", "listening");
           return;
         }
-        showStatus("Speech recognition error: " + err, "error");
+        if (err === "network" || err === "audio-capture") {
+          // Chrome's Web Speech API needs reachability to its cloud speech
+          // service. Without it, stop cleanly and offer manual check.
+          abortForServiceFailure(
+            err === "network"
+              ? "Speech service unreachable (network). Chrome needs internet access to its speech servers — or type what you recited below."
+              : "Microphone capture failed. Type what you recited below, or check mic permissions.",
+          );
+          return;
+        }
+        abortForServiceFailure(
+          "Speech recognition failed (" +
+            err +
+            "). Type what you recited below.",
+        );
       };
 
       recognition.onend = () => {
-        if (recOn) {
-          // Chrome often ends continuous sessions early — restart while active.
-          try {
-            recognition.start();
-          } catch (_err) {
-            finishRecite();
-          }
+        if (stopping || !recOn) {
+          return;
+        }
+        // Chrome often ends continuous sessions early — restart while active.
+        try {
+          recognition.start();
+        } catch (_err) {
+          finishRecite();
         }
       };
 
@@ -491,6 +544,8 @@
         if (toggle) {
           toggle.disabled = true;
         }
+        showFallback(true);
+        render();
       }
     }
 
@@ -523,6 +578,7 @@
       if (toggle) {
         toggle.disabled = true;
       }
+      showFallback(true);
     }
 
     if (toggle) {
@@ -537,6 +593,18 @@
         recOn = true;
         render();
         startRecognition();
+      });
+    }
+
+    if (checkBtn) {
+      checkBtn.addEventListener("click", () => {
+        const spoken = manualEl ? manualEl.value.trim() : "";
+        if (!spoken) {
+          showStatus("Type what you recited, then check accuracy.", "error");
+          return;
+        }
+        showStatus("Accuracy map from your text.", null);
+        renderAccuracyMap(spoken, "Entered");
       });
     }
 
@@ -574,9 +642,11 @@
 
     return {
       reset() {
+        stopping = true;
         recOn = false;
         peeking = false;
         stopRecognition();
+        stopping = false;
         clearResults();
         if (!unsupported) {
           showStatus("", null);
@@ -585,6 +655,7 @@
             "Voice recite needs Chrome or Edge with microphone access.",
             "error",
           );
+          showFallback(true);
         }
         render();
       },

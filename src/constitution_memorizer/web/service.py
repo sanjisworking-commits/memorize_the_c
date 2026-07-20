@@ -140,3 +140,102 @@ def home_lede(*, due_count: int, has_continue: bool) -> str:
     if has_continue:
         return "Nothing due today — continue along the Constitution."
     return "Nothing due today."
+
+
+def part_label_from_tags(tags: list[str] | None) -> str | None:
+    for tag in tags or []:
+        if tag.lower().startswith("part "):
+            return tag
+    return None
+
+
+def kind_badge_label(unit: LearningUnit) -> str:
+    """Prototype badge: Article / Clause / Subclause (not enum SCREAMING)."""
+    raw = unit_type_label(unit)
+    mapping = {
+        "ARTICLE": "Article",
+        "CLAUSE": "Clause",
+        "SUBCLAUSE": "Subclause",
+        "PART_OVERVIEW": "Part",
+        "SCHEDULE_ENTRY": "Schedule",
+    }
+    return mapping.get(raw, raw.replace("_", " ").title())
+
+
+def unit_crumb(unit: LearningUnit) -> str:
+    """Breadcrumb under the type badge (Part · Article …)."""
+    parts: list[str] = []
+    part = part_label_from_tags(unit.tags)
+    if part:
+        parts.append(part)
+    title = (unit.title or "").strip()
+    if unit.type == LearningUnitType.SUBCLAUSE and unit.article_number:
+        parts.append(f"Article {unit.article_number}")
+        if title:
+            parts.append(title)
+    elif unit.type == LearningUnitType.CLAUSE and unit.article_number:
+        art = f"Article {unit.article_number}"
+        if title:
+            parts.append(f"{art} — {title}")
+        else:
+            parts.append(art)
+    elif title and unit.type == LearningUnitType.ARTICLE:
+        # Title already shown as lede; crumb stays Part-only when possible.
+        pass
+    elif title and not parts:
+        parts.append(title)
+    return " · ".join(parts)
+
+
+def session_progress(
+    engine: ReminderEngine,
+    unit: LearningUnit,
+) -> tuple[int, int, int]:
+    """
+    Return (completed_count, position_1based, chain_length) for the global
+    revision chain (units with revision_order > 0).
+    """
+    chain = sorted(
+        (u for u in engine.units.values() if u.revision_order > 0),
+        key=lambda u: u.revision_order,
+    )
+    if not chain:
+        return 0, 1, 1
+    completed = 0
+    position = 1
+    for index, item in enumerate(chain, start=1):
+        progress = engine.repo.get_progress(item.id)
+        if progress is not None and progress.status == "mastered":
+            completed += 1
+        if item.id == unit.id:
+            position = index
+    return completed, position, len(chain)
+
+
+def learn_meta_line(
+    unit: LearningUnit,
+    progress: object | None,
+) -> str:
+    """Quiet footer meta: status · time · difficulty."""
+    status = "new"
+    if progress is not None:
+        status = getattr(progress, "status", None) or "new"
+        times = getattr(progress, "times_completed", 0) or 0
+        nxt = getattr(progress, "next_revision", None)
+        if status == "review" and times:
+            bit = f"review · completed {times}×"
+            if nxt is not None:
+                bit += f" · next {nxt}"
+            return (
+                f"{bit} · ~{unit.estimated_learning_time}s · "
+                f"difficulty {unit.difficulty}/5"
+            )
+        if status == "mastered":
+            return (
+                f"mastered · ~{unit.estimated_learning_time}s · "
+                f"difficulty {unit.difficulty}/5"
+            )
+    return (
+        f"{status} · ~{unit.estimated_learning_time}s · "
+        f"difficulty {unit.difficulty}/5"
+    )

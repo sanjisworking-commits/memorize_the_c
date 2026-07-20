@@ -379,6 +379,141 @@ a:hover {
   margin-top: 1.5rem;
 }
 
+/* —— Learn Read anatomy (Sprint 10) —— */
+.panel.learn {
+  max-width: 720px;
+  padding: 30px 32px 44px;
+}
+
+.session-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.session-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.session-count {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.session-track {
+  height: 3px;
+  background: #e5e5e4;
+  margin: 8px 0 28px;
+}
+
+.session-fill {
+  height: 3px;
+  background: var(--accent);
+  max-width: 100%;
+}
+
+.learn-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  flex-wrap: wrap;
+}
+
+.kind-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--ink);
+  padding: 3px 8px;
+}
+
+.learn-crumb {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.learn-title {
+  font-size: 37px;
+  line-height: 1.1;
+  margin: 0 0 4px;
+}
+
+.learn-sub {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--hairline);
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.mode-tab {
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 11px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.mode-tab.is-active {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.mode-tab.is-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.learn-body {
+  min-height: 200px;
+  padding: 24px 0 4px;
+}
+
+.learn-read-text {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.learn-hint {
+  font-size: 13px;
+  color: var(--faint);
+  margin: 18px 0 0;
+}
+
+.learn-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--hairline);
+}
+
+.learn-meta {
+  flex: 1;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 12rem;
+}
+
 .display {
   font-family: var(--font-display);
   font-size: clamp(1.8rem, 4vw, 2.4rem);
@@ -678,6 +813,23 @@ code {
 
   .panel {
     padding: 28px 16px 36px;
+  }
+
+  .panel.learn {
+    padding: 22px 16px 28px;
+  }
+
+  .learn-title {
+    font-size: 29px;
+  }
+
+  .learn-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .learn-meta {
+    order: 3;
   }
 
   .actions,

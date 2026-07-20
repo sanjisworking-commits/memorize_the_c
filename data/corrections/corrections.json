@@ -222,6 +222,13 @@
       "opening_text": "",
       "body_text": "(1) No title, not being a military or academic distinction, shall be conferred by the State.\n(2) No citizen of India shall accept any title from any foreign State.\n(3) No person who is not a citizen of India shall, while he holds any office of profit or trust under the State, accept without the consent of the President any title from any foreign State.\n(4) No person holding any office of profit or trust under the State shall, without the consent of the President, accept any present, emolument, or office of any kind from or under any foreign State.",
       "manual_review_status": "approved"
+    },
+    "article-31c": {
+      "title": "Saving of laws giving effect to certain directive principles",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "Notwithstanding anything contained in article 13, no law giving effect to the policy of the State towards securing the principles specified in clause (b) or clause (c) of article 39 shall be deemed to be void on the ground that it is inconsistent with, or takes away or abridges any of the rights conferred by article 14 or article 19:\nProvided that where such law is made by the Legislature of a State, the provisions of this article shall not apply thereto unless such law, having been reserved for the consideration of the President, has received his assent.",
+      "manual_review_status": "approved"
     }
   },
   "notes": [
@@ -243,6 +250,7 @@
     "article-60 / 69: oath articles truncated after 'that is to say-'; restored including oath forms.",
     "corpus scrub: also strips (Part ….-…) running headers and drops provisos/explanations already present in body_text (fixes Art 7-style Browse/Learn repetition).",
     "article-82 / 197 / 217 / 358: same incomplete hyphen-stem pattern; restored Bare Act bodies.",
-    "article-18 / corpus: structured clauses often started at (2) while body retained (1); artefact_scrub clears those incomplete clause trees and strips trailing section headers (e.g. 'Right to Freedom') so Browse/Learn show clause (1)."
+    "article-18 / corpus: structured clauses often started at (2) while body retained (1); artefact_scrub clears those incomplete clause trees and strips trailing section headers (e.g. 'Right to Freedom') so Browse/Learn show clause (1).",
+    "article-31c: diglot body had footnote markers, glued omitted Art 31D, Minerva-Mills-invalid 'Part IV' wording, and Kesavananda-void declaration ouster; restored operative Bare Act (article 39(b)/(c); no declaration clause)."
   ]
 }

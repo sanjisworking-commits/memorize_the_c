@@ -42,7 +42,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 22 | `cursor/sprint-22-explain-it-back-1a75` | Done |
 | Sprint 23 | `cursor/sprint-23-mac-packaging-1a75` | Done |
 | Sprint 24 | `cursor/sprint-24-study-reminders-1a75` | Done |
-| Sprint 25 | `cursor/sprint-25-mac-install-backup-1a75` | Planned |
+| Sprint 25 | `cursor/sprint-25-mac-install-backup-1a75` | Done |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -385,6 +385,33 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Per-article placeholders in `data/reference/gloss_placeholders.seed.json`
 - Tests: `tests/test_web_sprint22.py`
 
+### Sprint 23 — Mac packaging and auto-start ✅
+
+**Branch:** `cursor/sprint-23-mac-packaging-1a75`
+
+- `scripts/mac/start-ui.command` / `stop-ui.sh` for local serve on port 8001
+- LaunchAgent template + `install-serve-agent.sh` / `uninstall-serve-agent.sh` (start UI at login)
+- README daily-driver section; progress remains in `data/progress/progress.db`
+
+### Sprint 24 — Study reminders (ntfy) ✅
+
+**Branch:** `cursor/sprint-24-study-reminders-1a75`
+
+- CLI `send-reminders` builds today’s due digest from `due_checklist` (Home parity)
+- Channels: `console` (dry-run) and `ntfy` (`NTFY_TOPIC` / optional server + token)
+- Skips send when nothing is due; morning LaunchAgent at 07:00
+- Tests: `tests/test_reminder_digest.py`, `tests/test_send_reminders_cli.py`
+
+### Sprint 25 — One install path + data durability ✅
+
+**Branch:** `cursor/sprint-25-mac-install-backup-1a75`
+
+- `scripts/mac/bootstrap.sh` — idempotent venv + `requirements-ci.txt` + editable install; `correct` / `generate-units` only if units missing
+- `scripts/mac/install-all-agents.sh` — serve + reminders LaunchAgents together
+- `scripts/mac/backup-progress.sh` — copy `progress.db` to `~/Documents/ConstitutionMemorizerBackups/`
+- Optional weekly backup LaunchAgent (`install-backup-agent.sh`)
+- README: first Mac setup, what survives reboot, restore, smoke checklist
+
 ### Hotfix — Browse / Learn corpus artefacts ✅
 
 **Branch:** `cursor/fix-browse-artefacts-1a75`
@@ -466,23 +493,20 @@ pip install -e .
 
 For the full PDF pipeline you need `pip install -r requirements.txt` instead (heavier).
 
-### Run on your MacBook (daily driver)
+### First Mac setup (daily driver)
 
-Everyday use is a local server on **port 8001**. Your progress lives in `data/progress/progress.db` and survives reboots.
+Everyday use is a local server on **port 8001**. Learning data lives in SQLite on disk and survives shutdowns.
 
-**One-time setup** (from the repo root that contains `pyproject.toml`):
+**One path** (from the repo root that contains `pyproject.toml`):
 
 ```bash
 cd /path/to/memorize_the_c
 git checkout main && git pull
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install -r requirements-ci.txt
-pip install -e .
-python -m constitution_memorizer.cli correct --force
-python -m constitution_memorizer.cli generate-units --force
+chmod +x scripts/mac/*.sh scripts/mac/*.command
+bash scripts/mac/bootstrap.sh
 ```
+
+`bootstrap.sh` creates `.venv` if needed, installs `requirements-ci.txt` + the package, and runs `correct` / `generate-units` only when `data/output/learning_units.json` is missing.
 
 **Start the UI** (pick one):
 
@@ -495,19 +519,20 @@ python -m constitution_memorizer.cli serve --host 127.0.0.1 --port 8001
 open scripts/mac/start-ui.command
 ```
 
-Then bookmark **http://127.0.0.1:8001/**.
+Bookmark **http://127.0.0.1:8001/**.  
+**Stop:** `Ctrl+C`, or `bash scripts/mac/stop-ui.sh`.
 
-**Stop:** `Ctrl+C` in the Terminal, or `bash scripts/mac/stop-ui.sh`.
-
-**Auto-start at login** (macOS LaunchAgent):
+**Install both LaunchAgents** (UI at login + morning reminders):
 
 ```bash
-chmod +x scripts/mac/*.sh scripts/mac/*.command
-bash scripts/mac/install-serve-agent.sh
+# Subscribe in the ntfy app to the same topic first
+export NTFY_TOPIC=cm-yourname-study
+bash scripts/mac/install-all-agents.sh
 ```
 
-Unload later: `bash scripts/mac/uninstall-serve-agent.sh`.  
-Logs: `~/Library/Logs/constitution-memorizer-serve.log`.
+Or install separately: `install-serve-agent.sh` / `install-reminders-agent.sh`.  
+Unload: `uninstall-serve-agent.sh` / `uninstall-reminders-agent.sh`.  
+Logs: `~/Library/Logs/constitution-memorizer-*.log`.
 
 ### Study reminders (ntfy)
 
@@ -523,7 +548,7 @@ python -m constitution_memorizer.cli send-reminders --channel console --dry-run
 python -m constitution_memorizer.cli send-reminders --channel ntfy
 ```
 
-3. Install the morning LaunchAgent (07:00 local):
+3. Prefer `install-all-agents.sh` (above), or:
 
 ```bash
 export NTFY_TOPIC=cm-yourname-study
@@ -531,7 +556,37 @@ bash scripts/mac/install-reminders-agent.sh
 ```
 
 Optional env: `NTFY_SERVER` (default `https://ntfy.sh`), `NTFY_TOKEN`, `REMINDER_BASE_URL`.  
-Unload: `bash scripts/mac/uninstall-reminders-agent.sh`. Empty due lists skip the send.
+Empty due lists skip the send.
+
+### What survives reboot
+
+| Asset | Survives power-off? | Notes |
+|-------|---------------------|-------|
+| `data/progress/progress.db` | Yes | Mastery, schedule, glosses (Explain it back) |
+| `data/output/learning_units.json` | Yes | Regenerate with `generate-units` if missing |
+| LaunchAgents | Yes | Under `~/Library/LaunchAgents/` |
+| ntfy subscription | On phone | Topic secret in env / plist `EnvironmentVariables` |
+
+**Backup** (manual or weekly agent):
+
+```bash
+bash scripts/mac/backup-progress.sh
+# → ~/Documents/ConstitutionMemorizerBackups/progress-YYYYMMDD.db
+
+# Optional Sunday 09:00 LaunchAgent:
+bash scripts/mac/install-backup-agent.sh
+```
+
+**Restore:** stop the UI, then `cp ~/Documents/ConstitutionMemorizerBackups/progress-YYYYMMDD.db data/progress/progress.db`.  
+Time Machine also covers the repo (and Documents backups) if those paths are included.
+
+### Smoke checklist (Mac daily driver)
+
+1. Login → UI responds at http://127.0.0.1:8001/ (serve LaunchAgent)
+2. Morning → ntfy digest lists today’s due units (or silent if nothing due)
+3. Study a unit → progress updates in the UI
+4. `bash scripts/mac/backup-progress.sh` → file appears under Documents backups
+5. Reboot → same progress and glosses still present (same `progress.db`)
 
 ### Try a sprint branch on your Mac (step by step)
 

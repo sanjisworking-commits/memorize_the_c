@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Optional weekly backup of progress.db (Sunday 09:00 local).
+  Install via: scripts/mac/install-backup-agent.sh
+  Placeholders: __REPO_ROOT__, __HOME__, __BACKUP_SCRIPT__
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.constitution-memorizer.backup</string>
+  <key>WorkingDirectory</key>
+  <string>__REPO_ROOT__</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__BACKUP_SCRIPT__</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key>
+    <integer>0</integer>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/constitution-memorizer-backup.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/constitution-memorizer-backup.err.log</string>
+</dict>
+</plist>

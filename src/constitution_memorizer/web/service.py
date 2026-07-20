@@ -2,10 +2,23 @@
 
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from datetime import date
 
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitType
 from constitution_memorizer.progress.scheduler import ReminderEngine
+
+_CHIP_LABEL_RE = re.compile(r"\([^)]+\)")
+
+
+@dataclass(frozen=True)
+class SiblingChip:
+    """One chip in the Learn sibling / letter rail."""
+
+    unit_id: str
+    label: str
+    state: str  # current | done | idle
 
 
 def unit_visible_for_preference(engine: ReminderEngine, unit: LearningUnit) -> bool:
@@ -239,3 +252,117 @@ def learn_meta_line(
         f"{status} · ~{unit.estimated_learning_time}s · "
         f"difficulty {unit.difficulty}/5"
     )
+
+
+def chip_label(unit: LearningUnit) -> str:
+    """Clause/letter chip text from display_title — last `(…)` group."""
+    matches = _CHIP_LABEL_RE.findall(unit.display_title)
+    if matches:
+        return matches[-1]
+    return unit.display_title
+
+
+def _chip_state(
+    engine: ReminderEngine,
+    *,
+    unit_id: str,
+    current_id: str,
+    mark_done: bool,
+) -> str:
+    if unit_id == current_id:
+        return "current"
+    if mark_done:
+        progress = engine.repo.get_progress(unit_id)
+        if progress is not None and progress.status in {"mastered", "review"}:
+            return "done"
+        if progress is not None and (progress.times_completed or 0) > 0:
+            return "done"
+    return "idle"
+
+
+def sibling_chips(
+    engine: ReminderEngine,
+    unit: LearningUnit,
+) -> list[SiblingChip]:
+    """
+    Learn rail chips.
+
+    - CLAUSE: sibling numbered clauses of the same article (shown when >1)
+    - SUBCLAUSE: letter children of the parent clause
+    """
+    siblings: list[LearningUnit] = []
+    mark_done = False
+
+    if unit.type == LearningUnitType.CLAUSE and unit.article_number:
+        siblings = sorted(
+            (
+                u
+                for u in engine.units.values()
+                if u.type == LearningUnitType.CLAUSE
+                and u.article_number == unit.article_number
+            ),
+            key=lambda u: (u.revision_order, u.display_title),
+        )
+    elif unit.type == LearningUnitType.SUBCLAUSE and unit.parent_clause_id:
+        mark_done = True
+        parent = engine.get_unit(unit.parent_clause_id)
+        if parent is not None:
+            for child_id in parent.child_unit_ids:
+                child = engine.get_unit(child_id)
+                if child is not None:
+                    siblings.append(child)
+
+    if len(siblings) <= 1:
+        return []
+
+    return [
+        SiblingChip(
+            unit_id=item.id,
+            label=chip_label(item),
+            state=_chip_state(
+                engine,
+                unit_id=item.id,
+                current_id=unit.id,
+                mark_done=mark_done,
+            ),
+        )
+        for item in siblings
+    ]
+
+
+def subclause_stem_text(
+    engine: ReminderEngine,
+    unit: LearningUnit,
+) -> str | None:
+    """
+    Gray stem above a letter unit: parent clause text with letter bodies removed.
+
+    Bare Act wording only — no paraphrase.
+    """
+    if unit.type != LearningUnitType.SUBCLAUSE or not unit.parent_clause_id:
+        return None
+    parent = engine.get_unit(unit.parent_clause_id)
+    if parent is None or not parent.text.strip():
+        return None
+
+    remainder = parent.text
+    children = [
+        child
+        for child_id in parent.child_unit_ids
+        if (child := engine.get_unit(child_id)) is not None and child.text.strip()
+    ]
+    for child in sorted(children, key=lambda c: len(c.text), reverse=True):
+        if child.text in remainder:
+            remainder = remainder.replace(child.text, "", 1)
+
+    cleaned = "\n".join(
+        line.rstrip() for line in remainder.splitlines() if line.strip()
+    ).strip()
+    return cleaned or None
+
+
+def done_button_label(unit: LearningUnit) -> str:
+    """Prototype CTA: next letter while walking a letter sequence."""
+    if unit.type == LearningUnitType.SUBCLAUSE and unit.letter_sequence_next:
+        return "Done — next letter"
+    return "Done — next unit"

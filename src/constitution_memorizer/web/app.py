@@ -20,6 +20,7 @@ from constitution_memorizer.web.progress_stats import progress_dashboard
 from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
     continue_unit_id,
+    done_button_label,
     due_checklist,
     earliest_upcoming_revision,
     home_lede,
@@ -28,6 +29,8 @@ from constitution_memorizer.web.service import (
     needs_split_choice,
     resolve_learn_target,
     session_progress,
+    sibling_chips,
+    subclause_stem_text,
     unit_crumb,
     unit_type_label,
 )
@@ -158,6 +161,13 @@ def create_app(
         progress = eng.repo.get_progress(target.id)
         done_count, _position, chain_len = session_progress(eng, target)
         pct = int(round(100 * done_count / chain_len)) if chain_len else 0
+        chips = sibling_chips(eng, target)
+        stem = subclause_stem_text(eng, target)
+        rail_kind = (
+            "letters"
+            if target.type.value == "SUBCLAUSE"
+            else ("clauses" if chips else None)
+        )
         return templates.TemplateResponse(
             request,
             "learn.html",
@@ -168,7 +178,11 @@ def create_app(
                 "unit_crumb": unit_crumb(target),
                 "session_label": f"{done_count} of {chain_len}",
                 "session_pct": pct,
+                "sibling_chips": chips,
+                "rail_kind": rail_kind,
+                "stem_text": stem,
                 "learn_meta": learn_meta_line(target, progress),
+                "done_label": done_button_label(target),
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),

@@ -239,6 +239,15 @@ def create_app(
             },
         )
 
+    @app.get("/calendar", response_class=HTMLResponse)
+    async def calendar_stub(request: Request) -> HTMLResponse:
+        """Sheet nav target; full month grid arrives in Sprint 18."""
+        return templates.TemplateResponse(
+            request,
+            "calendar.html",
+            {},
+        )
+
     @app.get("/progress", response_class=HTMLResponse)
     async def progress_page(request: Request) -> HTMLResponse:
         dashboard = progress_dashboard(_engine())

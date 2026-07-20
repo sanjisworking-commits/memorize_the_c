@@ -31,28 +31,43 @@ def load_reviewed_document(path: Path | None) -> ConstitutionDocument | None:
 
 
 def _article_full_text(article: Article) -> str:
+    from constitution_memorizer.corrections.artefact_scrub import (  # noqa: PLC0415
+        scrub_display_text,
+        should_include_opening,
+    )
+
     chunks: list[str] = []
-    if article.opening_text.strip():
-        chunks.append(article.opening_text.strip())
+    opening = scrub_display_text(article.opening_text).strip()
+    body = scrub_display_text(article.body_text).strip()
     if article.clauses:
+        if opening:
+            chunks.append(opening)
         for clause in article.clauses:
-            head = f"{clause.label} {clause.text}".strip()
+            head = scrub_display_text(f"{clause.label} {clause.text}").strip()
             if head:
                 chunks.append(head)
             for child in clause.children:
-                child_head = f"{child.label} {child.text}".strip()
+                child_head = scrub_display_text(f"{child.label} {child.text}").strip()
                 if child_head:
                     chunks.append(child_head)
                 for grand in child.children:
-                    g = f"{grand.label} {grand.text}".strip()
+                    g = scrub_display_text(f"{grand.label} {grand.text}").strip()
                     if g:
                         chunks.append(g)
-    elif article.body_text.strip():
-        chunks.append(article.body_text.strip())
+    elif body:
+        if should_include_opening(opening, body):
+            chunks.append(opening)
+        chunks.append(body)
+    elif opening:
+        chunks.append(opening)
     for proviso in article.provisos:
-        chunks.append(proviso)
+        cleaned = scrub_display_text(proviso)
+        if cleaned:
+            chunks.append(cleaned)
     for expl in article.explanations:
-        chunks.append(expl)
+        cleaned = scrub_display_text(expl)
+        if cleaned:
+            chunks.append(cleaned)
     return "\n\n".join(c for c in chunks if c).strip()
 
 

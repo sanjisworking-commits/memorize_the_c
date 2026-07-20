@@ -8,6 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from constitution_memorizer.corrections.artefact_scrub import scrub_document
 from constitution_memorizer.exceptions import ConstitutionMemorizerError, InputValidationError
 from constitution_memorizer.schemas import Article, ArticleStatus, ConstitutionDocument
 from constitution_memorizer.utils.json_io import read_json
@@ -151,6 +152,9 @@ def apply_corrections(
 
     if exclude_ids:
         changes.extend(_remove_articles(reviewed, exclude_ids))
+
+    scrub_notes = scrub_document(reviewed)
+    changes.extend(scrub_notes)
 
     reviewed.extraction_summary.warnings.append(
         f"Applied {len(corrections.articles)} correction entr(y/ies); "

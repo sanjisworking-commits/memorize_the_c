@@ -61,6 +61,70 @@
       "opening_text": "",
       "body_text": "The State shall endeavour to provide early childhood care and education for all children until they complete the age of six years.",
       "manual_review_status": "approved"
+    },
+    "article-3b": {
+      "exclude": true,
+      "manual_review_status": "excluded_schedule_paragraph"
+    },
+    "article-12a": {
+      "exclude": true,
+      "manual_review_status": "excluded_schedule_paragraph"
+    },
+    "article-12aa": {
+      "exclude": true,
+      "manual_review_status": "excluded_schedule_paragraph"
+    },
+    "article-12b": {
+      "exclude": true,
+      "manual_review_status": "excluded_schedule_paragraph"
+    },
+    "article-92a": {
+      "exclude": true,
+      "manual_review_status": "excluded_schedule_entry"
+    },
+    "article-92b": {
+      "exclude": true,
+      "manual_review_status": "excluded_schedule_entry"
+    },
+    "article-71": {
+      "title": "Matters relating to, or connected with, the election of a President or Vice-President",
+      "part_number": "V",
+      "chapter_number": "I",
+      "opening_text": "",
+      "body_text": "(1) All doubts and disputes arising out of or in connection with the election of a President or Vice-President shall be inquired into and decided by the Supreme Court whose decision shall be final.\n(2) If the election of a person as President or Vice-President is declared void by the Supreme Court, acts done by him in the exercise and performance of the powers and duties of the office of President or Vice-President, as the case may be, on or before the date of the decision of the Supreme Court shall not be invalidated by reason of that declaration.\n(3) Subject to the provisions of this Constitution, Parliament may by law regulate any matter relating to or connected with the election of a President or Vice-President.\n(4) The election of a person as President or Vice-President shall not be called in question on the ground of the existence of any vacancy for whatever reason among the members of the electoral college electing him.",
+      "manual_review_status": "approved"
+    },
+    "article-131": {
+      "title": "Original jurisdiction of the Supreme Court",
+      "part_number": "V",
+      "chapter_number": "IV",
+      "opening_text": "",
+      "body_text": "Subject to the provisions of this Constitution, the Supreme Court shall, to the exclusion of any other court, have original jurisdiction in any dispute—\n(a) between the Government of India and one or more States; or\n(b) between the Government of India and any State or States on one side and one or more other States on the other; or\n(c) between two or more States,\nif and in so far as the dispute involves any question (whether of law or fact) on which the existence or extent of a legal right depends:\nProvided that the said jurisdiction shall not extend to a dispute arising out of any treaty, agreement, covenant, engagement, sanad or other similar instrument which, having been entered into or executed before the commencement of this Constitution, continues in operation after such commencement, or which provides that the said jurisdiction shall not extend to such a dispute.",
+      "manual_review_status": "approved"
+    },
+    "article-150": {
+      "title": "Form of accounts of the Union and of the States",
+      "part_number": "V",
+      "chapter_number": "V",
+      "opening_text": "",
+      "body_text": "The accounts of the Union and of the States shall be kept in such form as the President may, on the advice of the Comptroller and Auditor-General of India, prescribe.",
+      "manual_review_status": "approved"
+    },
+    "article-230": {
+      "title": "Extension of jurisdiction of High Courts to Union territories",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "opening_text": "",
+      "body_text": "(1) Parliament may by law extend the jurisdiction of a High Court to, or exclude the jurisdiction of a High Court from, any Union territory.\n(2) Where the High Court of a State exercises jurisdiction in relation to a Union territory,-\n(a) nothing in this Constitution shall be construed as empowering the Legislature of the State to increase, restrict or abolish that jurisdiction; and\n(b) the reference in article 227 to the Governor shall, in relation to any rules, forms or tables for subordinate courts in that territory, be construed as a reference to the President.",
+      "manual_review_status": "approved"
+    },
+    "article-257a": {
+      "title": "Assistance to States by deployment of armed forces or other forces of the Union",
+      "part_number": "XI",
+      "status": "omitted",
+      "opening_text": "",
+      "body_text": "[Omitted.]",
+      "manual_review_status": "approved"
     }
   },
   "notes": [
@@ -70,6 +134,11 @@
     "article-124: removed Docling formula-not-decoded markers, private-use glyph, footnote debris; restored clauses (1)–(7) Bare Act wording.",
     "article-20b / 20ba / 20bb / 20c: Sixth Schedule paragraphs mis-parsed as Articles; excluded from reviewed corpus and learning units.",
     "article-44: Art 45 amendment footnote was glued onto Art 44; stripped to the Uniform civil code sentence.",
-    "article-45: Seventh Schedule List II entry 45 (land revenue + formula markers) replaced the DPSP article; restored Bare Act Art 45 and Part IV."
+    "article-45: Seventh Schedule List II entry 45 (land revenue + formula markers) replaced the DPSP article; restored Bare Act Art 45 and Part IV.",
+    "corpus scrub: apply_corrections runs artefact_scrub on all articles — strips formula-not-decoded, PUA glyphs, and clears opening_text that duplicates/prefixes body_text (fixes mass Browse/Learn repetition).",
+    "article-3b / 12a / 12aa / 12b: Sixth Schedule paragraphs mis-parsed as Articles; excluded.",
+    "article-92a / 92b: Seventh Schedule List I entries mis-parsed as Articles; excluded.",
+    "article-71 / 131 / 150 / 230: schedule list entries had overwritten real Articles; restored Bare Act text and Part placement.",
+    "article-257a: Ninth Schedule entry had overwritten omitted Art 257A; restored as omitted."
   ]
 }

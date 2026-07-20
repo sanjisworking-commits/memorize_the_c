@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "source_document": "fixture",
-  "unit_count": 6,
+  "unit_count": 7,
   "units": [
     {
       "id": "part-overview",
@@ -101,9 +101,28 @@
       "difficulty": 2,
       "estimated_learning_time": 45,
       "revision_order": 4,
-      "next_unit": null,
+      "next_unit": "garbage-article",
       "previous_unit": "clause-2",
       "tags": ["Part III"],
+      "allows_letter_split": false,
+      "child_unit_ids": [],
+      "parent_clause_id": null,
+      "letter_sequence_next": null,
+      "letter_sequence_prev": null
+    },
+    {
+      "id": "garbage-article",
+      "type": "ARTICLE",
+      "article_number": "1",
+      "display_title": "Article 1",
+      "title": "DEMOCRATIC REPUBLIC\" (w.e.f. 3",
+      "text": "1-1977).",
+      "difficulty": 1,
+      "estimated_learning_time": 30,
+      "revision_order": 5,
+      "next_unit": null,
+      "previous_unit": "article-end",
+      "tags": ["Unassigned"],
       "allows_letter_split": false,
       "child_unit_ids": [],
       "parent_clause_id": null,

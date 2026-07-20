@@ -22,6 +22,7 @@ from constitution_memorizer.web.card_readiness import (
     check_learn_unit,
     is_learn_ready,
     part_label_from_tags,
+    status_label,
     type_label,
 )
 from constitution_memorizer.web.progress_stats import progress_dashboard
@@ -264,6 +265,10 @@ def create_app(
                 "article": view,
                 "readiness": readiness,
                 "ready_learn_units": ready_units,
+                "status_label": status_label(
+                    ready=readiness.ok,
+                    raw_status=view.status,
+                ),
             },
         )
 

@@ -8,6 +8,8 @@ from constitution_memorizer.web.card_readiness import (
     check_browse_article,
     check_choose_unit,
     check_learn_unit,
+    status_label,
+    summarize_readiness,
     type_label,
 )
 
@@ -102,9 +104,11 @@ def test_choose_allows_short_letter_children():
         id="clause-2",
         allows_letter_split=True,
         child_unit_ids=["clause-2-a", "clause-2-b"],
-        text="(3) No person shall be compelled to be a witness against himself unless-",
+        text=(
+            "(3) No person accused of any offence shall be compelled to be a "
+            "witness against himself unless-"
+        ),
     )
-    # Parent text truncated — Choose still OK if children resolve; Learn gates parent.
     children = [
         _unit(
             id="clause-2-a",
@@ -121,3 +125,27 @@ def test_choose_allows_short_letter_children():
     ]
     result = check_choose_unit(parent, children=children)
     assert result.ok
+    assert all(check_learn_unit(child).ok for child in children)
+
+
+def test_status_label_incomplete_when_not_ready():
+    assert status_label(ready=False, raw_status="active") == "Incomplete extraction"
+    assert status_label(ready=True, raw_status="UNKNOWN") == "Active"
+    assert status_label(ready=True, raw_status="omitted") == "Omitted"
+
+
+def test_summarize_readiness_counts_flags():
+    units = [
+        _unit(),
+        _unit(
+            id="bad",
+            type=LearningUnitType.ARTICLE,
+            display_title="Article 1",
+            title='DEMOCRATIC REPUBLIC" (w.e.f. 3',
+            text="1-1977).",
+        ),
+    ]
+    summary = summarize_readiness(units)
+    assert summary["ready"] == 1
+    assert summary["unready"] == 1
+    assert summary["flags"]

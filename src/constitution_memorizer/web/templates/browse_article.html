@@ -5,7 +5,7 @@
   <p class="eyebrow">
     Browse
     {% if article.part_number %}· Part {{ article.part_number }}{% endif %}
-    · {% if readiness.ok %}{{ article.status|capitalize }}{% else %}Incomplete extraction{% endif %}
+    · {{ status_label }}
   </p>
   <h1 class="display">Article {{ article.article_number }}</h1>
   {% if article.title %}<p class="lede">{{ article.title }}</p>{% endif %}

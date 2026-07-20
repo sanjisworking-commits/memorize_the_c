@@ -84,6 +84,35 @@ def test_done_on_simple_unit_goes_to_next_or_choose(client: TestClient):
     assert done.headers["location"] == "/learn/clause-2/choose"
 
 
+def test_learn_garbage_unit_shows_incomplete(client: TestClient):
+    response = client.get("/learn/garbage-article")
+    assert response.status_code == 200
+    assert "Incomplete extraction" in response.text
+    assert "garbage_fragment" in response.text or "too_short" in response.text
+    assert "ARTICLE" in response.text
+    assert "LEARNINGUNITTYPE" not in response.text
+
+
+def test_home_continue_skips_unready_garbage(client: TestClient):
+    # Advance through all ready units until only garbage remains in the chain.
+    client.post("/learn/clause-2/choose", data={"mode": "whole"})
+    for unit_id in ("part-overview", "clause-1", "clause-2", "article-end"):
+        client.post(f"/learn/{unit_id}/done")
+    home = client.get("/")
+    assert home.status_code == 200
+    # Unready garbage must not appear as Continue / Due study target.
+    assert "garbage-article" not in home.text
+    assert "/learn/garbage-article" not in home.text
+
+
+def test_browse_garbage_article_shows_incomplete_flags(client: TestClient):
+    response = client.get("/browse/article/1")
+    assert response.status_code == 200
+    assert "Incomplete extraction" in response.text
+    assert "garbage_fragment" in response.text or "too_short" in response.text
+    assert "No ready learning units" in response.text
+
+
 def test_reset_all(client: TestClient):
     client.post("/learn/clause-1/done")
     reset = client.post("/reset", follow_redirects=False)

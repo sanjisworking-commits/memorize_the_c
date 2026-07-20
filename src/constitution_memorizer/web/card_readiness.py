@@ -83,6 +83,8 @@ def check_learn_unit(unit: LearningUnit) -> ReadinessResult:
 
     if not unit.id:
         missing.append("id")
+    if unit.type is None:
+        missing.append("type")
     if not (unit.display_title or "").strip():
         missing.append("display_title")
     if unit.estimated_learning_time < 1:
@@ -114,7 +116,7 @@ def check_learn_unit(unit: LearningUnit) -> ReadinessResult:
             flags.append("title_only")
         if _has_duplicate_paragraphs(text):
             flags.append("duplicate_paragraphs")
-        if _alpha_ratio(text) < 0.45 and not is_omitted:
+        if _alpha_ratio(text) < 0.5 and not is_omitted:
             flags.append("low_alpha_ratio")
         if _GARBAGE_BODY.search(text) or (title and _GARBAGE_TITLE.search(title)):
             flags.append("garbage_fragment")
@@ -169,8 +171,8 @@ def check_choose_unit(
 ) -> ReadinessResult:
     """Contract for the whole-vs-letters Choose screen.
 
-    Children are checked for empty/garbage only — letter stubs are short by
-    design, so full Learn length heuristics are not applied here.
+    Each child must resolve and pass Learn readiness (SUBCLAUSE stubs are
+    exempt from length heuristics inside check_learn_unit).
     """
     missing: list[str] = []
     flags: list[str] = []
@@ -183,14 +185,9 @@ def check_choose_unit(
     if len(children) != len(unit.child_unit_ids):
         flags.append("unresolved_child_ids")
     for child in children:
-        child_text = (child.text or "").strip()
-        if not child_text:
-            flags.append(f"child_empty:{child.id}")
-            break
-        if _GARBAGE_BODY.search(child_text) or (
-            child.title and _GARBAGE_TITLE.search(child.title)
-        ):
-            flags.append(f"child_garbage:{child.id}")
+        child_result = check_learn_unit(child)
+        if not child_result.ok:
+            flags.append(f"child_not_ready:{child.id}")
             break
     return ReadinessResult(
         ok=not missing and not flags,
@@ -203,3 +200,38 @@ def check_choose_unit(
 
 def is_learn_ready(unit: LearningUnit) -> bool:
     return check_learn_unit(unit).ok
+
+
+def summarize_readiness(units: list[LearningUnit]) -> dict[str, int | dict[str, int]]:
+    """Counts of ready/unready units and quality-flag frequencies."""
+    ready = 0
+    unready = 0
+    flag_counts: dict[str, int] = {}
+    for unit in units:
+        result = check_learn_unit(unit)
+        if result.ok:
+            ready += 1
+            continue
+        unready += 1
+        for flag in result.quality_flags:
+            flag_counts[flag] = flag_counts.get(flag, 0) + 1
+        for name in result.missing_fields:
+            key = f"missing:{name}"
+            flag_counts[key] = flag_counts.get(key, 0) + 1
+    return {
+        "ready": ready,
+        "unready": unready,
+        "flags": dict(sorted(flag_counts.items(), key=lambda item: (-item[1], item[0]))),
+    }
+
+
+def status_label(*, ready: bool, raw_status: str | None) -> str:
+    """Human Browse status line."""
+    if not ready:
+        return "Incomplete extraction"
+    if not raw_status:
+        return "Active"
+    normalized = raw_status.strip().lower()
+    if normalized in {"", "unknown"}:
+        return "Active"
+    return normalized.replace("_", " ").capitalize()

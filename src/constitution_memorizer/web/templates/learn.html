@@ -160,15 +160,21 @@
   <div
     class="learn-body learn-panel-recite"
     data-learn-panel="recite"
+    data-recite-text="{{ unit.text | e }}"
     data-recite-on="false"
     data-peeking="false"
   >
-    <p class="learn-recite-text is-blurred">{{ unit.text }}</p>
+    <p class="learn-recite-text is-blurred" data-recite-blur>{{ unit.text }}</p>
     <div class="learn-recite-controls">
       <button type="button" class="learn-recite-toggle" data-recite-toggle>▸ Start reciting</button>
       <button type="button" class="learn-recite-peek" data-recite-peek>Hold to peek</button>
-      <span class="learn-recite-hint">Recite aloud with the text hidden.</span>
+      <span class="learn-recite-hint">Speak the Bare Act aloud — stop to see your accuracy map.</span>
     </div>
+    <p class="learn-recite-status" data-recite-status hidden></p>
+    <p class="learn-recite-transcript" data-recite-transcript hidden aria-live="polite"></p>
+    <div class="learn-recite-map" data-recite-map hidden aria-live="polite"></div>
+    <p class="learn-recite-stats" data-recite-stats hidden></p>
+    <p class="learn-recite-extras" data-recite-extras hidden></p>
   </div>
 
   <div class="learn-body learn-panel-card" data-learn-panel="card">

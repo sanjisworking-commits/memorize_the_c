@@ -844,6 +844,67 @@ a:hover {
   color: var(--faint);
 }
 
+.learn-recite-status {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.learn-recite-status.is-listening {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.learn-recite-status.is-error {
+  color: var(--destructive);
+}
+
+.learn-recite-transcript {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.learn-recite-transcript.is-live::before {
+  content: "Hearing: ";
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.learn-recite-map {
+  margin-top: 18px;
+  font-size: 18px;
+  line-height: 1.8;
+}
+
+.learn-recite-map-word.is-hit {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.learn-recite-map-word.is-miss {
+  color: #c4c4c2;
+}
+
+.learn-recite-stats {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.learn-recite-extras {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.learn-recite-toggle:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .learn-read-text {
   margin: 0;
   padding: 0;

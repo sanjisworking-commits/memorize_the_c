@@ -23,8 +23,12 @@ from constitution_memorizer.web.service import (
     due_checklist,
     earliest_upcoming_revision,
     home_lede,
+    kind_badge_label,
+    learn_meta_line,
     needs_split_choice,
     resolve_learn_target,
+    session_progress,
+    unit_crumb,
     unit_type_label,
 )
 
@@ -152,12 +156,22 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
         progress = eng.repo.get_progress(target.id)
+        done_count, _position, chain_len = session_progress(eng, target)
+        pct = int(round(100 * done_count / chain_len)) if chain_len else 0
         return templates.TemplateResponse(
             request,
             "learn.html",
             {
                 "unit": target,
                 "progress": progress,
+                "kind_badge": kind_badge_label(target),
+                "unit_crumb": unit_crumb(target),
+                "session_label": f"{done_count} of {chain_len}",
+                "session_pct": pct,
+                "learn_meta": learn_meta_line(target, progress),
+                "read_hint": (
+                    "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
+                ),
             },
         )
 

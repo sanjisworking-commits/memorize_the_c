@@ -34,7 +34,9 @@ def test_learn_simple_unit(client: TestClient):
     response = client.get("/learn/clause-1")
     assert response.status_code == 200
     assert "Article 20(1)" in response.text
-    assert "Done" in response.text
+    assert "Done — next unit" in response.text
+    assert "kind-badge" in response.text
+    assert "LearningUnitType" not in response.text
 
 
 def test_choose_required_then_whole_path(client: TestClient):

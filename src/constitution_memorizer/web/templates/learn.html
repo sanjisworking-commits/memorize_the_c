@@ -1,29 +1,45 @@
 {% extends "base.html" %}
 {% block title %}{{ unit.display_title }} · Learn{% endblock %}
 {% block content %}
-<section class="panel learn" data-unit-id="{{ unit.id }}">
-  <p class="eyebrow">{{ unit.type }}{% if unit.article_number %} · Article {{ unit.article_number }}{% endif %}</p>
-  <h1 class="display">{{ unit.display_title }}</h1>
-  {% if unit.title %}<p class="lede">{{ unit.title }}</p>{% endif %}
+<section class="panel learn" data-unit-id="{{ unit.id }}" data-mode="read">
+  <div class="session-row">
+    <span class="session-eyebrow">Session</span>
+    <span class="session-count">{{ session_label }}</span>
+  </div>
+  <div class="session-track" aria-hidden="true">
+    <div class="session-fill" style="width: {{ session_pct }}%"></div>
+  </div>
 
-  <article class="unit-text">{{ unit.text }}</article>
+  <div class="learn-badge-row">
+    <span class="kind-badge">{{ kind_badge }}</span>
+    {% if unit_crumb %}<span class="learn-crumb">{{ unit_crumb }}</span>{% endif %}
+  </div>
 
-  {% if progress %}
-  <p class="meta-line">
-    Status: {{ progress.status }}
-    · completed {{ progress.times_completed }}×
-    {% if progress.next_revision %}· next {{ progress.next_revision }}{% endif %}
-  </p>
-  {% endif %}
+  <h1 class="display learn-title">{{ unit.display_title }}</h1>
+  {% if unit.title %}<p class="lede learn-sub">{{ unit.title }}</p>{% endif %}
 
-  <div class="actions">
+  <div class="mode-tabs" role="tablist" aria-label="Recall modes">
+    <span class="mode-tab is-active" role="tab" aria-selected="true">Read</span>
+    <span class="mode-tab is-disabled" title="Coming in later sprints">Cloze</span>
+    <span class="mode-tab is-disabled" title="Coming in later sprints">Letters</span>
+    <span class="mode-tab is-disabled" title="Coming in later sprints">Type</span>
+    <span class="mode-tab is-disabled" title="Coming in later sprints">Recite</span>
+    <span class="mode-tab is-disabled" title="Coming in later sprints">Card</span>
+  </div>
+
+  <div class="learn-body">
+    <article class="unit-text learn-read-text">{{ unit.text }}</article>
+    <p class="learn-hint">{{ read_hint }}</p>
+  </div>
+
+  <div class="learn-footer">
     <form method="post" action="/learn/{{ unit.id }}/done">
-      <button type="submit" class="btn btn-green">Done</button>
+      <button type="submit" class="btn btn-accent">Done — next unit</button>
     </form>
+    <span class="learn-meta">{{ learn_meta }}</span>
     <form method="post" action="/learn/{{ unit.id }}/reset">
-      <button type="submit" class="btn btn-red">Reset</button>
+      <button type="submit" class="link-reset">Reset unit</button>
     </form>
-    <a class="btn btn-ghost" href="/">Home</a>
   </div>
 </section>
 {% endblock %}

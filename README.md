@@ -23,7 +23,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 8 | `cursor/sprint-8-home-screen-1a75` | Done |
 | Hotfix | `cursor/fix-articles-1-2-1a75` | Done |
 | Sprint 9 | `cursor/sprint-9-choose-incomplete-1a75` | Done |
-| Sprints 10–20 | design prototype (see plan) | Planned |
+| Sprint 10 | `cursor/sprint-10-learn-read-1a75` | Done |
+| Sprints 11–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -227,6 +228,15 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Choose screen matches prototype: Split choice eyebrow, solid / outline CTAs (`btn-accent`), remembered-choice note
 - New `incomplete.html` panel (design tokens) for future readiness gating — reasons list, Browse/Home links
 - Tests: `tests/test_web_sprint9.py`
+
+### Sprint 10 — Learn Read anatomy ✅
+
+**Branch:** `cursor/sprint-10-learn-read-1a75`
+
+- Learn **Read** mode: session bar, type badge (Article/Clause/Subclause), Part crumb, Fraunces title, verbatim body, meta line
+- Mode tab strip (Read active; other modes disabled until later sprints)
+- Ink **Done — next unit** + text Reset unit (Again tomorrow in Sprint 12)
+- Tests: `tests/test_web_sprint10.py`
 
 ### Split-choice behaviour (summary)
 

@@ -149,7 +149,7 @@ def create_app(
         if unit is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
-        learn_mode = mode if mode in {"read", "card"} else "read"
+        learn_mode = mode if mode in {"read", "cloze", "card"} else "read"
 
         if needs_split_choice(eng, unit):
             return RedirectResponse(

@@ -536,12 +536,14 @@ a:hover {
   padding: 24px 0 4px;
 }
 
-/* Mode panels: CSS-driven so Card/Read never rely on hidden vs display:flex. */
-.learn-panel-card {
+/* Mode panels: CSS-driven so modes never rely on hidden vs display:flex. */
+.learn-panel-card,
+.learn-panel-cloze {
   display: none;
 }
 
-.learn[data-mode="card"] .learn-panel-read {
+.learn[data-mode="card"] .learn-panel-read,
+.learn[data-mode="cloze"] .learn-panel-read {
   display: none;
 }
 
@@ -549,12 +551,107 @@ a:hover {
   display: block;
 }
 
+.learn[data-mode="cloze"] .learn-panel-cloze {
+  display: block;
+}
+
+/* Stem shows for Read + Cloze; hidden on Card (design hasStem). */
 .learn-stem {
   font-size: 14px;
   line-height: 1.6;
-  margin: 0 0 12px;
+  margin: 24px 0 0;
   color: var(--faint);
   white-space: pre-wrap;
+}
+
+.learn-stem + .learn-body {
+  padding-top: 12px;
+  min-height: 0;
+}
+
+.learn[data-mode="card"] .learn-stem {
+  display: none;
+}
+
+.learn[data-mode="card"] .learn-stem + .learn-body {
+  padding-top: 24px;
+  min-height: 200px;
+}
+
+.learn-cloze-density {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.learn-cloze-density-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.learn-cloze-density-btn,
+.learn-cloze-btn {
+  background: none;
+  border: 1px solid #c9c9c7;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.learn-cloze-density-btn:hover,
+.learn-cloze-btn:hover {
+  border-color: var(--ink);
+}
+
+.learn-cloze-density-btn.is-active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.learn-cloze-text {
+  font-size: 18px;
+  line-height: 1.95;
+  color: var(--ink);
+}
+
+.learn-cloze-word.is-blank:not(.is-revealed) {
+  color: transparent;
+  border-bottom: 2px solid var(--ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.learn-cloze-word.is-blank:not(.is-revealed):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.learn-cloze-word.is-revealed {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.learn-cloze-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.learn-cloze-status {
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .learn-read-text {

@@ -30,6 +30,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 11 | `cursor/sprint-11-sibling-rails-1a75` | Done |
 | Sprint 12 | `cursor/sprint-12-again-tomorrow-1a75` | Done |
 | Sprint 13 | `cursor/sprint-13-learn-card-1a75` | Done |
+| Sprint 14 | `cursor/sprint-14-learn-cloze-1a75` | Done |
 | Sprints 14–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
@@ -275,6 +276,18 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Subclause stem stays in Read only (hidden in Card, matching the design prototype)
 - Client JS in `static/app.js` switches modes and resets flip on mode change
 - Tests: `tests/test_web_sprint13.py`
+
+### Sprint 14 — Learn Cloze ✅
+
+**Branch:** `cursor/sprint-14-learn-cloze-1a75`
+
+- **Cloze** recall mode: tap-to-reveal blanks over Bare Act wording
+- Density **light / medium / heavy** hides words with letter-length ≥ **8 / 6 / 4**
+- Controls: Reveal all, Hide again; status `N of M revealed — tap a blank`
+- Blank style: transparent text + 2px ink underline; revealed: accent + weight 600
+- Subclause stem shows in Cloze (hidden only on Card)
+- Mode tabs: Read + Cloze + Card; Letters / Type / Recite still disabled
+- Tests: `tests/test_web_sprint14.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

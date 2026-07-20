@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Manual correction overlay for parsed Constitution JSON. Does not mutate raw Docling extraction.",
+  "articles": {
+    "article-21a": {
+      "title": "Right to education",
+      "manual_review_status": "approved"
+    }
+  },
+  "notes": []
+}

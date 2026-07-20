@@ -9,9 +9,15 @@ from constitution_memorizer.parsing.patterns import (
     AMENDMENT_ACT_RE,
     AMENDMENT_ORDINAL_RE,
     FOOTNOTE_RE,
+    INLINE_FOOTNOTE_MARKER_RE,
     OPERATION_PATTERNS,
 )
-from constitution_memorizer.schemas import Footnote, FootnoteOperation, SourceProvenance
+from constitution_memorizer.schemas import (
+    ConstitutionDocument,
+    Footnote,
+    FootnoteOperation,
+    SourceProvenance,
+)
 from constitution_memorizer.utils.identifiers import footnote_id
 
 # Word ordinals used in amendment Act names → approximate numbers.
@@ -275,3 +281,55 @@ def append_footnote_text(footnote: Footnote, continuation: str) -> None:
     affected = extract_affected_article(footnote.text)
     if affected:
         footnote.affected_article = affected
+
+
+def _iter_articles(doc: ConstitutionDocument):
+    for part in doc.parts:
+        yield from part.articles
+        for chapter in part.chapters:
+            yield from chapter.articles
+
+
+def associate_footnotes(doc: ConstitutionDocument) -> int:
+    """
+    Best-effort association of footnote markers to Articles.
+
+    Only links when evidence is present (inline ``1[`` markers, heading footnote
+    prefixes, or an ``affected_article`` already parsed from footnote text).
+    Does not invent associations.
+    """
+    articles = list(_iter_articles(doc))
+    by_number = {a.article_number: a for a in articles}
+    linked = 0
+
+    # Collect inline markers from article texts.
+    for article in articles:
+        corpus = "\n".join(
+            [
+                article.source.raw_heading or "",
+                article.opening_text or "",
+                article.body_text or "",
+                article.title or "",
+            ]
+        )
+        for match in INLINE_FOOTNOTE_MARKER_RE.finditer(corpus):
+            marker = match.group(1)
+            if marker not in article.footnote_references:
+                article.footnote_references.append(marker)
+                linked += 1
+
+    # Link footnotes that name an affected Article.
+    for footnote in doc.footnotes:
+        if footnote.affected_article:
+            target = by_number.get(footnote.affected_article)
+            if target is not None and footnote.marker not in target.footnote_references:
+                target.footnote_references.append(footnote.marker)
+                linked += 1
+            continue
+        # If exactly one Article already references this marker, set affected_article.
+        hosts = [a for a in articles if footnote.marker in a.footnote_references]
+        if len(hosts) == 1 and footnote.affected_article is None:
+            footnote.affected_article = hosts[0].article_number
+            linked += 1
+
+    return linked

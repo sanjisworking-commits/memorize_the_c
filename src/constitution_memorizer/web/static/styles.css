@@ -539,13 +539,15 @@ a:hover {
 /* Mode panels: CSS-driven so modes never rely on hidden vs display:flex. */
 .learn-panel-card,
 .learn-panel-cloze,
-.learn-panel-letters {
+.learn-panel-letters,
+.learn-panel-type {
   display: none;
 }
 
 .learn[data-mode="card"] .learn-panel-read,
 .learn[data-mode="cloze"] .learn-panel-read,
-.learn[data-mode="letters"] .learn-panel-read {
+.learn[data-mode="letters"] .learn-panel-read,
+.learn[data-mode="type"] .learn-panel-read {
   display: none;
 }
 
@@ -558,6 +560,10 @@ a:hover {
 }
 
 .learn[data-mode="letters"] .learn-panel-letters {
+  display: block;
+}
+
+.learn[data-mode="type"] .learn-panel-type {
   display: block;
 }
 
@@ -706,6 +712,71 @@ a:hover {
 .learn-letters-hint {
   font-size: 13px;
   color: var(--muted);
+}
+
+.learn-type-lede {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.learn-type-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 100px;
+  padding: 14px;
+  border: 1px solid var(--ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+  resize: vertical;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+}
+
+.learn-type-input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.learn-type-diff {
+  margin-top: 14px;
+  font-size: 16px;
+  line-height: 1.8;
+  min-height: 28px;
+}
+
+.learn-type-word.is-unreached {
+  color: #c4c4c2;
+}
+
+.learn-type-word.is-correct {
+  color: var(--ink);
+}
+
+.learn-type-word.is-wrong {
+  color: var(--destructive);
+  text-decoration: line-through;
+}
+
+.learn-type-stats {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .learn-read-text {

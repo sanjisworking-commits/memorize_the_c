@@ -1,6 +1,6 @@
 /* Light progressive enhancement for the learning UI. */
 (function () {
-  const LEARN_MODES = new Set(["read", "cloze", "letters", "card"]);
+  const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "card"]);
   const DENSITY_THRESH = { light: 8, medium: 6, heavy: 4 };
   const EN_SPACE = "\u2002";
 
@@ -201,6 +201,70 @@
     };
   }
 
+  function normWord(text) {
+    return text.toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
+
+  function initType(panel) {
+    if (!panel) {
+      return null;
+    }
+
+    const input = panel.querySelector("[data-type-input]");
+    const diffEl = panel.querySelector("[data-type-diff]");
+    const statsEl = panel.querySelector("[data-type-stats]");
+    const source = panel.getAttribute("data-type-text") || "";
+    const words = source.trim() ? source.trim().split(/\s+/) : [];
+
+    function render() {
+      const typed = input ? input.value : "";
+      const typedWords = typed.trim() ? typed.trim().split(/\s+/) : [];
+      let correct = 0;
+
+      if (diffEl) {
+        diffEl.replaceChildren();
+        words.forEach((word, index) => {
+          const span = document.createElement("span");
+          span.className = "learn-type-word";
+          span.textContent = word + " ";
+          if (index >= typedWords.length) {
+            span.classList.add("is-unreached");
+          } else if (normWord(typedWords[index]) === normWord(word)) {
+            span.classList.add("is-correct");
+            correct += 1;
+          } else {
+            span.classList.add("is-wrong");
+          }
+          diffEl.appendChild(span);
+        });
+      }
+
+      if (statsEl) {
+        statsEl.textContent =
+          typedWords.length +
+          " / " +
+          words.length +
+          " words · " +
+          correct +
+          " correct";
+      }
+    }
+
+    if (input) {
+      input.addEventListener("input", render);
+    }
+    render();
+
+    return {
+      reset() {
+        if (input) {
+          input.value = "";
+        }
+        render();
+      },
+    };
+  }
+
   function initLearn() {
     const learn = document.querySelector(".learn");
     if (!learn) {
@@ -212,8 +276,10 @@
     const card = learn.querySelector(".learn-card");
     const clozePanel = learn.querySelector('[data-learn-panel="cloze"]');
     const lettersPanel = learn.querySelector('[data-learn-panel="letters"]');
+    const typePanel = learn.querySelector('[data-learn-panel="type"]');
     const cloze = initCloze(clozePanel);
     const letters = initLetters(lettersPanel);
+    const typeMode = initType(typePanel);
 
     function setFlipped(flipped) {
       if (!card) {
@@ -240,6 +306,9 @@
       }
       if (next === "letters" && letters) {
         letters.reset();
+      }
+      if (next === "type" && typeMode) {
+        typeMode.reset();
       }
       try {
         const url = new URL(window.location.href);
@@ -278,7 +347,7 @@
       });
     }
 
-    // Honor server-rendered mode (e.g. hard navigation to ?mode=card|cloze|letters).
+    // Honor server-rendered mode (e.g. hard navigation to ?mode=…).
     if (learn.dataset.mode === "card") {
       setFlipped(false);
     }

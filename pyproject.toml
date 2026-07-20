@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "constitution-memorizer"
+version = "0.1.0"
+description = "PDF-to-JSON extraction pipeline for the Constitution of India Bare Act"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Constitution Memorizer contributors" }]
+keywords = ["constitution", "india", "pdf", "docling", "legal-text"]
+dependencies = [
+    "docling>=2.0.0",
+    "pydantic>=2.0.0",
+    "rapidfuzz>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[project.scripts]
+constitution-memorizer = "constitution_memorizer.cli:main"
+
+[project.urls]
+Repository = "https://github.com/sanjisworking-commits/memorize_the_c"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "integration: tests that require Docling and/or the Bare Act PDF",
+]

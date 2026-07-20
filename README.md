@@ -5,7 +5,7 @@ Production-oriented tooling to help users **understand, revise and memorise the 
 Work proceeds in two layers:
 
 1. **Corpus pipeline (Phase 1–2)** — deterministic PDF → structured JSON for the Bare Act
-2. **Learning layer (Sprints 1–5)** — Learning Units, progress, reminders, and a small web UI on top of the reviewed corpus
+2. **Learning layer (Sprints 1–20)** — Learning Units, progress, reminders, and a web UI aligned to the design prototype
 
 Each sprint ships on its **own git branch** and updates this README so documentation stays in sync with merged capability.
 
@@ -18,6 +18,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 3 | `cursor/sprint-3-sqlite-scheduler-1a75` | Done |
 | Sprint 4 | `cursor/sprint-4-learn-home-ui-1a75` | Done |
 | Sprint 5 | `cursor/sprint-5-browse-search-progress-1a75` | Done |
+| Sprint 6 | `cursor/sprint-6-design-tokens-1a75` | In progress |
+| Sprints 7–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -184,6 +186,15 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
   Unit totals by type; Article completion % from the chosen whole/letters path
 - Final metrics: [`docs/learning-layer-report.md`](docs/learning-layer-report.md)
 - Tests: `tests/test_web_sprint5.py`
+
+### Sprint 6 — Design tokens ✅
+
+**Branch:** `cursor/sprint-6-design-tokens-1a75`
+
+- Design prototypes checked into [`docs/design/`](docs/design/) (interactive App, anatomy/mobile reference, HANDOFF, `support.js`)
+- CSS tokens match HANDOFF: ink `#141414`, muted `#6b6b6b`, faint `#9a9a9a`, hairline `#dcdcdc`, page `#ececea`, paper `#fff`, accent `#141414`, destructive `#B42318`
+- Flat page background (no cream gradients); square corners; primary CTAs use ink accent (legacy `.btn-green` aliases to accent)
+- Fraunces + Source Sans 3 unchanged; **no route or layout changes** (sheet chrome / Home restyle = Sprint 7–8)
 
 ### Split-choice behaviour (summary)
 

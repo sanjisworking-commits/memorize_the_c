@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ececea;font-family:"Source Sans 3","Segoe UI",sans-serif}
+a{color:#141414}a:hover{color:#0E7569}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 "Source Sans 3",sans-serif;color:#1a1a1a}
+.dv-note{margin:0 0 20px;font:400 12px/1.5 "Source Sans 3",sans-serif;color:rgba(0,0,0,.55);max-width:760px}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 "Source Sans 3",sans-serif;color:rgba(0,0,0,.55)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.dv-opt:target .dv-oid{background:#0E7569;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 "Source Sans 3",sans-serif;color:rgba(0,0,0,.5)}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t6">
+<div class="dv-thd"><a class="dv-tid" href="#t6">6</a><span class="dv-tname">Consolidated — everything approved lives in the interactive prototype</span></div>
+<p class="dv-note">All approved full-page designs (Home, Learn with six recall modes, Choose, Calendar, Progress, Browse → Learn) are now one working prototype: <a href="Constitution Memorizer App.dc.html" style="font-weight:700">Constitution Memorizer App.dc.html</a>. The static page cards were removed as redundant. Kept below: the mobile layout (<a class="dv-oid" href="#1b">1b</a>) and the unit-anatomy spec (<a class="dv-oid" href="#4a">4a</a>–<a class="dv-oid" href="#4c">4c</a>) — reference material not covered by the desktop prototype.</p>
+</section>
+
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Learn unit anatomy — Article vs numbered clause vs lettered subclause</span></div>
+<p class="dv-note">Same card, three scopes. The breadcrumb strip and sequence rail change with unit type: an Article stands alone; a clause shows its siblings (1)–(6); a lettered unit shows the shared stem grayed above it and walks (a)→(g).</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4a"><div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>ARTICLE — whole article, one unit</div>
+<div class="dv-card" data-screen-label="Unit article" style="width:560px;background:#fff">
+  <div style="padding:26px 28px 30px">
+    <div style="display:flex;align-items:center;gap:8px;margin:0 0 14px;flex-wrap:wrap">
+      <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#fff;background:#141414;padding:3px 8px">Article</span>
+      <span style="font-size:12px;color:#6b6b6b">Part III — Fundamental Rights</span>
+    </div>
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:31px;line-height:1.1;letter-spacing:-0.02em;margin:0 0 3px;color:#141414;font-weight:700">Article 21</h2>
+    <p style="margin:0 0 20px;color:#6b6b6b;font-size:15px">Protection of life and personal liberty.</p>
+    <div style="border-top:1px solid #141414;border-bottom:1px solid #dcdcdc;padding:18px 0">
+      <p style="font-size:17px;line-height:1.7;margin:0;color:#141414">No person shall be deprived of his life or personal liberty except according to procedure established by law.</p>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;font-size:12.5px;color:#6b6b6b">
+      <span>← Article 20(3)</span>
+      <span style="font-weight:600;color:#141414">1 unit · whole article</span>
+      <span>Article 22(1) →</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid #dcdcdc">
+      <button style="background:{{accent}};color:#fff;border:1px solid transparent;padding:11px 22px;font:inherit;font-size:14px;font-weight:700;cursor:pointer" style-hover="filter:brightness(0.88)">Done — next unit</button>
+      <span style="flex:1;font-size:12.5px;color:#6b6b6b">new · ~25s · difficulty 2/5</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="4b"><div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>CLAUSE — one numbered clause of Article 15</div>
+<div class="dv-card" data-screen-label="Unit clause" style="width:560px;background:#fff">
+  <div style="padding:26px 28px 30px">
+    <div style="display:flex;align-items:center;gap:8px;margin:0 0 14px;flex-wrap:wrap">
+      <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#fff;background:#141414;padding:3px 8px">Clause</span>
+      <span style="font-size:12px;color:#6b6b6b">Part III · <a href="#4a" style="color:#6b6b6b;font-weight:600;text-decoration:underline" style-hover="color:#141414">Article 15</a> — Prohibition of discrimination…</span>
+    </div>
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:31px;line-height:1.1;letter-spacing:-0.02em;margin:0 0 14px;color:#141414;font-weight:700">Article 15(1)</h2>
+    <div style="display:flex;gap:4px;margin:0 0 18px">
+      <span style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;background:#141414;color:#fff">(1)</span>
+      <a href="#4b" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(2)</a>
+      <a href="#4b" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(3)</a>
+      <a href="#4b" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(4)</a>
+      <a href="#4b" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(5)</a>
+      <a href="#4b" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(6)</a>
+    </div>
+    <div style="border-top:1px solid #141414;border-bottom:1px solid #dcdcdc;padding:18px 0">
+      <p style="font-size:17px;line-height:1.7;margin:0;color:#141414"><span style="font-weight:700">(1)</span> The State shall not discriminate against any citizen on grounds only of religion, race, caste, sex, place of birth or any of them.</p>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;font-size:12.5px;color:#6b6b6b">
+      <span>← Article 14</span>
+      <span style="font-weight:600;color:#141414">clause 1 of 6</span>
+      <span>Article 15(2) →</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid #dcdcdc">
+      <button style="background:{{accent}};color:#fff;border:1px solid transparent;padding:11px 22px;font:inherit;font-size:14px;font-weight:700;cursor:pointer" style-hover="filter:brightness(0.88)">Done — next unit</button>
+      <span style="flex:1;font-size:12.5px;color:#6b6b6b">review · completed 2× · next Jul 27</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="4c"><div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a>SUBCLAUSE — one letter of Article 19(1), stem shown for context</div>
+<div class="dv-card" data-screen-label="Unit subclause" style="width:560px;background:#fff">
+  <div style="padding:26px 28px 30px">
+    <div style="display:flex;align-items:center;gap:8px;margin:0 0 14px;flex-wrap:wrap">
+      <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#fff;background:#141414;padding:3px 8px">Subclause</span>
+      <span style="font-size:12px;color:#6b6b6b">Part III · <a href="#4b" style="color:#6b6b6b;font-weight:600;text-decoration:underline" style-hover="color:#141414">Article 19(1)</a> · letters</span>
+    </div>
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:31px;line-height:1.1;letter-spacing:-0.02em;margin:0 0 14px;color:#141414;font-weight:700">Article 19(1)(a)</h2>
+    <div style="display:flex;gap:4px;margin:0 0 18px">
+      <span style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;background:{{accent}};color:#fff">(a)</span>
+      <a href="#4c" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(b)</a>
+      <a href="#4c" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(c)</a>
+      <a href="#4c" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(d)</a>
+      <a href="#4c" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(e)</a>
+      <a href="#4c" style="width:34px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;border:1px solid #c9c9c7;color:#141414;text-decoration:none" style-hover="border-color:#141414">(g)</a>
+    </div>
+    <div style="border-top:1px solid #141414;border-bottom:1px solid #dcdcdc;padding:18px 0">
+      <p style="font-size:14.5px;line-height:1.6;margin:0 0 10px;color:#9a9a9a">(1) All citizens shall have the right—</p>
+      <p style="font-size:17px;line-height:1.7;margin:0;color:#141414"><span style="font-weight:700">(a)</span> to freedom of speech and expression;</p>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;font-size:12.5px;color:#6b6b6b">
+      <span style="color:#c4c4c2">← first letter</span>
+      <span style="font-weight:600;color:#141414">letter 1 of 6</span>
+      <span>Article 19(1)(b) →</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid #dcdcdc">
+      <button style="background:{{accent}};color:#fff;border:1px solid transparent;padding:11px 22px;font:inherit;font-size:14px;font-weight:700;cursor:pointer" style-hover="filter:brightness(0.88)">Done — next letter</button>
+      <span style="flex:1;font-size:12.5px;color:#6b6b6b">new · ~15s · difficulty 1/5</span>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Mobile layout — Learn, cloze mode</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Learn — mobile (390px), cloze mode</div>
+<div class="dv-card" data-screen-label="Learn mobile" style="width:390px;background:#fff;display:flex;flex-direction:column;min-height:700px">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #141414">
+    <span style="font-family:Fraunces,Georgia,serif;font-size:16px;font-weight:700;letter-spacing:-0.02em;color:#141414">Constitution Memorizer</span>
+    <span style="font-size:12px;font-weight:700;color:#fff;background:{{accent}};padding:3px 9px">3 due</span>
+  </div>
+  <div style="height:3px;background:#e5e5e4"><div style="height:3px;width:43%;background:{{accent}}"></div></div>
+  <div style="flex:1;padding:22px 16px">
+    <p style="margin:0 0 4px;text-transform:uppercase;letter-spacing:0.08em;font-size:10.5px;font-weight:700;color:#6b6b6b">Article · Part III</p>
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:29px;line-height:1.1;letter-spacing:-0.02em;margin:0 0 3px;color:#141414;font-weight:700">Article 14</h2>
+    <p style="margin:0 0 18px;color:#6b6b6b;font-size:15px">Equality before law.</p>
+    <div style="display:flex;gap:2px;border-bottom:1px solid #dcdcdc;overflow:hidden">
+      <span style="border-bottom:2px solid transparent;padding:11px 10px;font-size:13px;font-weight:600;color:#6b6b6b">Read</span>
+      <span style="border-bottom:2px solid #141414;margin-bottom:-1px;padding:11px 10px;font-size:13px;font-weight:700;color:#141414">Cloze</span>
+      <span style="border-bottom:2px solid transparent;padding:11px 10px;font-size:13px;font-weight:600;color:#6b6b6b">Letters</span>
+      <span style="border-bottom:2px solid transparent;padding:11px 10px;font-size:13px;font-weight:600;color:#6b6b6b">Type</span>
+      <span style="border-bottom:2px solid transparent;padding:11px 10px;font-size:13px;font-weight:600;color:#6b6b6b">Recite</span>
+    </div>
+    <p style="font-size:17px;line-height:2;color:#141414;margin:20px 0 0">The <span style="color:transparent;border-bottom:2px solid #141414">State</span> shall not <span style="color:transparent;border-bottom:2px solid #141414">deny</span> to any person <span style="color:{{accent}};font-weight:600">equality</span> before the <span style="color:transparent;border-bottom:2px solid #141414">law</span> or the <span style="color:transparent;border-bottom:2px solid #141414">equal</span> <span style="color:transparent;border-bottom:2px solid #141414">protection</span> of the laws within the <span style="color:transparent;border-bottom:2px solid #141414">territory</span> of India.</p>
+    <p style="font-size:12.5px;color:#6b6b6b;margin:16px 0 0">6 hidden — tap a blank to reveal</p>
+  </div>
+  <div style="display:flex;gap:10px;padding:12px 16px 20px;border-top:1px solid #dcdcdc;background:#fff">
+    <button style="flex:1;height:48px;background:none;border:1px solid #c9c9c7;font:inherit;font-size:15px;font-weight:600;color:#141414;cursor:pointer">Again</button>
+    <button style="flex:2;height:48px;background:{{accent}};color:#fff;border:1px solid transparent;font:inherit;font-size:15px;font-weight:700;cursor:pointer">Done</button>
+  </div>
+</div>
+</div>
+
+</div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#0E7569&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;#0E7569&quot;, &quot;#B42318&quot;, &quot;#141414&quot;], &quot;section&quot;: &quot;Theme&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#0E7569' };
+  }
+}
+</script>
+</body>
+</html>

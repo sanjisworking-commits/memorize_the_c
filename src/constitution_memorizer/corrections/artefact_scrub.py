@@ -12,6 +12,27 @@ _MULTI_SPACE_RE = re.compile(r"[^\S\n\r]{2,}")
 _MULTI_BLANK_RE = re.compile(r"\n{3,}")
 _LEADING_DASH_RE = re.compile(r"(?m)^-\s+")
 _TRAILING_DASH_RE = re.compile(r"[ \t]+-[ \t]*$", re.MULTILINE)
+# Diglot page running header glued into body, e.g. "(Part II.-Citizenship)".
+_PART_RUNNING_HEADER_RE = re.compile(
+    r"\s*\(Part\s+[IVXLC]+[A-Z]?\s*\.?\s*-\s*[^)]+\)\s*",
+    re.IGNORECASE,
+)
+_WS_RE = re.compile(r"\s+")
+_CLAUSE_ONE_IN_BODY_RE = re.compile(r"(?:^|\n)\(1\)\s")
+_CLAUSE_LABEL_RE = re.compile(r"^\((\d+)([A-Za-z]*)\)$")
+# Diglot Part III (and similar) subsection titles glued onto article bodies.
+_TRAILING_SECTION_HEADER_RE = re.compile(
+    r"\s+(?:"
+    r"Right to Equality|"
+    r"Right to Freedom|"
+    r"Right against Exploitation|"
+    r"Right to Freedom of Religion|"
+    r"Cultural and Educational Rights|"
+    r"Saving of Certain Laws|"
+    r"Right to Constitutional Remedies"
+    r")\s*$",
+    re.IGNORECASE,
+)
 
 
 def scrub_display_text(text: str) -> str:
@@ -31,6 +52,124 @@ def scrub_display_text(text: str) -> str:
     cleaned = _MULTI_BLANK_RE.sub("\n\n", cleaned)
     cleaned = "\n".join(line.rstrip() for line in cleaned.split("\n"))
     return cleaned.strip()
+
+
+def strip_part_running_headers(text: str) -> str:
+    """Remove diglot Part running headers glued into article text."""
+    if not text:
+        return text
+    cleaned = _PART_RUNNING_HEADER_RE.sub(" ", text)
+    cleaned = _MULTI_SPACE_RE.sub(" ", cleaned)
+    cleaned = _MULTI_BLANK_RE.sub("\n\n", cleaned)
+    return cleaned.strip()
+
+
+def _norm_ws(text: str) -> str:
+    return _WS_RE.sub(" ", text).strip()
+
+
+def fragment_already_present(haystack: str, fragment: str) -> bool:
+    """True when fragment (or a long prefix) already appears in haystack."""
+    hay = _norm_ws(haystack)
+    frag = _norm_ws(fragment)
+    if not frag:
+        return True
+    if not hay:
+        return False
+    if frag in hay:
+        return True
+    if len(frag) >= 60 and frag[:80] in hay:
+        return True
+    return False
+
+
+def strip_trailing_section_headers(text: str) -> str:
+    """Remove subsection titles glued after the last sentence of an article."""
+    if not text:
+        return text
+    cleaned = _TRAILING_SECTION_HEADER_RE.sub("", text).rstrip()
+    return cleaned.strip()
+
+
+def clauses_skip_leading_clause_one(article: Article) -> bool:
+    """
+    True when body_text includes clause (1) but structured clauses start later.
+
+    Browse/Learn prefer ``article.clauses`` over ``body_text``, so a missing
+    ``(1)`` node drops the first clause from display even though it is present
+    in the flat body (common Docling/diglot artefact, e.g. Article 18).
+    """
+    body = article.body_text or ""
+    if not article.clauses:
+        return False
+    if not (
+        _CLAUSE_ONE_IN_BODY_RE.search(body) or body.lstrip().startswith("(1)")
+    ):
+        return False
+    saw_later = False
+    for clause in article.clauses:
+        label = (clause.label or "").strip()
+        if label == "(1)":
+            return False
+        match = _CLAUSE_LABEL_RE.match(label)
+        if not match:
+            continue
+        number = int(match.group(1))
+        suffix = match.group(2)
+        if number == 1 and suffix:
+            saw_later = True
+        elif number >= 2:
+            saw_later = True
+    return saw_later
+
+
+def _extract_clause_one_text(body: str) -> str | None:
+    """Return clause (1) wording from flat body_text, without the '(1)' label."""
+    match = re.search(
+        r"(?:^|\n)\(1\)\s*(.*?)(?=\n\(\d+[A-Za-z]*\)\s|\Z)",
+        body,
+        re.S,
+    )
+    if not match:
+        return None
+    text = match.group(1).strip()
+    return text or None
+
+
+def _prefer_body_when_clauses_skip_one(article: Article) -> str | None:
+    """
+    Recover leading clause (1) when structured clauses start at (2)+.
+
+    Prefer the flat body when it already contains the later clauses. Otherwise
+    prepend a synthetic (1) node taken from body_text so Browse/Learn keep the
+    richer clause tree.
+    """
+    if not clauses_skip_leading_clause_one(article):
+        return None
+    clause_chars = 0
+    stack = list(article.clauses)
+    while stack:
+        node = stack.pop()
+        clause_chars += len(node.text or "")
+        stack.extend(node.children)
+    body_chars = len(article.body_text or "")
+    if body_chars >= max(40, int(clause_chars * 0.6)):
+        article.clauses = []
+        return "cleared clauses missing leading (1); prefer body_text"
+
+    clause_one = _extract_clause_one_text(article.body_text or "")
+    if not clause_one:
+        return None
+    article.clauses.insert(
+        0,
+        ProvisionNode(
+            id=f"{article.id}-clause-1",
+            label="(1)",
+            label_type="numeric",
+            text=clause_one,
+        ),
+    )
+    return "prepended clause (1) from body_text onto incomplete clause tree"
 
 
 def _scrub_provision(node: ProvisionNode) -> bool:
@@ -79,12 +218,50 @@ def _dedupe_opening_against_body(article: Article) -> str | None:
     return None
 
 
+def _dedupe_list_against_body(
+    article: Article,
+    field_name: str,
+) -> list[str]:
+    """
+    Drop provisos/explanations already present in body/opening.
+
+    Browse and Learn append these arrays after body_text; when the parser
+    also left the same proviso inside body_text, the UI shows it twice.
+    """
+    notes: list[str] = []
+    values: list[str] = getattr(article, field_name)
+    if not values:
+        return notes
+    blob = f"{article.opening_text}\n{article.body_text}"
+    kept: list[str] = []
+    dropped = 0
+    for item in values:
+        cleaned = scrub_display_text(item)
+        if not cleaned:
+            dropped += 1
+            continue
+        if fragment_already_present(blob, cleaned):
+            dropped += 1
+            continue
+        kept.append(cleaned)
+    if dropped or kept != values:
+        setattr(article, field_name, kept)
+        if dropped:
+            notes.append(
+                f"{article.id}: dropped {dropped} duplicate/empty {field_name}"
+            )
+    return notes
+
+
 def scrub_article(article: Article) -> list[str]:
     """Scrub one article; return human-readable change notes."""
     notes: list[str] = []
     for field in ("opening_text", "body_text"):
         raw = getattr(article, field) or ""
         cleaned = scrub_display_text(raw)
+        cleaned = strip_part_running_headers(cleaned)
+        if field == "body_text":
+            cleaned = strip_trailing_section_headers(cleaned)
         if cleaned != raw:
             setattr(article, field, cleaned)
             notes.append(f"{article.id}: scrubbed {field}")
@@ -106,9 +283,16 @@ def scrub_article(article: Article) -> list[str]:
             article.explanations[index] = cleaned
             notes.append(f"{article.id}: scrubbed explanation")
 
+    notes.extend(_dedupe_list_against_body(article, "provisos"))
+    notes.extend(_dedupe_list_against_body(article, "explanations"))
+
     for clause in article.clauses:
         if _scrub_provision(clause):
             notes.append(f"{article.id}: scrubbed clause text")
+
+    prefer_body = _prefer_body_when_clauses_skip_one(article)
+    if prefer_body:
+        notes.append(f"{article.id}: {prefer_body}")
 
     dedupe = _dedupe_opening_against_body(article)
     if dedupe:

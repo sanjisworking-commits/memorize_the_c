@@ -2,7 +2,9 @@
 {% block title %}{{ unit.display_title }} · Learn{% endblock %}
 {% block content %}
 <section class="panel learn" data-unit-id="{{ unit.id }}">
-  <p class="eyebrow">{{ unit.type }}{% if unit.article_number %} · Article {{ unit.article_number }}{% endif %}</p>
+  <p class="eyebrow">
+    {% if part_label %}{{ part_label }} · {% endif %}{{ type_label }}{% if unit.article_number %} · Article {{ unit.article_number }}{% endif %}
+  </p>
   <h1 class="display">{{ unit.display_title }}</h1>
   {% if unit.title %}<p class="lede">{{ unit.title }}</p>{% endif %}
 

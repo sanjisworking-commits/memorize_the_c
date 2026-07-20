@@ -16,6 +16,14 @@ from constitution_memorizer.web.browse import (
     list_article_numbers,
     load_reviewed_document,
 )
+from constitution_memorizer.web.card_readiness import (
+    check_browse_article,
+    check_choose_unit,
+    check_learn_unit,
+    is_learn_ready,
+    part_label_from_tags,
+    type_label,
+)
 from constitution_memorizer.web.progress_stats import progress_dashboard
 from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
@@ -108,6 +116,20 @@ def create_app(
         if target is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
+        ready = check_learn_unit(target)
+        if not ready.ok:
+            return templates.TemplateResponse(
+                request,
+                "incomplete.html",
+                {
+                    "title": target.display_title or target.id,
+                    "readiness": ready,
+                    "unit": target,
+                    "type_label": type_label(target),
+                    "part_label": part_label_from_tags(target.tags or []),
+                },
+            )
+
         progress = eng.repo.get_progress(target.id)
         return templates.TemplateResponse(
             request,
@@ -115,6 +137,8 @@ def create_app(
             {
                 "unit": target,
                 "progress": progress,
+                "type_label": type_label(target),
+                "part_label": part_label_from_tags(target.tags or []),
             },
         )
 
@@ -150,6 +174,24 @@ def create_app(
         if existing is not None:
             target = eng.next_to_learn_from_clause(clause_id) or clause_id
             return RedirectResponse(url=f"/learn/{target}", status_code=303)
+        children = [
+            c
+            for cid in unit.child_unit_ids
+            if (c := eng.get_unit(cid)) is not None
+        ]
+        choose_ready = check_choose_unit(unit, children=children)
+        if not choose_ready.ok:
+            return templates.TemplateResponse(
+                request,
+                "incomplete.html",
+                {
+                    "title": unit.display_title or unit.id,
+                    "readiness": choose_ready,
+                    "unit": unit,
+                    "type_label": type_label(unit),
+                    "part_label": part_label_from_tags(unit.tags or []),
+                },
+            )
         return templates.TemplateResponse(
             request,
             "choose.html",
@@ -213,10 +255,16 @@ def create_app(
         view = build_article_view(eng, app.state.reviewed, article_number)
         if view is None:
             raise HTTPException(status_code=404, detail="Article not found")
+        readiness = check_browse_article(view)
+        ready_units = [u for u in view.learn_units if is_learn_ready(u)]
         return templates.TemplateResponse(
             request,
             "browse_article.html",
-            {"article": view},
+            {
+                "article": view,
+                "readiness": readiness,
+                "ready_learn_units": ready_units,
+            },
         )
 
     @app.get("/search", response_class=HTMLResponse)

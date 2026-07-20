@@ -6,6 +6,7 @@ from datetime import date
 
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitType
 from constitution_memorizer.progress.scheduler import ReminderEngine
+from constitution_memorizer.web.card_readiness import is_learn_ready
 
 
 def unit_visible_for_preference(engine: ReminderEngine, unit: LearningUnit) -> bool:
@@ -21,12 +22,6 @@ def unit_visible_for_preference(engine: ReminderEngine, unit: LearningUnit) -> b
 
 
 def resolve_learn_target(engine: ReminderEngine, unit_id: str) -> str:
-    """
-    Map a requested unit id to the concrete learn target.
-
-    Split-capable clauses with no preference should be handled by the choose route
-    before calling this.
-    """
     unit = engine.get_unit(unit_id)
     if unit is None:
         return unit_id
@@ -49,7 +44,7 @@ def due_checklist(
     *,
     as_of: date | None = None,
 ) -> list[LearningUnit]:
-    """Due review units, filtered by split preferences."""
+    """Due review units: preference + Learn readiness."""
     today = as_of or date.today()
     items: list[LearningUnit] = []
     for record in engine.due_today(as_of=today):
@@ -57,6 +52,8 @@ def due_checklist(
         if unit is None:
             continue
         if not unit_visible_for_preference(engine, unit):
+            continue
+        if not is_learn_ready(unit):
             continue
         items.append(unit)
     return items
@@ -67,7 +64,7 @@ def continue_unit_id(
     *,
     as_of: date | None = None,
 ) -> str | None:
-    """First non-mastered chain unit, respecting letter preferences."""
+    """First non-mastered ready chain unit."""
     today = as_of or date.today()
     chain = sorted(
         (u for u in engine.units.values() if u.revision_order > 0),
@@ -76,17 +73,19 @@ def continue_unit_id(
     for unit in chain:
         if not unit_visible_for_preference(engine, unit):
             continue
-        target_id = unit.id
         if unit.allows_letter_split:
             mode = engine.get_split_preference(unit.id)
             if mode is None:
-                return unit.id  # send to choose via /learn
+                return unit.id
             if mode == "letters":
                 target_id = engine.next_to_learn_from_clause(unit.id) or unit.id
                 target = engine.get_unit(target_id)
                 if target is None:
                     continue
                 unit = target
+
+        if not is_learn_ready(unit):
+            continue
 
         progress = engine.repo.get_progress(unit.id)
         if progress is None or progress.status == "new":
@@ -99,7 +98,6 @@ def continue_unit_id(
             and progress.next_revision <= today
         ):
             return unit.id
-        # In review but not yet due — keep scanning for a new unit further along.
         if progress.status == "review":
             continue
     return None

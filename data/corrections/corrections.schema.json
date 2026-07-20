@@ -25,7 +25,13 @@
           "part_number": { "type": ["string", "null"] },
           "chapter_number": { "type": ["string", "null"] },
           "manual_review_status": { "type": ["string", "null"] },
-          "body_text": { "type": ["string", "null"] }
+          "body_text": { "type": ["string", "null"] },
+          "opening_text": { "type": ["string", "null"] },
+          "clear_clauses": { "type": "boolean" },
+          "provisos": {
+            "type": ["array", "null"],
+            "items": { "type": "string" }
+          }
         }
       }
     }

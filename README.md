@@ -35,6 +35,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 16 | `cursor/sprint-16-learn-type-1a75` | Done |
 | Sprint 17 | `cursor/sprint-17-learn-recite-1a75` | Done |
 | Sprint 18 | `cursor/sprint-18-recite-voice-1a75` | Done |
+| Hotfix | `cursor/fix-articles-365-plus-1a75` | Done |
 | Sprints 14–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
@@ -346,6 +347,16 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - **20B / 20BA / 20BB / 20C:** Sixth Schedule paragraphs mis-parsed as Articles — `exclude` in corrections removes them from reviewed corpus, units, and Browse
 - Corrections overlay gains `exclude: true`; regenerate with `correct --force` then `generate-units --force`
 - Tests: `tests/test_browse_artefact_corrections.py`
+
+### Hotfix — Articles 365–395 ✅
+
+**Branch:** `cursor/fix-articles-365-plus-1a75`
+
+- Restored truncated/glued titles and bodies for **366–369, 371E, 372, 376–378, 394**
+- Created missing Part XXI/XXII articles: **370, 371, 371A–371D, 371F–371J, 372A, 393, 394A**
+- Normalized omitted **379–391** bodies to `[Omitted.]` (clears footnote junk on 383)
+- Source text taken from intermediate Markdown; regenerate with `correct --force` then `generate-units --force`
+- Tests: `tests/test_articles_365_plus_corrections.py`
 
 ### Hotfix — Articles 44 / 45 ✅
 

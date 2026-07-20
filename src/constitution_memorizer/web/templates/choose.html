@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Choose · {{ unit.display_title }}{% endblock %}
+{% block content %}
+<section class="panel choose">
+  <p class="eyebrow">Split choice</p>
+  <h1 class="display">{{ unit.display_title }}</h1>
+  <p class="lede">
+    This clause has lettered parts (a), (b), …. Learn it as one piece, or split into letters?
+  </p>
+
+  <div class="choose-actions">
+    <form method="post" action="/learn/{{ unit.id }}/choose">
+      <input type="hidden" name="mode" value="whole">
+      <button type="submit" class="btn btn-green">Learn whole clause</button>
+    </form>
+    <form method="post" action="/learn/{{ unit.id }}/choose">
+      <input type="hidden" name="mode" value="letters">
+      <button type="submit" class="btn btn-green-outline">Split into letters</button>
+    </form>
+  </div>
+
+  <p class="meta-line">{{ unit.child_unit_ids|length }} letter units available</p>
+</section>
+{% endblock %}

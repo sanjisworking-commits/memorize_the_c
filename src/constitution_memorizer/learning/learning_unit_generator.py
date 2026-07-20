@@ -76,13 +76,22 @@ def _article_full_text(article: Article) -> str:
     return "\n".join(c for c in chunks if c).strip()
 
 
-def _part_tags(part: Part) -> list[str]:
+def _part_tags(part: Part, article: Article | None = None) -> list[str]:
     tags: list[str] = []
-    if part.part_number and part.part_number != "UNKNOWN":
-        tags.append(f"Part {part.part_number}")
-    if part.title:
+    part_number = (
+        article.part_number
+        if article is not None and article.part_number
+        else part.part_number
+    )
+    if part_number and part_number != "UNKNOWN":
+        tags.append(f"Part {part_number}")
+    if part.title and not (
+        article is not None
+        and article.part_number
+        and article.part_number != part.part_number
+    ):
         tags.append(part.title.strip())
-    if part.part_number in _FUNDAMENTAL_RIGHTS_PARTS:
+    if part_number in _FUNDAMENTAL_RIGHTS_PARTS:
         tags.append("Fundamental Rights")
     return tags
 
@@ -175,7 +184,7 @@ def _resolve_clauses(article: Article) -> list[ProvisionNode]:
 
 def _units_for_article(part: Part, article: Article) -> list[LearningUnit]:
     """ARTICLE / CLAUSE units; SUBCLAUSE dual units when alphabetic children exist."""
-    tags = _part_tags(part)
+    tags = _part_tags(part, article)
     parent_article_id = article.id
     clauses = _resolve_clauses(article)
 

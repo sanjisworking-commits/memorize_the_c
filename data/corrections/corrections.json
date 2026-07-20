@@ -5,7 +5,24 @@
     "article-21a": {
       "title": "Right to education",
       "manual_review_status": "approved"
+    },
+    "article-1": {
+      "title": "Name and territory of the Union",
+      "part_number": "I",
+      "opening_text": "",
+      "body_text": "(1) India, that is Bharat, shall be a Union of States.\n(2) The States and the territories thereof shall be as specified in the First Schedule.\n(3) The territory of India shall comprise—\n(a) the territories of the States;\n(b) the Union territories specified in the First Schedule; and\n(c) such other territories as may be acquired.",
+      "manual_review_status": "approved"
+    },
+    "article-2": {
+      "title": "Admission or establishment of new States",
+      "part_number": "I",
+      "opening_text": "",
+      "body_text": "Parliament may by law admit into the Union, or establish, new States on such terms and conditions as it thinks fit.",
+      "manual_review_status": "approved"
     }
   },
-  "notes": []
+  "notes": [
+    "article-1: diglot preamble/amendment debris destroyed title and body; restored Bare Act clauses (1)–(3) from intermediate Markdown.",
+    "article-2: omitted Article 2A footnote was glued onto Article 2 body; stripped to the Bare Act sentence only."
+  ]
 }

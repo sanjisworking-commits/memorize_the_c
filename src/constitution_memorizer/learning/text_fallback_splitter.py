@@ -51,6 +51,11 @@ def split_flat_article_body(article_number: str, body: str) -> list[ProvisionNod
     for index, match in enumerate(matches):
         label = match.group("label")
         label_type = classify_label(label)
+        # Bare Act letter clauses (a)(b)(c)… — single c/d/l/m are letters, not Roman.
+        # Keep i/v/x as Roman so (i)(ii) nest under alphabetic parents.
+        if len(label) == 1 and label.isalpha() and label.islower():
+            if label not in {"i", "v", "x"}:
+                label_type = LabelType.ALPHABETIC
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
         segment = text[match.end() : end].strip()
 

@@ -229,6 +229,30 @@
       "opening_text": "",
       "body_text": "Notwithstanding anything contained in article 13, no law giving effect to the policy of the State towards securing the principles specified in clause (b) or clause (c) of article 39 shall be deemed to be void on the ground that it is inconsistent with, or takes away or abridges any of the rights conferred by article 14 or article 19:\nProvided that where such law is made by the Legislature of a State, the provisions of this article shall not apply thereto unless such law, having been reserved for the consideration of the President, has received his assent.",
       "manual_review_status": "approved"
+    },
+    "article-43a": {
+      "create": true,
+      "title": "Participation of workers in management of industries",
+      "part_number": "IV",
+      "opening_text": "",
+      "body_text": "The State shall take steps, by suitable legislation or in any other way, to secure the participation of workers in the management of undertakings, establishments or other organisations engaged in any industry.",
+      "manual_review_status": "approved"
+    },
+    "article-43b": {
+      "create": true,
+      "title": "Promotion of co-operative societies",
+      "part_number": "IV",
+      "opening_text": "",
+      "body_text": "The State shall endeavour to promote voluntary formation, autonomous functioning, democratic control and professional management of co-operative societies.",
+      "manual_review_status": "approved"
+    },
+    "article-48a": {
+      "create": true,
+      "title": "Protection and improvement of environment and safeguarding of forests and wild life",
+      "part_number": "IV",
+      "opening_text": "",
+      "body_text": "The State shall endeavour to protect and improve the environment and to safeguard the forests and wild life of the country.",
+      "manual_review_status": "approved"
     }
   },
   "notes": [
@@ -251,6 +275,7 @@
     "corpus scrub: also strips (Part ….-…) running headers and drops provisos/explanations already present in body_text (fixes Art 7-style Browse/Learn repetition).",
     "article-82 / 197 / 217 / 358: same incomplete hyphen-stem pattern; restored Bare Act bodies.",
     "article-18 / corpus: structured clauses often started at (2) while body retained (1); artefact_scrub clears those incomplete clause trees and strips trailing section headers (e.g. 'Right to Freedom') so Browse/Learn show clause (1).",
-    "article-31c: diglot body had footnote markers, glued omitted Art 31D, Minerva-Mills-invalid 'Part IV' wording, and Kesavananda-void declaration ouster; restored operative Bare Act (article 39(b)/(c); no declaration clause)."
+    "article-31c: diglot body had footnote markers, glued omitted Art 31D, Minerva-Mills-invalid 'Part IV' wording, and Kesavananda-void declaration ouster; restored operative Bare Act (article 39(b)/(c); no declaration clause).",
+    "article-43a / 43b / 48a: diglot footnote lines were never parsed into Articles; corrections.create inserts Bare Act DPSP nodes into Part IV. part_number corrections now also relocate articles into the matching Part list (fixes Art 45 still living under Part XXII)."
   ]
 }

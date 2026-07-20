@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ unit.display_title }} · Learn{% endblock %}
+{% block content %}
+<section class="panel learn" data-unit-id="{{ unit.id }}">
+  <p class="eyebrow">{{ unit.type }}{% if unit.article_number %} · Article {{ unit.article_number }}{% endif %}</p>
+  <h1 class="display">{{ unit.display_title }}</h1>
+  {% if unit.title %}<p class="lede">{{ unit.title }}</p>{% endif %}
+
+  <article class="unit-text">{{ unit.text }}</article>
+
+  {% if progress %}
+  <p class="meta-line">
+    Status: {{ progress.status }}
+    · completed {{ progress.times_completed }}×
+    {% if progress.next_revision %}· next {{ progress.next_revision }}{% endif %}
+  </p>
+  {% endif %}
+
+  <div class="actions">
+    <form method="post" action="/learn/{{ unit.id }}/done">
+      <button type="submit" class="btn btn-green">Done</button>
+    </form>
+    <form method="post" action="/learn/{{ unit.id }}/reset">
+      <button type="submit" class="btn btn-red">Reset</button>
+    </form>
+    <a class="btn btn-ghost" href="/">Home</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Home · Constitution Memorizer{% endblock %}
+{% block content %}
+<section class="panel home">
+  <h1 class="display">Today</h1>
+  <p class="lede">Revise due units, then continue along the Constitution.</p>
+
+  <div class="stat-line" aria-label="Progress summary">
+    <span>{{ stats.review }} in review</span>
+    <span>{{ stats.mastered }} mastered</span>
+    <span>{{ stats.split_preferences }} split choices</span>
+  </div>
+
+  {% if continue_unit %}
+  <p class="continue-row">
+    <a class="btn btn-green" href="/learn/{{ continue_unit.id }}">Learn · {{ continue_unit.display_title }}</a>
+  </p>
+  {% endif %}
+
+  <h2 class="section-title">Due</h2>
+  {% if due_units %}
+  <ul class="checklist">
+    {% for unit in due_units %}
+    <li>
+      <a class="checklist-item" href="/learn/{{ unit.id }}">
+        <span class="checklist-title">{{ unit.display_title }}</span>
+        <span class="checklist-meta">{{ unit.type }} · {{ unit.estimated_learning_time }}s</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">Nothing due today.</p>
+  {% endif %}
+
+  <form class="danger-row" method="post" action="/reset" onsubmit="return confirm('Reset all progress and split preferences?');">
+    <button type="submit" class="btn btn-red">Reset all progress</button>
+  </form>
+</section>
+{% endblock %}

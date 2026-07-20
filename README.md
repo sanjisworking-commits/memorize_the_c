@@ -16,7 +16,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 1 | `cursor/sprint-1-learning-unit-generator-1a75` | Done |
 | Sprint 2 | `cursor/sprint-2-alphabetic-fallback-1a75` | Done |
 | Sprint 3 | `cursor/sprint-3-sqlite-scheduler-1a75` | Done |
-| Sprint 4 | `cursor/sprint-4-learn-home-ui-1a75` | Planned |
+| Sprint 4 | `cursor/sprint-4-learn-home-ui-1a75` | Done |
 | Sprint 5 | `cursor/sprint-5-browse-search-progress-1a75` | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
@@ -128,10 +128,39 @@ print(engine.due_today())
 print(engine.stats())
 ```
 
-### Sprint 4 — Core learning UI (planned)
+### Sprint 4 — Core learning UI ✅
 
-- FastAPI + Jinja: Home / Learn / Done / split-choice
-- Monochrome UI; green Done/Learn; red Reset/danger
+**Branch:** `cursor/sprint-4-learn-home-ui-1a75`
+
+- Package `src/constitution_memorizer/web/` — FastAPI + Jinja2 + static CSS/JS
+- Routes:
+  - `GET /` — Home checklist (due units + continue; respects split preferences)
+  - `GET /learn/{unit_id}` — Learn card (redirects to choose when needed)
+  - `POST /learn/{unit_id}/done` — mark done → next unit
+  - `GET/POST /learn/{clause_id}/choose` — whole vs letters interstitial
+  - `POST /learn/{unit_id}/reset` / `POST /reset` — red reset controls
+  - `/browse`, `/search`, `/progress` — Sprint 5 stubs
+- Design: monochrome paper UI; **green** Done / Learn whole; **green outline** Split into letters; **red** Reset
+- CLI: `serve`
+- Deps: `fastapi`, `uvicorn`, `jinja2`, `python-multipart` (+ `httpx` for tests)
+- Tests: `tests/test_web_app.py`
+
+**Out of scope in Sprint 4:** full Browse / Search / Progress pages.
+
+### Serve the learning UI
+
+Requires `data/output/learning_units.json` (from `generate-units`).
+
+```bash
+python -m constitution_memorizer.cli serve \
+  --host 127.0.0.1 \
+  --port 8000 \
+  --output-dir data
+```
+
+Then open `http://127.0.0.1:8000/`. Progress is stored in `data/progress/progress.db`.
+
+Split-capable clauses open a Choose screen before learning. Choosing **letters** walks `(a)(b)…` units; **whole** keeps the clause-level path.
 
 ### Sprint 5 — Browse / Search / Progress (planned)
 
@@ -154,7 +183,7 @@ Editorial metadata, simplified explanations and memorisation aids must remain se
 ## Requirements
 
 - Python **3.10+** (developed against 3.12)
-- Dependencies listed in `requirements.txt` / `pyproject.toml` (`docling`, `pydantic`, `pytest`, `rapidfuzz`)
+- Dependencies listed in `requirements.txt` / `pyproject.toml` (`docling`, `pydantic`, `rapidfuzz`, `fastapi`, `uvicorn`, `jinja2`, `pytest`, `httpx`)
 
 ## Installation
 
@@ -303,6 +332,7 @@ pytest -m integration
 - Learning fixtures: `tests/fixtures/learning/`
 - Learning tests: `tests/test_learning_unit_generator.py`
 - Progress / scheduler tests: `tests/test_reminder_engine.py`
+- Web UI tests: `tests/test_web_app.py`
 
 Unit tests **do not** require running Docling on the full PDF.
 
@@ -364,6 +394,9 @@ src/constitution_memorizer/
   validation/       # Structural checks and reports
   learning/         # Learning Units generator (Sprints 1–2+)
   progress/         # SQLite progress + ReminderEngine (Sprint 3+)
+  web/              # FastAPI learning UI (Sprint 4+)
+    templates/
+    static/
   schemas.py        # Bare Act Pydantic models
   cli.py            # CLI entry
 tests/              # Pytest suite and fixtures

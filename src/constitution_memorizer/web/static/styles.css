@@ -534,6 +534,19 @@ a:hover {
   padding: 24px 0 4px;
 }
 
+/* Mode panels: CSS-driven so Card/Read never rely on hidden vs display:flex. */
+.learn-panel-card {
+  display: none;
+}
+
+.learn[data-mode="card"] .learn-panel-read {
+  display: none;
+}
+
+.learn[data-mode="card"] .learn-panel-card {
+  display: block;
+}
+
 .learn-stem {
   font-size: 14px;
   line-height: 1.6;
@@ -561,6 +574,7 @@ a:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   width: 100%;
   min-height: 210px;
   margin: 0;
@@ -582,7 +596,22 @@ a:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
   max-width: 540px;
+}
+
+.learn-card-back {
+  display: none;
+}
+
+.learn-card.is-flipped .learn-card-front,
+.learn-card[data-flipped="true"] .learn-card-front {
+  display: none;
+}
+
+.learn-card.is-flipped .learn-card-back,
+.learn-card[data-flipped="true"] .learn-card-back {
+  display: flex;
 }
 
 .learn-card-kind {
@@ -619,6 +648,7 @@ a:hover {
   white-space: pre-wrap;
   text-align: left;
   width: 100%;
+  color: var(--ink);
 }
 
 .learn-card-prompt {

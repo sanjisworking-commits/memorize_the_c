@@ -32,11 +32,22 @@ def test_learn_enables_card_tab_and_flashcard_markup(client: TestClient):
     assert "Tap to flip back" in html
     assert "learn-panel-card" in html
     assert 'data-learn-panel="card"' in html
-    # Card starts hidden; Read is default
     assert 'data-mode="read"' in html
-    # Other modes still stubbed
     assert "Coming in later sprints" in html
     assert "Cloze" in html
+    # Cache-bust static assets so Card CSS/JS load after deploy
+    assert "app.js?v=sprint13" in html
+    assert "styles.css?v=sprint13" in html
+
+
+def test_card_css_drives_panel_visibility(client: TestClient):
+    css = client.get("/static/styles.css?v=sprint13")
+    assert css.status_code == 200
+    text = css.text
+    assert ".learn[data-mode=\"card\"] .learn-panel-card" in text
+    assert ".learn-panel-card" in text
+    assert "display: none" in text
+    assert ".learn-card.is-flipped .learn-card-back" in text or '.learn-card[data-flipped="true"] .learn-card-back' in text
 
 
 def test_card_face_shows_title_and_hides_stem_panel(client: TestClient):
@@ -46,7 +57,6 @@ def test_card_face_shows_title_and_hides_stem_panel(client: TestClient):
     assert "learn-card-title" in html
     assert "Article 20(1)" in html
     assert "learn-card-kind" in html
-    # Stem (if any) lives under read panel only — card panel has no learn-stem
     card_start = html.index('data-learn-panel="card"')
     card_chunk = html[card_start : card_start + 1200]
     assert "learn-stem" not in card_chunk

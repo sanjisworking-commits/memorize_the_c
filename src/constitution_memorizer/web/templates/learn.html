@@ -65,24 +65,25 @@
     <p class="learn-hint">{{ read_hint }}</p>
   </div>
 
-  <div class="learn-body learn-panel-card" data-learn-panel="card" hidden>
-    <button
-      type="button"
+  <div class="learn-body learn-panel-card" data-learn-panel="card">
+    <div
       class="learn-card"
-      data-flipped="false"
+      role="button"
+      tabindex="0"
       aria-label="Flip flashcard"
+      data-flipped="false"
     >
-      <span class="learn-card-face learn-card-front">
-        <span class="learn-card-kind">{{ kind_badge }}</span>
-        <span class="learn-card-title">{{ unit.display_title }}</span>
-        {% if unit.title %}<span class="learn-card-sub">{{ unit.title }}</span>{% endif %}
-        <span class="learn-card-prompt">Recite it, then tap to check</span>
-      </span>
-      <span class="learn-card-face learn-card-back" hidden>
-        <span class="learn-card-text">{{ unit.text }}</span>
-        <span class="learn-card-prompt">Tap to flip back</span>
-      </span>
-    </button>
+      <div class="learn-card-face learn-card-front">
+        <p class="learn-card-kind">{{ kind_badge }}</p>
+        <p class="learn-card-title">{{ unit.display_title }}</p>
+        {% if unit.title %}<p class="learn-card-sub">{{ unit.title }}</p>{% endif %}
+        <p class="learn-card-prompt">Recite it, then tap to check</p>
+      </div>
+      <div class="learn-card-face learn-card-back">
+        <p class="learn-card-text">{{ unit.text }}</p>
+        <p class="learn-card-prompt">Tap to flip back</p>
+      </div>
+    </div>
   </div>
 
   <div class="learn-footer">

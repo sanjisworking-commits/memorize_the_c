@@ -157,13 +157,13 @@ Requires `data/output/learning_units.json` (from `generate-units`).
 ```bash
 python -m constitution_memorizer.cli serve \
   --host 127.0.0.1 \
-  --port 8000 \
+  --port 8001 \
   --output-dir data
 ```
 
 Optional paths: `--units`, `--db`, `--reviewed`.
 
-Then open `http://127.0.0.1:8000/`.
+Then open `http://127.0.0.1:8001/`.
 
 | Path | Role |
 |------|------|
@@ -289,23 +289,17 @@ python -m pytest -m "not integration" -q
 
 All tests must pass. If anything fails, do not merge.
 
-6. Start the learning UI:
-
-```bash
-python -m constitution_memorizer.cli serve --host 127.0.0.1 --port 8000
-```
-
-7. In your browser open: **http://127.0.0.1:8000/**
-
-You should see a flat grey page background (`#ececea`) and **black** Done / Continue buttons (not green). Stop the server with `Ctrl+C` in the Terminal.
-
-If port 8000 is busy:
+6. Start the learning UI (this project uses **port 8001** by default in these docs):
 
 ```bash
 python -m constitution_memorizer.cli serve --host 127.0.0.1 --port 8001
 ```
 
-Then open `http://127.0.0.1:8001/`.
+7. In your browser open: **http://127.0.0.1:8001/**
+
+You should see a flat grey page background (`#ececea`), a white paper sheet, and **black** nav / Done buttons (not green). Stop the server with `Ctrl+C` in the Terminal.
+
+If port 8001 is busy, pick another free port (e.g. `--port 8002`) and open that URL instead.
 
 ### Merge gate (every sprint)
 

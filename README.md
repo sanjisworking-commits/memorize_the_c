@@ -20,7 +20,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 5 | `cursor/sprint-5-browse-search-progress-1a75` | Done |
 | Sprint 6 | `cursor/sprint-6-design-tokens-1a75` | Done |
 | Sprint 7 | `cursor/sprint-7-sheet-nav-1a75` | Done |
-| Sprint 8 | `cursor/sprint-8-home-screen-1a75` | In progress |
+| Sprint 8 | `cursor/sprint-8-home-screen-1a75` | Done |
 | Sprints 9–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.

@@ -186,7 +186,8 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 **Branch:** `cursor/sprint-5-browse-search-progress-1a75`
 
 - **Browse** — `GET /browse`, `GET /browse/article/{number}`  
-  Full Article text from `constitution.reviewed.json` + Learn CTAs for that Article’s units
+  Full Article text from `constitution.reviewed.json` + Learn CTAs for that Article’s units  
+  Article cards also expose **← previous / next →** links in Browse order
 - **Search** — `GET /search?q=`  
   - `20` → browse Article  
   - `20(2)` → learn clause (or Choose if split-capable and unset)  

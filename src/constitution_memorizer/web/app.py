@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 
 from constitution_memorizer.progress.scheduler import ReminderEngine
 from constitution_memorizer.web.browse import (
+    adjacent_article_numbers,
     build_article_view,
     list_article_numbers,
     load_reviewed_document,
@@ -296,10 +297,17 @@ def create_app(
         view = build_article_view(eng, app.state.reviewed, article_number)
         if view is None:
             raise HTTPException(status_code=404, detail="Article not found")
+        prev_number, next_number = adjacent_article_numbers(
+            eng, app.state.reviewed, view.article_number
+        )
         return templates.TemplateResponse(
             request,
             "browse_article.html",
-            {"article": view},
+            {
+                "article": view,
+                "prev_article": prev_number,
+                "next_article": next_number,
+            },
         )
 
     @app.get("/search", response_class=HTMLResponse)

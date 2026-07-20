@@ -56,6 +56,8 @@ data/output/*
 !data/output/learning_units.min.json
 data/rejected/*
 !data/rejected/.gitkeep
+data/progress/*
+!data/progress/.gitkeep
 
 # Local config overrides
 config.local.json

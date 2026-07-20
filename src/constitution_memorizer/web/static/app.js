@@ -1,6 +1,6 @@
 /* Light progressive enhancement for the learning UI. */
 (function () {
-  const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "card"]);
+  const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "recite", "card"]);
   const DENSITY_THRESH = { light: 8, medium: 6, heavy: 4 };
   const EN_SPACE = "\u2002";
 
@@ -265,6 +265,83 @@
     };
   }
 
+  function initRecite(panel) {
+    if (!panel) {
+      return null;
+    }
+
+    const textEl = panel.querySelector(".learn-recite-text");
+    const toggle = panel.querySelector("[data-recite-toggle]");
+    const peekBtn = panel.querySelector("[data-recite-peek]");
+    let recOn = false;
+    let peeking = false;
+
+    function render() {
+      panel.setAttribute("data-recite-on", recOn ? "true" : "false");
+      panel.setAttribute("data-peeking", peeking ? "true" : "false");
+      if (textEl) {
+        textEl.classList.toggle("is-blurred", !peeking);
+      }
+      if (toggle) {
+        toggle.classList.toggle("is-active", recOn);
+        toggle.textContent = recOn ? "■ Stop reciting" : "▸ Start reciting";
+        toggle.setAttribute("aria-pressed", recOn ? "true" : "false");
+      }
+    }
+
+    function setPeek(next) {
+      peeking = next;
+      render();
+    }
+
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        recOn = !recOn;
+        render();
+      });
+    }
+
+    if (peekBtn) {
+      const startPeek = (event) => {
+        event.preventDefault();
+        setPeek(true);
+      };
+      const endPeek = (event) => {
+        event.preventDefault();
+        setPeek(false);
+      };
+      peekBtn.addEventListener("mousedown", startPeek);
+      peekBtn.addEventListener("mouseup", endPeek);
+      peekBtn.addEventListener("mouseleave", endPeek);
+      peekBtn.addEventListener("touchstart", startPeek, { passive: false });
+      peekBtn.addEventListener("touchend", endPeek);
+      peekBtn.addEventListener("touchcancel", endPeek);
+      peekBtn.addEventListener("keydown", (event) => {
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          setPeek(true);
+        }
+      });
+      peekBtn.addEventListener("keyup", (event) => {
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          setPeek(false);
+        }
+      });
+      peekBtn.addEventListener("blur", () => setPeek(false));
+    }
+
+    render();
+
+    return {
+      reset() {
+        recOn = false;
+        peeking = false;
+        render();
+      },
+    };
+  }
+
   function initLearn() {
     const learn = document.querySelector(".learn");
     if (!learn) {
@@ -277,9 +354,11 @@
     const clozePanel = learn.querySelector('[data-learn-panel="cloze"]');
     const lettersPanel = learn.querySelector('[data-learn-panel="letters"]');
     const typePanel = learn.querySelector('[data-learn-panel="type"]');
+    const recitePanel = learn.querySelector('[data-learn-panel="recite"]');
     const cloze = initCloze(clozePanel);
     const letters = initLetters(lettersPanel);
     const typeMode = initType(typePanel);
+    const recite = initRecite(recitePanel);
 
     function setFlipped(flipped) {
       if (!card) {
@@ -309,6 +388,9 @@
       }
       if (next === "type" && typeMode) {
         typeMode.reset();
+      }
+      if (next === "recite" && recite) {
+        recite.reset();
       }
       try {
         const url = new URL(window.location.href);

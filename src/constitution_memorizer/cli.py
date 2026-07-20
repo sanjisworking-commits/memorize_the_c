@@ -500,7 +500,8 @@ def cmd_generate_units(args: argparse.Namespace, config: PipelineConfig) -> int:
     print(
         f"Generated {stats['unit_count']} learning units "
         f"(avg_chars={stats['avg_chars']}, "
-        f"min={stats['min_chars']}, max={stats['max_chars']})"
+        f"min={stats['min_chars']}, max={stats['max_chars']}, "
+        f"split_capable={stats.get('allows_letter_split', 0)})"
     )
     for unit_type, count in sorted(stats["by_type"].items()):
         print(f"  {unit_type}: {count}")

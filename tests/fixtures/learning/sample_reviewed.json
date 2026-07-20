@@ -24,6 +24,15 @@
           "clauses": []
         },
         {
+          "id": "article-19",
+          "article_number": "19",
+          "numeric_component": 19,
+          "title": "Protection of certain rights regarding freedom of speech, etc.",
+          "part_number": "III",
+          "body_text": "(1) All citizens shall have the right-\n(a) to freedom of speech and expression;\n(b) to assemble peaceably and without arms;\n(2) Nothing in sub-clause (a) of clause (1) shall affect the operation of any existing law.",
+          "clauses": []
+        },
+        {
           "id": "article-20",
           "article_number": "20",
           "numeric_component": 20,
@@ -49,13 +58,35 @@
               "id": "article-20-clause-3",
               "label": "(3)",
               "label_type": "numeric",
-              "text": "No person accused of any offence shall be compelled to be a witness against himself.",
+              "text": "No person accused of any offence shall be compelled to be a witness against himself unless-",
               "children": [
                 {
-                  "id": "article-20-clause-3-a",
+                  "id": "article-20-clause-3-subclause-a",
                   "label": "(a)",
                   "label_type": "alphabetic",
-                  "text": "Nested alphabetic text is inlined in Sprint 1.",
+                  "text": "the accusation is in writing;",
+                  "children": [
+                    {
+                      "id": "article-20-clause-3-subclause-a-subclause-i",
+                      "label": "(i)",
+                      "label_type": "roman",
+                      "text": "filed before a court;",
+                      "children": []
+                    },
+                    {
+                      "id": "article-20-clause-3-subclause-a-subclause-ii",
+                      "label": "(ii)",
+                      "label_type": "roman",
+                      "text": "served on the accused;",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "article-20-clause-3-subclause-b",
+                  "label": "(b)",
+                  "label_type": "alphabetic",
+                  "text": "the person has counsel of choice.",
                   "children": []
                 }
               ]

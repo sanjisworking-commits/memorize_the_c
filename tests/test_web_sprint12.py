@@ -33,9 +33,11 @@ def test_learn_shows_again_tomorrow_and_sticky_markup(client: TestClient):
     assert response.status_code == 200
     assert "Again tomorrow" in response.text
     assert "learn-actions" in response.text
-    assert "label-short" in response.text
     assert 'action="/learn/clause-1/again"' in response.text
     assert "btn-ghost" in response.text
+    assert "Done — next unitDone" not in response.text
+    assert "Again tomorrowAgain" not in response.text
+    assert "label-short" not in response.text
 
 
 def test_again_tomorrow_defers_without_advancing_ladder(

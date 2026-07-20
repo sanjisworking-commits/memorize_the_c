@@ -179,6 +179,16 @@ class ProgressRepository:
             due.extend(_row_to_progress(r) for r in new_rows)
         return due
 
+    def list_all_progress(self) -> list[ProgressRecord]:
+        """Return every progress row (for calendar / dashboards)."""
+        rows = self._conn.execute(
+            """
+            SELECT * FROM learning_unit_progress
+            ORDER BY learning_unit_id ASC
+            """
+        ).fetchall()
+        return [_row_to_progress(r) for r in rows]
+
     def count_by_status(self) -> dict[str, int]:
         rows = self._conn.execute(
             """

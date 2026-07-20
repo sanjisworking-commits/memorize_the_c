@@ -32,11 +32,11 @@ def test_sheet_chrome_and_nav_links(client: TestClient):
     assert "nav-link is-active" in response.text
 
 
-def test_calendar_stub_page(client: TestClient):
+def test_calendar_page(client: TestClient):
     response = client.get("/calendar")
     assert response.status_code == 200
     assert "Calendar" in response.text
-    assert "Sprint 18" in response.text
+    assert "calendar-grid" in response.text
     assert 'href="/calendar"' in response.text
     assert "is-active" in response.text
 

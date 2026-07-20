@@ -22,6 +22,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 7 | `cursor/sprint-7-sheet-nav-1a75` | Done |
 | Sprint 8 | `cursor/sprint-8-home-screen-1a75` | Done |
 | Hotfix | `cursor/fix-articles-1-2-1a75` | Done |
+| Hotfix | `cursor/fix-browse-artefacts-1a75` | Done |
 | Sprint 9 | `cursor/sprint-9-choose-incomplete-1a75` | Done |
 | Sprint 10 | `cursor/sprint-10-learn-read-1a75` | Done |
 | Sprint 11 | `cursor/sprint-11-sibling-rails-1a75` | Done |
@@ -248,6 +249,16 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Gray parent stem above letter text (Bare Act wording with letter bodies removed)
 - CTA becomes **Done — next letter** while a letter sequence continues
 - Tests: `tests/test_web_sprint11.py`
+
+### Hotfix — Browse / Learn corpus artefacts ✅
+
+**Branch:** `cursor/fix-browse-artefacts-1a75`
+
+- **Article 201:** cleared duplicated `opening_text` so Browse/Learn no longer repeat the first sentence
+- **Article 124:** restored Bare Act clauses (1)–(7); removed `<!-- formula-not-decoded -->`, private-use glyphs, and footnote debris
+- **20B / 20BA / 20BB / 20C:** Sixth Schedule paragraphs mis-parsed as Articles — `exclude` in corrections removes them from reviewed corpus, units, and Browse
+- Corrections overlay gains `exclude: true`; regenerate with `correct --force` then `generate-units --force`
+- Tests: `tests/test_browse_artefact_corrections.py`
 
 ### Split-choice behaviour (summary)
 

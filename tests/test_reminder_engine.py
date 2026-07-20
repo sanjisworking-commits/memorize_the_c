@@ -114,6 +114,16 @@ def test_interval_ladder_and_mastered_sentinel():
     assert INTERVAL_LADDER == (1, 3, 7, 14, 30, 60)
 
 
+def test_defer_until_tomorrow_does_not_advance_ladder(engine: ReminderEngine):
+    day0 = date(2026, 7, 20)
+    engine.mark_done("clause-1", as_of=day0)
+    deferred = engine.defer_until_tomorrow("clause-1", as_of=day0)
+    assert deferred.progress.times_completed == 1
+    assert deferred.progress.interval_days == 1
+    assert deferred.progress.next_revision == day0 + timedelta(days=1)
+    assert deferred.next_unit_id == "clause-2"
+
+
 def test_mark_done_advances_new_to_review_intervals(engine: ReminderEngine):
     day0 = date(2026, 7, 20)
     result = engine.mark_done("clause-1", as_of=day0)

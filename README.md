@@ -27,7 +27,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 9 | `cursor/sprint-9-choose-incomplete-1a75` | Done |
 | Sprint 10 | `cursor/sprint-10-learn-read-1a75` | Done |
 | Sprint 11 | `cursor/sprint-11-sibling-rails-1a75` | Done |
-| Sprints 12–20 | design prototype (see plan) | Planned |
+| Sprint 12 | `cursor/sprint-12-again-tomorrow-1a75` | Done |
+| Sprints 13–20 | design prototype (see plan) | Planned |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -238,7 +239,7 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 
 - Learn **Read** mode: session bar, type badge (Article/Clause/Subclause), Part crumb, Fraunces title, verbatim body, meta line
 - Mode tab strip (Read active; other modes disabled until later sprints)
-- Ink **Done — next unit** + text Reset unit (Again tomorrow in Sprint 12)
+- Ink **Done — next unit** + text Reset unit; **Again tomorrow** (Sprint 12)
 - Tests: `tests/test_web_sprint10.py`
 
 ### Sprint 11 — Sibling rails + subclause stem ✅
@@ -250,6 +251,15 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Gray parent stem above letter text (Bare Act wording with letter bodies removed)
 - CTA becomes **Done — next letter** while a letter sequence continues
 - Tests: `tests/test_web_sprint11.py`
+
+### Sprint 12 — Again tomorrow + mobile sticky footer ✅
+
+**Branch:** `cursor/sprint-12-again-tomorrow-1a75`
+
+- Ghost **Again tomorrow** defers the unit to tomorrow without advancing the mastery ladder, then moves to the next unit
+- Learn footer: Done + Again (+ meta + Reset); mobile sticky bar with 48px **Again** / **Done** targets
+- Engine: `ReminderEngine.defer_until_tomorrow`
+- Tests: `tests/test_web_sprint12.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

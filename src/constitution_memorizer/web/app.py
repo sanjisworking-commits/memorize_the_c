@@ -195,18 +195,30 @@ def create_app(
         if eng.get_unit(unit_id) is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
         result = eng.mark_done(unit_id, as_of=date.today())
-        if result.next_unit_id and eng.get_unit(result.next_unit_id):
-            nxt = eng.get_unit(result.next_unit_id)
+        return _redirect_after_learn(eng, result.next_unit_id)
+
+    @app.post("/learn/{unit_id}/again")
+    async def learn_again(unit_id: str) -> RedirectResponse:
+        """Defer this unit until tomorrow, then advance to the next unit."""
+        eng = _engine()
+        if eng.get_unit(unit_id) is None:
+            raise HTTPException(status_code=404, detail="Learning unit not found")
+        result = eng.defer_until_tomorrow(unit_id, as_of=date.today())
+        return _redirect_after_learn(eng, result.next_unit_id)
+
+    def _redirect_after_learn(
+        eng: ReminderEngine,
+        next_unit_id: str | None,
+    ) -> RedirectResponse:
+        if next_unit_id and eng.get_unit(next_unit_id):
+            nxt = eng.get_unit(next_unit_id)
             assert nxt is not None
             if needs_split_choice(eng, nxt):
                 return RedirectResponse(
-                    url=f"/learn/{result.next_unit_id}/choose",
+                    url=f"/learn/{next_unit_id}/choose",
                     status_code=303,
                 )
-            return RedirectResponse(
-                url=f"/learn/{result.next_unit_id}",
-                status_code=303,
-            )
+            return RedirectResponse(url=f"/learn/{next_unit_id}", status_code=303)
         return RedirectResponse(url="/", status_code=303)
 
     @app.get("/learn/{clause_id}/choose", response_class=HTMLResponse)

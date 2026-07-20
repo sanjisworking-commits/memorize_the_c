@@ -56,4 +56,6 @@ def test_learn_read_anatomy(client: TestClient):
     assert "Bare Act wording, verbatim" in response.text
     assert "LearningUnitType" not in response.text
     assert "btn-green" not in response.text
-    assert "Again tomorrow" not in response.text
+    assert "Again tomorrow" in response.text
+    assert 'action="/learn/clause-1/again"' in response.text
+    assert "learn-actions" in response.text

@@ -143,6 +143,42 @@ class ReminderEngine:
             next_unit_id=self.resolve_next_unit_id(unit_id),
         )
 
+    def defer_until_tomorrow(
+        self,
+        unit_id: str,
+        *,
+        as_of: date | None = None,
+    ) -> MarkDoneResult:
+        """
+        Schedule the unit for tomorrow without advancing the mastery ladder.
+
+        Does not increment times_completed. Mastered units are left unchanged
+        (navigation still advances to the next unit).
+        """
+        if unit_id not in self.units:
+            raise KeyError(f"Unknown learning unit id: {unit_id}")
+
+        today = as_of or date.today()
+        current = self.repo.ensure_progress(unit_id)
+        if current.status == "mastered":
+            progress = current
+        else:
+            progress = self.repo.upsert_progress(
+                unit_id=unit_id,
+                status="review",
+                times_completed=current.times_completed,
+                last_completed=current.last_completed,
+                next_revision=today + timedelta(days=1),
+                interval_days=current.interval_days if current.interval_days > 0 else 1,
+                ease_factor=current.ease_factor or DEFAULT_EASE_FACTOR,
+            )
+
+        return MarkDoneResult(
+            unit_id=unit_id,
+            progress=progress,
+            next_unit_id=self.resolve_next_unit_id(unit_id),
+        )
+
     def resolve_next_unit_id(self, unit_id: str) -> str | None:
         """
         Preference-aware successor after studying unit_id.

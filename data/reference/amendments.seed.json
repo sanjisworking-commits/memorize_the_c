@@ -1,6 +1,101 @@
 {
   "schema_version": "1.0.0",
+  "source": {
+    "catalog": "data/reference/amendments.wikipedia.json",
+    "url": "https://en.wikipedia.org/wiki/List_of_amendments_of_the_Constitution_of_India",
+    "note": "Article timelines curated for Recall C Browse/Learn. Memorise current Bare Act wording."
+  },
   "articles": {
+    "1": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "2": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "3": {
+      "amendments": [
+        {
+          "no": "5th",
+          "year": "1955",
+          "text": "Amended by the 5th Amendment (1955) — President may prescribe/extend time for State Legislatures to respond on State formation bills."
+        },
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        },
+        {
+          "no": "18th",
+          "year": "1966",
+          "text": "Amended by the 18th Amendment (1966) — Union Territories included in Article 3 reorganisation power."
+        }
+      ],
+      "learn_note": null
+    },
+    "4": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        },
+        {
+          "no": "14th",
+          "year": "1962",
+          "text": "Amended by the 14th Amendment (1962) — Pondicherry incorporated; assemblies for certain Union Territories."
+        },
+        {
+          "no": "36th",
+          "year": "1975",
+          "text": "Amended by the 36th Amendment (1975) — Sikkim became a State; Article 371F special provisions."
+        }
+      ],
+      "learn_note": null
+    },
+    "6": {
+      "amendments": [
+        {
+          "no": "49th",
+          "year": "1984",
+          "text": "Amended by the 49th Amendment (1984) — Tripura tribal areas autonomous district council enabled."
+        }
+      ],
+      "learn_note": null
+    },
+    "7": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "13": {
+      "amendments": [
+        {
+          "no": "24th",
+          "year": "1971",
+          "text": "Amended by the 24th Amendment (1971) — Parliament empowered to amend Fundamental Rights; presidential assent to amendment bills made obligatory."
+        }
+      ],
+      "learn_note": null
+    },
     "14": {
       "amendments": [],
       "learn_note": null
@@ -24,6 +119,26 @@
         }
       ],
       "learn_note": "Amended thrice — clauses (4)–(6) were added by the 1st, 93rd and 103rd Amendments. See Amendment history under Browse."
+    },
+    "16": {
+      "amendments": [
+        {
+          "no": "77th",
+          "year": "1995",
+          "text": "Amended by the 77th Amendment (1995) — Protected reservation in promotions for SCs/STs."
+        },
+        {
+          "no": "81st",
+          "year": "2000",
+          "text": "Amended by the 81st Amendment (2000) — Protected filling SC/ST reservation backlog vacancies."
+        },
+        {
+          "no": "85th",
+          "year": "2002",
+          "text": "Amended by the 85th Amendment (2002) — Protected consequential seniority for SC/ST promotees."
+        }
+      ],
+      "learn_note": "Promotion/reservation clauses (4A)/(4B)/(6) added by later amendments — read the current clauses carefully."
     },
     "19": {
       "amendments": [
@@ -54,6 +169,2271 @@
         }
       ],
       "learn_note": "Unamended since 1950; the 86th Amendment (2002) added the companion Article 21A on education."
+    },
+    "22": {
+      "amendments": [
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "30": {
+      "amendments": [
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "31": {
+      "amendments": [
+        {
+          "no": "4th",
+          "year": "1955",
+          "text": "Amended by the 4th Amendment (1955) — Property rights and state acquisition; agricultural land ceilings; mineral and oil control."
+        },
+        {
+          "no": "25th",
+          "year": "1971",
+          "text": "Amended by the 25th Amendment (1971) — Restricted property rights and compensation; inserted Article 31C (part later limited by courts)."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Omitted/removed by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": "Article 31 (property as a fundamental right) was omitted by the 44th Amendment (1978); related property rules moved elsewhere."
+    },
+    "33": {
+      "amendments": [
+        {
+          "no": "50th",
+          "year": "1984",
+          "text": "Amended by the 50th Amendment (1984) — Expanded Article 33 curtailment of Part III rights for certain security personnel."
+        }
+      ],
+      "learn_note": null
+    },
+    "38": {
+      "amendments": [
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "39": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "45": {
+      "amendments": [
+        {
+          "no": "86th",
+          "year": "2002",
+          "text": "Amended by the 86th Amendment (2002) — Right to education for children 6–14; related DPSP and duty changes."
+        }
+      ],
+      "learn_note": null
+    },
+    "49": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "54": {
+      "amendments": [
+        {
+          "no": "70th",
+          "year": "1991",
+          "text": "Amended by the 70th Amendment (1991) — Delhi and Pondicherry included in presidential electoral college."
+        }
+      ],
+      "learn_note": null
+    },
+    "55": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "84th",
+          "year": "2002",
+          "text": "Amended by the 84th Amendment (2002) — Froze seat distribution on 1971 census figures."
+        }
+      ],
+      "learn_note": null
+    },
+    "66": {
+      "amendments": [
+        {
+          "no": "11th",
+          "year": "1961",
+          "text": "Amended by the 11th Amendment (1961) — Vice-President elected by both Houses; election procedure insulated from electoral-college vacancies."
+        }
+      ],
+      "learn_note": null
+    },
+    "71": {
+      "amendments": [
+        {
+          "no": "11th",
+          "year": "1961",
+          "text": "Amended by the 11th Amendment (1961) — Vice-President elected by both Houses; election procedure insulated from electoral-college vacancies."
+        },
+        {
+          "no": "39th",
+          "year": "1975",
+          "text": "Amended by the 39th Amendment (1975) — Restricted judicial scrutiny of certain high offices’ elections (parts later struck down)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "74": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "75": {
+      "amendments": [
+        {
+          "no": "91st",
+          "year": "2004",
+          "text": "Amended by the 91st Amendment (2004) — Council of Ministers size capped; anti-defection strengthened."
+        }
+      ],
+      "learn_note": null
+    },
+    "77": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "80": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        },
+        {
+          "no": "35th",
+          "year": "1975",
+          "text": "Amended by the 35th Amendment (1975) — Terms for incorporating Sikkim into the Union."
+        },
+        {
+          "no": "36th",
+          "year": "1975",
+          "text": "Amended by the 36th Amendment (1975) — Sikkim became a State; Article 371F special provisions."
+        }
+      ],
+      "learn_note": null
+    },
+    "82": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "84th",
+          "year": "2002",
+          "text": "Amended by the 84th Amendment (2002) — Froze seat distribution on 1971 census figures."
+        },
+        {
+          "no": "87th",
+          "year": "2003",
+          "text": "Amended by the 87th Amendment (2003) — Seat distribution updated using 2001 census figures."
+        }
+      ],
+      "learn_note": "Amended 4 times — skim Amendment history under Browse before memorising the current wording."
+    },
+    "83": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "84": {
+      "amendments": [
+        {
+          "no": "16th",
+          "year": "1963",
+          "text": "Amended by the 16th Amendment (1963) — Public-office oaths of allegiance; sovereignty/integrity restrictions on speech."
+        }
+      ],
+      "learn_note": null
+    },
+    "87": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Amended by the 1st Amendment (1951) — Special provisions for backward classes; zamindari abolition validity; reasonable restrictions on speech; Ninth Schedule device."
+        }
+      ],
+      "learn_note": null
+    },
+    "100": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "101": {
+      "amendments": [
+        {
+          "no": "33rd",
+          "year": "1974",
+          "text": "Amended by the 33rd Amendment (1974) — Resignation procedure for MPs and MLAs."
+        },
+        {
+          "no": "52nd",
+          "year": "1985",
+          "text": "Amended by the 52nd Amendment (1985) — Anti-defection law (Tenth Schedule)."
+        }
+      ],
+      "learn_note": null
+    },
+    "102": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "52nd",
+          "year": "1985",
+          "text": "Amended by the 52nd Amendment (1985) — Anti-defection law (Tenth Schedule)."
+        }
+      ],
+      "learn_note": null
+    },
+    "103": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "105": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "118": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "123": {
+      "amendments": [
+        {
+          "no": "38th",
+          "year": "1975",
+          "text": "Amended by the 38th Amendment (1975) — Expanded ordinance and emergency powers of President and Governors."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "124": {
+      "amendments": [
+        {
+          "no": "15th",
+          "year": "1963",
+          "text": "Amended by the 15th Amendment (1963) — High Court judge retirement age raised to 62; related judicial rationalisations."
+        }
+      ],
+      "learn_note": null
+    },
+    "125": {
+      "amendments": [
+        {
+          "no": "54th",
+          "year": "1986",
+          "text": "Amended by the 54th Amendment (1986) — Judge salaries; future increases without constitutional amendment."
+        }
+      ],
+      "learn_note": null
+    },
+    "127": {
+      "amendments": [
+        {
+          "no": "99th",
+          "year": "2015",
+          "text": "Amended by the 99th Amendment (2015) — National Judicial Appointments Commission (struck down by Supreme Court)."
+        }
+      ],
+      "learn_note": null
+    },
+    "128": {
+      "amendments": [
+        {
+          "no": "15th",
+          "year": "1963",
+          "text": "Amended by the 15th Amendment (1963) — High Court judge retirement age raised to 62; related judicial rationalisations."
+        },
+        {
+          "no": "99th",
+          "year": "2015",
+          "text": "Amended by the 99th Amendment (2015) — National Judicial Appointments Commission (struck down by Supreme Court)."
+        }
+      ],
+      "learn_note": null
+    },
+    "131": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "132": {
+      "amendments": [
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "133": {
+      "amendments": [
+        {
+          "no": "30th",
+          "year": "1972",
+          "text": "Amended by the 30th Amendment (1972) — Supreme Court civil appeals based on substantial question of law, not value."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "134": {
+      "amendments": [
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "145": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "43rd",
+          "year": "1978",
+          "text": "Amended by the 43rd Amendment (1978) — Repealed several 42nd Amendment anti-freedom inserts."
+        }
+      ],
+      "learn_note": null
+    },
+    "150": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "153": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "158": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "164": {
+      "amendments": [
+        {
+          "no": "91st",
+          "year": "2004",
+          "text": "Amended by the 91st Amendment (2004) — Council of Ministers size capped; anti-defection strengthened."
+        },
+        {
+          "no": "94th",
+          "year": "2006",
+          "text": "Amended by the 94th Amendment (2006) — Tribal Welfare Minister for Jharkhand, Chhattisgarh, Madhya Pradesh, Odisha."
+        }
+      ],
+      "learn_note": null
+    },
+    "166": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "168": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "171": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "172": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "173": {
+      "amendments": [
+        {
+          "no": "16th",
+          "year": "1963",
+          "text": "Amended by the 16th Amendment (1963) — Public-office oaths of allegiance; sovereignty/integrity restrictions on speech."
+        }
+      ],
+      "learn_note": null
+    },
+    "176": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Amended by the 1st Amendment (1951) — Special provisions for backward classes; zamindari abolition validity; reasonable restrictions on speech; Ninth Schedule device."
+        }
+      ],
+      "learn_note": null
+    },
+    "189": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "190": {
+      "amendments": [
+        {
+          "no": "33rd",
+          "year": "1974",
+          "text": "Amended by the 33rd Amendment (1974) — Resignation procedure for MPs and MLAs."
+        },
+        {
+          "no": "52nd",
+          "year": "1985",
+          "text": "Amended by the 52nd Amendment (1985) — Anti-defection law (Tenth Schedule)."
+        }
+      ],
+      "learn_note": null
+    },
+    "191": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "52nd",
+          "year": "1985",
+          "text": "Amended by the 52nd Amendment (1985) — Anti-defection law (Tenth Schedule)."
+        }
+      ],
+      "learn_note": null
+    },
+    "194": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "208": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "213": {
+      "amendments": [
+        {
+          "no": "38th",
+          "year": "1975",
+          "text": "Amended by the 38th Amendment (1975) — Expanded ordinance and emergency powers of President and Governors."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "216": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "217": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        },
+        {
+          "no": "15th",
+          "year": "1963",
+          "text": "Amended by the 15th Amendment (1963) — High Court judge retirement age raised to 62; related judicial rationalisations."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        },
+        {
+          "no": "99th",
+          "year": "2015",
+          "text": "Amended by the 99th Amendment (2015) — National Judicial Appointments Commission (struck down by Supreme Court)."
+        }
+      ],
+      "learn_note": "Amended 5 times — skim Amendment history under Browse before memorising the current wording."
+    },
+    "21A": {
+      "amendments": [
+        {
+          "no": "86th",
+          "year": "2002",
+          "text": "Inserted by the 86th Amendment (2002) — Right to education for children 6–14; related DPSP and duty changes."
+        }
+      ],
+      "learn_note": "Inserted by the 86th Amendment (2002) — free and compulsory education for children aged 6–14."
+    },
+    "221": {
+      "amendments": [
+        {
+          "no": "54th",
+          "year": "1986",
+          "text": "Amended by the 54th Amendment (1986) — Judge salaries; future increases without constitutional amendment."
+        }
+      ],
+      "learn_note": null
+    },
+    "222": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        },
+        {
+          "no": "15th",
+          "year": "1963",
+          "text": "Amended by the 15th Amendment (1963) — High Court judge retirement age raised to 62; related judicial rationalisations."
+        },
+        {
+          "no": "99th",
+          "year": "2015",
+          "text": "Amended by the 99th Amendment (2015) — National Judicial Appointments Commission (struck down by Supreme Court)."
+        }
+      ],
+      "learn_note": null
+    },
+    "225": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "227": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "228": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "43rd",
+          "year": "1978",
+          "text": "Amended by the 43rd Amendment (1978) — Repealed several 42nd Amendment anti-freedom inserts."
+        }
+      ],
+      "learn_note": null
+    },
+    "230": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "231": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Amended by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        },
+        {
+          "no": "99th",
+          "year": "2015",
+          "text": "Amended by the 99th Amendment (2015) — National Judicial Appointments Commission (struck down by Supreme Court)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "244": {
+      "amendments": [
+        {
+          "no": "49th",
+          "year": "1984",
+          "text": "Amended by the 49th Amendment (1984) — Tripura tribal areas autonomous district council enabled."
+        }
+      ],
+      "learn_note": null
+    },
+    "248": {
+      "amendments": [
+        {
+          "no": "101st",
+          "year": "2017",
+          "text": "Amended by the 101st Amendment (2017) — Goods and Services Tax framework."
+        }
+      ],
+      "learn_note": null
+    },
+    "249": {
+      "amendments": [
+        {
+          "no": "101st",
+          "year": "2017",
+          "text": "Amended by the 101st Amendment (2017) — Goods and Services Tax framework."
+        }
+      ],
+      "learn_note": null
+    },
+    "250": {
+      "amendments": [
+        {
+          "no": "101st",
+          "year": "2017",
+          "text": "Amended by the 101st Amendment (2017) — Goods and Services Tax framework."
+        }
+      ],
+      "learn_note": null
+    },
+    "268": {
+      "amendments": [
+        {
+          "no": "101st",
+          "year": "2017",
+          "text": "Amended by the 101st Amendment (2017) — Goods and Services Tax framework."
+        }
+      ],
+      "learn_note": null
+    },
+    "269": {
+      "amendments": [
+        {
+          "no": "6th",
+          "year": "1956",
+          "text": "Amended by the 6th Amendment (1956) — Union and State List tax-raising adjustments."
+        },
+        {
+          "no": "46th",
+          "year": "1983",
+          "text": "Amended by the 46th Amendment (1983) — Sales-tax scope clarifications after judicial rulings."
+        },
+        {
+          "no": "80th",
+          "year": "2000",
+          "text": "Amended by the 80th Amendment (2000) — Tax pooling/sharing per Tenth Finance Commission; Article 272 omitted."
+        },
+        {
+          "no": "101st",
+          "year": "2017",
+          "text": "Amended by the 101st Amendment (2017) — Goods and Services Tax framework."
+        }
+      ],
+      "learn_note": "Amended 4 times — skim Amendment history under Browse before memorising the current wording."
+    },
+    "271": {
+      "amendments": [
+        {
+          "no": "101st",
+          "year": "2017",
+          "text": "Amended by the 101st Amendment (2017) — Goods and Services Tax framework."
+        }
+      ],
+      "learn_note": null
+    },
+    "275": {
+      "amendments": [
+        {
+          "no": "22nd",
+          "year": "1969",
+          "text": "Amended by the 22nd Amendment (1969) — Autonomous states within Assam; related finance provisions."
+        }
+      ],
+      "learn_note": null
+    },
+    "276": {
+      "amendments": [
+        {
+          "no": "60th",
+          "year": "1988",
+          "text": "Amended by the 60th Amendment (1988) — Profession tax ceiling raised to ₹2,500."
+        }
+      ],
+      "learn_note": null
+    },
+    "280": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "286": {
+      "amendments": [
+        {
+          "no": "6th",
+          "year": "1956",
+          "text": "Amended by the 6th Amendment (1956) — Union and State List tax-raising adjustments."
+        },
+        {
+          "no": "46th",
+          "year": "1983",
+          "text": "Amended by the 46th Amendment (1983) — Sales-tax scope clarifications after judicial rulings."
+        },
+        {
+          "no": "101st",
+          "year": "2017",
+          "text": "Amended by the 101st Amendment (2017) — Goods and Services Tax framework."
+        }
+      ],
+      "learn_note": null
+    },
+    "291": {
+      "amendments": [
+        {
+          "no": "26th",
+          "year": "1971",
+          "text": "Omitted/removed by the 26th Amendment (1971) — Abolished privy purses of former princely rulers."
+        }
+      ],
+      "learn_note": "See Amendment history — later amendments omitted or replaced parts of Article 291."
+    },
+    "311": {
+      "amendments": [
+        {
+          "no": "15th",
+          "year": "1963",
+          "text": "Amended by the 15th Amendment (1963) — High Court judge retirement age raised to 62; related judicial rationalisations."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "312": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "314": {
+      "amendments": [
+        {
+          "no": "28th",
+          "year": "1972",
+          "text": "Omitted/removed by the 28th Amendment (1972) — Rationalised civil-service rules across pre- and post-Independence appointees."
+        }
+      ],
+      "learn_note": "See Amendment history — later amendments omitted or replaced parts of Article 314."
+    },
+    "316": {
+      "amendments": [
+        {
+          "no": "15th",
+          "year": "1963",
+          "text": "Amended by the 15th Amendment (1963) — High Court judge retirement age raised to 62; related judicial rationalisations."
+        },
+        {
+          "no": "41st",
+          "year": "1976",
+          "text": "Amended by the 41st Amendment (1976) — Raised retirement age for State/Joint PSC members to 62."
+        }
+      ],
+      "learn_note": null
+    },
+    "31A": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Inserted by the 1st Amendment (1951) — Special provisions for backward classes; zamindari abolition validity; reasonable restrictions on speech; Ninth Schedule device."
+        },
+        {
+          "no": "4th",
+          "year": "1955",
+          "text": "Amended by the 4th Amendment (1955) — Property rights and state acquisition; agricultural land ceilings; mineral and oil control."
+        },
+        {
+          "no": "17th",
+          "year": "1964",
+          "text": "Amended by the 17th Amendment (1964) — Secured acquisition of estates; more land laws under Ninth Schedule."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": "Inserted by the 1st Amendment (1951) to protect certain property/estate laws."
+    },
+    "31B": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Inserted by the 1st Amendment (1951) — Special provisions for backward classes; zamindari abolition validity; reasonable restrictions on speech; Ninth Schedule device."
+        }
+      ],
+      "learn_note": "Inserted by the 1st Amendment (1951) with the Ninth Schedule validation device."
+    },
+    "31C": {
+      "amendments": [
+        {
+          "no": "25th",
+          "year": "1971",
+          "text": "Inserted by the 25th Amendment (1971) — Restricted property rights and compensation; inserted Article 31C (part later limited by courts)."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": "Inserted by the 25th Amendment (1971); scope later narrowed by the Supreme Court."
+    },
+    "324": {
+      "amendments": [
+        {
+          "no": "19th",
+          "year": "1966",
+          "text": "Amended by the 19th Amendment (1966) — Election Tribunals abolished; election petitions to High Courts."
+        }
+      ],
+      "learn_note": null
+    },
+    "326": {
+      "amendments": [
+        {
+          "no": "61st",
+          "year": "1989",
+          "text": "Amended by the 61st Amendment (1989) — Voting age reduced from 21 to 18."
+        }
+      ],
+      "learn_note": "Voting age lowered from 21 to 18 by the 61st Amendment (1989)."
+    },
+    "329": {
+      "amendments": [
+        {
+          "no": "39th",
+          "year": "1975",
+          "text": "Amended by the 39th Amendment (1975) — Restricted judicial scrutiny of certain high offices’ elections (parts later struck down)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "330": {
+      "amendments": [
+        {
+          "no": "23rd",
+          "year": "1970",
+          "text": "Amended by the 23rd Amendment (1970) — SC/ST/Anglo-Indian reservations extended; Nagaland ST reservation discontinued."
+        },
+        {
+          "no": "31st",
+          "year": "1973",
+          "text": "Amended by the 31st Amendment (1973) — Parliament size increased; North-East seat adjustments."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "51st",
+          "year": "1984",
+          "text": "Amended by the 51st Amendment (1984) — ST reservations in certain North-East Lok Sabha/Assembly seats."
+        },
+        {
+          "no": "84th",
+          "year": "2002",
+          "text": "Amended by the 84th Amendment (2002) — Froze seat distribution on 1971 census figures."
+        },
+        {
+          "no": "87th",
+          "year": "2003",
+          "text": "Amended by the 87th Amendment (2003) — Seat distribution updated using 2001 census figures."
+        }
+      ],
+      "learn_note": "Amended 6 times — skim Amendment history under Browse before memorising the current wording."
+    },
+    "332": {
+      "amendments": [
+        {
+          "no": "23rd",
+          "year": "1970",
+          "text": "Amended by the 23rd Amendment (1970) — SC/ST/Anglo-Indian reservations extended; Nagaland ST reservation discontinued."
+        },
+        {
+          "no": "31st",
+          "year": "1973",
+          "text": "Amended by the 31st Amendment (1973) — Parliament size increased; North-East seat adjustments."
+        },
+        {
+          "no": "51st",
+          "year": "1984",
+          "text": "Amended by the 51st Amendment (1984) — ST reservations in certain North-East Lok Sabha/Assembly seats."
+        },
+        {
+          "no": "57th",
+          "year": "1987",
+          "text": "Amended by the 57th Amendment (1987) — ST reservation in certain North-East Assemblies."
+        },
+        {
+          "no": "72nd",
+          "year": "1992",
+          "text": "Amended by the 72nd Amendment (1992) — ST reservation in Tripura Assembly."
+        },
+        {
+          "no": "84th",
+          "year": "2002",
+          "text": "Amended by the 84th Amendment (2002) — Froze seat distribution on 1971 census figures."
+        },
+        {
+          "no": "90th",
+          "year": "2003",
+          "text": "Amended by the 90th Amendment (2003) — Assam Assembly reservation for Bodoland areas."
+        }
+      ],
+      "learn_note": "Amended 7 times — skim Amendment history under Browse before memorising the current wording."
+    },
+    "333": {
+      "amendments": [
+        {
+          "no": "23rd",
+          "year": "1970",
+          "text": "Amended by the 23rd Amendment (1970) — SC/ST/Anglo-Indian reservations extended; Nagaland ST reservation discontinued."
+        }
+      ],
+      "learn_note": null
+    },
+    "334": {
+      "amendments": [
+        {
+          "no": "8th",
+          "year": "1960",
+          "text": "Amended by the 8th Amendment (1960) — Extended SC/ST and Anglo-Indian seat reservations in Lok Sabha and Assemblies till 1970."
+        },
+        {
+          "no": "23rd",
+          "year": "1970",
+          "text": "Amended by the 23rd Amendment (1970) — SC/ST/Anglo-Indian reservations extended; Nagaland ST reservation discontinued."
+        },
+        {
+          "no": "45th",
+          "year": "1980",
+          "text": "Amended by the 45th Amendment (1980) — Extended SC/ST and Anglo-Indian reservations till 1990."
+        },
+        {
+          "no": "62nd",
+          "year": "1990",
+          "text": "Amended by the 62nd Amendment (1990) — Extended SC/ST and Anglo-Indian reservations till 2000."
+        },
+        {
+          "no": "79th",
+          "year": "2000",
+          "text": "Amended by the 79th Amendment (2000) — Extended SC/ST and Anglo-Indian reservations till 2010."
+        },
+        {
+          "no": "95th",
+          "year": "2010",
+          "text": "Amended by the 95th Amendment (2010) — Extended SC/ST and Anglo-Indian reservations till 2020."
+        },
+        {
+          "no": "104th",
+          "year": "2020",
+          "text": "Amended by the 104th Amendment (2020) — Extended SC/ST reservations till 2030; ended Anglo-Indian nominated seats."
+        }
+      ],
+      "learn_note": "Reservation duration for SC/ST seats extended by successive amendments; Anglo-Indian nomination ended by the 104th (2020)."
+    },
+    "335": {
+      "amendments": [
+        {
+          "no": "82nd",
+          "year": "2000",
+          "text": "Amended by the 82nd Amendment (2000) — Allowed relaxed standards in SC/ST promotion reservations."
+        }
+      ],
+      "learn_note": null
+    },
+    "338": {
+      "amendments": [
+        {
+          "no": "65th",
+          "year": "1992",
+          "text": "Amended by the 65th Amendment (1992) — National Commission for SCs and STs given constitutional status/powers."
+        },
+        {
+          "no": "89th",
+          "year": "2003",
+          "text": "Amended by the 89th Amendment (2003) — Split SC and ST national commissions."
+        }
+      ],
+      "learn_note": null
+    },
+    "341": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Amended by the 1st Amendment (1951) — Special provisions for backward classes; zamindari abolition validity; reasonable restrictions on speech; Ninth Schedule device."
+        }
+      ],
+      "learn_note": null
+    },
+    "342": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Amended by the 1st Amendment (1951) — Special provisions for backward classes; zamindari abolition validity; reasonable restrictions on speech; Ninth Schedule device."
+        }
+      ],
+      "learn_note": null
+    },
+    "352": {
+      "amendments": [
+        {
+          "no": "38th",
+          "year": "1975",
+          "text": "Amended by the 38th Amendment (1975) — Expanded ordinance and emergency powers of President and Governors."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "353": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "356": {
+      "amendments": [
+        {
+          "no": "38th",
+          "year": "1975",
+          "text": "Amended by the 38th Amendment (1975) — Expanded ordinance and emergency powers of President and Governors."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        },
+        {
+          "no": "48th",
+          "year": "1984",
+          "text": "Amended by the 48th Amendment (1984) — President's rule up to two years permitted in Punjab."
+        },
+        {
+          "no": "59th",
+          "year": "1988",
+          "text": "Amended by the 59th Amendment (1988) — Extended President's rule/emergency tools for Punjab (later partly repealed)."
+        },
+        {
+          "no": "63rd",
+          "year": "1990",
+          "text": "Amended by the 63rd Amendment (1990) — Repealed Punjab-specific Article 359A emergency power."
+        },
+        {
+          "no": "64th",
+          "year": "1990",
+          "text": "Amended by the 64th Amendment (1990) — President's rule in Punjab extendable to three years six months."
+        },
+        {
+          "no": "67th",
+          "year": "1990",
+          "text": "Amended by the 67th Amendment (1990) — President's rule in Punjab extendable to four years."
+        },
+        {
+          "no": "68th",
+          "year": "1991",
+          "text": "Amended by the 68th Amendment (1991) — President's rule in Punjab extendable to five years."
+        }
+      ],
+      "learn_note": "Repeatedly amended for President's Rule duration — especially Punjab-specific extensions in the 1980s–90s."
+    },
+    "357": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "358": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "359": {
+      "amendments": [
+        {
+          "no": "38th",
+          "year": "1975",
+          "text": "Amended by the 38th Amendment (1975) — Expanded ordinance and emergency powers of President and Governors."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "360": {
+      "amendments": [
+        {
+          "no": "38th",
+          "year": "1975",
+          "text": "Amended by the 38th Amendment (1975) — Expanded ordinance and emergency powers of President and Governors."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "362": {
+      "amendments": [
+        {
+          "no": "26th",
+          "year": "1971",
+          "text": "Omitted/removed by the 26th Amendment (1971) — Abolished privy purses of former princely rulers."
+        }
+      ],
+      "learn_note": "See Amendment history — later amendments omitted or replaced parts of Article 362."
+    },
+    "366": {
+      "amendments": [
+        {
+          "no": "26th",
+          "year": "1971",
+          "text": "Amended by the 26th Amendment (1971) — Abolished privy purses of former princely rulers."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "43rd",
+          "year": "1978",
+          "text": "Amended by the 43rd Amendment (1978) — Repealed several 42nd Amendment anti-freedom inserts."
+        },
+        {
+          "no": "46th",
+          "year": "1983",
+          "text": "Amended by the 46th Amendment (1983) — Sales-tax scope clarifications after judicial rulings."
+        },
+        {
+          "no": "101st",
+          "year": "2017",
+          "text": "Amended by the 101st Amendment (2017) — Goods and Services Tax framework."
+        },
+        {
+          "no": "105th",
+          "year": "2021",
+          "text": "Amended by the 105th Amendment (2021) — Restored States’ power to identify SEBC/OBC lists."
+        }
+      ],
+      "learn_note": "Amended 6 times — skim Amendment history under Browse before memorising the current wording."
+    },
+    "368": {
+      "amendments": [
+        {
+          "no": "24th",
+          "year": "1971",
+          "text": "Amended by the 24th Amendment (1971) — Parliament empowered to amend Fundamental Rights; presidential assent to amendment bills made obligatory."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "101st",
+          "year": "2017",
+          "text": "Amended by the 101st Amendment (2017) — Goods and Services Tax framework."
+        }
+      ],
+      "learn_note": "Amending power itself was reshaped by the 24th and 42nd Amendments (with later judicial limits on basic structure)."
+    },
+    "371": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Inserted by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        },
+        {
+          "no": "32nd",
+          "year": "1974",
+          "text": "Amended by the 32nd Amendment (1974) — Regional protections for Telangana and Andhra; related entries."
+        }
+      ],
+      "learn_note": null
+    },
+    "372": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Amended by the 1st Amendment (1951) — Special provisions for backward classes; zamindari abolition validity; reasonable restrictions on speech; Ninth Schedule device."
+        }
+      ],
+      "learn_note": null
+    },
+    "376": {
+      "amendments": [
+        {
+          "no": "1st",
+          "year": "1951",
+          "text": "Amended by the 1st Amendment (1951) — Special provisions for backward classes; zamindari abolition validity; reasonable restrictions on speech; Ninth Schedule device."
+        }
+      ],
+      "learn_note": null
+    },
+    "39A": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Inserted by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "43A": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Inserted by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "43B": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Inserted by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "48A": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Inserted by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "51A": {
+      "amendments": [
+        {
+          "no": "86th",
+          "year": "2002",
+          "text": "Amended by the 86th Amendment (2002) — Right to education for children 6–14; related DPSP and duty changes."
+        }
+      ],
+      "learn_note": "Fundamental duties — Part IVA inserted by the 42nd Amendment (1976); education duty tweaked by the 86th."
+    },
+    "124B": {
+      "amendments": [
+        {
+          "no": "99th",
+          "year": "2015",
+          "text": "Inserted by the 99th Amendment (2015) — National Judicial Appointments Commission (struck down by Supreme Court)."
+        }
+      ],
+      "learn_note": null
+    },
+    "124C": {
+      "amendments": [
+        {
+          "no": "99th",
+          "year": "2015",
+          "text": "Inserted by the 99th Amendment (2015) — National Judicial Appointments Commission (struck down by Supreme Court)."
+        }
+      ],
+      "learn_note": null
+    },
+    "134A": {
+      "amendments": [
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Inserted by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243A": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243B": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243C": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243D": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243E": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243F": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243G": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243H": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243I": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243J": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243K": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243L": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243M": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        },
+        {
+          "no": "83rd",
+          "year": "2000",
+          "text": "Amended by the 83rd Amendment (2000) — Exempted Arunachal Pradesh from SC reservation in Panchayats."
+        }
+      ],
+      "learn_note": null
+    },
+    "243N": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243O": {
+      "amendments": [
+        {
+          "no": "73rd",
+          "year": "1993",
+          "text": "Inserted by the 73rd Amendment (1993) — Constitutional status for Panchayati Raj (Part IX)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243P": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243Q": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243R": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243S": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243T": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243U": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243V": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243W": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243X": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243Y": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243Z": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "257A": {
+      "amendments": [
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Inserted by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Omitted/removed by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": "See Amendment history — later amendments omitted or replaced parts of Article 257A."
+    },
+    "323B": {
+      "amendments": [
+        {
+          "no": "75th",
+          "year": "1994",
+          "text": "Amended by the 75th Amendment (1994) — Enabled Rent Control Tribunals."
+        }
+      ],
+      "learn_note": null
+    },
+    "330A": {
+      "amendments": [
+        {
+          "no": "106th",
+          "year": "2023",
+          "text": "Inserted by the 106th Amendment (2023) — One-third seats reserved for women in Lok Sabha, Assemblies and Delhi Assembly (timed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "334A": {
+      "amendments": [
+        {
+          "no": "106th",
+          "year": "2023",
+          "text": "Inserted by the 106th Amendment (2023) — One-third seats reserved for women in Lok Sabha, Assemblies and Delhi Assembly (timed)."
+        }
+      ],
+      "learn_note": null
+    },
+    "350B": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Inserted by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "371A": {
+      "amendments": [
+        {
+          "no": "13th",
+          "year": "1962",
+          "text": "Inserted by the 13th Amendment (1962) — Special protection under Article 371A for Nagaland."
+        }
+      ],
+      "learn_note": null
+    },
+    "371B": {
+      "amendments": [
+        {
+          "no": "22nd",
+          "year": "1969",
+          "text": "Inserted by the 22nd Amendment (1969) — Autonomous states within Assam; related finance provisions."
+        }
+      ],
+      "learn_note": null
+    },
+    "371C": {
+      "amendments": [
+        {
+          "no": "27th",
+          "year": "1972",
+          "text": "Inserted by the 27th Amendment (1972) — Mizoram UT with legislature; Manipur special provision 371C."
+        }
+      ],
+      "learn_note": null
+    },
+    "371D": {
+      "amendments": [
+        {
+          "no": "32nd",
+          "year": "1974",
+          "text": "Inserted by the 32nd Amendment (1974) — Regional protections for Telangana and Andhra; related entries."
+        }
+      ],
+      "learn_note": null
+    },
+    "371E": {
+      "amendments": [
+        {
+          "no": "32nd",
+          "year": "1974",
+          "text": "Inserted by the 32nd Amendment (1974) — Regional protections for Telangana and Andhra; related entries."
+        }
+      ],
+      "learn_note": null
+    },
+    "371F": {
+      "amendments": [
+        {
+          "no": "36th",
+          "year": "1975",
+          "text": "Inserted by the 36th Amendment (1975) — Sikkim became a State; Article 371F special provisions."
+        },
+        {
+          "no": "42nd",
+          "year": "1977",
+          "text": "Amended by the 42nd Amendment (1977) — Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+        },
+        {
+          "no": "44th",
+          "year": "1979",
+          "text": "Amended by the 44th Amendment (1979) — Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+        }
+      ],
+      "learn_note": null
+    },
+    "371G": {
+      "amendments": [
+        {
+          "no": "53rd",
+          "year": "1986",
+          "text": "Inserted by the 53rd Amendment (1986) — Special provision for Mizoram."
+        }
+      ],
+      "learn_note": null
+    },
+    "371H": {
+      "amendments": [
+        {
+          "no": "55th",
+          "year": "1987",
+          "text": "Inserted by the 55th Amendment (1987) — Special Governor powers for Arunachal Pradesh."
+        }
+      ],
+      "learn_note": null
+    },
+    "371I": {
+      "amendments": [
+        {
+          "no": "56th",
+          "year": "1987",
+          "text": "Inserted by the 56th Amendment (1987) — Transition provision for Goa statehood."
+        }
+      ],
+      "learn_note": null
+    },
+    "371J": {
+      "amendments": [
+        {
+          "no": "98th",
+          "year": "2013",
+          "text": "Inserted by the 98th Amendment (2013) — Special development provision for Hyderabad-Karnataka region."
+        }
+      ],
+      "learn_note": null
+    },
+    "372A": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Inserted by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "378A": {
+      "amendments": [
+        {
+          "no": "7th",
+          "year": "1956",
+          "text": "Inserted by the 7th Amendment (1956) — States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+        }
+      ],
+      "learn_note": null
+    },
+    "394A": {
+      "amendments": [
+        {
+          "no": "58th",
+          "year": "1987",
+          "text": "Inserted by the 58th Amendment (1987) — Authentic Hindi text of the Constitution and future amendments."
+        }
+      ],
+      "learn_note": null
+    },
+    "239AB": {
+      "amendments": [
+        {
+          "no": "69th",
+          "year": "1992",
+          "text": "Inserted by the 69th Amendment (1992) — Legislative assembly and council of ministers for NCT of Delhi."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZA": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZB": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZC": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZD": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZE": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZF": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZG": {
+      "amendments": [
+        {
+          "no": "74th",
+          "year": "1993",
+          "text": "Inserted by the 74th Amendment (1993) — Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZH": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZJ": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZK": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZL": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZM": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZN": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZO": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZP": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZQ": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZR": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZS": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
+    },
+    "243ZT": {
+      "amendments": [
+        {
+          "no": "97th",
+          "year": "2012",
+          "text": "Amended by the 97th Amendment (2012) — Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+        }
+      ],
+      "learn_note": null
     }
   }
 }

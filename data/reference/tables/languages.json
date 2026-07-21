@@ -1,8 +1,8 @@
 {
   "id": "languages",
-  "label": "Languages",
-  "title": "Eighth Schedule languages",
-  "note": "22 languages. Sindhi (21st, 1967); Konkani, Manipuri, Nepali (71st, 1992); Bodo, Dogri, Maithili, Santali (92nd, 2003).",
+  "label": "8th Schedule",
+  "title": "Eighth Schedule",
+  "note": "22 languages recognised under Articles 344(1) and 351. Sindhi (21st, 1967); Konkani, Manipuri, Nepali (71st, 1992); Bodo, Dogri, Maithili, Santali (92nd, 2003).",
   "grid": "50px 1fr 1fr",
   "tables": [
     {

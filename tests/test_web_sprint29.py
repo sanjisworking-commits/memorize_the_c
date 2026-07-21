@@ -46,10 +46,34 @@ def test_table_tabs_index_has_ten():
     tabs = list_table_tabs()
     assert len(tabs) == 10
     assert tabs[0].id == "parts"
+    assert any(t.id == "languages" and t.label == "8th Schedule" for t in tabs)
     payload = load_table_tab("parts")
     assert payload is not None
     assert payload.title == "Parts of the Constitution"
     assert any(row[0] == "VII" for block in payload.tables for row in block.rows)
+
+
+def test_eighth_schedule_tab_renamed():
+    payload = load_table_tab("languages")
+    assert payload is not None
+    assert payload.label == "8th Schedule"
+    assert payload.title == "Eighth Schedule"
+    assert any("Assamese" in row for block in payload.tables for row in block.rows)
+
+
+def test_seventh_schedule_three_lists():
+    payload = load_table_tab("seventh")
+    assert payload is not None
+    assert len(payload.tables) == 3
+    labels = [t.label for t in payload.tables]
+    assert labels[0] and "Union" in labels[0]
+    assert labels[1] and "State" in labels[1]
+    assert labels[2] and "Concurrent" in labels[2]
+    assert len(payload.tables[0].rows) >= 90
+    assert len(payload.tables[1].rows) >= 60
+    assert len(payload.tables[2].rows) >= 45
+    assert any(row[0] == "97" for row in payload.tables[0].rows)
+    assert any(row[0] == "2A" for row in payload.tables[0].rows)
 
 
 def test_tables_page_default_parts(mini_client: TestClient):

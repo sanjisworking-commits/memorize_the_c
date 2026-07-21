@@ -441,7 +441,7 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 **Branch:** `cursor/sprint-29-tables-browse-1a75`
 
 - Home Continue/Due **skip Part Overview** — start at Articles/Clauses
-- **Tables** nav + `/tables` — ten quick-reference tabs (Parts, bodies, languages, States & UTs, schedules, rights, writs, elections); read-only JSON under `data/reference/tables/`
+- **Tables** nav + `/tables` — ten quick-reference tabs (Parts, bodies, 8th Schedule, States & UTs, 7th Schedule with Union/State/Concurrent lists, schedules, rights, writs, elections); read-only JSON under `data/reference/tables/`
 - **Browse** regrouped Part-by-Part with tracked/untracked article cards
 - Tests: `tests/test_home_skip_overview.py`, `tests/test_web_sprint29.py`
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Install LaunchAgent for daily ntfy study reminders (07:00 local time).
+# Install LaunchAgent for hourly ntfy study-reminder ticks.
+# Cadence (twice / thrice / hourly) is chosen in the Settings UI.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -42,7 +43,7 @@ sed \
   "$PLIST_SRC" > "$PLIST_DST"
 
 if launchctl bootstrap "gui/$(id -u)" "$PLIST_DST" 2>/dev/null; then
-  echo "Loaded LaunchAgent: $LABEL (daily 07:00)"
+  echo "Loaded LaunchAgent: $LABEL (hourly ticks)"
 elif launchctl load "$PLIST_DST" 2>/dev/null; then
   echo "Loaded LaunchAgent (legacy): $LABEL"
 else
@@ -51,5 +52,6 @@ else
 fi
 
 echo "Subscribe in the ntfy app to topic: $TOPIC"
-echo "Test now: NTFY_TOPIC=$TOPIC $VENV_PYTHON -m constitution_memorizer.cli send-reminders --channel ntfy"
+echo "Choose cadence in the UI: http://127.0.0.1:8001/settings (default: thrice)"
+echo "Test now: NTFY_TOPIC=$TOPIC $VENV_PYTHON -m constitution_memorizer.cli send-reminders --channel ntfy --at \$(date +%Y-%m-%dT%H:%M)"
 echo "Logs: ~/Library/Logs/constitution-memorizer-reminders.log"

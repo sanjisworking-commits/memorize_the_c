@@ -30,6 +30,12 @@ CREATE TABLE IF NOT EXISTS article_gloss (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_progress_status
     ON learning_unit_progress(status);
 CREATE INDEX IF NOT EXISTS idx_progress_next_revision

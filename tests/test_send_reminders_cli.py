@@ -24,6 +24,8 @@ def test_send_reminders_dry_run_console(tmp_path: Path, capsys):
             "--dry-run",
             "--as-of",
             "2026-07-20",
+            "--at",
+            "2026-07-20T08:00",
             "--units",
             str(MINI_UNITS),
             "--db",
@@ -36,6 +38,7 @@ def test_send_reminders_dry_run_console(tmp_path: Path, capsys):
     out = capsys.readouterr().out
     assert "due today" in out
     assert "Article 20(1)" in out
+    assert "Sent via" in out
 
 
 def test_send_reminders_skips_when_empty(tmp_path: Path, capsys):
@@ -48,6 +51,8 @@ def test_send_reminders_skips_when_empty(tmp_path: Path, capsys):
             "console",
             "--as-of",
             "2026-07-20",
+            "--at",
+            "2026-07-20T08:00",
             "--units",
             str(MINI_UNITS),
             "--db",
@@ -58,6 +63,61 @@ def test_send_reminders_skips_when_empty(tmp_path: Path, capsys):
     )
     assert code == 0
     assert "nothing due" in capsys.readouterr().out
+
+
+def test_send_reminders_skips_wrong_hour(tmp_path: Path, capsys):
+    db = tmp_path / "progress.db"
+    engine = ReminderEngine.from_paths(db, MINI_UNITS)
+    engine.mark_done("clause-1", as_of=date(2026, 7, 19))
+    code = main(
+        [
+            "send-reminders",
+            "--channel",
+            "console",
+            "--dry-run",
+            "--as-of",
+            "2026-07-20",
+            "--at",
+            "2026-07-20T10:00",
+            "--units",
+            str(MINI_UNITS),
+            "--db",
+            str(db),
+            "--output-dir",
+            str(tmp_path),
+        ]
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "skip" in out
+    assert "not a reminder hour" in out
+
+
+def test_send_reminders_hourly_second_tick_same_hour_debounced(tmp_path: Path, capsys):
+    db = tmp_path / "progress.db"
+    engine = ReminderEngine.from_paths(db, MINI_UNITS)
+    engine.mark_done("clause-1", as_of=date(2026, 7, 19))
+    engine.set_notification_frequency("hourly")
+    args = [
+        "send-reminders",
+        "--channel",
+        "console",
+        "--dry-run",
+        "--as-of",
+        "2026-07-20",
+        "--at",
+        "2026-07-20T11:00",
+        "--units",
+        str(MINI_UNITS),
+        "--db",
+        str(db),
+        "--output-dir",
+        str(tmp_path),
+    ]
+    assert main(args) == 0
+    assert "Sent via" in capsys.readouterr().out
+    assert main(args) == 0
+    assert "already sent this hour" in capsys.readouterr().out
 
 
 def test_ntfy_notifier_posts(monkeypatch):

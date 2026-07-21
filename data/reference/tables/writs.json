@@ -1,0 +1,50 @@
+{
+  "id": "writs",
+  "label": "Writs",
+  "title": "Writs (Arts 32 & 226)",
+  "note": "Supreme Court (Art 32) and High Courts (Art 226) may issue writs for enforcement of rights (and, for High Courts, other purposes).",
+  "grid": "150px 130px 1fr 1fr",
+  "tables": [
+    {
+      "label": null,
+      "head": [
+        "Writ",
+        "Meaning",
+        "What it does",
+        "Lies against"
+      ],
+      "rows": [
+        [
+          "Habeas corpus",
+          "Produce the body",
+          "Tests legality of detention; orders release if unlawful",
+          "State / detaining authority"
+        ],
+        [
+          "Mandamus",
+          "We command",
+          "Orders a public authority to perform a legal duty",
+          "Public authorities (not private)"
+        ],
+        [
+          "Prohibition",
+          "To forbid",
+          "Stops a lower court/tribunal from exceeding jurisdiction",
+          "Judicial / quasi-judicial bodies"
+        ],
+        [
+          "Certiorari",
+          "To be certified",
+          "Quashes an order made without/beyond jurisdiction or in error of law",
+          "Inferior courts / tribunals"
+        ],
+        [
+          "Quo warranto",
+          "By what authority",
+          "Challenges a person's claim to a public office",
+          "Usurper of public office"
+        ]
+      ]
+    }
+  ]
+}

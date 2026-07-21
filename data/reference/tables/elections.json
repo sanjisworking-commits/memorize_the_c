@@ -1,0 +1,68 @@
+{
+  "id": "elections",
+  "label": "Elections",
+  "title": "Key elections",
+  "note": "Article 324 — Election Commission. Voting age 18 (61st Amendment). Details simplified for revision.",
+  "grid": "110px 70px 170px 130px 1fr 90px 1fr",
+  "tables": [
+    {
+      "label": null,
+      "head": [
+        "Office",
+        "Articles",
+        "Electors",
+        "Method",
+        "Winning condition",
+        "Term",
+        "Vacancy / removal"
+      ],
+      "rows": [
+        [
+          "President",
+          "54–62",
+          "Elected MPs + MLAs (weighted)",
+          "Proportional representation (STV)",
+          "Quota of valid votes",
+          "5 years",
+          "Impeachment Art 61"
+        ],
+        [
+          "Vice-President",
+          "63–71",
+          "Members of both Houses",
+          "Proportional representation (STV)",
+          "Quota of valid votes",
+          "5 years",
+          "Resignation / removal by RS"
+        ],
+        [
+          "Lok Sabha MP",
+          "81–88",
+          "Adult citizens of constituency",
+          "First-past-the-post",
+          "Plurality of votes",
+          "5 years",
+          "Disqualification / resignation"
+        ],
+        [
+          "Rajya Sabha MP",
+          "80",
+          "Elected MLAs of States",
+          "Proportional representation (STV)",
+          "Quota in State assembly vote",
+          "6 years (⅓ retire)",
+          "Disqualification / resignation"
+        ],
+        [
+          "Speaker (LS)",
+          "93–96",
+          "Lok Sabha members",
+          "Election by House",
+          "Majority of those present & voting",
+          "Till House dissolved / removed",
+          "Removal by resolution"
+        ]
+      ]
+    }
+  ]
+}

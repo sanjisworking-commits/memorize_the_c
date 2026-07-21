@@ -1,0 +1,152 @@
+{
+  "id": "parts",
+  "label": "Parts",
+  "title": "Parts of the Constitution",
+  "note": "Part VII was repealed by the 7th Amendment (1956). Parts IVA (42nd, 1976), IXA (74th, 1992), IXB (97th, 2011) and XIVA (42nd, 1976) were inserted later.",
+  "grid": "80px 1fr 150px",
+  "tables": [
+    {
+      "label": null,
+      "head": [
+        "Part",
+        "Subject",
+        "Articles"
+      ],
+      "rows": [
+        [
+          "I",
+          "The Union and its territory",
+          "1–4"
+        ],
+        [
+          "II",
+          "Citizenship",
+          "5–11"
+        ],
+        [
+          "III",
+          "Fundamental Rights",
+          "12–35"
+        ],
+        [
+          "IV",
+          "Directive Principles of State Policy",
+          "36–51"
+        ],
+        [
+          "IVA",
+          "Fundamental Duties",
+          "51A"
+        ],
+        [
+          "V",
+          "The Union",
+          "52–151"
+        ],
+        [
+          "VI",
+          "The States",
+          "152–237"
+        ],
+        [
+          "VII",
+          "Repealed — States in Part B of the First Schedule",
+          "—"
+        ],
+        [
+          "VIII",
+          "The Union Territories",
+          "239–242"
+        ],
+        [
+          "IX",
+          "The Panchayats",
+          "243–243O"
+        ],
+        [
+          "IXA",
+          "The Municipalities",
+          "243P–243ZG"
+        ],
+        [
+          "IXB",
+          "The Co-operative Societies",
+          "243ZH–243ZT"
+        ],
+        [
+          "X",
+          "The Scheduled and Tribal Areas",
+          "244–244A"
+        ],
+        [
+          "XI",
+          "Relations between the Union and the States",
+          "245–263"
+        ],
+        [
+          "XII",
+          "Finance, Property, Contracts and Suits",
+          "264–300A"
+        ],
+        [
+          "XIII",
+          "Trade, Commerce and Intercourse within the Territory of India",
+          "301–307"
+        ],
+        [
+          "XIV",
+          "Services under the Union and the States",
+          "308–323"
+        ],
+        [
+          "XIVA",
+          "Tribunals",
+          "323A–323B"
+        ],
+        [
+          "XV",
+          "Elections",
+          "324–329A"
+        ],
+        [
+          "XVI",
+          "Special Provisions relating to certain Classes",
+          "330–342A"
+        ],
+        [
+          "XVII",
+          "Official Language",
+          "343–351"
+        ],
+        [
+          "XVIII",
+          "Emergency Provisions",
+          "352–360"
+        ],
+        [
+          "XIX",
+          "Miscellaneous",
+          "361–367"
+        ],
+        [
+          "XX",
+          "Amendment of the Constitution",
+          "368"
+        ],
+        [
+          "XXI",
+          "Temporary, Transitional and Special Provisions",
+          "369–392"
+        ],
+        [
+          "XXII",
+          "Short Title, Commencement, Authoritative Text in Hindi and Repeals",
+          "393–395"
+        ]
+      ],
+      "muted_row_values": [
+        "VII"
+      ]
+    }
+  ]
+}

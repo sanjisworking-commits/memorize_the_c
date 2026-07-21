@@ -19,6 +19,7 @@ from constitution_memorizer.progress.scheduler import ModesIncompleteError, Remi
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
+    browse_parts_sections,
     build_article_view,
     list_article_numbers,
     load_reviewed_document,
@@ -45,6 +46,7 @@ from constitution_memorizer.web.service import (
     unit_crumb,
     unit_type_label,
 )
+from constitution_memorizer.web.tables_data import list_table_tabs, load_table_tab, row_is_muted
 
 WEB_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = WEB_DIR / "templates"
@@ -380,12 +382,12 @@ def create_app(
     @app.get("/browse", response_class=HTMLResponse)
     async def browse_index(request: Request) -> HTMLResponse:
         eng = _engine()
-        numbers = list_article_numbers(eng, app.state.reviewed)
+        sections = browse_parts_sections(eng, app.state.reviewed)
         return templates.TemplateResponse(
             request,
             "browse_index.html",
             {
-                "article_numbers": numbers,
+                "sections": sections,
                 "has_reviewed": app.state.reviewed is not None,
             },
         )
@@ -500,6 +502,33 @@ def create_app(
             request,
             "progress.html",
             {"dashboard": dashboard},
+        )
+
+    @app.get("/tables", response_class=HTMLResponse)
+    async def tables_page(
+        request: Request,
+        tab: str | None = Query(default=None),
+    ) -> HTMLResponse:
+        tabs = list_table_tabs()
+        if not tabs:
+            raise HTTPException(
+                status_code=500,
+                detail="Tables data missing — run from repo root and pull sprint-29",
+            )
+        tab_ids = {t.id for t in tabs}
+        selected = tab if tab in tab_ids else tabs[0].id
+        payload = load_table_tab(selected)
+        if payload is None:
+            raise HTTPException(status_code=404, detail=f"Table not found: {selected}")
+        return templates.TemplateResponse(
+            request,
+            "tables.html",
+            {
+                "tabs": tabs,
+                "selected": selected,
+                "payload": payload,
+                "row_is_muted": row_is_muted,
+            },
         )
 
     @app.get("/settings", response_class=HTMLResponse)

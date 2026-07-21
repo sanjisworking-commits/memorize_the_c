@@ -1,0 +1,98 @@
+{
+  "id": "constitutional",
+  "label": "Constitutional bodies",
+  "title": "Constitutional bodies",
+  "note": "Established directly by the Constitution. Appointment, tenure and removal follow the cited articles.",
+  "grid": "150px 60px 130px 110px 1fr",
+  "tables": [
+    {
+      "label": null,
+      "head": [
+        "Body",
+        "Article",
+        "Appointment",
+        "Tenure",
+        "Removal"
+      ],
+      "rows": [
+        [
+          "Election Commission",
+          "324",
+          "President",
+          "6 years / 65",
+          "As SC judge"
+        ],
+        [
+          "UPSC",
+          "315–323",
+          "President",
+          "6 years / 65",
+          "As SC judge"
+        ],
+        [
+          "SPSC",
+          "315–323",
+          "Governor",
+          "6 years / 62",
+          "As HC judge"
+        ],
+        [
+          "Finance Commission",
+          "280",
+          "President",
+          "As specified",
+          "—"
+        ],
+        [
+          "CAG",
+          "148–151",
+          "President",
+          "6 years / 65",
+          "As SC judge"
+        ],
+        [
+          "Attorney-General",
+          "76",
+          "President",
+          "Pleasure of President",
+          "Pleasure"
+        ],
+        [
+          "Advocate-General",
+          "165",
+          "Governor",
+          "Pleasure of Governor",
+          "Pleasure"
+        ],
+        [
+          "NCSC",
+          "338",
+          "President",
+          "As specified",
+          "As SC judge"
+        ],
+        [
+          "NCST",
+          "338A",
+          "President",
+          "As specified",
+          "As SC judge"
+        ],
+        [
+          "NCBC",
+          "338B",
+          "President",
+          "As specified",
+          "As SC judge"
+        ],
+        [
+          "GST Council",
+          "279A",
+          "Union + States",
+          "Standing",
+          "—"
+        ]
+      ]
+    }
+  ]
+}

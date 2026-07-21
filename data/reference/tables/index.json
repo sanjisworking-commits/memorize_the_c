@@ -1,0 +1,44 @@
+{
+  "tabs": [
+    {
+      "id": "parts",
+      "label": "Parts"
+    },
+    {
+      "id": "statutory",
+      "label": "Statutory bodies"
+    },
+    {
+      "id": "constitutional",
+      "label": "Constitutional bodies"
+    },
+    {
+      "id": "languages",
+      "label": "8th Schedule"
+    },
+    {
+      "id": "states",
+      "label": "States & UTs"
+    },
+    {
+      "id": "seventh",
+      "label": "7th Schedule"
+    },
+    {
+      "id": "schedules56",
+      "label": "5th & 6th Schedule"
+    },
+    {
+      "id": "rights",
+      "label": "Fundamental rights"
+    },
+    {
+      "id": "writs",
+      "label": "Writs"
+    },
+    {
+      "id": "elections",
+      "label": "Elections"
+    }
+  ]
+}

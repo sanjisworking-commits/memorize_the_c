@@ -46,6 +46,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 26 | `cursor/sprint-26-notification-settings-1a75` | Done |
 | Sprint 27 | `cursor/sprint-27-amendment-corpus-1a75` | Done |
 | Sprint 28 | `cursor/sprint-28-mac-app-dmg-1a75` | Planned (Recall C .dmg) |
+| Sprint 29 | `cursor/sprint-29-tables-browse-1a75` | Done |
 | Sprint 30 | `cursor/sprint-30-methods-theme-1a75` | Done (six-method Done gate, How-to-use, Recall the C, theme) |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
@@ -445,6 +446,15 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - **Rebrand** to **Recall the C** (header lockup + `brand-c.png`, page titles, ntfy titles)
 - **Theme chip** Auto → Dark → Light with proper dark tokens (not invert-filter); preference in `app_settings` + `localStorage`
 - Tests: `tests/test_web_sprint30.py`
+
+### Sprint 29 — Home articles-first + Tables + Browse Parts ✅
+
+**Branch:** `cursor/sprint-29-tables-browse-1a75`
+
+- Home Continue/Due **skip Part Overview** — start at Articles/Clauses
+- **Tables** nav + `/tables` — ten quick-reference tabs (Parts, bodies, 8th Schedule, States & UTs, 7th Schedule with Union/State/Concurrent lists, schedules, rights, writs, elections); read-only JSON under `data/reference/tables/`
+- **Browse** regrouped Part-by-Part with tracked/untracked article cards
+- Tests: `tests/test_home_skip_overview.py`, `tests/test_web_sprint29.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

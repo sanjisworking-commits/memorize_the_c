@@ -1,0 +1,209 @@
+{
+  "id": "states",
+  "label": "States & UTs",
+  "title": "States and Union territories",
+  "note": "28 States and 8 Union territories. J&K reorganised into UTs of J&K and Ladakh (2019). Dadra & Nagar Haveli merged with Daman & Diu (2020).",
+  "grid": "50px 1fr 1fr",
+  "tables": [
+    {
+      "label": "States (28)",
+      "head": [
+        "No.",
+        "State",
+        "Capital"
+      ],
+      "rows": [
+        [
+          "1",
+          "Andhra Pradesh",
+          "Amaravati"
+        ],
+        [
+          "2",
+          "Arunachal Pradesh",
+          "Itanagar"
+        ],
+        [
+          "3",
+          "Assam",
+          "Dispur"
+        ],
+        [
+          "4",
+          "Bihar",
+          "Patna"
+        ],
+        [
+          "5",
+          "Chhattisgarh",
+          "Raipur"
+        ],
+        [
+          "6",
+          "Goa",
+          "Panaji"
+        ],
+        [
+          "7",
+          "Gujarat",
+          "Gandhinagar"
+        ],
+        [
+          "8",
+          "Haryana",
+          "Chandigarh"
+        ],
+        [
+          "9",
+          "Himachal Pradesh",
+          "Shimla"
+        ],
+        [
+          "10",
+          "Jharkhand",
+          "Ranchi"
+        ],
+        [
+          "11",
+          "Karnataka",
+          "Bengaluru"
+        ],
+        [
+          "12",
+          "Kerala",
+          "Thiruvananthapuram"
+        ],
+        [
+          "13",
+          "Madhya Pradesh",
+          "Bhopal"
+        ],
+        [
+          "14",
+          "Maharashtra",
+          "Mumbai"
+        ],
+        [
+          "15",
+          "Manipur",
+          "Imphal"
+        ],
+        [
+          "16",
+          "Meghalaya",
+          "Shillong"
+        ],
+        [
+          "17",
+          "Mizoram",
+          "Aizawl"
+        ],
+        [
+          "18",
+          "Nagaland",
+          "Kohima"
+        ],
+        [
+          "19",
+          "Odisha",
+          "Bhubaneswar"
+        ],
+        [
+          "20",
+          "Punjab",
+          "Chandigarh"
+        ],
+        [
+          "21",
+          "Rajasthan",
+          "Jaipur"
+        ],
+        [
+          "22",
+          "Sikkim",
+          "Gangtok"
+        ],
+        [
+          "23",
+          "Tamil Nadu",
+          "Chennai"
+        ],
+        [
+          "24",
+          "Telangana",
+          "Hyderabad"
+        ],
+        [
+          "25",
+          "Tripura",
+          "Agartala"
+        ],
+        [
+          "26",
+          "Uttar Pradesh",
+          "Lucknow"
+        ],
+        [
+          "27",
+          "Uttarakhand",
+          "Dehradun"
+        ],
+        [
+          "28",
+          "West Bengal",
+          "Kolkata"
+        ]
+      ]
+    },
+    {
+      "label": "Union territories (8)",
+      "head": [
+        "No.",
+        "Union territory",
+        "Capital"
+      ],
+      "rows": [
+        [
+          "1",
+          "Andaman and Nicobar Islands",
+          "Port Blair"
+        ],
+        [
+          "2",
+          "Chandigarh",
+          "Chandigarh"
+        ],
+        [
+          "3",
+          "Dadra and Nagar Haveli and Daman and Diu",
+          "Daman"
+        ],
+        [
+          "4",
+          "Delhi (NCT)",
+          "New Delhi"
+        ],
+        [
+          "5",
+          "Jammu and Kashmir",
+          "Srinagar / Jammu"
+        ],
+        [
+          "6",
+          "Ladakh",
+          "Leh"
+        ],
+        [
+          "7",
+          "Lakshadweep",
+          "Kavaratti"
+        ],
+        [
+          "8",
+          "Puducherry",
+          "Puducherry"
+        ]
+      ]
+    }
+  ]
+}

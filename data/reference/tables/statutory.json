@@ -1,0 +1,64 @@
+{
+  "id": "statutory",
+  "label": "Statutory bodies",
+  "title": "Statutory bodies",
+  "note": "Created by Acts of Parliament, not the Constitution. The National Commission for Backward Classes gained constitutional status under Article 338B (102nd Amendment, 2018).",
+  "grid": "1fr 1fr 70px",
+  "tables": [
+    {
+      "label": null,
+      "head": [
+        "Body",
+        "Establishing Act",
+        "Year"
+      ],
+      "rows": [
+        [
+          "NHRC",
+          "Protection of Human Rights Act",
+          "1993"
+        ],
+        [
+          "CVC",
+          "Central Vigilance Commission Act",
+          "2003"
+        ],
+        [
+          "CIC",
+          "Right to Information Act",
+          "2005"
+        ],
+        [
+          "Lokpal",
+          "Lokpal and Lokayuktas Act",
+          "2013"
+        ],
+        [
+          "NGT",
+          "National Green Tribunal Act",
+          "2010"
+        ],
+        [
+          "NCW",
+          "National Commission for Women Act",
+          "1990"
+        ],
+        [
+          "NCM",
+          "National Commission for Minorities Act",
+          "1992"
+        ],
+        [
+          "NCPCR",
+          "Commissions for Protection of Child Rights Act",
+          "2005"
+        ],
+        [
+          "SEBI",
+          "SEBI Act",
+          "1992"
+        ]
+      ]
+    }
+  ]
+}

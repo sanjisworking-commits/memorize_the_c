@@ -1,0 +1,63 @@
+{
+  "id": "rights",
+  "label": "Fundamental rights",
+  "title": "Fundamental Rights (Arts 14–32)",
+  "note": "Part III. Remedies under Articles 32 and 226. Property ceased to be a fundamental right after the 44th Amendment.",
+  "grid": "120px 70px 1fr 1fr 1fr",
+  "tables": [
+    {
+      "label": null,
+      "head": [
+        "Right",
+        "Articles",
+        "What it protects",
+        "Exceptions & amendments",
+        "Landmark cases"
+      ],
+      "rows": [
+        [
+          "Equality",
+          "14–18",
+          "Equality before law; non-discrimination; equal opportunity; abolition of untouchability and titles",
+          "Arts 15(3)–(6), 16(4)–(6); EWS via 103rd",
+          "Indra Sawhney; State of W.B. v. Anwar Ali"
+        ],
+        [
+          "Freedom",
+          "19–22",
+          "Speech, assembly, association, movement, residence, profession; protection in conviction; life and liberty; against detention",
+          "19(2)–(6); 21A (86th); 22 preventive detention",
+          "Maneka Gandhi; K.S. Puttaswamy"
+        ],
+        [
+          "Against exploitation",
+          "23–24",
+          "Forced labour; child labour in factories etc.",
+          "Traffic in human beings prohibited",
+          "PUDR v. Union of India"
+        ],
+        [
+          "Religion",
+          "25–28",
+          "Freedom of conscience and religion; manage religious affairs",
+          "Public order, morality, health; social welfare laws",
+          "Shirur Mutt; Sabarimala"
+        ],
+        [
+          "Culture & education",
+          "29–30",
+          "Minority language/culture; minority educational institutions",
+          "Admission/regulation balances",
+          "T.M.A. Pai; St. Xavier's"
+        ],
+        [
+          "Constitutional remedies",
+          "32",
+          "Move Supreme Court for enforcement of Part III",
+          "Art 32 itself basic structure",
+          "Fertilizer Corp.; Common Cause"
+        ]
+      ]
+    }
+  ]
+}

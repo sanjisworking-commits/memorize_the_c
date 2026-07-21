@@ -34,6 +34,23 @@ class ArticleBrowseView:
     show_unamended: bool = False
 
 
+@dataclass(frozen=True)
+class BrowseArticleCard:
+    article_number: str
+    title: str
+    href: str
+    tracked: bool
+
+
+@dataclass(frozen=True)
+class BrowsePartSection:
+    part_number: str
+    part_title: str
+    article_range: str
+    cards: list[BrowseArticleCard] = field(default_factory=list)
+    note: str | None = None
+
+
 def load_reviewed_document(path: Path | None) -> ConstitutionDocument | None:
     if path is None or not path.exists():
         return None
@@ -106,6 +123,101 @@ def list_article_numbers(
         key=article_sort_key,
     )
     return numbers
+
+
+def _short_article_title(title: str | None, *, limit: int = 42) -> str:
+    text = (title or "").strip()
+    if not text:
+        return ""
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rsplit(" ", 1)[0] + "…"
+
+
+def _article_is_tracked(engine: ReminderEngine, article_number: str) -> bool:
+    units, pending = path_units_for_article(engine, article_number)
+    if pending:
+        return True
+    for unit in units:
+        progress = engine.repo.get_progress(unit.id)
+        if progress is None:
+            continue
+        if progress.times_completed > 0 or progress.status in {"review", "mastered"}:
+            return True
+    return False
+
+
+def browse_parts_sections(
+    engine: ReminderEngine,
+    reviewed: ConstitutionDocument | None,
+) -> list[BrowsePartSection]:
+    """Part-grouped Browse index (Sprint 29)."""
+    from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
+        _article_range_label,
+        _display_part_title,
+        _part_articles,
+    )
+
+    sections: list[BrowsePartSection] = []
+    if reviewed is None:
+        numbers = list_article_numbers(engine, None)
+        cards = [
+            BrowseArticleCard(
+                article_number=n,
+                title="",
+                href=f"/browse/article/{n}",
+                tracked=_article_is_tracked(engine, n),
+            )
+            for n in numbers
+        ]
+        if cards:
+            sections.append(
+                BrowsePartSection(
+                    part_number="—",
+                    part_title="Articles",
+                    article_range=_article_range_label(numbers),
+                    cards=cards,
+                )
+            )
+        return sections
+
+    for part in reviewed.parts:
+        if str(part.part_number).upper() in {"UNKNOWN", "—", ""}:
+            continue
+        articles = _part_articles(part)
+        numbers = [a.article_number for a in articles]
+        title = _display_part_title(part.title)
+        if not articles and "VII" in str(part.part_number).upper():
+            sections.append(
+                BrowsePartSection(
+                    part_number=str(part.part_number),
+                    part_title=title,
+                    article_range="—",
+                    cards=[],
+                    note="Repealed — States in Part B of the First Schedule.",
+                )
+            )
+            continue
+        if not articles:
+            continue
+        cards = [
+            BrowseArticleCard(
+                article_number=a.article_number,
+                title=_short_article_title(a.title),
+                href=f"/browse/article/{a.article_number}",
+                tracked=_article_is_tracked(engine, a.article_number),
+            )
+            for a in articles
+        ]
+        sections.append(
+            BrowsePartSection(
+                part_number=str(part.part_number),
+                part_title=title,
+                article_range=_article_range_label(numbers),
+                cards=cards,
+            )
+        )
+    return sections
 
 
 def adjacent_article_numbers(

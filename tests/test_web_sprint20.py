@@ -77,8 +77,11 @@ def test_progress_css_mastery_cell_states(client: TestClient):
 
 def test_mastery_map_article_20_is_clickable(client: TestClient):
     html = client.get("/progress").text
-    assert 'title="Article 20 · new"' in html
-    assert "mastery-cell is-new is-tracked" in html or "mastery-cell is-due is-tracked" in html
+    assert 'title="Article 20 · due"' in html or 'title="Article 20 · new"' in html
+    assert (
+        "mastery-cell is-new is-tracked" in html
+        or "mastery-cell is-due is-tracked" in html
+    )
     assert 'href="/learn/' in html
 
 

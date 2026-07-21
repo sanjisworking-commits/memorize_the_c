@@ -44,6 +44,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 24 | `cursor/sprint-24-study-reminders-1a75` | Done |
 | Sprint 25 | `cursor/sprint-25-mac-install-backup-1a75` | Done |
 | Sprint 26 | `cursor/sprint-26-notification-settings-1a75` | Done |
+| Sprint 27 | `cursor/sprint-27-amendment-corpus-1a75` | Done |
+| Sprint 28 | `cursor/sprint-28-mac-app-dmg-1a75` | Planned (Recall C .dmg; blocked on this merge) |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -421,6 +423,17 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Prefs in SQLite `app_settings`; hourly LaunchAgent ticks gate via `should_notify`
 - Same Home `due_checklist` — Done / Again tomorrow clear dues and silence nags
 - Tests: `tests/test_notification_schedule.py`, `tests/test_web_sprint26.py`, CLI schedule skips
+
+### Sprint 27 — Full amendment history corpus ✅
+
+**Branch:** `cursor/sprint-27-amendment-corpus-1a75`
+
+- Reference catalog [`data/reference/amendments.wikipedia.json`](data/reference/amendments.wikipedia.json) — all **106** amendments from [Wikipedia’s list](https://en.wikipedia.org/wiki/List_of_amendments_of_the_Constitution_of_India) (retrieved 2026-07-20; not a legal authority)
+- Expanded [`amendments.seed.json`](data/reference/amendments.seed.json) — Browse/Learn cards for every **in-corpus** article those amendments touch (~190 articles)
+- Preserves hand-curated Arts **14 / 15 / 19 / 21** notes from Sprint 21
+- Rebuild helper: `python scripts/build_amendment_corpus.py`
+- Tests: `tests/test_amendment_corpus.py`
+- **Next:** Sprint 28 Recall C Mac `.dmg` packaging waits until this merges
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

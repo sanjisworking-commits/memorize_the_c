@@ -1,0 +1,1338 @@
+{
+  "schema_version": "1.0.0",
+  "source": {
+    "title": "List of amendments of the Constitution of India",
+    "url": "https://en.wikipedia.org/wiki/List_of_amendments_of_the_Constitution_of_India",
+    "retrieved": "2026-07-20",
+    "note": "Reference extract for learning cards — not a substitute for the Bare Act or official amendment texts."
+  },
+  "amendment_count": 106,
+  "amendments": [
+    {
+      "no": "1st",
+      "enforced": "1951",
+      "year": "1951",
+      "articles_touched": [
+        "31A",
+        "31B",
+        "15",
+        "19",
+        "85",
+        "87",
+        "174",
+        "176",
+        "341",
+        "342",
+        "372",
+        "376"
+      ],
+      "amendments_cell": "15, 19, 85, 87, 174, 176, 341, 342, 372 and 376. Insert articles 31A and 31B. Insert schedule 9.",
+      "objectives": "Special provisions for backward classes; zamindari abolition validity; reasonable restrictions on speech; Ninth Schedule device."
+    },
+    {
+      "no": "2nd",
+      "enforced": "1953",
+      "year": "1953",
+      "articles_touched": [
+        "81"
+      ],
+      "amendments_cell": "Amend article 81(1)(b).",
+      "objectives": "Removed upper population limit for parliamentary constituencies under Article 81(1)(b)."
+    },
+    {
+      "no": "3rd",
+      "enforced": "1955",
+      "year": "1955",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 7.",
+      "objectives": "Re-enacted Concurrent List entry 33 on essential commodities trade and production."
+    },
+    {
+      "no": "4th",
+      "enforced": "1955",
+      "year": "1955",
+      "articles_touched": [
+        "31",
+        "31A",
+        "305"
+      ],
+      "amendments_cell": "Amend articles 31, 31A, and 305. Amend schedule 9.",
+      "objectives": "Property rights and state acquisition; agricultural land ceilings; mineral and oil control."
+    },
+    {
+      "no": "5th",
+      "enforced": "1955",
+      "year": "1955",
+      "articles_touched": [
+        "3"
+      ],
+      "amendments_cell": "Amend article 3.",
+      "objectives": "President may prescribe/extend time for State Legislatures to respond on State formation bills."
+    },
+    {
+      "no": "6th",
+      "enforced": "1956",
+      "year": "1956",
+      "articles_touched": [
+        "269",
+        "286"
+      ],
+      "amendments_cell": "Amend articles 269 and 286. Amend schedule 7.",
+      "objectives": "Union and State List tax-raising adjustments."
+    },
+    {
+      "no": "7th",
+      "enforced": "1956",
+      "year": "1956",
+      "articles_touched": [
+        "1",
+        "3",
+        "49",
+        "80",
+        "81",
+        "82",
+        "131",
+        "153",
+        "158",
+        "168",
+        "170",
+        "171",
+        "216",
+        "217",
+        "220",
+        "222",
+        "224",
+        "230",
+        "231",
+        "232",
+        "258A",
+        "290A",
+        "298",
+        "350A",
+        "350B",
+        "371",
+        "372A",
+        "378A",
+        "2",
+        "4",
+        "7"
+      ],
+      "amendments_cell": "Amend articles 1, 3, 49, 80, 81, 82, 131, 153, 158, 168, 170, 171, 216, 217, 220, 222, 224, 230, 231 and 232. Insert articles 258A, 290A, 298, 350A, 350B, 371, 372A and 378A. Amend part 8. Amend schedules 1, 2, 4 and 7.",
+      "objectives": "States reorganisation on linguistic lines; Class A–D states abolished; Union territories introduced."
+    },
+    {
+      "no": "8th",
+      "enforced": "1960",
+      "year": "1960",
+      "articles_touched": [
+        "334"
+      ],
+      "amendments_cell": "Amend article 334.",
+      "objectives": "Extended SC/ST and Anglo-Indian seat reservations in Lok Sabha and Assemblies till 1970."
+    },
+    {
+      "no": "9th",
+      "enforced": "1960",
+      "year": "1960",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 1.",
+      "objectives": "Territory adjustments with Pakistan after border village demarcation."
+    },
+    {
+      "no": "10th",
+      "enforced": "1961",
+      "year": "1961",
+      "articles_touched": [
+        "240"
+      ],
+      "amendments_cell": "Amend article 240. Amend schedule 1.",
+      "objectives": "Dadra and Nagar Haveli incorporated as a Union Territory."
+    },
+    {
+      "no": "11th",
+      "enforced": "1961",
+      "year": "1961",
+      "articles_touched": [
+        "66",
+        "71"
+      ],
+      "amendments_cell": "Amend articles 66 and 71.",
+      "objectives": "Vice-President elected by both Houses; election procedure insulated from electoral-college vacancies."
+    },
+    {
+      "no": "12th",
+      "enforced": "1961",
+      "year": "1961",
+      "articles_touched": [
+        "240"
+      ],
+      "amendments_cell": "Amend article 240. Amend schedule 1.",
+      "objectives": "Goa, Daman and Diu incorporated as a Union Territory."
+    },
+    {
+      "no": "13th",
+      "enforced": "1962",
+      "year": "1962",
+      "articles_touched": [
+        "170",
+        "371A"
+      ],
+      "amendments_cell": "Amend article 170. Insert new article 371A.",
+      "objectives": "Special protection under Article 371A for Nagaland."
+    },
+    {
+      "no": "14th",
+      "enforced": "1962",
+      "year": "1962",
+      "articles_touched": [
+        "81",
+        "240",
+        "239A",
+        "4"
+      ],
+      "amendments_cell": "Amend articles 81 and 240. Insert article 239A. Amend schedules 1 and 4.",
+      "objectives": "Pondicherry incorporated; assemblies for certain Union Territories."
+    },
+    {
+      "no": "15th",
+      "enforced": "1963",
+      "year": "1963",
+      "articles_touched": [
+        "124",
+        "128",
+        "217",
+        "222",
+        "224",
+        "226",
+        "297",
+        "311",
+        "316",
+        "224A"
+      ],
+      "amendments_cell": "Amend articles 124, 128, 217, 222, 224, 226, 297, 311 and 316. Insert article 224A. Amend schedule 7.",
+      "objectives": "High Court judge retirement age raised to 62; related judicial rationalisations."
+    },
+    {
+      "no": "16th",
+      "enforced": "1963",
+      "year": "1963",
+      "articles_touched": [
+        "19",
+        "84",
+        "173"
+      ],
+      "amendments_cell": "Amend articles 19, 84 and 173. Amend schedule 3.",
+      "objectives": "Public-office oaths of allegiance; sovereignty/integrity restrictions on speech."
+    },
+    {
+      "no": "17th",
+      "enforced": "1964",
+      "year": "1964",
+      "articles_touched": [
+        "31A"
+      ],
+      "amendments_cell": "Amend article 31A. Amend schedule 9.",
+      "objectives": "Secured acquisition of estates; more land laws under Ninth Schedule."
+    },
+    {
+      "no": "18th",
+      "enforced": "1966",
+      "year": "1966",
+      "articles_touched": [
+        "3"
+      ],
+      "amendments_cell": "Amend article 3.",
+      "objectives": "Union Territories included in Article 3 reorganisation power."
+    },
+    {
+      "no": "19th",
+      "enforced": "1966",
+      "year": "1966",
+      "articles_touched": [
+        "324"
+      ],
+      "amendments_cell": "Amend article 324.",
+      "objectives": "Election Tribunals abolished; election petitions to High Courts."
+    },
+    {
+      "no": "20th",
+      "enforced": "1966",
+      "year": "1966",
+      "articles_touched": [
+        "233A"
+      ],
+      "amendments_cell": "Insert article 233A.",
+      "objectives": "Validated certain judicial appointments and judgments after Article 233 litigation."
+    },
+    {
+      "no": "21st",
+      "enforced": "1967",
+      "year": "1967",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 8.",
+      "objectives": "Sindhi added as an official language."
+    },
+    {
+      "no": "22nd",
+      "enforced": "1969",
+      "year": "1969",
+      "articles_touched": [
+        "275",
+        "244A",
+        "371B"
+      ],
+      "amendments_cell": "Amend article 275. Insert articles 244A and 371B.",
+      "objectives": "Autonomous states within Assam; related finance provisions."
+    },
+    {
+      "no": "23rd",
+      "enforced": "1970",
+      "year": "1970",
+      "articles_touched": [
+        "330",
+        "332",
+        "333",
+        "334"
+      ],
+      "amendments_cell": "Amend articles 330, 332, 333 and 334.",
+      "objectives": "SC/ST/Anglo-Indian reservations extended; Nagaland ST reservation discontinued."
+    },
+    {
+      "no": "24th",
+      "enforced": "1971",
+      "year": "1971",
+      "articles_touched": [
+        "13",
+        "368"
+      ],
+      "amendments_cell": "Amend articles 13 and 368.",
+      "objectives": "Parliament empowered to amend Fundamental Rights; presidential assent to amendment bills made obligatory."
+    },
+    {
+      "no": "25th",
+      "enforced": "1971",
+      "year": "1971",
+      "articles_touched": [
+        "31",
+        "31C"
+      ],
+      "amendments_cell": "Amend article 31. Insert article 31C.",
+      "objectives": "Restricted property rights and compensation; inserted Article 31C (part later limited by courts)."
+    },
+    {
+      "no": "26th",
+      "enforced": "1971",
+      "year": "1971",
+      "articles_touched": [
+        "366",
+        "363A",
+        "291",
+        "362"
+      ],
+      "amendments_cell": "Amend article 366. Insert article 363A. Remove articles 291 and 362.",
+      "objectives": "Abolished privy purses of former princely rulers."
+    },
+    {
+      "no": "27th",
+      "enforced": "1972",
+      "year": "1972",
+      "articles_touched": [
+        "239A",
+        "240",
+        "239B",
+        "371C"
+      ],
+      "amendments_cell": "Amend articles 239A and 240. Insert articles 239B and 371C.",
+      "objectives": "Mizoram UT with legislature; Manipur special provision 371C."
+    },
+    {
+      "no": "28th",
+      "enforced": "1972",
+      "year": "1972",
+      "articles_touched": [
+        "312A",
+        "314"
+      ],
+      "amendments_cell": "Insert article 312A. Remove article 314.",
+      "objectives": "Rationalised civil-service rules across pre- and post-Independence appointees."
+    },
+    {
+      "no": "29th",
+      "enforced": "1972",
+      "year": "1972",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 9.",
+      "objectives": "Kerala land-reform acts placed under Ninth Schedule."
+    },
+    {
+      "no": "30th",
+      "enforced": "1972",
+      "year": "1972",
+      "articles_touched": [
+        "133"
+      ],
+      "amendments_cell": "Amend article 133.",
+      "objectives": "Supreme Court civil appeals based on substantial question of law, not value."
+    },
+    {
+      "no": "31st",
+      "enforced": "1973",
+      "year": "1973",
+      "articles_touched": [
+        "81",
+        "330",
+        "332"
+      ],
+      "amendments_cell": "Amend articles 81, 330 and 332.",
+      "objectives": "Parliament size increased; North-East seat adjustments."
+    },
+    {
+      "no": "32nd",
+      "enforced": "1974",
+      "year": "1974",
+      "articles_touched": [
+        "371",
+        "371D",
+        "371E"
+      ],
+      "amendments_cell": "Amend article 371. Insert articles 371D and 371E. Amend schedule 7.",
+      "objectives": "Regional protections for Telangana and Andhra; related entries."
+    },
+    {
+      "no": "33rd",
+      "enforced": "1974",
+      "year": "1974",
+      "articles_touched": [
+        "101",
+        "190"
+      ],
+      "amendments_cell": "Amend articles 101 and 190.",
+      "objectives": "Resignation procedure for MPs and MLAs."
+    },
+    {
+      "no": "34th",
+      "enforced": "1974",
+      "year": "1974",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 9.",
+      "objectives": "Further land-reform acts under Ninth Schedule."
+    },
+    {
+      "no": "35th",
+      "enforced": "1975",
+      "year": "1975",
+      "articles_touched": [
+        "80",
+        "81",
+        "2A"
+      ],
+      "amendments_cell": "Amend articles 80 and 81. Insert article 2A. Insert schedule 10.",
+      "objectives": "Terms for incorporating Sikkim into the Union."
+    },
+    {
+      "no": "36th",
+      "enforced": "1975",
+      "year": "1975",
+      "articles_touched": [
+        "80",
+        "81",
+        "371F",
+        "2A",
+        "4"
+      ],
+      "amendments_cell": "Amend articles 80 and 81. Insert article 371F. Remove article 2A. Amend schedules 1 and 4. Remove schedule 10.",
+      "objectives": "Sikkim became a State; Article 371F special provisions."
+    },
+    {
+      "no": "37th",
+      "enforced": "1975",
+      "year": "1975",
+      "articles_touched": [
+        "239A",
+        "240"
+      ],
+      "amendments_cell": "Amend articles 239A and 240.",
+      "objectives": "Arunachal Pradesh legislative assembly."
+    },
+    {
+      "no": "38th",
+      "enforced": "1975",
+      "year": "1975",
+      "articles_touched": [
+        "123",
+        "213",
+        "239B",
+        "352",
+        "356",
+        "359",
+        "360"
+      ],
+      "amendments_cell": "Amend articles 123, 213, 239B, 352, 356, 359 and 360.",
+      "objectives": "Expanded ordinance and emergency powers of President and Governors."
+    },
+    {
+      "no": "39th",
+      "enforced": "1975",
+      "year": "1975",
+      "articles_touched": [
+        "71",
+        "329",
+        "329A"
+      ],
+      "amendments_cell": "Amend articles 71 and 329. Insert article 329A. Amend schedule 9.",
+      "objectives": "Restricted judicial scrutiny of certain high offices’ elections (parts later struck down)."
+    },
+    {
+      "no": "40th",
+      "enforced": "1976",
+      "year": "1976",
+      "articles_touched": [
+        "297"
+      ],
+      "amendments_cell": "Amend article 297. Amend schedule 9.",
+      "objectives": "EEZ mineral wealth vested in the Union; more Ninth Schedule acts."
+    },
+    {
+      "no": "41st",
+      "enforced": "1976",
+      "year": "1976",
+      "articles_touched": [
+        "316"
+      ],
+      "amendments_cell": "Amend article 316.",
+      "objectives": "Raised retirement age for State/Joint PSC members to 62."
+    },
+    {
+      "no": "42nd",
+      "enforced": "1977",
+      "year": "1977",
+      "articles_touched": [
+        "31",
+        "31C",
+        "39",
+        "55",
+        "74",
+        "77",
+        "81",
+        "82",
+        "83",
+        "100",
+        "102",
+        "103",
+        "105",
+        "118",
+        "145",
+        "150",
+        "166",
+        "170",
+        "172",
+        "189",
+        "191",
+        "192",
+        "194",
+        "208",
+        "217",
+        "225",
+        "226",
+        "227",
+        "228",
+        "311",
+        "312",
+        "330",
+        "352",
+        "353",
+        "356",
+        "357",
+        "358",
+        "359",
+        "366",
+        "368",
+        "371F",
+        "31D",
+        "32A",
+        "39A",
+        "43A",
+        "48A",
+        "131A",
+        "139A",
+        "144A",
+        "226A",
+        "228A",
+        "257A"
+      ],
+      "amendments_cell": "Amend articles 31, 31C, 39, 55, 74, 77, 81, 82, 83, 100, 102, 103, 105, 118, 145, 150, 166, 170, 172, 189, 191, 192, 194, 208, 217, 225, 226, 227, 228, 311, 312, 330, 352, 353, 356, 357, 358, 359, 366, 368 and 371F. Insert articles 31D, 32A, 39A, 43A, 48A, 131A, 139A, 144A, 226A, 228A and 257A. Insert parts IVA and XIVA. Amend schedule 7.",
+      "objectives": "Emergency-era overhaul: socialist/secular wording, duties, many institutional changes (parts later curtailed)."
+    },
+    {
+      "no": "43rd",
+      "enforced": "1978",
+      "year": "1978",
+      "articles_touched": [
+        "145",
+        "226",
+        "228",
+        "366",
+        "31D",
+        "32A",
+        "131A",
+        "144A",
+        "226A",
+        "228A"
+      ],
+      "amendments_cell": "Amend articles 145, 226, 228 and 366. Remove articles 31D, 32A, 131A, 144A, 226A and 228A.",
+      "objectives": "Repealed several 42nd Amendment anti-freedom inserts."
+    },
+    {
+      "no": "44th",
+      "enforced": "1979",
+      "year": "1979",
+      "articles_touched": [
+        "19",
+        "22",
+        "30",
+        "31A",
+        "31C",
+        "38",
+        "71",
+        "74",
+        "77",
+        "83",
+        "103",
+        "105",
+        "123",
+        "132",
+        "133",
+        "134",
+        "139A",
+        "150",
+        "166",
+        "172",
+        "192",
+        "194",
+        "213",
+        "217",
+        "225",
+        "226",
+        "227",
+        "239B",
+        "329",
+        "352",
+        "356",
+        "358",
+        "359",
+        "360",
+        "371F",
+        "134A",
+        "361A",
+        "31",
+        "257A",
+        "329A"
+      ],
+      "amendments_cell": "Amend articles 19, 22, 30, 31A, 31C, 38, 71, 74, 77, 83, 103, 105, 123, 132, 133, 134, 139A, 150, 166, 172, 192, 194, 213, 217, 225, 226, 227, 239B, 329, 352, 356, 358, 359, 360 and 371F. Insert articles 134A and 361A. Remove articles 31, 257A and 329A. Amend part 12. Amend schedule 9.",
+      "objectives": "Restored liberties after Emergency; omitted property as a fundamental right (Art 19(1)(f) / Art 31)."
+    },
+    {
+      "no": "45th",
+      "enforced": "1980",
+      "year": "1980",
+      "articles_touched": [
+        "334"
+      ],
+      "amendments_cell": "Amend article 334.",
+      "objectives": "Extended SC/ST and Anglo-Indian reservations till 1990."
+    },
+    {
+      "no": "46th",
+      "enforced": "1983",
+      "year": "1983",
+      "articles_touched": [
+        "269",
+        "286",
+        "366"
+      ],
+      "amendments_cell": "Amend articles 269, 286 and 366. Amend schedule 7.",
+      "objectives": "Sales-tax scope clarifications after judicial rulings."
+    },
+    {
+      "no": "47th",
+      "enforced": "1984",
+      "year": "1984",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 9.",
+      "objectives": "Further land-reform acts under Ninth Schedule."
+    },
+    {
+      "no": "48th",
+      "enforced": "1984",
+      "year": "1984",
+      "articles_touched": [
+        "356"
+      ],
+      "amendments_cell": "Amend article 356.",
+      "objectives": "President's rule up to two years permitted in Punjab."
+    },
+    {
+      "no": "49th",
+      "enforced": "1984",
+      "year": "1984",
+      "articles_touched": [
+        "244",
+        "6"
+      ],
+      "amendments_cell": "Amend article 244. Amend schedules 5 and 6.",
+      "objectives": "Tripura tribal areas autonomous district council enabled."
+    },
+    {
+      "no": "50th",
+      "enforced": "1984",
+      "year": "1984",
+      "articles_touched": [
+        "33"
+      ],
+      "amendments_cell": "Amend article 33.",
+      "objectives": "Expanded Article 33 curtailment of Part III rights for certain security personnel."
+    },
+    {
+      "no": "51st",
+      "enforced": "1984",
+      "year": "1984",
+      "articles_touched": [
+        "330",
+        "332"
+      ],
+      "amendments_cell": "Amend articles 330 and 332.",
+      "objectives": "ST reservations in certain North-East Lok Sabha/Assembly seats."
+    },
+    {
+      "no": "52nd",
+      "enforced": "1985",
+      "year": "1985",
+      "articles_touched": [
+        "101",
+        "102",
+        "190",
+        "191"
+      ],
+      "amendments_cell": "Amend articles 101, 102, 190 and 191. Insert schedule 10.",
+      "objectives": "Anti-defection law (Tenth Schedule)."
+    },
+    {
+      "no": "53rd",
+      "enforced": "1986",
+      "year": "1986",
+      "articles_touched": [
+        "371G"
+      ],
+      "amendments_cell": "Insert article 371G.",
+      "objectives": "Special provision for Mizoram."
+    },
+    {
+      "no": "54th",
+      "enforced": "1986",
+      "year": "1986",
+      "articles_touched": [
+        "125",
+        "221"
+      ],
+      "amendments_cell": "Amend articles 125 and 221. Amend schedule 2.",
+      "objectives": "Judge salaries; future increases without constitutional amendment."
+    },
+    {
+      "no": "55th",
+      "enforced": "1987",
+      "year": "1987",
+      "articles_touched": [
+        "371H"
+      ],
+      "amendments_cell": "Insert article 371H.",
+      "objectives": "Special Governor powers for Arunachal Pradesh."
+    },
+    {
+      "no": "56th",
+      "enforced": "1987",
+      "year": "1987",
+      "articles_touched": [
+        "371I"
+      ],
+      "amendments_cell": "Insert article 371I.",
+      "objectives": "Transition provision for Goa statehood."
+    },
+    {
+      "no": "57th",
+      "enforced": "1987",
+      "year": "1987",
+      "articles_touched": [
+        "332"
+      ],
+      "amendments_cell": "Amend article 332.",
+      "objectives": "ST reservation in certain North-East Assemblies."
+    },
+    {
+      "no": "58th",
+      "enforced": "1987",
+      "year": "1987",
+      "articles_touched": [
+        "394A"
+      ],
+      "amendments_cell": "Insert article 394A. Amend part 22.",
+      "objectives": "Authentic Hindi text of the Constitution and future amendments."
+    },
+    {
+      "no": "59th",
+      "enforced": "1988",
+      "year": "1988",
+      "articles_touched": [
+        "356",
+        "359A"
+      ],
+      "amendments_cell": "Amend article 356. Insert article 359A.",
+      "objectives": "Extended President's rule/emergency tools for Punjab (later partly repealed)."
+    },
+    {
+      "no": "60th",
+      "enforced": "1988",
+      "year": "1988",
+      "articles_touched": [
+        "276"
+      ],
+      "amendments_cell": "Amend article 276.",
+      "objectives": "Profession tax ceiling raised to ₹2,500."
+    },
+    {
+      "no": "61st",
+      "enforced": "1989",
+      "year": "1989",
+      "articles_touched": [
+        "326"
+      ],
+      "amendments_cell": "Amend article 326.",
+      "objectives": "Voting age reduced from 21 to 18."
+    },
+    {
+      "no": "62nd",
+      "enforced": "1990",
+      "year": "1990",
+      "articles_touched": [
+        "334"
+      ],
+      "amendments_cell": "Amend article 334.",
+      "objectives": "Extended SC/ST and Anglo-Indian reservations till 2000."
+    },
+    {
+      "no": "63rd",
+      "enforced": "1990",
+      "year": "1990",
+      "articles_touched": [
+        "356",
+        "359A"
+      ],
+      "amendments_cell": "Amend article 356. Remove article 359A.",
+      "objectives": "Repealed Punjab-specific Article 359A emergency power."
+    },
+    {
+      "no": "64th",
+      "enforced": "1990",
+      "year": "1990",
+      "articles_touched": [
+        "356"
+      ],
+      "amendments_cell": "Amend article 356.",
+      "objectives": "President's rule in Punjab extendable to three years six months."
+    },
+    {
+      "no": "65th",
+      "enforced": "1992",
+      "year": "1992",
+      "articles_touched": [
+        "338"
+      ],
+      "amendments_cell": "Amend article 338.",
+      "objectives": "National Commission for SCs and STs given constitutional status/powers."
+    },
+    {
+      "no": "66th",
+      "enforced": "1990",
+      "year": "1990",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 9.",
+      "objectives": "Further land-reform acts under Ninth Schedule."
+    },
+    {
+      "no": "67th",
+      "enforced": "1990",
+      "year": "1990",
+      "articles_touched": [
+        "356"
+      ],
+      "amendments_cell": "Amend article 356.",
+      "objectives": "President's rule in Punjab extendable to four years."
+    },
+    {
+      "no": "68th",
+      "enforced": "1991",
+      "year": "1991",
+      "articles_touched": [
+        "356"
+      ],
+      "amendments_cell": "Amend article 356.",
+      "objectives": "President's rule in Punjab extendable to five years."
+    },
+    {
+      "no": "69th",
+      "enforced": "1992",
+      "year": "1992",
+      "articles_touched": [
+        "239AA",
+        "239AB"
+      ],
+      "amendments_cell": "Insert articles 239AA and 239AB.",
+      "objectives": "Legislative assembly and council of ministers for NCT of Delhi."
+    },
+    {
+      "no": "70th",
+      "enforced": "1991",
+      "year": "1991",
+      "articles_touched": [
+        "54",
+        "239AA"
+      ],
+      "amendments_cell": "Amend articles 54 and 239AA.",
+      "objectives": "Delhi and Pondicherry included in presidential electoral college."
+    },
+    {
+      "no": "71st",
+      "enforced": "1992",
+      "year": "1992",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 8.",
+      "objectives": "Konkani, Manipuri and Nepali added as official languages."
+    },
+    {
+      "no": "72nd",
+      "enforced": "1992",
+      "year": "1992",
+      "articles_touched": [
+        "332"
+      ],
+      "amendments_cell": "Amend article 332.",
+      "objectives": "ST reservation in Tripura Assembly."
+    },
+    {
+      "no": "73rd",
+      "enforced": "1993",
+      "year": "1993",
+      "articles_touched": [
+        "243",
+        "243A",
+        "243B",
+        "243C",
+        "243D",
+        "243E",
+        "243F",
+        "243G",
+        "243H",
+        "243I",
+        "243J",
+        "243K",
+        "243L",
+        "243M",
+        "243N",
+        "243O"
+      ],
+      "amendments_cell": "Insert part 9. Insert schedule 11.",
+      "objectives": "Constitutional status for Panchayati Raj (Part IX)."
+    },
+    {
+      "no": "74th",
+      "enforced": "1993",
+      "year": "1993",
+      "articles_touched": [
+        "280",
+        "243P",
+        "243Q",
+        "243R",
+        "243S",
+        "243T",
+        "243U",
+        "243V",
+        "243W",
+        "243X",
+        "243Y",
+        "243Z",
+        "243ZA",
+        "243ZB",
+        "243ZC",
+        "243ZD",
+        "243ZE",
+        "243ZF",
+        "243ZG"
+      ],
+      "amendments_cell": "Insert part 9A, insert schedule 12, amend article 280.",
+      "objectives": "Constitutional status for municipalities (Part IXA); Finance Commission tweaks."
+    },
+    {
+      "no": "75th",
+      "enforced": "1994",
+      "year": "1994",
+      "articles_touched": [
+        "323B"
+      ],
+      "amendments_cell": "Amend article 323B.",
+      "objectives": "Enabled Rent Control Tribunals."
+    },
+    {
+      "no": "76th",
+      "enforced": "1994",
+      "year": "1994",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 9.",
+      "objectives": "Tamil Nadu reservation Act protected via Ninth Schedule."
+    },
+    {
+      "no": "77th",
+      "enforced": "1995",
+      "year": "1995",
+      "articles_touched": [
+        "16"
+      ],
+      "amendments_cell": "Amend article 16.",
+      "objectives": "Protected reservation in promotions for SCs/STs."
+    },
+    {
+      "no": "78th",
+      "enforced": "1995",
+      "year": "1995",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 9.",
+      "objectives": "Further land-reform acts under Ninth Schedule."
+    },
+    {
+      "no": "79th",
+      "enforced": "2000",
+      "year": "2000",
+      "articles_touched": [
+        "334"
+      ],
+      "amendments_cell": "Amend article 334.",
+      "objectives": "Extended SC/ST and Anglo-Indian reservations till 2010."
+    },
+    {
+      "no": "80th",
+      "enforced": "2000",
+      "year": "2000",
+      "articles_touched": [
+        "269",
+        "270",
+        "272"
+      ],
+      "amendments_cell": "Amend articles 269 and 270. Remove article 272.",
+      "objectives": "Tax pooling/sharing per Tenth Finance Commission; Article 272 omitted."
+    },
+    {
+      "no": "81st",
+      "enforced": "2000",
+      "year": "2000",
+      "articles_touched": [
+        "16"
+      ],
+      "amendments_cell": "Amend article 16.",
+      "objectives": "Protected filling SC/ST reservation backlog vacancies."
+    },
+    {
+      "no": "82nd",
+      "enforced": "2000",
+      "year": "2000",
+      "articles_touched": [
+        "335"
+      ],
+      "amendments_cell": "Amend article 335.",
+      "objectives": "Allowed relaxed standards in SC/ST promotion reservations."
+    },
+    {
+      "no": "83rd",
+      "enforced": "2000",
+      "year": "2000",
+      "articles_touched": [
+        "243M"
+      ],
+      "amendments_cell": "Amend article 243M.",
+      "objectives": "Exempted Arunachal Pradesh from SC reservation in Panchayats."
+    },
+    {
+      "no": "84th",
+      "enforced": "2002",
+      "year": "2002",
+      "articles_touched": [
+        "55",
+        "81",
+        "82",
+        "170",
+        "330",
+        "332"
+      ],
+      "amendments_cell": "Amend articles 55, 81, 82, 170, 330 and 332.",
+      "objectives": "Froze seat distribution on 1971 census figures."
+    },
+    {
+      "no": "85th",
+      "enforced": "2002",
+      "year": "2002",
+      "articles_touched": [
+        "16"
+      ],
+      "amendments_cell": "Amend article 16.",
+      "objectives": "Protected consequential seniority for SC/ST promotees."
+    },
+    {
+      "no": "86th",
+      "enforced": "2002",
+      "year": "2002",
+      "articles_touched": [
+        "45",
+        "51A",
+        "21A"
+      ],
+      "amendments_cell": "Amend articles 45 and 51A. Insert article 21A.",
+      "objectives": "Right to education for children 6–14; related DPSP and duty changes."
+    },
+    {
+      "no": "87th",
+      "enforced": "2003",
+      "year": "2003",
+      "articles_touched": [
+        "81",
+        "82",
+        "170",
+        "330"
+      ],
+      "amendments_cell": "Amend articles 81, 82, 170 and 330.",
+      "objectives": "Seat distribution updated using 2001 census figures."
+    },
+    {
+      "no": "88th",
+      "enforced": "2004",
+      "year": "2004",
+      "articles_touched": [
+        "270",
+        "268A"
+      ],
+      "amendments_cell": "Amend article 270. Insert article 268A. Amend schedule 7.",
+      "objectives": "Service tax statutory cover (Article 268A later removed by GST)."
+    },
+    {
+      "no": "89th",
+      "enforced": "2003",
+      "year": "2003",
+      "articles_touched": [
+        "338",
+        "338A"
+      ],
+      "amendments_cell": "Amend article 338. Insert article 338A.",
+      "objectives": "Split SC and ST national commissions."
+    },
+    {
+      "no": "90th",
+      "enforced": "2003",
+      "year": "2003",
+      "articles_touched": [
+        "332"
+      ],
+      "amendments_cell": "Amend article 332.",
+      "objectives": "Assam Assembly reservation for Bodoland areas."
+    },
+    {
+      "no": "91st",
+      "enforced": "2004",
+      "year": "2004",
+      "articles_touched": [
+        "75",
+        "164",
+        "361B"
+      ],
+      "amendments_cell": "Amend articles 75 and 164. Insert article 361B. Amend schedule 10.",
+      "objectives": "Council of Ministers size capped; anti-defection strengthened."
+    },
+    {
+      "no": "92nd",
+      "enforced": "2004",
+      "year": "2004",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 8.",
+      "objectives": "Bodo, Dogri, Santali and Maithili added as official languages."
+    },
+    {
+      "no": "93rd",
+      "enforced": "2006",
+      "year": "2006",
+      "articles_touched": [
+        "15"
+      ],
+      "amendments_cell": "Amend article 15.",
+      "objectives": "Enabled OBC reservation in educational institutions including private unaided."
+    },
+    {
+      "no": "94th",
+      "enforced": "2006",
+      "year": "2006",
+      "articles_touched": [
+        "164"
+      ],
+      "amendments_cell": "Amend article 164.",
+      "objectives": "Tribal Welfare Minister for Jharkhand, Chhattisgarh, Madhya Pradesh, Odisha."
+    },
+    {
+      "no": "95th",
+      "enforced": "2010",
+      "year": "2010",
+      "articles_touched": [
+        "334"
+      ],
+      "amendments_cell": "Amend article 334.",
+      "objectives": "Extended SC/ST and Anglo-Indian reservations till 2020."
+    },
+    {
+      "no": "96th",
+      "enforced": "2011",
+      "year": "2011",
+      "articles_touched": [],
+      "amendments_cell": "Amend schedule 8.",
+      "objectives": "Oriya renamed Odia in the Eighth Schedule."
+    },
+    {
+      "no": "97th",
+      "enforced": "2012",
+      "year": "2012",
+      "articles_touched": [
+        "19",
+        "43B",
+        "243ZH",
+        "243ZJ",
+        "243ZK",
+        "243ZL",
+        "243ZM",
+        "243ZN",
+        "243ZO",
+        "243ZP",
+        "243ZQ",
+        "243ZR",
+        "243ZS",
+        "243ZT"
+      ],
+      "amendments_cell": "Amend Art 19 and add Art 43B and Part IXB.",
+      "objectives": "Co-operative societies in Art 19(1)(c); Art 43B and Part IXB (part later struck)."
+    },
+    {
+      "no": "98th",
+      "enforced": "2013",
+      "year": "2013",
+      "articles_touched": [
+        "371J"
+      ],
+      "amendments_cell": "Insert Article 371J.",
+      "objectives": "Special development provision for Hyderabad-Karnataka region."
+    },
+    {
+      "no": "99th",
+      "enforced": "2015",
+      "year": "2015",
+      "articles_touched": [
+        "124A",
+        "124B",
+        "124C",
+        "127",
+        "128",
+        "217",
+        "222",
+        "224A",
+        "231"
+      ],
+      "amendments_cell": "Insert articles 124A, 124B and 124C. Amend articles 127, 128, 217, 222, 224A, 231.",
+      "objectives": "National Judicial Appointments Commission (struck down by Supreme Court)."
+    },
+    {
+      "no": "100th",
+      "enforced": "2015",
+      "year": "2015",
+      "articles_touched": [],
+      "amendments_cell": "Amend First Schedule.",
+      "objectives": "India–Bangladesh land boundary enclave exchange."
+    },
+    {
+      "no": "101st",
+      "enforced": "2017",
+      "year": "2017",
+      "articles_touched": [
+        "246A",
+        "269A",
+        "279A",
+        "268A",
+        "248",
+        "249",
+        "250",
+        "268",
+        "269",
+        "270",
+        "271",
+        "286",
+        "366",
+        "368"
+      ],
+      "amendments_cell": "Add articles 246A, 269A, 279A. Delete Article 268A. Amend articles 248, 249, 250, 268, 269, 270, 271, 286, 366, 368, Sixth Schedule, Seventh Schedule.",
+      "objectives": "Goods and Services Tax framework."
+    },
+    {
+      "no": "102nd",
+      "enforced": "2018",
+      "year": "2018",
+      "articles_touched": [
+        "338B",
+        "342A"
+      ],
+      "amendments_cell": "Add articles 338B, 342A. Modify articles 338, 366.",
+      "objectives": "Constitutional status for National Commission for Backward Classes."
+    },
+    {
+      "no": "103rd",
+      "enforced": "2019",
+      "year": "2019",
+      "articles_touched": [],
+      "amendments_cell": "Amend Article 15 and Article 16 (EWS clauses).",
+      "objectives": "Up to 10% reservation for Economically Weaker Sections."
+    },
+    {
+      "no": "104th",
+      "enforced": "2020",
+      "year": "2020",
+      "articles_touched": [
+        "334"
+      ],
+      "amendments_cell": "Amend article 334.",
+      "objectives": "Extended SC/ST reservations till 2030; ended Anglo-Indian nominated seats."
+    },
+    {
+      "no": "105th",
+      "enforced": "2021",
+      "year": "2021",
+      "articles_touched": [
+        "338B",
+        "342A",
+        "366"
+      ],
+      "amendments_cell": "Amend Article 338B, 342A and 366.",
+      "objectives": "Restored States’ power to identify SEBC/OBC lists."
+    },
+    {
+      "no": "106th",
+      "enforced": "2023",
+      "year": "2023",
+      "articles_touched": [
+        "239AA",
+        "330A",
+        "332A",
+        "334A"
+      ],
+      "amendments_cell": "Amend article 239AA. Insert articles 330A, 332A, 334A.",
+      "objectives": "One-third seats reserved for women in Lok Sabha, Assemblies and Delhi Assembly (timed)."
+    }
+  ]
+}

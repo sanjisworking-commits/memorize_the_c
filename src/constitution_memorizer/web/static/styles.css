@@ -2401,39 +2401,25 @@ code {
   text-decoration: none;
   border-radius: 0;
   min-height: 64px;
-  transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.browse-article-card.is-tracked {
   background: var(--paper);
-  border: 1px solid var(--ink);
-  color: var(--ink);
-}
-
-.browse-article-card.is-untracked {
-  background: color-mix(in srgb, var(--paper) 92%, var(--ink));
   border: 1px solid var(--hairline);
-  color: var(--faint);
+  color: var(--ink);
+  transition: border-color 0.15s ease;
 }
 
-.browse-article-card.is-untracked:hover {
-  border-color: var(--muted);
-  color: var(--muted);
+.browse-article-card:hover {
+  border-color: var(--ink);
 }
 
 .browse-article-num {
   font-weight: 700;
   font-size: 14px;
+  color: var(--ink);
 }
 
 .browse-article-title {
   font-size: 12.5px;
   line-height: 1.35;
-  color: inherit;
-  opacity: 0.92;
-}
-
-.browse-article-card.is-tracked .browse-article-title {
   color: var(--muted);
 }
 

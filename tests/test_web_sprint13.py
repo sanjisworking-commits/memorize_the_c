@@ -54,7 +54,7 @@ def test_card_mode_query_param_renders_card_active(client: TestClient):
 
 
 def test_card_css_drives_panel_visibility(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint30")
+    css = client.get("/static/styles.css?v=sprint30b")
     assert css.status_code == 200
     text = css.text
     assert '.learn[data-mode="card"] .learn-panel-card' in text

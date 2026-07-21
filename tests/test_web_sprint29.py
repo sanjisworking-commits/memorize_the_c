@@ -82,7 +82,7 @@ def test_tables_page_default_parts(mini_client: TestClient):
     assert "Parts of the Constitution" in html
     assert "tables-tab is-active" in html or 'class="tables-tab is-active"' in html
     assert "Part VII was repealed" in html
-    assert "styles.css?v=sprint30" in html
+    assert "styles.css?v=sprint30b" in html
     assert 'href="/tables"' in html
 
 

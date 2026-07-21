@@ -46,7 +46,7 @@ def test_letters_mode_query_param_renders_letters_active(client: TestClient):
 
 
 def test_letters_css_drives_panel_and_initials_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint30")
+    css = client.get("/static/styles.css?v=sprint30b")
     assert css.status_code == 200
     text = css.text
     assert '.learn[data-mode="letters"] .learn-panel-letters' in text

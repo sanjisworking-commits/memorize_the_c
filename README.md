@@ -434,7 +434,17 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Preserves hand-curated Arts **14 / 15 / 19 / 21** notes from Sprint 21
 - Rebuild helper: `python scripts/build_amendment_corpus.py`
 - Tests: `tests/test_amendment_corpus.py`
-- **Next:** Sprint 28 Recall C Mac `.dmg` packaging waits until this merges
+- **Next:** Sprint 28 Recall C Mac `.dmg` packaging
+
+### Sprint 30 — Six-method Done gate, How-to-use, rebrand & theme ✅
+
+**Branch:** `cursor/sprint-30-methods-theme-1a75`
+
+- **Six-method revision:** Done unlocks only after visiting Read → Cloze → Letters → Type → Recite → Card (`unit_modes_seen` table); Again tomorrow stays available; reset clears the set
+- **Home “How to use”** section under Due with the six method rows
+- **Rebrand** to **Recall the C** (header lockup + `brand-c.png`, page titles, ntfy titles)
+- **Theme chip** Auto → Dark → Light with proper dark tokens (not invert-filter); preference in `app_settings` + `localStorage`
+- Tests: `tests/test_web_sprint30.py`
 
 ### Hotfix — Browse / Learn corpus artefacts ✅
 

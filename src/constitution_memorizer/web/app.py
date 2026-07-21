@@ -30,7 +30,6 @@ from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
     LEARN_MODE_LABELS,
     continue_unit_id,
-    done_button_label,
     done_button_state,
     due_checklist,
     earliest_upcoming_revision,

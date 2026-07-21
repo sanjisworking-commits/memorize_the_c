@@ -62,12 +62,14 @@ def due_checklist(
     *,
     as_of: date | None = None,
 ) -> list[LearningUnit]:
-    """Due review units, filtered by split preferences."""
+    """Due review units, filtered by split preferences (no Part Overview)."""
     today = as_of or date.today()
     items: list[LearningUnit] = []
     for record in engine.due_today(as_of=today):
         unit = engine.get_unit(record.learning_unit_id)
         if unit is None:
+            continue
+        if unit.type == LearningUnitType.PART_OVERVIEW:
             continue
         if not unit_visible_for_preference(engine, unit):
             continue
@@ -80,13 +82,15 @@ def continue_unit_id(
     *,
     as_of: date | None = None,
 ) -> str | None:
-    """First non-mastered chain unit, respecting letter preferences."""
+    """First non-mastered chain unit, skipping Part Overview; respects letter prefs."""
     today = as_of or date.today()
     chain = sorted(
         (u for u in engine.units.values() if u.revision_order > 0),
         key=lambda u: u.revision_order,
     )
     for unit in chain:
+        if unit.type == LearningUnitType.PART_OVERVIEW:
+            continue
         if not unit_visible_for_preference(engine, unit):
             continue
         target_id = unit.id

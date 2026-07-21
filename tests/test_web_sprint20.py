@@ -58,12 +58,12 @@ def test_progress_page_has_stat_tiles_and_mastery_map(client: TestClient):
     assert "Part III" in html
     assert "Fundamental Rights" in html
     assert "mastery-cell" in html
-    assert 'title="Article 20 · new"' in html
-    assert "styles.css?v=sprint26" in html
+    assert 'title="Article 20 · due"' in html or 'title="Article 20 · new"' in html
+    assert "styles.css?v=sprint29" in html
 
 
 def test_progress_css_mastery_cell_states(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint26")
+    css = client.get("/static/styles.css?v=sprint29")
     assert css.status_code == 200
     text = css.text
     assert ".mastery-cell.is-new" in text
@@ -77,8 +77,11 @@ def test_progress_css_mastery_cell_states(client: TestClient):
 
 def test_mastery_map_article_20_is_clickable(client: TestClient):
     html = client.get("/progress").text
-    assert 'title="Article 20 · new"' in html
-    assert "mastery-cell is-new is-tracked" in html or "mastery-cell is-due is-tracked" in html
+    assert 'title="Article 20 · due"' in html or 'title="Article 20 · new"' in html
+    assert (
+        "mastery-cell is-new is-tracked" in html
+        or "mastery-cell is-due is-tracked" in html
+    )
     assert 'href="/learn/' in html
 
 

@@ -4,15 +4,37 @@
 <section class="panel browse">
   <h1 class="display">Browse</h1>
   <p class="lede">
-    Open a full Article
-    {% if has_reviewed %}from the reviewed Bare Act{% else %}from learning units{% endif %},
-    then jump into Learn.
+    The Constitution, Part by Part. Open an Article, then learn any clause from inside it.
   </p>
 
-  <ul class="article-index">
-    {% for number in article_numbers %}
-    <li><a href="/browse/article/{{ number }}">Article {{ number }}</a></li>
-    {% endfor %}
-  </ul>
+  {% for section in sections %}
+  <section class="browse-part" aria-label="Part {{ section.part_number }}">
+    <div class="browse-part-header">
+      <span class="browse-part-roman">Part {{ section.part_number }}</span>
+      <span class="browse-part-name">{{ section.part_title }}</span>
+      <span class="browse-part-range">Articles {{ section.article_range }}</span>
+    </div>
+    {% if section.note %}
+    <p class="browse-part-note">{{ section.note }}</p>
+    {% endif %}
+    {% if section.cards %}
+    <div class="browse-article-grid">
+      {% for card in section.cards %}
+      <a
+        class="browse-article-card{% if card.tracked %} is-tracked{% else %} is-untracked{% endif %}"
+        href="{{ card.href }}"
+      >
+        <span class="browse-article-num">Article {{ card.article_number }}</span>
+        {% if card.title %}
+        <span class="browse-article-title">{{ card.title }}</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+  {% else %}
+  <p class="empty">No articles available to browse.</p>
+  {% endfor %}
 </section>
 {% endblock %}

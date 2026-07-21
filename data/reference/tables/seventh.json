@@ -1,0 +1,38 @@
+{
+  "id": "seventh",
+  "label": "7th Schedule",
+  "title": "Seventh Schedule — distribution of powers",
+  "note": "Article 246. Residuary powers: Article 248 / Union List Entry 97. Repugnancy: Article 254.",
+  "grid": "130px 90px 150px 1fr",
+  "tables": [
+    {
+      "label": null,
+      "head": [
+        "List",
+        "Entries",
+        "Who legislates",
+        "Examples"
+      ],
+      "rows": [
+        [
+          "Union List",
+          "~100",
+          "Parliament",
+          "Defence, foreign affairs, banking, atomic energy"
+        ],
+        [
+          "State List",
+          "~61",
+          "State legislatures",
+          "Police, public health, agriculture, local government"
+        ],
+        [
+          "Concurrent List",
+          "~52",
+          "Both (Union prevails)",
+          "Criminal law, forests, education, marriage"
+        ]
+      ]
+    }
+  ]
+}

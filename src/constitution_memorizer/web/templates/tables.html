@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Tables · Constitution Memorizer{% endblock %}
+{% block content %}
+<section class="panel tables">
+  <h1 class="display">Tables</h1>
+  <p class="lede">
+    Quick-reference tables for revision — read them alongside memorization; nothing here is scheduled.
+  </p>
+
+  <nav class="tables-tab-rail" aria-label="Reference tables">
+    {% for t in tabs %}
+    <a
+      class="tables-tab{% if t.id == selected %} is-active{% endif %}"
+      href="/tables?tab={{ t.id }}"
+    >{{ t.label }}</a>
+    {% endfor %}
+  </nav>
+
+  <h2 class="tables-title">{{ payload.title }}</h2>
+  {% if payload.note %}
+  <p class="tables-note">{{ payload.note }}</p>
+  {% endif %}
+
+  {% for block in payload.tables %}
+  {% if block.label %}
+  <h3 class="tables-block-label">{{ block.label }}</h3>
+  {% endif %}
+  <div class="tables-frame">
+    <div
+      class="tables-grid tables-head"
+      style="grid-template-columns: {{ payload.grid }}"
+    >
+      {% for h in block.head %}
+      <div class="tables-cell">{{ h }}</div>
+      {% endfor %}
+    </div>
+    {% for row in block.rows %}
+    <div
+      class="tables-grid tables-row{% if row_is_muted(block, row) %} is-muted{% endif %}"
+      style="grid-template-columns: {{ payload.grid }}"
+    >
+      {% for cell in row %}
+      <div class="tables-cell">{{ cell }}</div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

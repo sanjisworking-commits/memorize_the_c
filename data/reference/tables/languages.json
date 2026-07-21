@@ -1,0 +1,129 @@
+{
+  "id": "languages",
+  "label": "Languages",
+  "title": "Eighth Schedule languages",
+  "note": "22 languages. Sindhi (21st, 1967); Konkani, Manipuri, Nepali (71st, 1992); Bodo, Dogri, Maithili, Santali (92nd, 2003).",
+  "grid": "50px 1fr 1fr",
+  "tables": [
+    {
+      "label": null,
+      "head": [
+        "No.",
+        "Language",
+        "Entered by"
+      ],
+      "rows": [
+        [
+          "1",
+          "Assamese",
+          "Original (1950)"
+        ],
+        [
+          "2",
+          "Bengali",
+          "Original (1950)"
+        ],
+        [
+          "3",
+          "Bodo",
+          "92nd / 2003"
+        ],
+        [
+          "4",
+          "Dogri",
+          "92nd / 2003"
+        ],
+        [
+          "5",
+          "Gujarati",
+          "Original (1950)"
+        ],
+        [
+          "6",
+          "Hindi",
+          "Original (1950)"
+        ],
+        [
+          "7",
+          "Kannada",
+          "Original (1950)"
+        ],
+        [
+          "8",
+          "Kashmiri",
+          "Original (1950)"
+        ],
+        [
+          "9",
+          "Konkani",
+          "71st / 1992"
+        ],
+        [
+          "10",
+          "Maithili",
+          "92nd / 2003"
+        ],
+        [
+          "11",
+          "Malayalam",
+          "Original (1950)"
+        ],
+        [
+          "12",
+          "Manipuri",
+          "71st / 1992"
+        ],
+        [
+          "13",
+          "Marathi",
+          "Original (1950)"
+        ],
+        [
+          "14",
+          "Nepali",
+          "71st / 1992"
+        ],
+        [
+          "15",
+          "Odia",
+          "Original (as Oriya); 96th / 2011 renamed"
+        ],
+        [
+          "16",
+          "Punjabi",
+          "Original (1950)"
+        ],
+        [
+          "17",
+          "Sanskrit",
+          "Original (1950)"
+        ],
+        [
+          "18",
+          "Santali",
+          "92nd / 2003"
+        ],
+        [
+          "19",
+          "Sindhi",
+          "21st / 1967"
+        ],
+        [
+          "20",
+          "Tamil",
+          "Original (1950)"
+        ],
+        [
+          "21",
+          "Telugu",
+          "Original (1950)"
+        ],
+        [
+          "22",
+          "Urdu",
+          "Original (1950)"
+        ]
+      ]
+    }
+  ]
+}

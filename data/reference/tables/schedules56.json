@@ -1,0 +1,26 @@
+{
+  "id": "schedules56",
+  "label": "5th & 6th Schedule",
+  "title": "Fifth and Sixth Schedules",
+  "note": "Special administration of tribal areas. Fifth Schedule: scheduled areas in States other than Assam, Meghalaya, Tripura and Mizoram. Sixth Schedule: tribal areas in those four States.",
+  "grid": "190px 1fr",
+  "tables": [
+    {
+      "label": null,
+      "head": [
+        "Schedule",
+        "States / areas"
+      ],
+      "rows": [
+        [
+          "Fifth Schedule",
+          "Scheduled areas in States other than Assam, Meghalaya, Tripura and Mizoram (Art 244(1))"
+        ],
+        [
+          "Sixth Schedule",
+          "Tribal areas of Assam, Meghalaya, Tripura and Mizoram (Art 244(2))"
+        ]
+      ]
+    }
+  ]
+}

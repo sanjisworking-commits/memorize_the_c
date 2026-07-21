@@ -13,6 +13,15 @@ DEFAULT_TABLES_DIR = (
 )
 
 
+def _resolve_tables_dir(tables_dir: Path | str | None = None) -> Path:
+    if tables_dir is not None:
+        return Path(tables_dir)
+    if DEFAULT_TABLES_DIR.exists():
+        return DEFAULT_TABLES_DIR
+    cwd_fallback = Path.cwd() / "data" / "reference" / "tables"
+    return cwd_fallback
+
+
 @dataclass(frozen=True)
 class TableTabMeta:
     id: str
@@ -38,7 +47,7 @@ class TableTabPayload:
 
 
 def list_table_tabs(tables_dir: Path | str | None = None) -> list[TableTabMeta]:
-    root = Path(tables_dir) if tables_dir is not None else DEFAULT_TABLES_DIR
+    root = _resolve_tables_dir(tables_dir)
     index_path = root / "index.json"
     if not index_path.exists():
         return []
@@ -53,7 +62,7 @@ def load_table_tab(
     tab_id: str,
     tables_dir: Path | str | None = None,
 ) -> TableTabPayload | None:
-    root = Path(tables_dir) if tables_dir is not None else DEFAULT_TABLES_DIR
+    root = _resolve_tables_dir(tables_dir)
     path = root / f"{tab_id}.json"
     if not path.exists():
         return None

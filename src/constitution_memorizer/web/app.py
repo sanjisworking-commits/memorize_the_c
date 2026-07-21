@@ -448,11 +448,16 @@ def create_app(
         tab: str | None = Query(default=None),
     ) -> HTMLResponse:
         tabs = list_table_tabs()
+        if not tabs:
+            raise HTTPException(
+                status_code=500,
+                detail="Tables data missing — run from repo root and pull sprint-29",
+            )
         tab_ids = {t.id for t in tabs}
-        selected = tab if tab in tab_ids else (tabs[0].id if tabs else "parts")
+        selected = tab if tab in tab_ids else tabs[0].id
         payload = load_table_tab(selected)
         if payload is None:
-            raise HTTPException(status_code=404, detail="Table not found")
+            raise HTTPException(status_code=404, detail=f"Table not found: {selected}")
         return templates.TemplateResponse(
             request,
             "tables.html",

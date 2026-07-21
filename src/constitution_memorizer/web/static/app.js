@@ -689,6 +689,73 @@
       card.setAttribute("aria-pressed", flipped ? "true" : "false");
     }
 
+    const MODE_LABELS = {
+      read: "Read",
+      cloze: "Cloze",
+      letters: "Letters",
+      type: "Type",
+      recite: "Recite",
+      card: "Card",
+    };
+    const trackerEl = document.getElementById("methods-tracker");
+    const doneBtn = document.getElementById("learn-done-btn");
+    let seenModes = new Set(
+      Array.from(modeTabs)
+        .filter((tab) => (tab.textContent || "").includes("✓"))
+        .map((tab) => tab.getAttribute("data-learn-mode"))
+        .filter(Boolean)
+    );
+
+    function applyModesUi(payload) {
+      if (!payload) {
+        return;
+      }
+      seenModes = new Set(payload.seen || []);
+      modeTabs.forEach((tab) => {
+        const mode = tab.getAttribute("data-learn-mode");
+        if (!mode) {
+          return;
+        }
+        const label = MODE_LABELS[mode] || mode;
+        tab.textContent = seenModes.has(mode) ? `${label} ✓` : label;
+      });
+      if (trackerEl && payload.tracker) {
+        trackerEl.textContent = payload.tracker;
+        trackerEl.dataset.count = String(payload.count || seenModes.size);
+      }
+      if (doneBtn && payload.done) {
+        const unlocked = Boolean(payload.done.unlocked);
+        doneBtn.textContent = String(payload.done.label || "");
+        doneBtn.disabled = !unlocked;
+        doneBtn.setAttribute("aria-disabled", unlocked ? "false" : "true");
+        doneBtn.classList.toggle("btn-accent", unlocked);
+        doneBtn.classList.toggle("btn-done-locked", !unlocked);
+        learn.dataset.doneUnlocked = unlocked ? "true" : "false";
+      }
+    }
+
+    function markSeen(mode) {
+      const unitId = learn.getAttribute("data-unit-id");
+      if (!unitId || !LEARN_MODES.has(mode)) {
+        return;
+      }
+      const body = new URLSearchParams();
+      body.set("mode", mode);
+      fetch(`/learn/${encodeURIComponent(unitId)}/seen`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+        },
+        body: body.toString(),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => applyModesUi(data))
+        .catch(() => {
+          /* ignore offline / soft-fail */
+        });
+    }
+
     function setMode(mode) {
       const next = LEARN_MODES.has(mode) ? mode : "read";
       learn.dataset.mode = next;
@@ -712,6 +779,7 @@
       if (next === "recite" && recite) {
         recite.reset();
       }
+      markSeen(next);
       try {
         const url = new URL(window.location.href);
         if (next === "read") {
@@ -759,10 +827,12 @@
     document.addEventListener("DOMContentLoaded", () => {
       initLearn();
       initExplainBack();
+      initThemeToggle();
     });
   } else {
     initLearn();
     initExplainBack();
+    initThemeToggle();
   }
 
   function wordCount(text) {
@@ -862,5 +932,84 @@
         meta.textContent = "Couldn’t clear — try again.";
       });
     });
+  }
+
+  function initThemeToggle() {
+    const btn = document.getElementById("theme-toggle");
+    if (!btn) {
+      return;
+    }
+    const KEY = "cm-theme";
+    const CYCLE = ["auto", "dark", "light"];
+    const LABELS = {
+      auto: "◐ Auto",
+      dark: "● Dark",
+      light: "○ Light",
+    };
+
+    function systemDark() {
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+
+    function effective(pref) {
+      if (pref === "dark") return "dark";
+      if (pref === "light") return "light";
+      return systemDark() ? "dark" : "light";
+    }
+
+    function apply(pref) {
+      const resolved = effective(pref);
+      document.documentElement.setAttribute("data-theme", resolved);
+      document.documentElement.setAttribute("data-theme-preference", pref);
+      document.documentElement.style.colorScheme = resolved;
+      btn.dataset.themePref = pref;
+      btn.textContent = LABELS[pref] || LABELS.auto;
+      try {
+        localStorage.setItem(KEY, pref);
+      } catch (_e) {
+        /* ignore */
+      }
+    }
+
+    let pref = btn.dataset.themePref || "auto";
+    try {
+      const stored = localStorage.getItem(KEY);
+      if (stored === "auto" || stored === "dark" || stored === "light") {
+        pref = stored;
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+    apply(pref);
+
+    btn.addEventListener("click", () => {
+      const current = btn.dataset.themePref || "auto";
+      const idx = CYCLE.indexOf(current);
+      const next = CYCLE[(idx + 1) % CYCLE.length];
+      apply(next);
+      const body = new URLSearchParams();
+      body.set("theme", next);
+      fetch("/api/theme", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      }).catch(() => {
+        /* ignore */
+      });
+    });
+
+    if (window.matchMedia) {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const onChange = () => {
+        if ((btn.dataset.themePref || "auto") === "auto") {
+          apply("auto");
+        }
+      };
+      if (typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", onChange);
+      } else if (typeof mq.addListener === "function") {
+        mq.addListener(onChange);
+      }
+    }
   }
 })();

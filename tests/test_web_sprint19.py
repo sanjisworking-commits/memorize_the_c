@@ -45,8 +45,8 @@ def test_calendar_page_renders_month_grid(client: TestClient):
     assert "Sun" in html and "Sat" in html
     assert 'href="/calendar?year=2026&amp;month=6"' in html
     assert 'href="/calendar?year=2026&amp;month=8"' in html
-    assert "styles.css?v=sprint26" in html
-    assert "app.js?v=sprint22" in html
+    assert "styles.css?v=sprint30" in html
+    assert "app.js?v=sprint30" in html
 
 
 def test_calendar_invalid_month_returns_400(client: TestClient):
@@ -55,7 +55,7 @@ def test_calendar_invalid_month_returns_400(client: TestClient):
 
 
 def test_calendar_css_chip_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint26")
+    css = client.get("/static/styles.css?v=sprint30")
     assert css.status_code == 200
     text = css.text
     assert ".calendar-grid" in text
@@ -69,6 +69,7 @@ def test_calendar_css_chip_styles(client: TestClient):
 
 def test_build_calendar_memorized_and_scheduled_chips(engine: ReminderEngine):
     today = date(2026, 7, 20)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 5))
     view = build_calendar_month(engine, year=2026, month=7, today=today)
 
@@ -89,6 +90,7 @@ def test_build_calendar_memorized_and_scheduled_chips(engine: ReminderEngine):
 
 def test_build_calendar_future_scheduled_chip(engine: ReminderEngine):
     today = date(2026, 7, 5)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 5))
     view = build_calendar_month(engine, year=2026, month=7, today=today)
     # Full remaining ladder in July after memorize on the 5th:
@@ -110,6 +112,7 @@ def test_build_calendar_future_scheduled_chip(engine: ReminderEngine):
 def test_remaining_ladder_projects_full_intervals(engine: ReminderEngine):
     from constitution_memorizer.web.calendar_view import remaining_review_schedule
 
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 5))
     row = engine.repo.get_progress("clause-1")
     assert row is not None
@@ -128,7 +131,9 @@ def test_remaining_ladder_projects_full_intervals(engine: ReminderEngine):
 def test_ladder_after_review_starts_at_next_rung(engine: ReminderEngine):
     from constitution_memorizer.web.calendar_view import remaining_review_schedule
 
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 5))
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 6))  # completed 1-day → next is 3
     row = engine.repo.get_progress("clause-1")
     assert row is not None
@@ -139,7 +144,9 @@ def test_ladder_after_review_starts_at_next_rung(engine: ReminderEngine):
 
 def test_build_calendar_review_done_and_due_chips(engine: ReminderEngine):
     today = date(2026, 7, 20)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 10))
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 11))  # 1-day review done
     view = build_calendar_month(engine, year=2026, month=7, today=today)
 
@@ -159,6 +166,7 @@ def test_build_calendar_review_done_and_due_chips(engine: ReminderEngine):
 
 
 def test_calendar_page_shows_chips_from_progress(client: TestClient, engine: ReminderEngine):
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 5))
     html = client.get("/calendar?year=2026&month=7").text
     assert "calendar-chip is-memorized" in html

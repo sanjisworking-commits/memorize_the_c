@@ -28,9 +28,9 @@ class ReminderDigest:
 
     def notification_title(self) -> str:
         if self.is_empty:
-            return "Constitution Memorizer — all caught up"
+            return "Recall the C — all caught up"
         n = self.due_count
-        return f"Constitution Memorizer — {n} due today"
+        return f"Recall the C — {n} due today"
 
     def notification_body(self) -> str:
         lines = [self.as_of.strftime("%d %b %Y")]

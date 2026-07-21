@@ -15,6 +15,7 @@ def test_digest_lists_due_units(tmp_path: Path):
     engine = ReminderEngine.from_paths(tmp_path / "p.db", MINI_UNITS)
     today = date(2026, 7, 20)
     # Complete yesterday so 1-day review is due today
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 19))
     digest = build_study_digest(engine, as_of=today, include_continue=False)
     assert digest.due_count == 1

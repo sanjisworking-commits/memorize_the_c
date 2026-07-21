@@ -366,3 +366,40 @@ def done_button_label(unit: LearningUnit) -> str:
     if unit.type == LearningUnitType.SUBCLAUSE and unit.letter_sequence_next:
         return "Done — next letter"
     return "Done — next unit"
+
+
+LEARN_MODE_LABELS: dict[str, str] = {
+    "read": "Read",
+    "cloze": "Cloze",
+    "letters": "Letters",
+    "type": "Type",
+    "recite": "Recite",
+    "card": "Card",
+}
+
+
+def methods_tracker_line(seen_count: int) -> str:
+    """Copy under the Learn mode tab bar (METHODS-THEME-HANDOFF)."""
+    if seen_count >= 6:
+        return "All 6 methods visited — revision complete, mark it Done"
+    return (
+        f"{seen_count} of 6 methods visited · revision completes "
+        "when you've been through all six"
+    )
+
+
+def done_button_state(unit: LearningUnit, seen: set[str]) -> dict[str, object]:
+    """Locked Done until all six modes visited; Again stays available."""
+    remaining = 6 - len(seen)
+    if remaining > 0:
+        label = f"{remaining} method{'s' if remaining != 1 else ''} left"
+        return {
+            "unlocked": False,
+            "label": label,
+            "disabled": True,
+        }
+    return {
+        "unlocked": True,
+        "label": done_button_label(unit),
+        "disabled": False,
+    }

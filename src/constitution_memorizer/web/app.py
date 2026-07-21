@@ -10,7 +10,12 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from constitution_memorizer.progress.scheduler import ReminderEngine
+from constitution_memorizer.progress.repository import (
+    LEARN_MODES,
+    VALID_NOTIFICATION_FREQUENCIES,
+    VALID_THEMES,
+)
+from constitution_memorizer.progress.scheduler import ModesIncompleteError, ReminderEngine
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
@@ -23,13 +28,16 @@ from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_p
 from constitution_memorizer.web.progress_stats import progress_dashboard
 from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
+    LEARN_MODE_LABELS,
     continue_unit_id,
     done_button_label,
+    done_button_state,
     due_checklist,
     earliest_upcoming_revision,
     home_lede,
     kind_badge_label,
     learn_meta_line,
+    methods_tracker_line,
     needs_split_choice,
     resolve_learn_target,
     session_progress,
@@ -88,9 +96,17 @@ def create_app(
     gloss_placeholders = load_gloss_placeholders(
         resolved_gloss_placeholders if resolved_gloss_placeholders.exists() else None
     )
-    templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+    templates = Jinja2Templates(
+        directory=str(TEMPLATES_DIR),
+        context_processors=[
+            lambda request: {
+                "app_name": "Recall the C",
+                "theme_preference": app.state.engine.get_theme(),
+            }
+        ],
+    )
 
-    app = FastAPI(title="Constitution Memorizer", version="0.5.0")
+    app = FastAPI(title="Recall the C", version="0.6.0")
     app.state.engine = engine
     app.state.reviewed = reviewed
     app.state.amendments = amendments
@@ -103,6 +119,15 @@ def create_app(
     def _engine() -> ReminderEngine:
         return app.state.engine
 
+    def _modes_payload(unit_id: str, seen: set[str] | None = None) -> dict[str, object]:
+        current = seen if seen is not None else _engine().modes_seen(unit_id)
+        return {
+            "seen": sorted(current),
+            "count": len(current),
+            "remaining": max(0, 6 - len(current)),
+            "complete": len(current) >= 6,
+            "tracker": methods_tracker_line(len(current)),
+        }
     @app.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:
         eng = _engine()
@@ -192,6 +217,11 @@ def create_app(
         if target is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
+        # Opening a unit marks the active mode (units open in Read by default).
+        seen = eng.mark_mode_seen(target.id, learn_mode)
+        done_state = done_button_state(target, seen)
+        modes_payload = _modes_payload(target.id, seen)
+
         progress = eng.repo.get_progress(target.id)
         done_count, _position, chain_len = session_progress(eng, target)
         pct = int(round(100 * done_count / chain_len)) if chain_len else 0
@@ -218,7 +248,12 @@ def create_app(
                 "rail_kind": rail_kind,
                 "stem_text": stem,
                 "learn_meta": learn_meta_line(target, progress),
-                "done_label": done_button_label(target),
+                "done_label": done_state["label"],
+                "done_unlocked": done_state["unlocked"],
+                "modes_seen": seen,
+                "modes_tracker": modes_payload["tracker"],
+                "mode_labels": LEARN_MODE_LABELS,
+                "learn_modes": LEARN_MODES,
                 "learn_mode": learn_mode,
                 "amend_note": amend_note,
                 "read_hint": (
@@ -227,12 +262,32 @@ def create_app(
             },
         )
 
+    @app.post("/learn/{unit_id}/seen")
+    async def learn_mode_seen(
+        unit_id: str,
+        mode: str = Form(...),
+    ) -> JSONResponse:
+        eng = _engine()
+        if eng.get_unit(unit_id) is None:
+            raise HTTPException(status_code=404, detail="Learning unit not found")
+        if mode not in LEARN_MODES:
+            raise HTTPException(status_code=400, detail="Invalid learn mode")
+        seen = eng.mark_mode_seen(unit_id, mode)
+        unit = eng.get_unit(unit_id)
+        assert unit is not None
+        payload = _modes_payload(unit_id, seen)
+        payload["done"] = done_button_state(unit, seen)
+        return JSONResponse(payload)
+
     @app.post("/learn/{unit_id}/done")
     async def learn_done(unit_id: str) -> RedirectResponse:
         eng = _engine()
         if eng.get_unit(unit_id) is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
-        result = eng.mark_done(unit_id, as_of=date.today())
+        try:
+            result = eng.mark_done(unit_id, as_of=date.today())
+        except ModesIncompleteError:
+            return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
         return _redirect_after_learn(eng, result.next_unit_id)
 
     @app.post("/learn/{unit_id}/again")
@@ -295,7 +350,10 @@ def create_app(
         return RedirectResponse(url=f"/learn/{target}", status_code=303)
 
     @app.post("/learn/{unit_id}/reset")
-    async def reset_unit(unit_id: str) -> RedirectResponse:
+    async def reset_unit(
+        unit_id: str,
+        mode: str = Query(default="read"),
+    ) -> RedirectResponse:
         eng = _engine()
         if eng.get_unit(unit_id) is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
@@ -304,7 +362,11 @@ def create_app(
             (unit_id,),
         )
         eng.repo.conn.commit()
-        return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
+        eng.clear_modes_seen(unit_id)
+        learn_mode = mode if mode in LEARN_MODES else "read"
+        # Re-seed the currently open mode on the next GET; redirect preserves mode.
+        suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
+        return RedirectResponse(url=f"/learn/{unit_id}{suffix}", status_code=303)
 
     @app.post("/reset")
     async def reset_all() -> RedirectResponse:
@@ -313,6 +375,7 @@ def create_app(
         eng.repo.conn.execute("DELETE FROM learning_unit_progress")
         eng.repo.conn.execute("DELETE FROM split_preference")
         eng.repo.conn.commit()
+        eng.repo.clear_all_modes_seen()
         return RedirectResponse(url="/", status_code=303)
 
     @app.get("/browse", response_class=HTMLResponse)
@@ -459,13 +522,16 @@ def create_app(
     async def settings_save(
         notification_frequency: str = Form(...),
     ) -> RedirectResponse:
-        from constitution_memorizer.progress.repository import (
-            VALID_NOTIFICATION_FREQUENCIES,
-        )
-
         if notification_frequency not in VALID_NOTIFICATION_FREQUENCIES:
             raise HTTPException(status_code=400, detail="Invalid notification frequency")
         _engine().set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
         return RedirectResponse(url="/settings?saved=1", status_code=303)
+
+    @app.post("/api/theme")
+    async def theme_save(theme: str = Form(...)) -> JSONResponse:
+        if theme not in VALID_THEMES:
+            raise HTTPException(status_code=400, detail="Invalid theme")
+        _engine().set_theme(theme)  # type: ignore[arg-type]
+        return JSONResponse({"theme": theme})
 
     return app

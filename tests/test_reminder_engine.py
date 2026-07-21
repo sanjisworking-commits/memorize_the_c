@@ -116,6 +116,7 @@ def test_interval_ladder_and_mastered_sentinel():
 
 def test_defer_until_tomorrow_does_not_advance_ladder(engine: ReminderEngine):
     day0 = date(2026, 7, 20)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=day0)
     deferred = engine.defer_until_tomorrow("clause-1", as_of=day0)
     assert deferred.progress.times_completed == 1
@@ -126,6 +127,7 @@ def test_defer_until_tomorrow_does_not_advance_ladder(engine: ReminderEngine):
 
 def test_mark_done_advances_new_to_review_intervals(engine: ReminderEngine):
     day0 = date(2026, 7, 20)
+    engine.mark_all_modes_seen("clause-1")
     result = engine.mark_done("clause-1", as_of=day0)
     assert result.progress.status == "review"
     assert result.progress.interval_days == 1
@@ -135,6 +137,7 @@ def test_mark_done_advances_new_to_review_intervals(engine: ReminderEngine):
     assert result.next_unit_id == "clause-2"
 
     day1 = day0 + timedelta(days=1)
+    engine.mark_all_modes_seen("clause-1")
     result2 = engine.mark_done("clause-1", as_of=day1)
     assert result2.progress.interval_days == 3
     assert result2.progress.next_revision == day1 + timedelta(days=3)
@@ -145,11 +148,13 @@ def test_mark_done_reaches_mastered_after_top_rung(engine: ReminderEngine):
     day = date(2026, 1, 1)
     # Climb 1→3→7→14→30→60 then one more completion masters.
     for expected in (1, 3, 7, 14, 30, 60):
+        engine.mark_all_modes_seen("clause-1")
         result = engine.mark_done("clause-1", as_of=day)
         assert result.progress.status == "review"
         assert result.progress.interval_days == expected
         day = result.progress.next_revision  # type: ignore[assignment]
 
+    engine.mark_all_modes_seen("clause-1")
     mastered = engine.mark_done("clause-1", as_of=day)
     assert mastered.progress.status == "mastered"
     assert mastered.progress.next_revision is None
@@ -157,6 +162,7 @@ def test_mark_done_reaches_mastered_after_top_rung(engine: ReminderEngine):
     assert mastered.progress.times_completed == 7
 
     # Idempotent-ish: further done keeps mastered.
+    engine.mark_all_modes_seen("clause-1")
     again = engine.mark_done("clause-1", as_of=day + timedelta(days=1))
     assert again.progress.status == "mastered"
     assert again.progress.times_completed == 7
@@ -164,6 +170,7 @@ def test_mark_done_reaches_mastered_after_top_rung(engine: ReminderEngine):
 
 def test_due_today_lists_review_rows(engine: ReminderEngine):
     day0 = date(2026, 7, 20)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=day0)
     assert engine.due_unit_ids(as_of=day0) == []
     assert engine.due_unit_ids(as_of=day0 + timedelta(days=1)) == ["clause-1"]
@@ -186,11 +193,13 @@ def test_split_preference_crud(engine: ReminderEngine):
 
 def test_next_unit_whole_vs_letters(engine: ReminderEngine):
     # Default whole: clause-1 → clause-2
+    engine.mark_all_modes_seen("clause-1")
     assert engine.mark_done("clause-1", as_of=date(2026, 7, 1)).next_unit_id == "clause-2"
     assert engine.next_to_learn_from_clause("clause-2") == "clause-2"
 
     engine.set_split_preference("clause-2", "letters")
     # Entering the split clause prefers first letter.
+    engine.mark_all_modes_seen("part-overview")
     assert engine.mark_done("part-overview", as_of=date(2026, 7, 2)).next_unit_id == "clause-1"
     assert engine.resolve_next_unit_id("clause-1") == "clause-2-a"
     assert engine.next_to_learn_from_clause("clause-2") == "clause-2-a"

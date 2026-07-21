@@ -15,6 +15,7 @@ MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 def test_send_reminders_dry_run_console(tmp_path: Path, capsys):
     db = tmp_path / "progress.db"
     engine = ReminderEngine.from_paths(db, MINI_UNITS)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 19))
     code = main(
         [
@@ -68,6 +69,7 @@ def test_send_reminders_skips_when_empty(tmp_path: Path, capsys):
 def test_send_reminders_skips_wrong_hour(tmp_path: Path, capsys):
     db = tmp_path / "progress.db"
     engine = ReminderEngine.from_paths(db, MINI_UNITS)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 19))
     code = main(
         [
@@ -96,6 +98,7 @@ def test_send_reminders_skips_wrong_hour(tmp_path: Path, capsys):
 def test_send_reminders_hourly_second_tick_same_hour_debounced(tmp_path: Path, capsys):
     db = tmp_path / "progress.db"
     engine = ReminderEngine.from_paths(db, MINI_UNITS)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 19))
     engine.set_notification_frequency("hourly")
     args = [

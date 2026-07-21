@@ -46,6 +46,7 @@ def test_again_tomorrow_defers_without_advancing_ladder(
 ):
     day0 = date(2026, 7, 20)
     # Seed via mark_done first so interval is on the ladder.
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=day0)
     progress = engine.repo.get_progress("clause-1")
     assert progress is not None

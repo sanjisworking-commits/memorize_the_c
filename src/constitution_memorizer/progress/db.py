@@ -36,10 +36,19 @@ CREATE TABLE IF NOT EXISTS app_settings (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS unit_modes_seen (
+    learning_unit_id TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    seen_at TEXT NOT NULL,
+    PRIMARY KEY (learning_unit_id, mode)
+);
+
 CREATE INDEX IF NOT EXISTS idx_progress_status
     ON learning_unit_progress(status);
 CREATE INDEX IF NOT EXISTS idx_progress_next_revision
     ON learning_unit_progress(next_revision);
+CREATE INDEX IF NOT EXISTS idx_modes_seen_unit
+    ON unit_modes_seen(learning_unit_id);
 """
 
 

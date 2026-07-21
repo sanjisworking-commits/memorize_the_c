@@ -50,8 +50,8 @@ def test_learn_read_anatomy(client: TestClient):
     assert "Clause" in response.text
     assert "mode-tab is-active" in response.text
     assert "Read" in response.text
-    assert "Done — next unit" in response.text
-    assert "btn-accent" in response.text
+    assert "5 methods left" in response.text
+    assert "btn-done-locked" in response.text
     assert "Reset unit" in response.text
     assert "Bare Act wording, verbatim" in response.text
     assert "LearningUnitType" not in response.text
@@ -60,3 +60,5 @@ def test_learn_read_anatomy(client: TestClient):
     assert 'action="/learn/clause-1/again"' in response.text
     assert "learn-actions" in response.text
     assert "label-short" not in response.text
+    assert "methods-tracker" in response.text
+    assert "1 of 6 methods visited" in response.text

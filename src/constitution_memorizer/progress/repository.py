@@ -18,6 +18,14 @@ VALID_NOTIFICATION_FREQUENCIES: frozenset[str] = frozenset(
     ("twice", "thrice", "hourly")
 )
 
+THEME_KEY = "theme"
+ThemePreference = Literal["auto", "dark", "light"]
+DEFAULT_THEME: ThemePreference = "auto"
+VALID_THEMES: frozenset[str] = frozenset(("auto", "dark", "light"))
+
+LEARN_MODES: tuple[str, ...] = ("read", "cloze", "letters", "type", "recite", "card")
+LEARN_MODES_SET: frozenset[str] = frozenset(LEARN_MODES)
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -328,3 +336,52 @@ class ProgressRepository:
             NOTIFICATION_LAST_SLOT_KEY,
             when.replace(microsecond=0).isoformat(),
         )
+
+    def get_theme(self) -> ThemePreference:
+        raw = self.get_setting(THEME_KEY)
+        if raw in VALID_THEMES:
+            return raw  # type: ignore[return-value]
+        return DEFAULT_THEME
+
+    def set_theme(self, theme: ThemePreference) -> None:
+        if theme not in VALID_THEMES:
+            raise ValueError(f"Invalid theme: {theme}")
+        self.set_setting(THEME_KEY, theme)
+
+    def mark_mode_seen(self, unit_id: str, mode: str) -> set[str]:
+        """Record that ``mode`` was visited for ``unit_id``. Returns the full set."""
+        if mode not in LEARN_MODES_SET:
+            raise ValueError(f"Invalid learn mode: {mode}")
+        now = _utc_now_iso()
+        self._conn.execute(
+            """
+            INSERT INTO unit_modes_seen (learning_unit_id, mode, seen_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(learning_unit_id, mode) DO UPDATE SET
+                seen_at = excluded.seen_at
+            """,
+            (unit_id, mode, now),
+        )
+        self._conn.commit()
+        return self.modes_seen(unit_id)
+
+    def modes_seen(self, unit_id: str) -> set[str]:
+        rows = self._conn.execute(
+            "SELECT mode FROM unit_modes_seen WHERE learning_unit_id = ?",
+            (unit_id,),
+        ).fetchall()
+        return {str(r["mode"]) for r in rows}
+
+    def clear_modes_seen(self, unit_id: str) -> None:
+        self._conn.execute(
+            "DELETE FROM unit_modes_seen WHERE learning_unit_id = ?",
+            (unit_id,),
+        )
+        self._conn.commit()
+
+    def clear_all_modes_seen(self) -> None:
+        self._conn.execute("DELETE FROM unit_modes_seen")
+        self._conn.commit()
+
+    def modes_complete(self, unit_id: str) -> bool:
+        return self.modes_seen(unit_id) >= LEARN_MODES_SET

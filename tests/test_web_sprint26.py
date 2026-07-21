@@ -34,7 +34,7 @@ def test_settings_page_defaults_to_thrice(client: TestClient):
     assert "Study reminders" in html
     assert 'value="thrice"' in html
     assert "checked" in html
-    assert "styles.css?v=sprint26" in html
+    assert "styles.css?v=sprint30" in html
     assert 'href="/settings"' in html
 
 

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}{{ unit.display_title }} · Learn{% endblock %}
+{% block title %}{{ unit.display_title }} · Learn · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
-<section class="panel learn" data-unit-id="{{ unit.id }}" data-mode="{{ learn_mode }}">
+<section class="panel learn" data-unit-id="{{ unit.id }}" data-mode="{{ learn_mode }}" data-done-unlocked="{{ 'true' if done_unlocked else 'false' }}">
   <div class="session-row">
     <span class="session-eyebrow">Session</span>
     <span class="session-count">{{ session_label }}</span>
@@ -40,49 +40,17 @@
   {% endif %}
 
   <div class="mode-tabs" role="tablist" aria-label="Recall modes">
+    {% for mode_id in learn_modes %}
     <a
-      class="mode-tab{% if learn_mode == 'read' %} is-active{% endif %}"
+      class="mode-tab{% if learn_mode == mode_id %} is-active{% endif %}"
       role="tab"
-      aria-selected="{{ 'true' if learn_mode == 'read' else 'false' }}"
-      data-learn-mode="read"
-      href="/learn/{{ unit.id }}?mode=read"
-    >Read</a>
-    <a
-      class="mode-tab{% if learn_mode == 'cloze' %} is-active{% endif %}"
-      role="tab"
-      aria-selected="{{ 'true' if learn_mode == 'cloze' else 'false' }}"
-      data-learn-mode="cloze"
-      href="/learn/{{ unit.id }}?mode=cloze"
-    >Cloze</a>
-    <a
-      class="mode-tab{% if learn_mode == 'letters' %} is-active{% endif %}"
-      role="tab"
-      aria-selected="{{ 'true' if learn_mode == 'letters' else 'false' }}"
-      data-learn-mode="letters"
-      href="/learn/{{ unit.id }}?mode=letters"
-    >Letters</a>
-    <a
-      class="mode-tab{% if learn_mode == 'type' %} is-active{% endif %}"
-      role="tab"
-      aria-selected="{{ 'true' if learn_mode == 'type' else 'false' }}"
-      data-learn-mode="type"
-      href="/learn/{{ unit.id }}?mode=type"
-    >Type</a>
-    <a
-      class="mode-tab{% if learn_mode == 'recite' %} is-active{% endif %}"
-      role="tab"
-      aria-selected="{{ 'true' if learn_mode == 'recite' else 'false' }}"
-      data-learn-mode="recite"
-      href="/learn/{{ unit.id }}?mode=recite"
-    >Recite</a>
-    <a
-      class="mode-tab{% if learn_mode == 'card' %} is-active{% endif %}"
-      role="tab"
-      aria-selected="{{ 'true' if learn_mode == 'card' else 'false' }}"
-      data-learn-mode="card"
-      href="/learn/{{ unit.id }}?mode=card"
-    >Card</a>
+      aria-selected="{{ 'true' if learn_mode == mode_id else 'false' }}"
+      data-learn-mode="{{ mode_id }}"
+      href="/learn/{{ unit.id }}?mode={{ mode_id }}"
+    >{{ mode_labels[mode_id] }}{% if mode_id in modes_seen %} ✓{% endif %}</a>
+    {% endfor %}
   </div>
+  <p class="methods-tracker" id="methods-tracker" data-count="{{ modes_seen|length }}">{{ modes_tracker }}</p>
 
   {% if stem_text %}
   <p class="learn-stem">{{ stem_text }}</p>
@@ -218,7 +186,12 @@
   <div class="learn-footer">
     <div class="learn-actions">
       <form class="learn-action-done" method="post" action="/learn/{{ unit.id }}/done">
-        <button type="submit" class="btn btn-accent">{{ done_label }}</button>
+        <button
+          type="submit"
+          class="btn {% if done_unlocked %}btn-accent{% else %}btn-done-locked{% endif %}"
+          id="learn-done-btn"
+          {% if not done_unlocked %}disabled aria-disabled="true"{% endif %}
+        >{{ done_label }}</button>
       </form>
       <form class="learn-action-again" method="post" action="/learn/{{ unit.id }}/again">
         <button type="submit" class="btn btn-ghost">Again tomorrow</button>

@@ -45,7 +45,8 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 25 | `cursor/sprint-25-mac-install-backup-1a75` | Done |
 | Sprint 26 | `cursor/sprint-26-notification-settings-1a75` | Done |
 | Sprint 27 | `cursor/sprint-27-amendment-corpus-1a75` | Done |
-| Sprint 28 | `cursor/sprint-28-mac-app-dmg-1a75` | Planned (Recall C .dmg; blocked on this merge) |
+| Sprint 28 | `cursor/sprint-28-mac-app-dmg-1a75` | Planned (Recall C .dmg) |
+| Sprint 30 | `cursor/sprint-30-methods-theme-1a75` | Done (six-method Done gate, How-to-use, Recall the C, theme) |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 

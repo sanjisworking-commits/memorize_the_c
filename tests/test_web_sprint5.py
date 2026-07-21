@@ -103,7 +103,9 @@ def test_progress_page_and_article_completion(client: TestClient, engine: Remind
     assert pending is False
     assert [u.id for u in required] == ["clause-1", "clause-2-a", "clause-2-b"]
 
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1")
+    engine.mark_all_modes_seen("clause-2-a")
     engine.mark_done("clause-2-a")
     row = article_progress(engine, "20")
     assert row is not None

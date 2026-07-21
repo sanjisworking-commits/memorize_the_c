@@ -10,10 +10,13 @@ from typing import Iterable, Mapping
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitsDocument
 from constitution_memorizer.progress.db import open_progress_db
 from constitution_memorizer.progress.repository import (
+    LEARN_MODES,
+    LEARN_MODES_SET,
     NotificationFrequency,
     ProgressRecord,
     ProgressRepository,
     SplitMode,
+    ThemePreference,
 )
 from constitution_memorizer.utils.json_io import read_json
 
@@ -51,6 +54,19 @@ class MarkDoneResult:
     unit_id: str
     progress: ProgressRecord
     next_unit_id: str | None
+    modes_complete: bool = True
+
+
+class ModesIncompleteError(ValueError):
+    """Raised when Done is attempted before all six recall modes are visited."""
+
+    def __init__(self, unit_id: str, seen: set[str]) -> None:
+        self.unit_id = unit_id
+        self.seen = frozenset(seen)
+        missing = sorted(LEARN_MODES_SET - self.seen)
+        super().__init__(
+            f"Unit {unit_id} still needs modes: {', '.join(missing)}"
+        )
 
 
 class ReminderEngine:
@@ -106,15 +122,46 @@ class ReminderEngine:
     def set_notification_frequency(self, frequency: NotificationFrequency) -> None:
         self.repo.set_notification_frequency(frequency)
 
+    def get_theme(self) -> ThemePreference:
+        return self.repo.get_theme()
+
+    def set_theme(self, theme: ThemePreference) -> None:
+        self.repo.set_theme(theme)
+
+    def mark_mode_seen(self, unit_id: str, mode: str) -> set[str]:
+        if unit_id not in self.units:
+            raise KeyError(f"Unknown learning unit id: {unit_id}")
+        return self.repo.mark_mode_seen(unit_id, mode)
+
+    def modes_seen(self, unit_id: str) -> set[str]:
+        return self.repo.modes_seen(unit_id)
+
+    def mark_all_modes_seen(self, unit_id: str) -> set[str]:
+        """Visit every recall mode for the current revision cycle."""
+        seen: set[str] = set()
+        for mode in LEARN_MODES:
+            seen = self.mark_mode_seen(unit_id, mode)
+        return seen
+
+    def clear_modes_seen(self, unit_id: str) -> None:
+        self.repo.clear_modes_seen(unit_id)
+
+    def modes_complete(self, unit_id: str) -> bool:
+        return self.repo.modes_complete(unit_id)
+
     def mark_done(
         self,
         unit_id: str,
         *,
         as_of: date | None = None,
+        require_all_modes: bool = True,
     ) -> MarkDoneResult:
         """Advance the interval ladder for unit_id and return preference-aware next id."""
         if unit_id not in self.units:
             raise KeyError(f"Unknown learning unit id: {unit_id}")
+
+        if require_all_modes and not self.repo.modes_complete(unit_id):
+            raise ModesIncompleteError(unit_id, self.repo.modes_seen(unit_id))
 
         today = as_of or date.today()
         current = self.repo.ensure_progress(unit_id)
@@ -144,10 +191,14 @@ class ReminderEngine:
                     ease_factor=DEFAULT_EASE_FACTOR,
                 )
 
+        # Next review cycle starts with an empty methods set.
+        self.repo.clear_modes_seen(unit_id)
+
         return MarkDoneResult(
             unit_id=unit_id,
             progress=progress,
             next_unit_id=self.resolve_next_unit_id(unit_id),
+            modes_complete=True,
         )
 
     def defer_until_tomorrow(

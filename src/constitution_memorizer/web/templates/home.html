@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Home · Constitution Memorizer{% endblock %}
+{% block title %}Home · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
 <section class="panel home">
   <p class="eyebrow">{{ today_label }}</p>
@@ -37,6 +37,45 @@
   {% else %}
   <p class="empty due-empty">Nothing due today.</p>
   {% endif %}
+
+  <section class="how-to-use" aria-labelledby="how-to-use-heading">
+    <h2 id="how-to-use-heading" class="how-to-use-title">How to use</h2>
+    <p class="how-to-use-lede">
+      Each unit is revised through all six recall methods, in order. A revision counts as complete — and the schedule advances — only once every method has been visited; the Done button unlocks on the last one.
+    </p>
+    <ol class="how-to-use-list">
+      <li class="how-to-use-row">
+        <span class="how-to-use-num" aria-hidden="true">1</span>
+        <span class="how-to-use-name">Read</span>
+        <span class="how-to-use-desc">Read the Bare Act wording twice, verbatim.</span>
+      </li>
+      <li class="how-to-use-row">
+        <span class="how-to-use-num" aria-hidden="true">2</span>
+        <span class="how-to-use-name">Cloze</span>
+        <span class="how-to-use-desc">Recall the hidden words; tap a blank to check.</span>
+      </li>
+      <li class="how-to-use-row">
+        <span class="how-to-use-num" aria-hidden="true">3</span>
+        <span class="how-to-use-name">Letters</span>
+        <span class="how-to-use-desc">Reconstruct the text from first letters only.</span>
+      </li>
+      <li class="how-to-use-row">
+        <span class="how-to-use-num" aria-hidden="true">4</span>
+        <span class="how-to-use-name">Type</span>
+        <span class="how-to-use-desc">Type it from memory — words are checked as you go.</span>
+      </li>
+      <li class="how-to-use-row">
+        <span class="how-to-use-num" aria-hidden="true">5</span>
+        <span class="how-to-use-name">Recite</span>
+        <span class="how-to-use-desc">Say it aloud with the text blurred; hold to peek.</span>
+      </li>
+      <li class="how-to-use-row">
+        <span class="how-to-use-num" aria-hidden="true">6</span>
+        <span class="how-to-use-name">Card</span>
+        <span class="how-to-use-desc">Flip the card and self-grade your recall.</span>
+      </li>
+    </ol>
+  </section>
 
   <div class="home-footer">
     <span class="home-stat-line">{{ stat_line }}</span>

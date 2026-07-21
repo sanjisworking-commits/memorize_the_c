@@ -59,11 +59,11 @@ def test_progress_page_has_stat_tiles_and_mastery_map(client: TestClient):
     assert "Fundamental Rights" in html
     assert "mastery-cell" in html
     assert 'title="Article 20 · new"' in html
-    assert "styles.css?v=sprint26" in html
+    assert "styles.css?v=sprint30" in html
 
 
 def test_progress_css_mastery_cell_states(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint26")
+    css = client.get("/static/styles.css?v=sprint30")
     assert css.status_code == 200
     text = css.text
     assert ".mastery-cell.is-new" in text
@@ -84,6 +84,7 @@ def test_mastery_map_article_20_is_clickable(client: TestClient):
 
 def test_partial_completion_is_review_or_due(engine: ReminderEngine):
     today = date(2026, 7, 20)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=today)
     # Partial without continue pointer → review
     assert (
@@ -98,6 +99,7 @@ def test_partial_completion_is_review_or_due(engine: ReminderEngine):
 
 def test_tracked_row_tags_and_bar(client: TestClient, engine: ReminderEngine):
     today = date(2026, 7, 20)
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=today)
     reviewed = ConstitutionDocument.model_validate(read_json(MINI_REVIEWED))
     dash = progress_dashboard(engine, reviewed=reviewed, today=today)
@@ -116,7 +118,9 @@ def test_tracked_row_tags_and_bar(client: TestClient, engine: ReminderEngine):
 def test_all_complete_on_first_rung_is_learning(engine: ReminderEngine):
     today = date(2026, 7, 20)
     engine.set_split_preference("clause-2", "whole")
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=today)
+    engine.mark_all_modes_seen("clause-2")
     engine.mark_done("clause-2", as_of=today)
     state = article_mastery_state(engine, "20", today=today, continue_id=None)
     assert state == "learning"
@@ -124,10 +128,12 @@ def test_all_complete_on_first_rung_is_learning(engine: ReminderEngine):
 
 def test_all_complete_past_first_rung_is_mastered(engine: ReminderEngine):
     today = date(2026, 7, 20)
+    engine.mark_all_modes_seen("article-end")
     engine.mark_done("article-end", as_of=today)  # interval 1 → learning
     assert (
         article_mastery_state(engine, "21", today=today, continue_id=None) == "learning"
     )
+    engine.mark_all_modes_seen("article-end")
     engine.mark_done("article-end", as_of=today)  # advances to interval 3
     assert (
         article_mastery_state(engine, "21", today=today, continue_id=None) == "mastered"
@@ -137,6 +143,7 @@ def test_all_complete_past_first_rung_is_mastered(engine: ReminderEngine):
 def test_choice_pending_tag(engine: ReminderEngine):
     today = date(2026, 7, 20)
     # Touch article 20 without choosing split on clause-2
+    engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=today)
     reviewed = ConstitutionDocument.model_validate(read_json(MINI_REVIEWED))
     dash = progress_dashboard(engine, reviewed=reviewed, today=today)

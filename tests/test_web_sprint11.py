@@ -82,7 +82,9 @@ def test_letter_rail_and_stem(client: TestClient):
     assert "(a) the accusation" not in response.text.split("learn-stem")[1].split(
         "</p>"
     )[0]
-    assert "Done — next letter" in response.text
+    assert "Done — next letter" not in response.text
+    assert "methods left" in response.text
+    assert "methods-tracker" in response.text
 
 
 def test_stem_helper_strips_letters(engine: ReminderEngine):

@@ -49,7 +49,13 @@
     <a class="mode-tab{% if learn_mode == 'recite' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'recite' else 'false' }}" data-learn-mode="recite" href="/learn/{{ unit.id }}?mode=recite">Recite{% if 'recite' in seen %} ✓{% endif %}</a>
     <a class="mode-tab{% if learn_mode == 'card' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'card' else 'false' }}" data-learn-mode="card" href="/learn/{{ unit.id }}?mode=card">Card{% if 'card' in seen %} ✓{% endif %}</a>
   </div>
-  <p class="methods-tracker" id="methods-tracker" data-count="{{ seen|length }}">{{ modes_tracker | default('Visit all six methods to unlock Done') }}</p>
+  {% if modes_seen is not defined %}
+  <p class="methods-tracker" id="methods-tracker" data-count="0">
+    Method tracking is offline — stop serve (Ctrl+C), run <code>pip install -e .</code>, start serve again, then hard-refresh.
+  </p>
+  {% else %}
+  <p class="methods-tracker" id="methods-tracker" data-count="{{ seen|length }}">{{ modes_tracker }}</p>
+  {% endif %}
 
   {% if stem_text %}
   <p class="learn-stem">{{ stem_text }}</p>

@@ -38,7 +38,7 @@ def test_brand_and_how_to_use(client: TestClient):
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Flip the card and self-grade your recall." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=sprint30d" in html
+    assert "styles.css?v=sprint30e" in html
 
 
 def test_learn_marks_read_and_locks_done(client: TestClient):
@@ -48,22 +48,35 @@ def test_learn_marks_read_and_locks_done(client: TestClient):
     assert "Read ✓" in html
     assert "btn-done-locked" in html
     assert "5 methods left" in html
-    assert 'disabled' in html
+    assert 'aria-disabled="true"' in html
 
 
 def test_seen_endpoint_unlocks_done(client: TestClient):
     client.get("/learn/clause-1")  # marks read
-    for mode in ("cloze", "letters", "type", "recite", "card"):
+    for mode in ("cloze", "letters", "type", "recite"):
         resp = client.post("/learn/clause-1/seen", data={"mode": mode})
         assert resp.status_code == 200
-        data = resp.json()
+        assert resp.json()["done"]["unlocked"] is False
+    # Card is the last method — unlocks Done
+    resp = client.post("/learn/clause-1/seen", data={"mode": "card"})
+    data = resp.json()
     assert data["complete"] is True
     assert data["remaining"] == 0
     assert data["done"]["unlocked"] is True
+    assert data["done"]["label"] == "Done — next unit"
     html = client.get("/learn/clause-1?mode=card").text
     assert "All 6 methods visited" in html
     assert "Done — next unit" in html
     assert "btn-done-locked" not in html
+    assert 'data-done-unlocked="true"' in html
+    assert 'aria-disabled="false"' in html
+
+
+def test_card_alone_does_not_unlock(client: TestClient):
+    client.get("/learn/clause-1?mode=card")
+    html = client.get("/learn/clause-1?mode=card").text
+    assert "btn-done-locked" in html
+    assert "methods left" in html
 
 
 def test_done_blocked_until_six_modes(client: TestClient):

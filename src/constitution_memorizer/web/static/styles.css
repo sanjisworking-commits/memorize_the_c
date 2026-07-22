@@ -1807,6 +1807,7 @@ html[data-theme="dark"] .how-to-use-row {
   border-color: var(--done-locked-bg);
   cursor: not-allowed;
   filter: none;
+  pointer-events: auto;
 }
 
 .btn-green-outline,

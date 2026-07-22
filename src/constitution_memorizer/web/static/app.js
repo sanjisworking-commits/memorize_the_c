@@ -699,12 +699,27 @@
     };
     const trackerEl = document.getElementById("methods-tracker");
     const doneBtn = document.getElementById("learn-done-btn");
+    const doneForm = doneBtn ? doneBtn.closest("form") : null;
     let seenModes = new Set(
       Array.from(modeTabs)
         .filter((tab) => (tab.textContent || "").includes("✓"))
         .map((tab) => tab.getAttribute("data-learn-mode"))
         .filter(Boolean)
     );
+
+    function setDoneUnlocked(unlocked, label) {
+      if (!doneBtn) {
+        return;
+      }
+      learn.dataset.doneUnlocked = unlocked ? "true" : "false";
+      doneBtn.textContent = label || doneBtn.textContent;
+      doneBtn.setAttribute("aria-disabled", unlocked ? "false" : "true");
+      doneBtn.classList.toggle("btn-accent", unlocked);
+      doneBtn.classList.toggle("btn-done-locked", !unlocked);
+      // Never use the HTML disabled attribute — it can stick after soft unlock.
+      doneBtn.disabled = false;
+      doneBtn.removeAttribute("disabled");
+    }
 
     function applyModesUi(payload) {
       if (!payload) {
@@ -723,37 +738,36 @@
         trackerEl.textContent = payload.tracker;
         trackerEl.dataset.count = String(payload.count || seenModes.size);
       }
-      if (doneBtn && payload.done) {
-        const unlocked = Boolean(payload.done.unlocked);
-        doneBtn.textContent = String(payload.done.label || "");
-        doneBtn.disabled = !unlocked;
-        doneBtn.setAttribute("aria-disabled", unlocked ? "false" : "true");
-        doneBtn.classList.toggle("btn-accent", unlocked);
-        doneBtn.classList.toggle("btn-done-locked", !unlocked);
-        learn.dataset.doneUnlocked = unlocked ? "true" : "false";
+      if (payload.done) {
+        setDoneUnlocked(
+          Boolean(payload.done.unlocked),
+          String(payload.done.label || ""),
+        );
       }
     }
 
     function markSeen(mode) {
       const unitId = learn.getAttribute("data-unit-id");
       if (!unitId || !LEARN_MODES.has(mode)) {
-        return;
+        return Promise.resolve(null);
       }
       const body = new URLSearchParams();
       body.set("mode", mode);
-      fetch(`/learn/${encodeURIComponent(unitId)}/seen`, {
+      return fetch(`/learn/${encodeURIComponent(unitId)}/seen`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           Accept: "application/json",
         },
         body: body.toString(),
+        credentials: "same-origin",
       })
         .then((res) => (res.ok ? res.json() : null))
-        .then((data) => applyModesUi(data))
-        .catch(() => {
-          /* ignore offline / soft-fail */
-        });
+        .then((data) => {
+          applyModesUi(data);
+          return data;
+        })
+        .catch(() => null);
     }
 
     function setMode(mode) {
@@ -779,7 +793,6 @@
       if (next === "recite" && recite) {
         recite.reset();
       }
-      markSeen(next);
       try {
         const url = new URL(window.location.href);
         if (next === "read") {
@@ -791,6 +804,16 @@
       } catch (_err) {
         /* ignore */
       }
+      return markSeen(next);
+    }
+
+    if (doneForm) {
+      doneForm.addEventListener("submit", (event) => {
+        // Handoff: locked Done is a no-op; unlocked submits normally.
+        if (learn.dataset.doneUnlocked !== "true") {
+          event.preventDefault();
+        }
+      });
     }
 
     modeTabs.forEach((tab) => {
@@ -799,9 +822,13 @@
         if (!mode) {
           return;
         }
-        // Soft-switch when JS works; <a href="?mode="> still works without JS.
         event.preventDefault();
-        setMode(mode);
+        setMode(mode).then((data) => {
+          // If /seen failed, hard-navigate so the server still records the visit.
+          if (!data) {
+            window.location.href = tab.href;
+          }
+        });
       });
     });
 
@@ -821,6 +848,11 @@
     if (learn.dataset.mode === "card") {
       setFlipped(false);
     }
+    // Sync Done state from server-rendered dataset on load.
+    setDoneUnlocked(
+      learn.dataset.doneUnlocked === "true",
+      doneBtn ? doneBtn.textContent : "",
+    );
   }
 
   if (document.readyState === "loading") {

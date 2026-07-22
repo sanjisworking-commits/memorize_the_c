@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitType
+from constitution_memorizer.progress.repository import LEARN_MODES_SET
 from constitution_memorizer.progress.scheduler import ReminderEngine
 
 _CHIP_LABEL_RE = re.compile(r"\([^)]+\)")
@@ -384,7 +385,7 @@ LEARN_MODE_LABELS: dict[str, str] = {
 
 def methods_tracker_line(seen_count: int) -> str:
     """Copy under the Learn mode tab bar (METHODS-THEME-HANDOFF)."""
-    if seen_count >= 6:
+    if seen_count >= len(LEARN_MODES_SET):
         return "All 6 methods visited — revision complete, mark it Done"
     return (
         f"{seen_count} of 6 methods visited · revision completes "
@@ -393,17 +394,20 @@ def methods_tracker_line(seen_count: int) -> str:
 
 
 def done_button_state(unit: LearningUnit, seen: set[str]) -> dict[str, object]:
-    """Locked Done until all six modes visited; Again stays available."""
-    remaining = 6 - len(seen)
+    """Locked Done until all six modes visited; unlocks on the last (Card if in order)."""
+    missing = LEARN_MODES_SET - set(seen)
+    remaining = len(missing)
     if remaining > 0:
         label = f"{remaining} method{'s' if remaining != 1 else ''} left"
         return {
             "unlocked": False,
             "label": label,
             "disabled": True,
+            "missing": sorted(missing),
         }
     return {
         "unlocked": True,
         "label": done_button_label(unit),
         "disabled": False,
+        "missing": [],
     }

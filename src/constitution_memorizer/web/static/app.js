@@ -669,7 +669,6 @@
     }
     learn.classList.add("is-ready");
 
-    const modeTabs = learn.querySelectorAll("[data-learn-mode]");
     const card = learn.querySelector(".learn-card");
     const clozePanel = learn.querySelector('[data-learn-panel="cloze"]');
     const lettersPanel = learn.querySelector('[data-learn-panel="letters"]');
@@ -679,6 +678,7 @@
     const letters = initLetters(lettersPanel);
     const typeMode = initType(typePanel);
     const recite = initRecite(recitePanel);
+    const doneBtn = document.getElementById("learn-done-btn");
 
     function setFlipped(flipped) {
       if (!card) {
@@ -689,148 +689,8 @@
       card.setAttribute("aria-pressed", flipped ? "true" : "false");
     }
 
-    const MODE_LABELS = {
-      read: "Read",
-      cloze: "Cloze",
-      letters: "Letters",
-      type: "Type",
-      recite: "Recite",
-      card: "Card",
-    };
-    const trackerEl = document.getElementById("methods-tracker");
-    const doneBtn = document.getElementById("learn-done-btn");
-    const doneForm = doneBtn ? doneBtn.closest("form") : null;
-    let seenModes = new Set(
-      Array.from(modeTabs)
-        .filter((tab) => (tab.textContent || "").includes("✓"))
-        .map((tab) => tab.getAttribute("data-learn-mode"))
-        .filter(Boolean)
-    );
-
-    function setDoneUnlocked(unlocked, label) {
-      if (!doneBtn) {
-        return;
-      }
-      learn.dataset.doneUnlocked = unlocked ? "true" : "false";
-      doneBtn.textContent = label || doneBtn.textContent;
-      doneBtn.setAttribute("aria-disabled", unlocked ? "false" : "true");
-      doneBtn.classList.toggle("btn-accent", unlocked);
-      doneBtn.classList.toggle("btn-done-locked", !unlocked);
-      // Never use the HTML disabled attribute — it can stick after soft unlock.
-      doneBtn.disabled = false;
-      doneBtn.removeAttribute("disabled");
-    }
-
-    function applyModesUi(payload) {
-      if (!payload) {
-        return;
-      }
-      seenModes = new Set(payload.seen || []);
-      modeTabs.forEach((tab) => {
-        const mode = tab.getAttribute("data-learn-mode");
-        if (!mode) {
-          return;
-        }
-        const label = MODE_LABELS[mode] || mode;
-        tab.textContent = seenModes.has(mode) ? `${label} ✓` : label;
-      });
-      if (trackerEl && payload.tracker) {
-        trackerEl.textContent = payload.tracker;
-        trackerEl.dataset.count = String(payload.count || seenModes.size);
-      }
-      if (payload.done) {
-        setDoneUnlocked(
-          Boolean(payload.done.unlocked),
-          String(payload.done.label || ""),
-        );
-      }
-    }
-
-    function markSeen(mode) {
-      const unitId = learn.getAttribute("data-unit-id");
-      if (!unitId || !LEARN_MODES.has(mode)) {
-        return Promise.resolve(null);
-      }
-      const body = new URLSearchParams();
-      body.set("mode", mode);
-      return fetch(`/learn/${encodeURIComponent(unitId)}/seen`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "application/json",
-        },
-        body: body.toString(),
-        credentials: "same-origin",
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          applyModesUi(data);
-          return data;
-        })
-        .catch(() => null);
-    }
-
-    function setMode(mode) {
-      const next = LEARN_MODES.has(mode) ? mode : "read";
-      learn.dataset.mode = next;
-      modeTabs.forEach((tab) => {
-        const active = tab.getAttribute("data-learn-mode") === next;
-        tab.classList.toggle("is-active", active);
-        tab.setAttribute("aria-selected", active ? "true" : "false");
-      });
-      if (next === "card") {
-        setFlipped(false);
-      }
-      if (next === "cloze" && cloze) {
-        cloze.reset();
-      }
-      if (next === "letters" && letters) {
-        letters.reset();
-      }
-      if (next === "type" && typeMode) {
-        typeMode.reset();
-      }
-      if (next === "recite" && recite) {
-        recite.reset();
-      }
-      try {
-        const url = new URL(window.location.href);
-        if (next === "read") {
-          url.searchParams.delete("mode");
-        } else {
-          url.searchParams.set("mode", next);
-        }
-        window.history.replaceState(null, "", url.pathname + url.search);
-      } catch (_err) {
-        /* ignore */
-      }
-      return markSeen(next);
-    }
-
-    if (doneForm) {
-      doneForm.addEventListener("submit", (event) => {
-        // Handoff: locked Done is a no-op; unlocked submits normally.
-        if (learn.dataset.doneUnlocked !== "true") {
-          event.preventDefault();
-        }
-      });
-    }
-
-    modeTabs.forEach((tab) => {
-      tab.addEventListener("click", (event) => {
-        const mode = tab.getAttribute("data-learn-mode");
-        if (!mode) {
-          return;
-        }
-        event.preventDefault();
-        setMode(mode).then((data) => {
-          // If /seen failed, hard-navigate so the server still records the visit.
-          if (!data) {
-            window.location.href = tab.href;
-          }
-        });
-      });
-    });
+    // Mode tabs use normal <a href="?mode="> navigation so each visit is
+    // recorded by GET /learn/... and Done unlocks when Card completes the set.
 
     if (card) {
       card.addEventListener("click", () => {
@@ -845,14 +705,33 @@
     }
 
     // Honor server-rendered mode (e.g. hard navigation to ?mode=…).
-    if (learn.dataset.mode === "card") {
+    // Reset interactive panels when landing on them.
+    const mode = learn.dataset.mode || "read";
+    if (mode === "card") {
       setFlipped(false);
     }
-    // Sync Done state from server-rendered dataset on load.
-    setDoneUnlocked(
-      learn.dataset.doneUnlocked === "true",
-      doneBtn ? doneBtn.textContent : "",
-    );
+    if (mode === "cloze" && cloze) {
+      cloze.reset();
+    }
+    if (mode === "letters" && letters) {
+      letters.reset();
+    }
+    if (mode === "type" && typeMode) {
+      typeMode.reset();
+    }
+    if (mode === "recite" && recite) {
+      recite.reset();
+    }
+
+    if (doneBtn) {
+      const unlocked = learn.dataset.doneUnlocked === "true";
+      doneBtn.disabled = !unlocked;
+      if (unlocked) {
+        doneBtn.removeAttribute("disabled");
+      } else {
+        doneBtn.setAttribute("disabled", "disabled");
+      }
+    }
   }
 
   if (document.readyState === "loading") {

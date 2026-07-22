@@ -59,11 +59,11 @@ def test_progress_page_has_stat_tiles_and_mastery_map(client: TestClient):
     assert "Fundamental Rights" in html
     assert "mastery-cell" in html
     assert 'title="Article 20 · new"' in html
-    assert "styles.css?v=sprint30e" in html
+    assert "styles.css?v=sprint30f" in html
 
 
 def test_progress_css_mastery_cell_states(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint30e")
+    css = client.get("/static/styles.css?v=sprint30f")
     assert css.status_code == 200
     text = css.text
     assert ".mastery-cell.is-new" in text

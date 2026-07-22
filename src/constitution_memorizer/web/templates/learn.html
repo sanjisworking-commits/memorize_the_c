@@ -189,7 +189,7 @@
           type="submit"
           class="btn {% if done_unlocked %}btn-accent{% else %}btn-done-locked{% endif %}"
           id="learn-done-btn"
-          aria-disabled="{{ 'false' if done_unlocked else 'true' }}"
+          {% if not done_unlocked %}disabled aria-disabled="true"{% else %}aria-disabled="false"{% endif %}
         >{{ done_label }}</button>
       </form>
       <form class="learn-action-again" method="post" action="/learn/{{ unit.id }}/again">

@@ -32,7 +32,7 @@ def test_learn_enables_letters_tab_and_panel_markup(client: TestClient):
     assert "data-letters-toggle" in html
     assert "Show full text" in html
     assert "Recite from the initials, then check yourself." in html
-    assert "app.js?v=sprint30e" in html
+    assert "app.js?v=sprint30f" in html
 
 
 def test_letters_mode_query_param_renders_letters_active(client: TestClient):
@@ -46,7 +46,7 @@ def test_letters_mode_query_param_renders_letters_active(client: TestClient):
 
 
 def test_letters_css_drives_panel_and_initials_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint30e")
+    css = client.get("/static/styles.css?v=sprint30f")
     assert css.status_code == 200
     text = css.text
     assert '.learn[data-mode="letters"] .learn-panel-letters' in text
@@ -57,7 +57,7 @@ def test_letters_css_drives_panel_and_initials_styles(client: TestClient):
 
 
 def test_letters_js_builds_initials_like_prototype(client: TestClient):
-    js = client.get("/static/app.js?v=sprint30e")
+    js = client.get("/static/app.js?v=sprint30f")
     assert js.status_code == 200
     text = js.text
     assert "toInitials" in text

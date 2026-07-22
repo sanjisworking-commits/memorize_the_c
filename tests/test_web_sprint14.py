@@ -49,7 +49,7 @@ def test_cloze_mode_query_param_renders_cloze_active(client: TestClient):
 
 
 def test_cloze_css_drives_panel_visibility_and_blank_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint30b")
+    css = client.get("/static/styles.css?v=sprint30c")
     assert css.status_code == 200
     text = css.text
     assert '.learn[data-mode="cloze"] .learn-panel-cloze' in text
@@ -76,7 +76,7 @@ def test_cloze_shows_stem_for_subclause_unlike_card(client: TestClient):
     assert card.status_code == 200
     # Stem still in markup (shared), but CSS hides it for card mode.
     assert "learn-stem" in card.text
-    css = client.get("/static/styles.css?v=sprint30b").text
+    css = client.get("/static/styles.css?v=sprint30c").text
     assert '.learn[data-mode="card"] .learn-stem' in css
     assert "display: none" in css
 

@@ -39,18 +39,24 @@
   </nav>
   {% endif %}
 
+  {% set mode_ids = learn_modes if learn_modes is defined else ['read', 'cloze', 'letters', 'type', 'recite', 'card'] %}
+  {% set labels = mode_labels if mode_labels is defined else {
+    'read': 'Read', 'cloze': 'Cloze', 'letters': 'Letters',
+    'type': 'Type', 'recite': 'Recite', 'card': 'Card'
+  } %}
+  {% set seen = modes_seen if modes_seen is defined else [] %}
   <div class="mode-tabs" role="tablist" aria-label="Recall modes">
-    {% for mode_id in learn_modes %}
+    {% for mode_id in mode_ids %}
     <a
       class="mode-tab{% if learn_mode == mode_id %} is-active{% endif %}"
       role="tab"
       aria-selected="{{ 'true' if learn_mode == mode_id else 'false' }}"
       data-learn-mode="{{ mode_id }}"
       href="/learn/{{ unit.id }}?mode={{ mode_id }}"
-    >{{ mode_labels[mode_id] }}{% if mode_id in modes_seen %} ✓{% endif %}</a>
+    >{{ labels[mode_id] }}{% if mode_id in seen %} ✓{% endif %}</a>
     {% endfor %}
   </div>
-  <p class="methods-tracker" id="methods-tracker" data-count="{{ modes_seen|length }}">{{ modes_tracker }}</p>
+  <p class="methods-tracker" id="methods-tracker" data-count="{{ seen|length }}">{{ modes_tracker | default('') }}</p>
 
   {% if stem_text %}
   <p class="learn-stem">{{ stem_text }}</p>

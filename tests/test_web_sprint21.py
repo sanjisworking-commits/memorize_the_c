@@ -45,7 +45,7 @@ def test_browse_article_15_shows_timeline(client: TestClient):
     assert "Inserted clause (4)" in html
     assert "3 amendments" in html
     assert "amendment-timeline" in html
-    assert "styles.css?v=sprint30b" in html
+    assert "styles.css?v=sprint30c" in html
 
 
 def test_browse_article_14_shows_unamended(client: TestClient):
@@ -76,7 +76,7 @@ def test_learn_footnote_for_15_and_not_14(client: TestClient):
 
 
 def test_amendment_css(client: TestClient):
-    css = client.get("/static/styles.css?v=sprint30b").text
+    css = client.get("/static/styles.css?v=sprint30c").text
     assert ".amendment-badge" in css
     assert ".amendment-timeline" in css
     assert ".learn-amend-note" in css

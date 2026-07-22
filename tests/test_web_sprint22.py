@@ -48,7 +48,7 @@ def test_explain_back_section_on_every_article(client: TestClient):
     assert "explain-back-input" in html
     assert "Memorizing gives you the words" in html
     assert "Saved automatically" in html
-    assert "styles.css?v=sprint30c" in html
+    assert "styles.css?v=sprint30d" in html
 
 
 def test_gloss_placeholder_for_seeded_article(client: TestClient):
@@ -99,7 +99,7 @@ def test_reset_progress_keeps_gloss(client: TestClient):
 
 
 def test_explain_back_css(mini_client: TestClient):
-    css = mini_client.get("/static/styles.css?v=sprint30c").text
+    css = mini_client.get("/static/styles.css?v=sprint30d").text
     assert ".explain-back-input" in css
     assert "#fdfdfc" in css
     assert ".explain-back-clear" in css

@@ -879,8 +879,13 @@ html[data-theme="dark"] .how-to-use-row {
   flex-wrap: nowrap;
   gap: 0;
   align-items: stretch;
-  border-bottom: 1px solid var(--hairline);
-  margin-top: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--ink);
+  margin: 18px 0 0;
+  padding: 0 4px;
+  background: var(--page);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
@@ -896,21 +901,24 @@ html[data-theme="dark"] .how-to-use-row {
   font: inherit;
   font-size: 14px;
   font-weight: 600;
-  color: var(--muted);
+  line-height: 1.2;
+  color: var(--muted) !important;
   cursor: pointer;
-  text-decoration: none;
+  text-decoration: none !important;
   display: inline-block;
   flex: 0 0 auto;
   white-space: nowrap;
+  visibility: visible;
+  opacity: 1;
 }
 
 .mode-tab:hover {
-  color: var(--ink);
+  color: var(--ink) !important;
 }
 
 .mode-tab.is-active {
   border-bottom-color: var(--ink);
-  color: var(--ink);
+  color: var(--ink) !important;
   font-weight: 700;
 }
 
@@ -920,10 +928,12 @@ html[data-theme="dark"] .how-to-use-row {
 }
 
 .methods-tracker {
+  display: block;
   margin: 10px 0 0;
   font-size: 12.5px;
   color: var(--faint);
   line-height: 1.45;
+  visibility: visible;
 }
 
 .learn-body {

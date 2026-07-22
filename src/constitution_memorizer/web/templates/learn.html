@@ -39,24 +39,17 @@
   </nav>
   {% endif %}
 
-  {% set mode_ids = learn_modes if learn_modes is defined else ['read', 'cloze', 'letters', 'type', 'recite', 'card'] %}
-  {% set labels = mode_labels if mode_labels is defined else {
-    'read': 'Read', 'cloze': 'Cloze', 'letters': 'Letters',
-    'type': 'Type', 'recite': 'Recite', 'card': 'Card'
-  } %}
+  {# Six recall modes — always render explicitly (Read → Card). #}
   {% set seen = modes_seen if modes_seen is defined else [] %}
   <div class="mode-tabs" role="tablist" aria-label="Recall modes">
-    {% for mode_id in mode_ids %}
-    <a
-      class="mode-tab{% if learn_mode == mode_id %} is-active{% endif %}"
-      role="tab"
-      aria-selected="{{ 'true' if learn_mode == mode_id else 'false' }}"
-      data-learn-mode="{{ mode_id }}"
-      href="/learn/{{ unit.id }}?mode={{ mode_id }}"
-    >{{ labels[mode_id] }}{% if mode_id in seen %} ✓{% endif %}</a>
-    {% endfor %}
+    <a class="mode-tab{% if learn_mode == 'read' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'read' else 'false' }}" data-learn-mode="read" href="/learn/{{ unit.id }}?mode=read">Read{% if 'read' in seen %} ✓{% endif %}</a>
+    <a class="mode-tab{% if learn_mode == 'cloze' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'cloze' else 'false' }}" data-learn-mode="cloze" href="/learn/{{ unit.id }}?mode=cloze">Cloze{% if 'cloze' in seen %} ✓{% endif %}</a>
+    <a class="mode-tab{% if learn_mode == 'letters' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'letters' else 'false' }}" data-learn-mode="letters" href="/learn/{{ unit.id }}?mode=letters">Letters{% if 'letters' in seen %} ✓{% endif %}</a>
+    <a class="mode-tab{% if learn_mode == 'type' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'type' else 'false' }}" data-learn-mode="type" href="/learn/{{ unit.id }}?mode=type">Type{% if 'type' in seen %} ✓{% endif %}</a>
+    <a class="mode-tab{% if learn_mode == 'recite' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'recite' else 'false' }}" data-learn-mode="recite" href="/learn/{{ unit.id }}?mode=recite">Recite{% if 'recite' in seen %} ✓{% endif %}</a>
+    <a class="mode-tab{% if learn_mode == 'card' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'card' else 'false' }}" data-learn-mode="card" href="/learn/{{ unit.id }}?mode=card">Card{% if 'card' in seen %} ✓{% endif %}</a>
   </div>
-  <p class="methods-tracker" id="methods-tracker" data-count="{{ seen|length }}">{{ modes_tracker | default('') }}</p>
+  <p class="methods-tracker" id="methods-tracker" data-count="{{ seen|length }}">{{ modes_tracker | default('Visit all six methods to unlock Done') }}</p>
 
   {% if stem_text %}
   <p class="learn-stem">{{ stem_text }}</p>

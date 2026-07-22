@@ -38,7 +38,7 @@ def test_brand_and_how_to_use(client: TestClient):
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Flip the card and self-grade your recall." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=sprint30c" in html
+    assert "styles.css?v=sprint30d" in html
 
 
 def test_learn_marks_read_and_locks_done(client: TestClient):

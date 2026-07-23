@@ -48,6 +48,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 28 | `cursor/sprint-28-mac-app-dmg-1a75` | Planned (Recall C .dmg) |
 | Sprint 29 | `cursor/sprint-29-tables-browse-1a75` | Done |
 | Sprint 30 | `cursor/sprint-30-methods-theme-1a75` | Done (six-method Done gate, How-to-use, Recall the C, theme) |
+| Corpus text pass | `cursor/corpus-text-pass-1a75` | In progress |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -494,6 +495,21 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - Browse/unit builders also skip redundant openings as defense in depth
 - Tests: `tests/test_corpus_artefact_scrub.py`
 - Regenerate: `correct --force` then `generate-units --force`
+
+### Corpus text pass (in progress)
+
+**Branch:** `cursor/corpus-text-pass-1a75`
+
+Card-by-card Bare Act wording and presentable layout fixes (grammar, junk characters, missing text, stem + `(a)(b)(c)` newlines). All edits go in [`data/corrections/corrections.json`](data/corrections/corrections.json) only — never hand-edit `constitution.reviewed.json` or `learning_units.json`.
+
+After a batch of overlays:
+
+```bash
+python -m constitution_memorizer.cli correct --force
+python -m constitution_memorizer.cli generate-units --force
+```
+
+Rules: verbatim Bare Act words (no paraphrase); layout/newlines OK; Docling/parser untouched unless a systemic artefact belongs in `artefact_scrub.py`.
 
 ### Split-choice behaviour (summary)
 

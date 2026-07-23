@@ -1668,6 +1668,47 @@ html[data-theme="dark"] .how-to-use-row {
   color: var(--faint);
 }
 
+.bare-fn {
+  position: relative;
+  display: inline;
+  cursor: help;
+}
+
+.bare-fn-word {
+  border-bottom: 1px dotted currentColor;
+  font-weight: 600;
+}
+
+.bare-fn-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  z-index: 5;
+  width: min(28rem, 70vw);
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  background: var(--paper, #fff);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.bare-fn:hover .bare-fn-tip,
+.bare-fn:focus .bare-fn-tip,
+.bare-fn:focus-within .bare-fn-tip {
+  opacity: 1;
+  visibility: visible;
+}
+
 .explain-back-title {
   font-family: var(--font-display);
   font-size: 20px;

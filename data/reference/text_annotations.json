@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain).",
+  "units": {
+    "article-124-clause-1": [
+      {
+        "target": "seven",
+        "note": "Now “thirty-three” vide the Supreme Court (Number of Judges) Amendment Act, 2019 (37 of 2019), s. 2 (w.e.f. 9-8-2019)."
+      }
+    ]
+  }
+}

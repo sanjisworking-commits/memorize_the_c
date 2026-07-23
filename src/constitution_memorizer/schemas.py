@@ -127,6 +127,9 @@ class Article(BaseModel):
     cross_references: list[str] = Field(default_factory=list)
     source: SourceProvenance = Field(default_factory=SourceProvenance)
     manual_review_status: str | None = None
+    # When true, Learning Unit generator emits one ARTICLE card (stem + letters
+    # stay in body_text) instead of CLAUSE cards per provision marker.
+    prefer_article_unit: bool = False
 
 
 class Chapter(BaseModel):

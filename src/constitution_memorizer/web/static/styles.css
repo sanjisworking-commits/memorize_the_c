@@ -1670,22 +1670,26 @@ html[data-theme="dark"] .how-to-use-row {
 
 .bare-fn {
   position: relative;
-  display: inline;
+  display: inline-block;
   cursor: help;
 }
 
 .bare-fn-word {
   border-bottom: 1px dotted currentColor;
   font-weight: 600;
+  color: var(--ink);
 }
 
-.bare-fn-tip {
+.bare-fn::after {
+  content: attr(data-note);
   position: absolute;
   left: 50%;
   bottom: calc(100% + 8px);
   transform: translateX(-50%);
-  z-index: 5;
-  width: min(28rem, 70vw);
+  z-index: 20;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(28rem, 70vw);
   padding: 10px 12px;
   border: 1px solid var(--hairline);
   background: var(--paper, #fff);
@@ -1702,9 +1706,9 @@ html[data-theme="dark"] .how-to-use-row {
   transition: opacity 0.12s ease;
 }
 
-.bare-fn:hover .bare-fn-tip,
-.bare-fn:focus .bare-fn-tip,
-.bare-fn:focus-within .bare-fn-tip {
+.bare-fn:hover::after,
+.bare-fn:focus::after,
+.bare-fn:focus-within::after {
   opacity: 1;
   visibility: visible;
 }

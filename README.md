@@ -11,7 +11,10 @@ Two layers:
 
 - Learning code must **not** mutate Docling output, the parser, or `constitution.reviewed.json` by hand.  
 - Bare Act text fixes go only in [`data/corrections/corrections.json`](data/corrections/corrections.json), then regenerate.  
-- Memorised card text stays Bare Act wording (no paraphrase).
+- Memorised card text stays Bare Act wording (no paraphrase).  
+- If a diglot footer says an amendment **has been struck down by the Supreme Court**, omit that amendment’s wording from `body_text`.
+
+Future ideas: [`docs/FUTURE.md`](docs/FUTURE.md).
 
 ---
 
@@ -127,7 +130,8 @@ python -m constitution_memorizer.cli generate-units --force
 - Split-capable clauses → Choose **whole** vs **letters** (stored in SQLite).  
 - Done advances spaced repetition (`1 → 3 → 7 → 14 → 30 → 60` days → mastered).  
 - Sprint 30: Done unlocks after visiting all six recall methods on that unit.  
-- `prefer_article_unit` on a correction → one Learn card titled `Article N` (lettered body kept intact).
+- `prefer_article_unit` on a correction → one Learn card titled `Article N` (lettered body kept intact).  
+- Word footnotes (e.g. Art 124(1) “seven”) use Read/Card hover via [`data/reference/text_annotations.json`](data/reference/text_annotations.json).
 
 ### Tests
 

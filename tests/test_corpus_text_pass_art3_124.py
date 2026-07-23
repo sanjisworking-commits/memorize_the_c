@@ -73,7 +73,7 @@ def _sample_doc() -> ConstitutionDocument:
     )
 
 
-def test_article_3_prefer_article_unit_keeps_stem_and_title():
+def test_article_3_prefer_article_unit_skips_explanations():
     art3_body = (
         "Parliament may by law—\n"
         "(a) form a new State by separation of territory from any State or by "
@@ -90,13 +90,7 @@ def test_article_3_prefer_article_unit_keeps_stem_and_title():
         "the Legislature of that State for expressing its views thereon within such "
         "period as may be specified in the reference or within such further period "
         "as the President may allow and the period so specified or allowed has "
-        "expired.\n\n"
-        'Explanation I.—In this article, in clauses (a) to (e), "State" includes a '
-        'Union territory, but in the proviso, "State" does not include a Union '
-        "territory.\n\n"
-        "Explanation II.—The power conferred on Parliament by clause (a) includes "
-        "the power to form a new State or Union territory by uniting a part of any "
-        "State or Union territory to any other State or Union territory."
+        "expired."
     )
     corrections = CorrectionsFile(
         articles={
@@ -116,6 +110,7 @@ def test_article_3_prefer_article_unit_keeps_stem_and_title():
     assert art.prefer_article_unit is True
     assert art.body_text.startswith("Parliament may by law—")
     assert "(c) diminish" in art.body_text
+    assert "Explanation" not in art.body_text
     assert art.clauses == []
 
     units = generate_learning_units(reviewed).units
@@ -127,21 +122,18 @@ def test_article_3_prefer_article_unit_keeps_stem_and_title():
     assert unit.display_title == "Article 3"
     assert unit.text.startswith("Parliament may by law—")
     assert "(c) diminish the area of any State;" in unit.text
+    assert "Explanation" not in unit.text
 
 
-def test_article_124_restores_consultation_drops_njac():
+def test_article_124_omits_struck_down_njac_wording():
     body = (
         "(1) There shall be a Supreme Court of India consisting of a Chief Justice "
         "of India and, until Parliament by law prescribes a larger number, of not "
         "more than seven other Judges.\n"
         "(2) Every Judge of the Supreme Court shall be appointed by the President "
-        "by warrant under his hand and seal after consultation with such of the "
-        "Judges of the Supreme Court and of the High Court in the States as the "
-        "President may deem necessary for the purpose and shall hold office until "
-        "he attains the age of sixty-five years:\n"
-        "Provided that in the case of appointment of a Judge other than the Chief "
-        "Justice, the Chief Justice of India shall always be consulted:\n"
-        "Provided further that—\n"
+        "by warrant under his hand and seal and shall hold office until he attains "
+        "the age of sixty-five years:\n"
+        "[Provided that]—\n"
         "(a) a Judge may, by writing under his hand addressed to the President, "
         "resign his office;\n"
         "(b) a Judge may be removed from his office in the manner provided in "
@@ -153,18 +145,24 @@ def test_article_124_restores_consultation_drops_njac():
     reviewed, _ = apply_corrections(_sample_doc(), corrections)
     art = next(a for p in reviewed.parts for a in p.articles if a.id == "article-124")
     assert "National Judicial Appointments" not in art.body_text
-    assert "after consultation with such of the Judges" in art.body_text
-    assert "Chief Justice of India shall always be consulted" in art.body_text
+    assert "after consultation" not in art.body_text
+    assert "[Provided that]—" in art.body_text
+    assert (
+        "by warrant under his hand and seal and shall hold office until he attains"
+        in art.body_text
+    )
 
     units = {u.id: u for u in generate_learning_units(reviewed).units}
     clause1 = units["article-124-clause-1"]
     assert "seven other Judges" in clause1.text
     clause2 = units["article-124-clause-2"]
     assert "National Judicial Appointments" not in clause2.text
-    assert "after consultation" in clause2.text
+    assert "after consultation" not in clause2.text
+    assert "seal and shall hold office" in clause2.text
+    assert "[Provided that]—" in clause2.text
 
 
-def test_seven_annotation_wraps_hover_span():
+def test_seven_annotation_uses_data_note_not_inline_tip():
     catalog = load_text_annotations()
     anns = catalog["article-124-clause-1"]
     assert anns[0].target == "seven"
@@ -176,8 +174,13 @@ def test_seven_annotation_wraps_hover_span():
     )
     assert 'class="bare-fn"' in rendered
     assert 'class="bare-fn-word">seven</span>' in rendered
+    assert 'data-note="' in rendered
     assert "thirty-three" in rendered
     assert "37 of 2019" in rendered
+    # Footnote must not appear as adjacent readable body text.
+    assert "sevenNow" not in rendered
+    assert ">seven</span>Now" not in rendered
+    assert "bare-fn-tip" not in rendered
 
 
 def test_annotate_escapes_and_skips_missing_targets():

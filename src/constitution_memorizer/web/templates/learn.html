@@ -62,7 +62,7 @@
   {% endif %}
 
   <div class="learn-body learn-panel-read" data-learn-panel="read">
-    <article class="unit-text learn-read-text">{{ unit.text }}</article>
+    <article class="unit-text learn-read-text">{% if has_text_annotations %}{{ annotated_text }}{% else %}{{ unit.text }}{% endif %}</article>
     <p class="learn-hint">{{ read_hint }}</p>
   </div>
 
@@ -182,7 +182,7 @@
         <p class="learn-card-prompt">Recite it, then tap to check</p>
       </div>
       <div class="learn-card-face learn-card-back">
-        <p class="learn-card-text">{{ unit.text }}</p>
+        <p class="learn-card-text">{% if has_text_annotations %}{{ annotated_text }}{% else %}{{ unit.text }}{% endif %}</p>
         <p class="learn-card-prompt">Tap to flip back</p>
       </div>
     </div>

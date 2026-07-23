@@ -197,6 +197,30 @@ def _units_for_article(part: Part, article: Article) -> list[LearningUnit]:
     """ARTICLE / CLAUSE units; SUBCLAUSE dual units when alphabetic children exist."""
     tags = _part_tags(part, article)
     parent_article_id = article.id
+    if article.prefer_article_unit:
+        text = _article_full_text(article)
+        if not text and article.status == ArticleStatus.OMITTED:
+            text = article.title or f"Article {article.article_number} [Omitted.]"
+            tags = [*tags, "omitted"]
+        if not text and article.status == ArticleStatus.REPEALED:
+            text = article.title or f"Article {article.article_number} [Repealed.]"
+            tags = [*tags, "repealed"]
+        if not text:
+            return []
+        return [
+            _make_unit(
+                unit_id=article.id,
+                unit_type=LearningUnitType.ARTICLE,
+                parent_id=part.id,
+                article_number=article.article_number,
+                display_title=f"Article {article.article_number}",
+                title=article.title,
+                text=text,
+                tags=tags,
+                clause_count=0,
+            )
+        ]
+
     clauses = _resolve_clauses(article)
 
     if not clauses:

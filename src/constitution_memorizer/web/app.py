@@ -47,6 +47,11 @@ from constitution_memorizer.web.service import (
     unit_type_label,
 )
 from constitution_memorizer.web.tables_data import list_table_tabs, load_table_tab, row_is_muted
+from constitution_memorizer.web.text_annotations import (
+    annotate_plain_text,
+    annotations_for_unit,
+    load_text_annotations,
+)
 
 WEB_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = WEB_DIR / "templates"
@@ -60,6 +65,7 @@ def create_app(
     reviewed_path: Path | str | None = None,
     amendments_path: Path | str | None = None,
     gloss_placeholders_path: Path | str | None = None,
+    text_annotations_path: Path | str | None = None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -80,6 +86,11 @@ def create_app(
         if gloss_placeholders_path is not None
         else root / "data" / "reference" / "gloss_placeholders.seed.json"
     )
+    resolved_text_annotations = Path(
+        text_annotations_path
+        if text_annotations_path is not None
+        else root / "data" / "reference" / "text_annotations.json"
+    )
 
     if not resolved_units.exists():
         raise FileNotFoundError(
@@ -97,6 +108,9 @@ def create_app(
     gloss_placeholders = load_gloss_placeholders(
         resolved_gloss_placeholders if resolved_gloss_placeholders.exists() else None
     )
+    text_annotations = load_text_annotations(
+        resolved_text_annotations if resolved_text_annotations.exists() else None
+    )
     templates = Jinja2Templates(
         directory=str(TEMPLATES_DIR),
         context_processors=[
@@ -112,6 +126,7 @@ def create_app(
     app.state.reviewed = reviewed
     app.state.amendments = amendments
     app.state.gloss_placeholders = gloss_placeholders
+    app.state.text_annotations = text_annotations
     app.state.units_path = resolved_units
     app.state.db_path = resolved_db
     app.state.reviewed_path = resolved_reviewed
@@ -235,6 +250,8 @@ def create_app(
         )
         curated = get_article_amendments(app.state.amendments, target.article_number)
         amend_note = curated.learn_note if curated is not None else None
+        unit_anns = annotations_for_unit(app.state.text_annotations, target.id)
+        annotated_text = annotate_plain_text(target.text, unit_anns)
         return templates.TemplateResponse(
             request,
             "learn.html",
@@ -257,6 +274,8 @@ def create_app(
                 "learn_modes": LEARN_MODES,
                 "learn_mode": learn_mode,
                 "amend_note": amend_note,
+                "annotated_text": annotated_text,
+                "has_text_annotations": bool(unit_anns),
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),

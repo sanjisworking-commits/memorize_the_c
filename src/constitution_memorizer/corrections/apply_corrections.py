@@ -37,6 +37,8 @@ class ArticleCorrection(BaseModel):
     exclude: bool | None = None
     # Insert a missing Article (parser never emitted the node).
     create: bool | None = None
+    # One Learn card titled "Article N" (keep lettered body intact).
+    prefer_article_unit: bool | None = None
 
 
 class CorrectionsFile(BaseModel):
@@ -163,6 +165,7 @@ def _create_article_from_correction(
         body_text=corr.body_text,
         opening_text=corr.opening_text or "",
         manual_review_status=corr.manual_review_status,
+        prefer_article_unit=bool(corr.prefer_article_unit),
     )
 
 
@@ -266,6 +269,14 @@ def apply_corrections(
                 f"{article_id}: manual_review_status → {corr.manual_review_status!r}"
             )
             article.manual_review_status = corr.manual_review_status
+        if (
+            corr.prefer_article_unit is not None
+            and corr.prefer_article_unit != article.prefer_article_unit
+        ):
+            changes.append(
+                f"{article_id}: prefer_article_unit → {corr.prefer_article_unit!r}"
+            )
+            article.prefer_article_unit = corr.prefer_article_unit
 
     if exclude_ids:
         changes.extend(_remove_articles(reviewed, exclude_ids))

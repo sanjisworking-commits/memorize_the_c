@@ -162,7 +162,7 @@ def test_article_124_omits_struck_down_njac_wording():
     assert "[Provided that]—" in clause2.text
 
 
-def test_seven_annotation_uses_data_note_not_inline_tip():
+def test_seven_annotation_uses_hidden_tip_element():
     catalog = load_text_annotations()
     anns = catalog["article-124-clause-1"]
     assert anns[0].target == "seven"
@@ -174,13 +174,13 @@ def test_seven_annotation_uses_data_note_not_inline_tip():
     )
     assert 'class="bare-fn"' in rendered
     assert 'class="bare-fn-word">seven</span>' in rendered
-    assert 'data-note="' in rendered
+    assert 'class="bare-fn-tip"' in rendered
+    assert "hidden" in rendered
     assert "thirty-three" in rendered
     assert "37 of 2019" in rendered
-    # Footnote must not appear as adjacent readable body text.
+    # Footnote must not leak as adjacent body text when tip is hidden.
     assert "sevenNow" not in rendered
     assert ">seven</span>Now" not in rendered
-    assert "bare-fn-tip" not in rendered
 
 
 def test_annotate_escapes_and_skips_missing_targets():
@@ -261,6 +261,7 @@ def test_article_326_title_body_split_and_eighteen_hover():
     assert anns[0].target == "eighteen"
     rendered = str(annotate_plain_text(unit.text, anns))
     assert 'class="bare-fn-word">eighteen</span>' in rendered
+    assert 'class="bare-fn-tip"' in rendered
     assert "Sixty-first Amendment" in rendered
     assert "twenty-one years" in rendered
     assert "2 [eighteen" not in rendered

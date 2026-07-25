@@ -57,9 +57,8 @@ def annotate_plain_text(text: str, annotations: list[TextAnnotation]) -> Markup:
     """
     Escape plain Bare Act text and wrap the first whole-word hit of each target.
 
-    Note text lives in ``data-note`` / ``title`` only (CSS ``::after`` popover), so a
-    missing stylesheet cannot leak the footnote into the readable body flow.
-    Memorized modes keep ``unit.text`` plain.
+    Tip copy lives in a ``hidden`` ``.bare-fn-tip`` element (shown by CSS/JS on
+    hover/focus/tap). Memorized modes keep ``unit.text`` plain.
     """
     if not text:
         return Markup("")
@@ -75,10 +74,14 @@ def annotate_plain_text(text: str, annotations: list[TextAnnotation]) -> Markup:
             continue
         chunks.append(html.escape(remaining[: match.start()]))
         word = html.escape(match.group(1))
-        tip = html.escape(ann.note, quote=True)
+        tip_attr = html.escape(ann.note, quote=True)
+        tip_body = html.escape(ann.note)
         chunks.append(
-            f'<span class="bare-fn" tabindex="0" data-note="{tip}" title="{tip}">'
+            f'<span class="bare-fn" tabindex="0" data-note="{tip_attr}" '
+            f'title="{tip_attr}">'
             f'<span class="bare-fn-word">{word}</span>'
+            f'<sup class="bare-fn-mark" aria-hidden="true">*</sup>'
+            f'<span class="bare-fn-tip" role="tooltip" hidden>{tip_body}</span>'
             "</span>"
         )
         remaining = remaining[match.end() :]

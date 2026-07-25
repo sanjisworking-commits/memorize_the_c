@@ -662,12 +662,48 @@
     };
   }
 
+  function initBareFns(root) {
+    const scope = root || document;
+    scope.querySelectorAll(".bare-fn").forEach((el) => {
+      const tip = el.querySelector(".bare-fn-tip");
+      if (!tip || el.dataset.bareFnBound === "1") {
+        return;
+      }
+      el.dataset.bareFnBound = "1";
+
+      function show() {
+        tip.hidden = false;
+        el.classList.add("is-open");
+      }
+
+      function hide() {
+        tip.hidden = true;
+        el.classList.remove("is-open");
+      }
+
+      el.addEventListener("mouseenter", show);
+      el.addEventListener("mouseleave", hide);
+      el.addEventListener("focus", show);
+      el.addEventListener("blur", hide);
+      // Tap/click toggle for trackpads and touch (title tooltips are easy to miss).
+      el.addEventListener("click", (event) => {
+        event.preventDefault();
+        if (tip.hidden) {
+          show();
+        } else {
+          hide();
+        }
+      });
+    });
+  }
+
   function initLearn() {
     const learn = document.querySelector(".learn");
     if (!learn) {
       return;
     }
     learn.classList.add("is-ready");
+    initBareFns(learn);
 
     const card = learn.querySelector(".learn-card");
     const clozePanel = learn.querySelector('[data-learn-panel="cloze"]');

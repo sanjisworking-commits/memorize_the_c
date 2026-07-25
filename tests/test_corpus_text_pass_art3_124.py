@@ -190,3 +190,77 @@ def test_annotate_escapes_and_skips_missing_targets():
     )
     assert "&lt;beta&gt;" in str(html)
     assert "bare-fn" not in str(html)
+
+
+def test_article_326_title_body_split_and_eighteen_hover():
+    title = (
+        "Elections to the House of the People and to the Legislative Assemblies "
+        "of States to be on the basis of adult suffrage"
+    )
+    body = (
+        "The elections to the House of the People and to the Legislative Assembly of "
+        "every State shall be on the basis of adult suffrage; that is to say, every "
+        "person who is a citizen of India and who is not less than eighteen years of "
+        "age on such date as may be fixed in that behalf by or under any law made by "
+        "the appropriate Legislature and is not otherwise disqualified under this "
+        "Constitution or any law made by the appropriate Legislature on the ground of "
+        "non-residence, unsoundness of mind, crime or corrupt or illegal practice, "
+        "shall be entitled to be registered as a voter at any such election."
+    )
+    doc = ConstitutionDocument(
+        document=DocumentMetadata(title="test", schema_version="1.0.0"),
+        parts=[
+            Part(
+                id="part-xv",
+                part_number="XV",
+                title="ELECTIONS",
+                articles=[
+                    Article(
+                        id="article-326",
+                        article_number="326",
+                        numeric_component=326,
+                        title=title + ".The elections to the House… 2 [eighteen years] … non",
+                        status=ArticleStatus.ACTIVE,
+                        opening_text="",
+                        body_text=(
+                            "residence, unsoundness of mind, crime or corrupt or illegal "
+                            "practice, shall be entitled to be registered as a voter at "
+                            "any such election."
+                        ),
+                    )
+                ],
+            )
+        ],
+        extraction_summary=ExtractionSummary(),
+    )
+    corrections = CorrectionsFile(
+        articles={
+            "article-326": ArticleCorrection(
+                title=title,
+                opening_text="",
+                body_text=body,
+            )
+        }
+    )
+    reviewed, _ = apply_corrections(doc, corrections)
+    art = next(a for p in reviewed.parts for a in p.articles if a.id == "article-326")
+    assert art.title == title
+    assert art.title is not None and "eighteen" not in art.title
+    assert art.body_text.startswith("The elections to the House")
+    assert "2 [" not in art.body_text
+    assert "[eighteen" not in art.body_text
+    assert "eighteen years" in art.body_text
+
+    unit = next(u for u in generate_learning_units(reviewed).units if u.id == "article-326")
+    assert unit.display_title == "Article 326"
+    assert unit.title == title
+    assert "eighteen years" in unit.text
+    assert unit.text.startswith("The elections")
+
+    anns = load_text_annotations()["article-326"]
+    assert anns[0].target == "eighteen"
+    rendered = str(annotate_plain_text(unit.text, anns))
+    assert 'class="bare-fn-word">eighteen</span>' in rendered
+    assert "Sixty-first Amendment" in rendered
+    assert "twenty-one years" in rendered
+    assert "2 [eighteen" not in rendered

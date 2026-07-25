@@ -596,6 +596,12 @@
       "opening_text": "",
       "body_text": "The Indian Independence Act, 1947, and the Government of India Act, 1935, together with all enactments amending or supplementing the latter Act, but not including the Abolition of Privy Council Jurisdiction Act, 1949, are hereby repealed.\n\n2. Art 394A, Ins. by s. 3, ibid . (w.e.f. 9-12-1987).",
       "manual_review_status": "approved"
+    },
+    "article-326": {
+      "title": "Elections to the House of the People and to the Legislative Assemblies of States to be on the basis of adult suffrage",
+      "opening_text": "",
+      "body_text": "The elections to the House of the People and to the Legislative Assembly of every State shall be on the basis of adult suffrage; that is to say, every person who is a citizen of India and who is not less than eighteen years of age on such date as may be fixed in that behalf by or under any law made by the appropriate Legislature and is not otherwise disqualified under this Constitution or any law made by the appropriate Legislature on the ground of non-residence, unsoundness of mind, crime or corrupt or illegal practice, shall be entitled to be registered as a voter at any such election.",
+      "manual_review_status": "approved"
     }
   },
   "notes": [
@@ -627,6 +633,7 @@
     "article-124(1): \"seven\" kept as printed Bare Act; Learn hover annotation points to statutory thirty-three (Act 37 of 2019).",
     "corpus text-pass rule: if a diglot footer says an amendment has been struck down by the Supreme Court, omit that amendment’s wording from body_text (corrections overlay).",
     "article-3: Learn card omits Explanation I/II (stem+(a)–(e)+proviso only); prefer_article_unit.",
-    "article-124(2): omitted struck-down NJAC/99th Amdt wording; body is seal→office + [Provided that]—(a)(b) only."
+    "article-124(2): omitted struck-down NJAC/99th Amdt wording; body is seal→office + [Provided that]—(a)(b) only.",
+    "article-326: title had swallowed full Bare Act body; restored title vs body; stripped diglot '2 [eighteen years]' → eighteen (Learn hover = 61st Amdt footnote)."
   ]
 }

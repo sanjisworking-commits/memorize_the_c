@@ -188,23 +188,6 @@
     </div>
   </div>
 
-  {% if judicial_evolution and judicial_evolution.has_entries %}
-  <section class="judicial-evolution" aria-labelledby="judicial-evolution-title">
-    <h2 class="judicial-evolution-title" id="judicial-evolution-title">
-      {{ judicial_evolution.section_title }}
-    </h2>
-    <p class="judicial-evolution-lede">Case-law context — not Bare Act wording.</p>
-    <ol class="judicial-evolution-list">
-      {% for entry in judicial_evolution.entries %}
-      <li class="judicial-evolution-item">
-        <h3 class="judicial-evolution-heading">{{ entry.heading }}</h3>
-        <p class="judicial-evolution-body">{{ entry.body }}</p>
-      </li>
-      {% endfor %}
-    </ol>
-  </section>
-  {% endif %}
-
   <div class="learn-footer">
     <div class="learn-actions">
       <form class="learn-action-done" method="post" action="/learn/{{ unit.id }}/done">

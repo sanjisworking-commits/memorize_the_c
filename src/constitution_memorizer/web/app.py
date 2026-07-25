@@ -266,9 +266,6 @@ def create_app(
         amend_note = curated.learn_note if curated is not None else None
         unit_anns = annotations_for_unit(app.state.text_annotations, target.id)
         annotated_text = annotate_plain_text(target.text, unit_anns)
-        judicial = get_judicial_evolution(
-            app.state.judicial_evolution, target.article_number
-        )
         return templates.TemplateResponse(
             request,
             "learn.html",
@@ -293,7 +290,6 @@ def create_app(
                 "amend_note": amend_note,
                 "annotated_text": annotated_text,
                 "has_text_annotations": bool(unit_anns),
-                "judicial_evolution": judicial,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),
@@ -447,6 +443,9 @@ def create_app(
         gloss_ph = gloss_placeholder_for(
             app.state.gloss_placeholders, view.article_number
         )
+        judicial = get_judicial_evolution(
+            app.state.judicial_evolution, view.article_number
+        )
         return templates.TemplateResponse(
             request,
             "browse_article.html",
@@ -456,6 +455,7 @@ def create_app(
                 "next_article": next_number,
                 "gloss_text": gloss_text,
                 "gloss_placeholder": gloss_ph,
+                "judicial_evolution": judicial,
             },
         )
 

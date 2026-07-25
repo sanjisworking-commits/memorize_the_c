@@ -12,6 +12,7 @@ Living backlog for **Recall the C**. Add items when discussed in chat/PRs; move 
 |------|--------|
 | Clause / article cross-links in Learn | e.g. turn `clause (4)` into a link to that clause’s Learn unit |
 | Broader diglot footnote → hover map | Beyond one-off annotations like Art 124(1) “seven”; systematic starred/numbered footers |
+| More Judicial Evolution articles | Seed pattern in `data/reference/judicial_evolution.seed.json` (Art 326 shipped) |
 | Schedule & appendix text-pass | Same card-by-card corrections workflow as Articles |
 | Struck-down amendments as Browse context | Show struck-down history without putting invalid wording in memorised body (body omit rule is **current** — see README / corrections notes) |
 

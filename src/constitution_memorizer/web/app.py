@@ -26,6 +26,10 @@ from constitution_memorizer.web.browse import (
 )
 from constitution_memorizer.web.calendar_view import build_calendar_month
 from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
+from constitution_memorizer.web.judicial_evolution import (
+    get_judicial_evolution,
+    load_judicial_evolution,
+)
 from constitution_memorizer.web.progress_stats import progress_dashboard
 from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
@@ -66,6 +70,7 @@ def create_app(
     amendments_path: Path | str | None = None,
     gloss_placeholders_path: Path | str | None = None,
     text_annotations_path: Path | str | None = None,
+    judicial_evolution_path: Path | str | None = None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -91,6 +96,11 @@ def create_app(
         if text_annotations_path is not None
         else root / "data" / "reference" / "text_annotations.json"
     )
+    resolved_judicial_evolution = Path(
+        judicial_evolution_path
+        if judicial_evolution_path is not None
+        else root / "data" / "reference" / "judicial_evolution.seed.json"
+    )
 
     if not resolved_units.exists():
         raise FileNotFoundError(
@@ -111,6 +121,9 @@ def create_app(
     text_annotations = load_text_annotations(
         resolved_text_annotations if resolved_text_annotations.exists() else None
     )
+    judicial_evolution = load_judicial_evolution(
+        resolved_judicial_evolution if resolved_judicial_evolution.exists() else None
+    )
     templates = Jinja2Templates(
         directory=str(TEMPLATES_DIR),
         context_processors=[
@@ -127,6 +140,7 @@ def create_app(
     app.state.amendments = amendments
     app.state.gloss_placeholders = gloss_placeholders
     app.state.text_annotations = text_annotations
+    app.state.judicial_evolution = judicial_evolution
     app.state.units_path = resolved_units
     app.state.db_path = resolved_db
     app.state.reviewed_path = resolved_reviewed
@@ -252,6 +266,9 @@ def create_app(
         amend_note = curated.learn_note if curated is not None else None
         unit_anns = annotations_for_unit(app.state.text_annotations, target.id)
         annotated_text = annotate_plain_text(target.text, unit_anns)
+        judicial = get_judicial_evolution(
+            app.state.judicial_evolution, target.article_number
+        )
         return templates.TemplateResponse(
             request,
             "learn.html",
@@ -276,6 +293,7 @@ def create_app(
                 "amend_note": amend_note,
                 "annotated_text": annotated_text,
                 "has_text_annotations": bool(unit_anns),
+                "judicial_evolution": judicial,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),

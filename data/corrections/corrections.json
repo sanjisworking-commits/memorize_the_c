@@ -193,6 +193,15 @@
       "body_text": "While a Proclamation of Emergency is in operation, then—\n(a) notwithstanding anything in this Constitution, the executive power of the Union shall extend to the giving of directions to any State as to the manner in which the executive power thereof is to be exercised;\n(b) the power of Parliament to make laws with respect to any matter shall include power to make laws conferring powers and imposing duties, or authorising the conferring of powers and the imposition of duties, upon the Union or officers and authorities of the Union as respects that matter, notwithstanding that it is one which is not enumerated in the Union List:\nProvided that where a Proclamation of Emergency is in operation only in any part of the territory of India,—\n(i) the executive power of the Union to give directions under clause (a), and\n(ii) the power of Parliament to make laws under clause (b),\nshall also extend to any State other than a State in which or in any part of which the Proclamation of Emergency is in operation if and in so far as the security of India or any part of the territory thereof is threatened by activities in or in relation to the part of the territory of India in which the Proclamation of Emergency is in operation.",
       "manual_review_status": "approved"
     },
+    "article-81": {
+      "create": true,
+      "title": "Composition of the House of the People",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) Subject to the provisions of article 331, the House of the People shall consist of—\n(a) not more than five hundred and thirty members chosen by direct election from territorial constituencies in the States; and\n(b) not more than twenty members to represent the Union territories, chosen in such manner as Parliament may by law provide.\n\n(2) For the purposes of sub-clause (a) of clause (1),—\n(a) there shall be allotted to each State a number of seats in the House of the People in such manner that the ratio between that number and the population of the State is, so far as practicable, the same for all States; and\n(b) each State shall be divided into territorial constituencies in such manner that the ratio between the population of each constituency and the number of seats allotted to it is, so far as practicable, the same throughout the State:\nProvided that the provisions of sub-clause (a) of this clause shall not be applicable for the purpose of allotment of seats in the House of the People to any State so long as the population of that State does not exceed six millions.\n\n(3) In this article, the expression \"population\" means the population as ascertained at the last preceding census of which the relevant figures have been published:\nProvided that the reference in this clause to the last preceding census of which the relevant figures have been published shall, until the relevant figures for the first census taken after the year 2026 have been published, be construed,—\n(i) for the purposes of sub-clause (a) of clause (2) and the proviso to that clause, as a reference to the 1971 census; and\n(ii) for the purposes of sub-clause (b) of clause (2) as a reference to the 2001 census.",
+      "manual_review_status": "approved"
+    },
     "article-82": {
       "title": "Readjustment after each census",
       "part_number": "V",
@@ -634,6 +643,7 @@
     "corpus text-pass rule: if a diglot footer says an amendment has been struck down by the Supreme Court, omit that amendment’s wording from body_text (corrections overlay).",
     "article-3: Learn card omits Explanation I/II (stem+(a)–(e)+proviso only); prefer_article_unit.",
     "article-124(2): omitted struck-down NJAC/99th Amdt wording; body is seal→office + [Provided that]—(a)(b) only.",
-    "article-326: title had swallowed full Bare Act body; restored title vs body; stripped diglot '2 [eighteen years]' → eighteen (Learn hover = 61st Amdt footnote)."
+    "article-326: title had swallowed full Bare Act body; restored title vs body; stripped diglot '2 [eighteen years]' → eighteen (Learn hover = 61st Amdt footnote).",
+    "article-81: missing from parse (diglot jumped 80→82); corrections.create restores Bare Act Composition of the House of the People from intermediate Markdown."
   ]
 }

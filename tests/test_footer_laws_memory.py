@@ -117,6 +117,17 @@ def test_memory_create_done_notes_photo(client: TestClient, db_path: Path):
     media = client.get(f"/memory/media/{entry_id}")
     assert media.status_code == 200
     assert media.content[:8] == b"\x89PNG\r\n\x1a\n"
+    assert media.headers["content-type"].startswith("image/")
+
+    detail = client.get(loc)
+    assert detail.status_code == 200
+    assert f'/memory/media/{entry_id}' in detail.text
+    assert 'alt="Revision notes photo"' in detail.text
+    assert "Replace photo" in detail.text
+
+    media_dir = db_path.parent / "memory_media"
+    assert media_dir.is_dir()
+    assert any(media_dir.glob(f"{entry_id}.*"))
 
     done = client.post(f"/memory/{entry_id}/done", follow_redirects=False)
     assert done.status_code == 303
@@ -130,6 +141,41 @@ def test_memory_create_done_notes_photo(client: TestClient, db_path: Path):
     assert entry.interval_days == 3
     assert entry.times_completed == 1
     assert entry.notes.startswith("Palace:")
+
+
+def test_memory_photo_survives_cwd_change(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression: relative media_dir broke image GETs after process cwd changed."""
+    db_path = tmp_path / "progress.db"
+    client = TestClient(create_app(units_path=MINI_UNITS, db_path=db_path))
+    create = client.post(
+        "/memory",
+        data={"title": "cwd-safe photo", "acronym": ""},
+        follow_redirects=False,
+    )
+    entry_id = create.headers["location"].rsplit("/", 1)[-1]
+    jpeg = b"\xff\xd8\xff\xe0" + b"fake-jpeg"
+    assert (
+        client.post(
+            f"/memory/{entry_id}/photo",
+            files={"photo": ("notes.jpg", BytesIO(jpeg), "image/jpeg")},
+            follow_redirects=False,
+        ).status_code
+        == 303
+    )
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    media = client.get(f"/memory/media/{entry_id}")
+    assert media.status_code == 200
+    assert media.content == jpeg
+    assert media.headers["content-type"].startswith("image/")
+
+    detail = client.get(f"/memory/{entry_id}")
+    assert detail.status_code == 200
+    assert f"/memory/media/{entry_id}" in detail.text
+    assert "Replace photo" in detail.text
 
 
 def test_memory_month_page_separate_route(client: TestClient):

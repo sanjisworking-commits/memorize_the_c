@@ -54,7 +54,41 @@ from constitution_memorizer.web.tables_data import list_table_tabs, load_table_t
 WEB_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = WEB_DIR / "templates"
 STATIC_DIR = WEB_DIR / "static"
-_ALLOWED_PHOTO_SUFFIXES = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+_ALLOWED_PHOTO_SUFFIXES = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"}
+_PHOTO_MAGIC: list[tuple[bytes, str, str]] = [
+    (b"\x89PNG\r\n\x1a\n", ".png", "image/png"),
+    (b"\xff\xd8\xff", ".jpg", "image/jpeg"),
+    (b"GIF87a", ".gif", "image/gif"),
+    (b"GIF89a", ".gif", "image/gif"),
+    (b"RIFF", ".webp", "image/webp"),  # WebP also starts with RIFF….WEBP
+]
+
+
+def _sniff_photo(content: bytes, filename: str) -> tuple[str, str]:
+    """Return (suffix, media_type) from magic bytes, else filename suffix."""
+    for magic, suffix, media_type in _PHOTO_MAGIC:
+        if content.startswith(magic):
+            if suffix == ".webp" and b"WEBP" not in content[:16]:
+                continue
+            return suffix, media_type
+    # HEIC/HEIF brands in ISO BMFF
+    if len(content) >= 12 and content[4:8] == b"ftyp":
+        brand = content[8:12]
+        if brand in {b"heic", b"heif", b"mif1", b"msf1", b"hevc"}:
+            return ".heic", "image/heic"
+    suffix = Path(filename).suffix.lower() or ".jpg"
+    if suffix not in _ALLOWED_PHOTO_SUFFIXES:
+        suffix = ".jpg"
+    media_types = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".heic": "image/heic",
+        ".heif": "image/heif",
+    }
+    return suffix, media_types.get(suffix, "application/octet-stream")
 
 
 def create_app(
@@ -91,10 +125,12 @@ def create_app(
             "Run: python -m constitution_memorizer.cli generate-units --force"
         )
 
+    resolved_db = Path(resolved_db).expanduser().resolve()
+    resolved_units = Path(resolved_units).expanduser().resolve()
     engine = ReminderEngine.from_paths(resolved_db, resolved_units)
     memory = MemoryEngine(
         engine.repo.conn,
-        Path(resolved_db).parent / "memory_media",
+        resolved_db.parent / "memory_media",
     )
     reviewed = load_reviewed_document(
         resolved_reviewed if resolved_reviewed.exists() else None
@@ -578,12 +614,17 @@ def create_app(
             calendar = build_memory_month(_memory(), year=y, month=m, today=today)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        entries = _memory().repo.list_all()
+        photo_ids = {
+            entry.id for entry in entries if _memory().photo_file(entry.id) is not None
+        }
         return templates.TemplateResponse(
             request,
             "memory.html",
             {
                 "calendar": calendar,
-                "entries": _memory().repo.list_all(),
+                "entries": entries,
+                "photo_ids": photo_ids,
             },
         )
 
@@ -600,25 +641,25 @@ def create_app(
 
     @app.get("/memory/media/{entry_id}")
     async def memory_media(entry_id: str) -> FileResponse:
-        entry = _memory().repo.get(entry_id)
-        if entry is None or not entry.photo_path:
+        path = _memory().photo_file(entry_id)
+        if path is None:
             raise HTTPException(status_code=404, detail="Photo not found")
-        path = _memory().media_dir / entry.photo_path
-        if not path.is_file():
-            raise HTTPException(status_code=404, detail="Photo file missing")
-        return FileResponse(path)
+        _, media_type = _sniff_photo(path.read_bytes()[:64], path.name)
+        return FileResponse(path, media_type=media_type)
 
     @app.get("/memory/{entry_id}", response_class=HTMLResponse)
     async def memory_detail_page(request: Request, entry_id: str) -> HTMLResponse:
         entry = _memory().repo.get(entry_id)
         if entry is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
+        photo_path = _memory().photo_file(entry_id)
         return templates.TemplateResponse(
             request,
             "memory_detail.html",
             {
                 "entry": entry,
                 "schedule": schedule_chip_states(entry, today=date.today()),
+                "has_photo": photo_path is not None,
             },
         )
 
@@ -647,15 +688,21 @@ def create_app(
         mem = _memory()
         if mem.repo.get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
-        filename = photo.filename or "note.jpg"
-        suffix = Path(filename).suffix.lower() or ".jpg"
-        if suffix not in _ALLOWED_PHOTO_SUFFIXES:
-            raise HTTPException(status_code=400, detail="Unsupported image type")
-        dest_name = f"{entry_id}{suffix}"
-        dest = mem.media_dir / dest_name
         content = await photo.read()
         if not content:
             raise HTTPException(status_code=400, detail="Empty upload")
+        filename = photo.filename or "note.jpg"
+        suffix, _media_type = _sniff_photo(content, filename)
+        if suffix not in _ALLOWED_PHOTO_SUFFIXES:
+            raise HTTPException(status_code=400, detail="Unsupported image type")
+        # Remove any prior file for this entry (extension may change after sniff).
+        for old in mem.media_dir.glob(f"{entry_id}.*"):
+            try:
+                old.unlink()
+            except OSError:
+                pass
+        dest_name = f"{entry_id}{suffix}"
+        dest = mem.media_dir / dest_name
         dest.write_bytes(content)
         mem.repo.set_photo(entry_id, dest_name)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)

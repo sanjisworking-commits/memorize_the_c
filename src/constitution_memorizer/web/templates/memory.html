@@ -73,7 +73,7 @@
           {% else %}Logged {{ entry.logged_date.isoformat() }}{% endif %}
         </span>
       </span>
-      {% if entry.photo_path %}
+      {% if entry.id in photo_ids %}
       <img class="memory-sheet-thumb" src="/memory/media/{{ entry.id }}" alt="">
       {% endif %}
     </a>

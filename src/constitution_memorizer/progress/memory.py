@@ -213,13 +213,35 @@ class MemoryEngine:
 
     def __init__(self, conn: sqlite3.Connection, media_dir: Path) -> None:
         self.repo = MemoryRepository(conn)
-        self.media_dir = Path(media_dir)
+        # Absolute path — relative media_dir breaks image GETs if process cwd changes
+        # (LaunchAgent vs Terminal, tests, etc.) and yields a broken <img>.
+        self.media_dir = Path(media_dir).expanduser().resolve()
         self.media_dir.mkdir(parents=True, exist_ok=True)
+
+    def photo_file(self, entry_id: str) -> Path | None:
+        """Return absolute path to the entry's photo if the file exists on disk."""
+        entry = self.repo.get(entry_id)
+        if entry is None or not entry.photo_path:
+            return None
+        # Reject path traversal; only bare filenames are stored.
+        name = Path(entry.photo_path).name
+        if name != entry.photo_path:
+            return None
+        path = (self.media_dir / name).resolve()
+        try:
+            path.relative_to(self.media_dir)
+        except ValueError:
+            return None
+        return path if path.is_file() else None
 
     @classmethod
     def from_db_path(cls, db_path: Path | str, media_dir: Path | str | None = None) -> MemoryEngine:
         from constitution_memorizer.progress.db import open_progress_db
 
-        path = Path(db_path)
-        media = Path(media_dir) if media_dir else path.parent / "memory_media"
+        path = Path(db_path).expanduser().resolve()
+        media = (
+            Path(media_dir).expanduser().resolve()
+            if media_dir
+            else (path.parent / "memory_media")
+        )
         return cls(open_progress_db(path), media)

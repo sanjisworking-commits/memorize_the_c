@@ -3,11 +3,19 @@
 {% block content %}
 <section class="panel settings">
   <h1 class="display">Settings</h1>
-  <p class="lede">Choose how often study reminders fire while today’s due list still has work.</p>
+  <p class="lede">Appearance and how often study reminders fire while today’s due list still has work.</p>
 
   {% if saved %}
   <p class="settings-saved" role="status">Reminder frequency saved.</p>
   {% endif %}
+
+  <h2 class="section-title">Appearance</h2>
+  <p class="settings-note">Same control as the footer theme chip — Auto follows your system.</p>
+  <div class="settings-theme" role="group" aria-label="Theme">
+    <button type="button" class="settings-theme-btn" data-theme-set="auto">Auto</button>
+    <button type="button" class="settings-theme-btn" data-theme-set="dark">Dark</button>
+    <button type="button" class="settings-theme-btn" data-theme-set="light">Light</button>
+  </div>
 
   <h2 class="section-title">Study reminders</h2>
   <p class="settings-note">

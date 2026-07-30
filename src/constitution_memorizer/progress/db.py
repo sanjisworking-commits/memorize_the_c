@@ -49,6 +49,33 @@ CREATE INDEX IF NOT EXISTS idx_progress_next_revision
     ON learning_unit_progress(next_revision);
 CREATE INDEX IF NOT EXISTS idx_modes_seen_unit
     ON unit_modes_seen(learning_unit_id);
+
+CREATE TABLE IF NOT EXISTS memory_entry (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    acronym TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    logged_date TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new',
+    interval_days INTEGER NOT NULL DEFAULT 0,
+    last_completed TEXT,
+    next_revision TEXT,
+    times_completed INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS memory_media (
+    entry_id TEXT PRIMARY KEY,
+    path TEXT NOT NULL,
+    uploaded_at TEXT NOT NULL,
+    FOREIGN KEY (entry_id) REFERENCES memory_entry(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_next_revision
+    ON memory_entry(next_revision);
+CREATE INDEX IF NOT EXISTS idx_memory_logged_date
+    ON memory_entry(logged_date);
 """
 
 

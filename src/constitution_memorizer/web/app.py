@@ -5,11 +5,12 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from fastapi import FastAPI, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from constitution_memorizer.progress.memory import MemoryEngine
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
     VALID_NOTIFICATION_FREQUENCIES,
@@ -26,6 +27,8 @@ from constitution_memorizer.web.browse import (
 )
 from constitution_memorizer.web.calendar_view import build_calendar_month
 from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
+from constitution_memorizer.web.laws_data import get_law, load_laws
+from constitution_memorizer.web.memory_calendar import build_memory_month, schedule_chip_states
 from constitution_memorizer.web.progress_stats import progress_dashboard
 from constitution_memorizer.web.search import resolve_search
 from constitution_memorizer.web.service import (
@@ -51,6 +54,7 @@ from constitution_memorizer.web.tables_data import list_table_tabs, load_table_t
 WEB_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = WEB_DIR / "templates"
 STATIC_DIR = WEB_DIR / "static"
+_ALLOWED_PHOTO_SUFFIXES = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 
 def create_app(
@@ -88,6 +92,10 @@ def create_app(
         )
 
     engine = ReminderEngine.from_paths(resolved_db, resolved_units)
+    memory = MemoryEngine(
+        engine.repo.conn,
+        Path(resolved_db).parent / "memory_media",
+    )
     reviewed = load_reviewed_document(
         resolved_reviewed if resolved_reviewed.exists() else None
     )
@@ -107,8 +115,9 @@ def create_app(
         ],
     )
 
-    app = FastAPI(title="Recall the C", version="0.6.0")
+    app = FastAPI(title="Recall the C", version="0.7.0")
     app.state.engine = engine
+    app.state.memory = memory
     app.state.reviewed = reviewed
     app.state.amendments = amendments
     app.state.gloss_placeholders = gloss_placeholders
@@ -119,6 +128,9 @@ def create_app(
 
     def _engine() -> ReminderEngine:
         return app.state.engine
+
+    def _memory() -> MemoryEngine:
+        return app.state.memory
 
     def _modes_payload(unit_id: str, seen: set[str] | None = None) -> dict[str, object]:
         current = seen if seen is not None else _engine().modes_seen(unit_id)
@@ -530,6 +542,123 @@ def create_app(
                 "row_is_muted": row_is_muted,
             },
         )
+
+    @app.get("/laws", response_class=HTMLResponse)
+    async def laws_page(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request,
+            "laws.html",
+            {"acts": load_laws()},
+        )
+
+    @app.get("/laws/{law_id}", response_class=HTMLResponse)
+    async def law_detail_page(request: Request, law_id: str) -> HTMLResponse:
+        act = get_law(law_id)
+        if act is None:
+            raise HTTPException(status_code=404, detail="Law not found")
+        tracked = set(list_article_numbers(_engine(), app.state.reviewed))
+        return templates.TemplateResponse(
+            request,
+            "law_detail.html",
+            {"act": act, "tracked_articles": tracked},
+        )
+
+    @app.get("/memory", response_class=HTMLResponse)
+    async def memory_page(
+        request: Request,
+        year: int | None = Query(default=None),
+        month: int | None = Query(default=None),
+    ) -> HTMLResponse:
+        today = date.today()
+        y = year if year is not None else today.year
+        m = month if month is not None else today.month
+        if m < 1 or m > 12:
+            raise HTTPException(status_code=400, detail="Invalid month")
+        try:
+            calendar = build_memory_month(_memory(), year=y, month=m, today=today)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return templates.TemplateResponse(
+            request,
+            "memory.html",
+            {
+                "calendar": calendar,
+                "entries": _memory().repo.list_all(),
+            },
+        )
+
+    @app.post("/memory")
+    async def memory_create(
+        title: str = Form(...),
+        acronym: str = Form(""),
+    ) -> RedirectResponse:
+        cleaned = title.strip()
+        if not cleaned:
+            raise HTTPException(status_code=400, detail="Title required")
+        entry = _memory().repo.create(title=cleaned, acronym=acronym.strip())
+        return RedirectResponse(url=f"/memory/{entry.id}", status_code=303)
+
+    @app.get("/memory/media/{entry_id}")
+    async def memory_media(entry_id: str) -> FileResponse:
+        entry = _memory().repo.get(entry_id)
+        if entry is None or not entry.photo_path:
+            raise HTTPException(status_code=404, detail="Photo not found")
+        path = _memory().media_dir / entry.photo_path
+        if not path.is_file():
+            raise HTTPException(status_code=404, detail="Photo file missing")
+        return FileResponse(path)
+
+    @app.get("/memory/{entry_id}", response_class=HTMLResponse)
+    async def memory_detail_page(request: Request, entry_id: str) -> HTMLResponse:
+        entry = _memory().repo.get(entry_id)
+        if entry is None:
+            raise HTTPException(status_code=404, detail="Memory entry not found")
+        return templates.TemplateResponse(
+            request,
+            "memory_detail.html",
+            {
+                "entry": entry,
+                "schedule": schedule_chip_states(entry, today=date.today()),
+            },
+        )
+
+    @app.post("/memory/{entry_id}/notes")
+    async def memory_save_notes(
+        entry_id: str,
+        notes: str = Form(""),
+    ) -> RedirectResponse:
+        if _memory().repo.get(entry_id) is None:
+            raise HTTPException(status_code=404, detail="Memory entry not found")
+        _memory().repo.update_notes(entry_id, notes)
+        return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
+
+    @app.post("/memory/{entry_id}/done")
+    async def memory_done(entry_id: str) -> RedirectResponse:
+        if _memory().repo.get(entry_id) is None:
+            raise HTTPException(status_code=404, detail="Memory entry not found")
+        _memory().repo.mark_done(entry_id)
+        return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
+
+    @app.post("/memory/{entry_id}/photo")
+    async def memory_upload_photo(
+        entry_id: str,
+        photo: UploadFile = File(...),
+    ) -> RedirectResponse:
+        mem = _memory()
+        if mem.repo.get(entry_id) is None:
+            raise HTTPException(status_code=404, detail="Memory entry not found")
+        filename = photo.filename or "note.jpg"
+        suffix = Path(filename).suffix.lower() or ".jpg"
+        if suffix not in _ALLOWED_PHOTO_SUFFIXES:
+            raise HTTPException(status_code=400, detail="Unsupported image type")
+        dest_name = f"{entry_id}{suffix}"
+        dest = mem.media_dir / dest_name
+        content = await photo.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty upload")
+        dest.write_bytes(content)
+        mem.repo.set_photo(entry_id, dest_name)
+        return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.get("/settings", response_class=HTMLResponse)
     async def settings_page(

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ act.name }} · Relevant laws{% endblock %}
+{% block content %}
+<section class="panel law-detail">
+  <p class="eyebrow"><a class="laws-back" href="/laws">← All laws</a></p>
+  <p class="eyebrow">Relevant laws</p>
+  <h1 class="display law-detail-title">{{ act.name }}</h1>
+  <p class="lede">{{ act.year }}{% if act.short %} · {{ act.short }}{% endif %}</p>
+
+  <p class="law-practice-note" role="note">
+    Practice all (Learn) is not wired yet — law clauses are reference-only in this pass.
+  </p>
+
+  {% if act.articles %}
+  <div class="law-article-chips" aria-label="Linked Articles">
+    {% for num in act.articles %}
+      {% if num in tracked_articles %}
+      <a class="law-chip is-tracked" href="/browse/article/{{ num }}">Art {{ num }}</a>
+      {% else %}
+      <span class="law-chip is-untracked">Art {{ num }}</span>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="law-clause-list">
+    {% for clause in act.clauses %}
+    <div class="law-clause-row">
+      <span class="law-clause-dot" aria-hidden="true"></span>
+      <div class="law-clause-body">
+        <p class="law-clause-text"><strong>{{ clause.ref }}</strong> — {{ clause.text }}</p>
+      </div>
+      <span class="law-clause-learn is-disabled" title="Learn wiring comes later">Learn</span>
+    </div>
+    {% else %}
+    <p class="empty">No clauses listed for this Act.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

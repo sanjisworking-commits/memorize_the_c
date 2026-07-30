@@ -48,6 +48,7 @@ Each sprint ships on its **own git branch** and updates this README so documenta
 | Sprint 28 | `cursor/sprint-28-mac-app-dmg-1a75` | Planned (Recall C .dmg) |
 | Sprint 29 | `cursor/sprint-29-tables-browse-1a75` | Done |
 | Sprint 30 | `cursor/sprint-30-methods-theme-1a75` | Done (six-method Done gate, How-to-use, Recall the C, theme) |
+| Footer / laws / memory | `cursor/footer-laws-memory-1a75` | Footer tools, Relevant laws Browse, Memory log calendar |
 
 **Hard constraint:** the learning layer must **not** modify `data/output/constitution.reviewed.json`, Docling output, the parser, or corrections modules.
 
@@ -446,6 +447,17 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 - **Rebrand** to **Recall the C** (header lockup + `brand-c.png`, page titles, ntfy titles)
 - **Theme chip** Auto → Dark → Light with proper dark tokens (not invert-filter); preference in `app_settings` + `localStorage`
 - Tests: `tests/test_web_sprint30.py`
+
+### Footer, Relevant laws & Memory log
+
+**Branch:** `cursor/footer-laws-memory-1a75`
+
+- **Nav declutter:** primary = Home · Browse · Calendar · Progress · Search; footer = Tables · Relevant laws · Memory log · Settings + theme
+- **Home “Reference & tools”** launcher cards
+- **Relevant laws** `/laws` — seven Acts seed (Browse list/detail; Learn wiring later)
+- **Memory log** `/memory` — separate calendar (1→3→7→14→30), full-page detail with photo + notes (not Constitution `/calendar`)
+- Design: `docs/design/FOOTER-LAWS-MEMORY-HANDOFF.md` · backlog: `docs/FUTURE.md`
+- Tests: `tests/test_footer_laws_memory.py`
 
 ### Sprint 29 — Home articles-first + Tables + Browse Parts ✅
 

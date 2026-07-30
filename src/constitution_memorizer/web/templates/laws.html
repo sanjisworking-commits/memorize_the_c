@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Relevant laws · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block content %}
+<section class="panel laws">
+  <h1 class="display">Relevant laws</h1>
+  <p class="lede">Statutes whose key clauses map to Articles you revise — open any Act for the clause list. Learn practice for law clauses comes later.</p>
+
+  {% if acts %}
+  <div class="browse-article-grid laws-grid" role="list">
+    {% for act in acts %}
+    <a class="browse-article-card is-tracked laws-card" href="/laws/{{ act.id }}" role="listitem">
+      <span class="laws-card-name">{{ act.name }}</span>
+      <span class="laws-card-meta">{{ act.year }} · {{ act.article_labels }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">No laws seeded yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

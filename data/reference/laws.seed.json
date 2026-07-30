@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Statutes whose key clauses map to Constitution Articles (Browse reference; Learn wiring later).",
+  "acts": [
+    {
+      "id": "rti-2005",
+      "name": "Right to Information Act, 2005",
+      "short": "RTI Act",
+      "year": 2005,
+      "articles": ["19"],
+      "clauses": [
+        {
+          "ref": "s. 3",
+          "text": "Subject to the provisions of this Act, all citizens shall have the right to information."
+        },
+        {
+          "ref": "s. 4(1)",
+          "text": "Every public authority shall maintain all its records duly catalogued and indexed, and publish particulars of its organisation, functions and duties, and other prescribed particulars."
+        },
+        {
+          "ref": "s. 6(1)",
+          "text": "A person who desires to obtain any information under this Act shall make a request in writing or through electronic means to the Central or State Public Information Officer."
+        },
+        {
+          "ref": "s. 8(1)",
+          "text": "Notwithstanding anything contained in this Act, there shall be no obligation to give any citizen information which would prejudicially affect sovereignty, security, or other exempted interests listed in this section."
+        }
+      ]
+    },
+    {
+      "id": "rpa-1951",
+      "name": "Representation of the People Act, 1951",
+      "short": "RP Act",
+      "year": 1951,
+      "articles": ["324", "325", "326", "327", "329"],
+      "clauses": [
+        {
+          "ref": "s. 8",
+          "text": "A person convicted of certain offences and sentenced to imprisonment for not less than two years shall be disqualified from contesting elections for six years from release (subject to the Act's detailed schedule of offences)."
+        },
+        {
+          "ref": "s. 33",
+          "text": "A candidate shall deliver a nomination paper to the returning officer in the prescribed form, signed and verified, within the notified period."
+        },
+        {
+          "ref": "s. 123",
+          "text": "Corrupt practices include bribery, undue influence, appeal on grounds of religion/caste/community, and publication of false statements relating to a candidate's personal character."
+        }
+      ]
+    },
+    {
+      "id": "citizenship-1955",
+      "name": "Citizenship Act, 1955",
+      "short": "Citizenship Act",
+      "year": 1955,
+      "articles": ["5", "6", "7", "8", "9", "10", "11"],
+      "clauses": [
+        {
+          "ref": "s. 3",
+          "text": "Citizenship by birth — every person born in India on or after 26 January 1950 is a citizen by birth, subject to the Act's later amendments and exceptions."
+        },
+        {
+          "ref": "s. 5",
+          "text": "Citizenship by registration — prescribed categories of persons may be registered as citizens upon application in the manner provided."
+        },
+        {
+          "ref": "s. 6",
+          "text": "Citizenship by naturalisation — a foreigner may be granted a certificate of naturalisation if the qualifications in the Third Schedule are satisfied."
+        }
+      ]
+    },
+    {
+      "id": "pcr-1955",
+      "name": "Protection of Civil Rights Act, 1955",
+      "short": "PCR Act",
+      "year": 1955,
+      "articles": ["17"],
+      "clauses": [
+        {
+          "ref": "s. 3",
+          "text": "Whoever on grounds of untouchability prevents any person from entering a place of public worship open to other persons professing the same religion shall be punishable as provided."
+        },
+        {
+          "ref": "s. 4",
+          "text": "Whoever on grounds of untouchability enforces against any person any disability with regard to access to shops, public restaurants, hotels, places of public entertainment, or the use of wells, tanks, roads and places of public resort, shall be punishable."
+        },
+        {
+          "ref": "s. 7",
+          "text": "Whoever insults or attempts to insult, on grounds of untouchability, a member of a Scheduled Caste shall be punishable as provided in this Act."
+        }
+      ]
+    },
+    {
+      "id": "rte-2009",
+      "name": "Right of Children to Free and Compulsory Education Act, 2009",
+      "short": "RTE Act",
+      "year": 2009,
+      "articles": ["21A"],
+      "clauses": [
+        {
+          "ref": "s. 3(1)",
+          "text": "Every child of the age of six to fourteen years shall have a right to free and compulsory education in a neighbourhood school till completion of elementary education."
+        },
+        {
+          "ref": "s. 12(1)(c)",
+          "text": "A specified category school and an unaided school shall admit at least twenty-five per cent of the strength of class I children belonging to weaker sections and disadvantaged groups."
+        },
+        {
+          "ref": "s. 17",
+          "text": "No child shall be subjected to physical punishment or mental harassment; contravention attracts disciplinary action under service rules."
+        }
+      ]
+    },
+    {
+      "id": "epa-1986",
+      "name": "Environment (Protection) Act, 1986",
+      "short": "EP Act",
+      "year": 1986,
+      "articles": ["48A", "51A"],
+      "clauses": [
+        {
+          "ref": "s. 3(1)",
+          "text": "Subject to the provisions of this Act, the Central Government shall have power to take all such measures as it deems necessary or expedient for protecting and improving the quality of the environment."
+        },
+        {
+          "ref": "s. 5",
+          "text": "Notwithstanding anything contained in any other law, the Central Government may issue directions in writing to any person, officer or authority, and such person, officer or authority shall be bound to comply."
+        },
+        {
+          "ref": "s. 15",
+          "text": "Whoever fails to comply with any direction or order under this Act shall be punishable with imprisonment or fine, or both, as provided."
+        }
+      ]
+    },
+    {
+      "id": "uapa-1967",
+      "name": "Unlawful Activities (Prevention) Act, 1967",
+      "short": "UAPA",
+      "year": 1967,
+      "articles": ["19", "22"],
+      "clauses": [
+        {
+          "ref": "s. 3",
+          "text": "If the Central Government is of opinion that any association is unlawful, it may by notification declare such association to be unlawful, subject to the Act's tribunal confirmation procedure."
+        },
+        {
+          "ref": "s. 15",
+          "text": "Terrorist act — whoever does any act with intent to threaten the unity, integrity, security or sovereignty of India or to strike terror, by using bombs, dynamite or other explosive substances or firearms, commits a terrorist act."
+        },
+        {
+          "ref": "s. 43D",
+          "text": "Modified application of certain provisions of the Code of Criminal Procedure to cases under this Act, including extended periods of detention pending investigation as specified."
+        }
+      ]
+    }
+  ]
+}

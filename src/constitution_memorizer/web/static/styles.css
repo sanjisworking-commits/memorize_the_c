@@ -2574,21 +2574,12 @@ code {
   transition: border-color 0.15s ease;
 }
 
-.browse-article-card.is-tracked {
+/* Tracked/untracked share the same chrome — due ribbon / In news carry status. */
+.browse-article-card.is-tracked,
+.browse-article-card.is-untracked {
   border-color: var(--ink);
   background: var(--paper);
   color: var(--ink);
-}
-
-.browse-article-card.is-untracked {
-  border-color: var(--browse-untracked-border);
-  background: var(--browse-untracked-bg);
-  color: var(--browse-untracked-fg);
-}
-
-.browse-article-card.is-untracked .browse-article-num,
-.browse-article-card.is-untracked .browse-article-title {
-  color: var(--browse-untracked-fg);
 }
 
 .browse-article-card.has-due {
@@ -2652,7 +2643,7 @@ code {
 .browse-article-title {
   font-size: 12.5px;
   line-height: 1.35;
-  color: var(--muted);
+  color: var(--ink);
 }
 
 .tables-tab-rail {

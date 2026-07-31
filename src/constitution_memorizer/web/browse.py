@@ -6,10 +6,12 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
+import re
+
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitType
 from constitution_memorizer.progress.scheduler import ReminderEngine
 from constitution_memorizer.schemas import Article, ConstitutionDocument
-from constitution_memorizer.utils.identifiers import article_sort_key
+from constitution_memorizer.utils.identifiers import article_sort_key, roman_to_int
 from constitution_memorizer.utils.json_io import read_json
 from constitution_memorizer.web.amendments import (
     Amendment,
@@ -18,6 +20,8 @@ from constitution_memorizer.web.amendments import (
 )
 from constitution_memorizer.web.progress_stats import path_units_for_article
 from constitution_memorizer.web.service import due_checklist
+
+_PART_TAG_RE = re.compile(r"^Part\s+([IVXLCDM]+)$", re.IGNORECASE)
 
 
 @dataclass
@@ -203,6 +207,122 @@ def _article_is_tracked(engine: ReminderEngine, article_number: str) -> bool:
     return False
 
 
+def _part_tag_roman(tag: str) -> str | None:
+    match = _PART_TAG_RE.match((tag or "").strip())
+    if match is None:
+        return None
+    return match.group(1).upper()
+
+
+def _part_titles_from_units(engine: ReminderEngine) -> dict[str, str]:
+    """Map Part roman → display title from PART_OVERVIEW unit tags."""
+    from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
+        _display_part_title,
+    )
+
+    titles: dict[str, str] = {}
+    for unit in engine.units.values():
+        if unit.type != LearningUnitType.PART_OVERVIEW:
+            continue
+        roman: str | None = None
+        name: str | None = None
+        for tag in unit.tags:
+            maybe = _part_tag_roman(tag)
+            if maybe is not None:
+                roman = maybe
+                continue
+            if name is None and tag.strip():
+                name = tag.strip()
+        if roman and name and roman not in titles:
+            titles[roman] = _display_part_title(name)
+    return titles
+
+
+def browse_parts_from_units(
+    engine: ReminderEngine,
+    *,
+    as_of: date | None = None,
+    news_articles: set[str] | None = None,
+) -> list[BrowsePartSection]:
+    """Group Browse cards by Part tags when reviewed Bare Act JSON is absent."""
+    from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
+        _article_range_label,
+    )
+
+    dues = article_due_summaries(engine, as_of=as_of)
+    if news_articles is None:
+        news_articles = parse_news_articles(engine.get_news_articles_raw())
+    titles = _part_titles_from_units(engine)
+
+    # article_number → (roman, short title from any unit on that article)
+    by_part: dict[str, dict[str, str]] = {}
+    for unit in engine.units.values():
+        number = unit.article_number
+        if not number:
+            continue
+        roman: str | None = None
+        for tag in unit.tags:
+            roman = _part_tag_roman(tag)
+            if roman is not None:
+                break
+        if roman is None:
+            continue
+        bucket = by_part.setdefault(roman, {})
+        if number not in bucket:
+            # Prefer ARTICLE unit title when present; else first display_title stem.
+            label = ""
+            if unit.type == LearningUnitType.ARTICLE and unit.title:
+                label = _short_article_title(unit.title)
+            elif unit.type == LearningUnitType.ARTICLE:
+                label = _short_article_title(unit.display_title)
+            bucket[number] = label
+        elif not bucket[number] and unit.type == LearningUnitType.ARTICLE:
+            bucket[number] = _short_article_title(unit.title or unit.display_title)
+
+    def _card(number: str, title: str) -> BrowseArticleCard:
+        summary = dues.get(number)
+        return BrowseArticleCard(
+            article_number=number,
+            title=title,
+            href=f"/browse/article/{number}",
+            tracked=_article_is_tracked(engine, number),
+            due_count=summary.due_count if summary else 0,
+            due_kind=summary.due_kind if summary else None,
+            in_news=number in news_articles,
+        )
+
+    sections: list[BrowsePartSection] = []
+    for roman in sorted(
+        by_part.keys(),
+        key=lambda r: (roman_to_int(r) is None, roman_to_int(r) or 99, r),
+    ):
+        numbers = sorted(by_part[roman].keys(), key=article_sort_key)
+        cards = [_card(n, by_part[roman][n]) for n in numbers]
+        sections.append(
+            BrowsePartSection(
+                part_number=roman,
+                part_title=titles.get(roman, ""),
+                article_range=_article_range_label(numbers),
+                cards=cards,
+            )
+        )
+    # Articles with no Part tag (should be rare) — keep reachable at the end.
+    tagged = {n for arts in by_part.values() for n in arts}
+    orphan = [
+        n for n in list_article_numbers(engine, None) if n not in tagged
+    ]
+    if orphan:
+        sections.append(
+            BrowsePartSection(
+                part_number="—",
+                part_title="Other articles",
+                article_range=_article_range_label(orphan),
+                cards=[_card(n, "") for n in orphan],
+            )
+        )
+    return sections
+
+
 def browse_parts_sections(
     engine: ReminderEngine,
     reviewed: ConstitutionDocument | None,
@@ -235,18 +355,10 @@ def browse_parts_sections(
 
     sections: list[BrowsePartSection] = []
     if reviewed is None:
-        numbers = list_article_numbers(engine, None)
-        cards = [_card(n, "") for n in numbers]
-        if cards:
-            sections.append(
-                BrowsePartSection(
-                    part_number="—",
-                    part_title="Articles",
-                    article_range=_article_range_label(numbers),
-                    cards=cards,
-                )
-            )
-        return sections
+        # learning_units.json is tracked; reviewed Bare Act JSON is often local-only.
+        return browse_parts_from_units(
+            engine, as_of=as_of, news_articles=news_articles
+        )
 
     for part in reviewed.parts:
         if str(part.part_number).upper() in {"UNKNOWN", "—", ""}:

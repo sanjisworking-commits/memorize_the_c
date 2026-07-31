@@ -36,7 +36,7 @@ def test_settings_page_defaults_to_thrice(client: TestClient):
     assert "Memory log" in html
     assert 'value="thrice"' in html
     assert "checked" in html
-    assert "styles.css?v=macos1" in html
+    assert "styles.css?v=browse1c" in html
     assert 'href="/settings"' in html
 
 
@@ -44,15 +44,16 @@ def test_settings_post_persists_hourly(client: TestClient, tmp_path: Path):
     # Recreate with known db path via a fresh app bound in fixture — use engine from state
     resp = client.post(
         "/settings",
-        data={"notification_frequency": "hourly"},
+        data={"notification_frequency": "hourly", "news_articles": "19"},
         follow_redirects=False,
     )
     assert resp.status_code == 303
     assert resp.headers["location"] == "/settings?saved=1"
 
     html = client.get("/settings?saved=1").text
-    assert "Reminder frequency saved" in html
+    assert "Settings saved" in html
     assert 'value="hourly"' in html
+    assert 'name="news_articles"' in html
 
     # Confirm via engine on same DB: TestClient shares app.state.engine
     eng: ReminderEngine = client.app.state.engine  # type: ignore[attr-defined]

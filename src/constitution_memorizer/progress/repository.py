@@ -23,6 +23,9 @@ ThemePreference = Literal["auto", "dark", "light"]
 DEFAULT_THEME: ThemePreference = "auto"
 VALID_THEMES: frozenset[str] = frozenset(("auto", "dark", "light"))
 
+NEWS_ARTICLES_KEY = "news_articles"
+DEFAULT_NEWS_ARTICLES = "19"
+
 LEARN_MODES: tuple[str, ...] = ("read", "cloze", "letters", "type", "recite", "card")
 LEARN_MODES_SET: frozenset[str] = frozenset(LEARN_MODES)
 
@@ -347,6 +350,15 @@ class ProgressRepository:
         if theme not in VALID_THEMES:
             raise ValueError(f"Invalid theme: {theme}")
         self.set_setting(THEME_KEY, theme)
+
+    def get_news_articles_raw(self) -> str:
+        raw = self.get_setting(NEWS_ARTICLES_KEY)
+        if raw is None:
+            return DEFAULT_NEWS_ARTICLES
+        return raw
+
+    def set_news_articles_raw(self, value: str) -> None:
+        self.set_setting(NEWS_ARTICLES_KEY, value.strip())
 
     def mark_mode_seen(self, unit_id: str, mode: str) -> set[str]:
         """Record that ``mode`` was visited for ``unit_id``. Returns the full set."""

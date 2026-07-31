@@ -45,8 +45,8 @@ def test_calendar_page_renders_month_grid(client: TestClient):
     assert "Sun" in html and "Sat" in html
     assert 'href="/calendar?year=2026&amp;month=6"' in html
     assert 'href="/calendar?year=2026&amp;month=8"' in html
-    assert "styles.css?v=macos1" in html
-    assert "app.js?v=macos1" in html
+    assert "styles.css?v=browse1c" in html
+    assert "app.js?v=browse1c" in html
 
 
 def test_calendar_invalid_month_returns_400(client: TestClient):
@@ -55,7 +55,7 @@ def test_calendar_invalid_month_returns_400(client: TestClient):
 
 
 def test_calendar_css_chip_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=macos1")
+    css = client.get("/static/styles.css?v=browse1c")
     assert css.status_code == 200
     text = css.text
     assert ".calendar-grid" in text

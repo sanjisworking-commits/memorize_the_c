@@ -3,10 +3,10 @@
 {% block content %}
 <section class="panel settings">
   <h1 class="display">Settings</h1>
-  <p class="lede">Appearance and how often study reminders fire while today’s due list still has work.</p>
+  <p class="lede">Appearance, Browse “In news” flags, and how often study reminders fire while today’s due list still has work.</p>
 
   {% if saved %}
-  <p class="settings-saved" role="status">Reminder frequency saved.</p>
+  <p class="settings-saved" role="status">Settings saved.</p>
   {% endif %}
 
   <h2 class="section-title">Appearance</h2>
@@ -17,15 +17,32 @@
     <button type="button" class="settings-theme-btn" data-theme-set="light">Light</button>
   </div>
 
-  <h2 class="section-title">Study reminders</h2>
-  <p class="settings-note">
-    Reminders use the same Constitution due list as Home, plus Memory log reviews that are due or overdue.
-    They stop for the day once every due item is Done or deferred.
-    Mac banners use the LaunchAgent with channel <code>macos</code> (Notification Center via osascript).
-    Phone delivery still works with <code>REMINDER_CHANNEL=ntfy</code> and <code>NTFY_TOPIC</code>.
-  </p>
-
   <form class="settings-form" method="post" action="/settings">
+    <h2 class="section-title">Browse — In news</h2>
+    <p class="settings-note">
+      Article numbers shown with an amber “In news” pill on Browse cards.
+      Separate with commas or spaces (default <code>19</code>).
+    </p>
+    <label class="memory-field settings-news-field">
+      <span class="memory-field-label">In news articles</span>
+      <input
+        type="text"
+        name="news_articles"
+        value="{{ news_articles }}"
+        maxlength="200"
+        placeholder="19, 21"
+        autocomplete="off"
+      >
+    </label>
+
+    <h2 class="section-title">Study reminders</h2>
+    <p class="settings-note">
+      Reminders use the same Constitution due list as Home, plus Memory log reviews that are due or overdue.
+      They stop for the day once every due item is Done or deferred.
+      Mac banners use the LaunchAgent with channel <code>macos</code> (Notification Center via osascript).
+      Phone delivery still works with <code>REMINDER_CHANNEL=ntfy</code> and <code>NTFY_TOPIC</code>.
+    </p>
+
     <fieldset class="settings-fieldset">
       <legend class="visually-hidden">Reminder frequency</legend>
 

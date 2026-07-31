@@ -714,12 +714,13 @@ def create_app(
         request: Request,
         saved: int | None = Query(default=None),
     ) -> HTMLResponse:
-        frequency = _engine().get_notification_frequency()
+        eng = _engine()
         return templates.TemplateResponse(
             request,
             "settings.html",
             {
-                "frequency": frequency,
+                "frequency": eng.get_notification_frequency(),
+                "news_articles": eng.get_news_articles_raw(),
                 "saved": bool(saved),
             },
         )
@@ -727,10 +728,13 @@ def create_app(
     @app.post("/settings")
     async def settings_save(
         notification_frequency: str = Form(...),
+        news_articles: str = Form(""),
     ) -> RedirectResponse:
         if notification_frequency not in VALID_NOTIFICATION_FREQUENCIES:
             raise HTTPException(status_code=400, detail="Invalid notification frequency")
-        _engine().set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
+        eng = _engine()
+        eng.set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
+        eng.set_news_articles_raw(news_articles)
         return RedirectResponse(url="/settings?saved=1", status_code=303)
 
     @app.post("/api/theme")

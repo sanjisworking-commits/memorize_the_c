@@ -128,6 +128,12 @@ class ReminderEngine:
     def set_theme(self, theme: ThemePreference) -> None:
         self.repo.set_theme(theme)
 
+    def get_news_articles_raw(self) -> str:
+        return self.repo.get_news_articles_raw()
+
+    def set_news_articles_raw(self, value: str) -> None:
+        self.repo.set_news_articles_raw(value)
+
     def mark_mode_seen(self, unit_id: str, mode: str) -> set[str]:
         if unit_id not in self.units:
             raise KeyError(f"Unknown learning unit id: {unit_id}")

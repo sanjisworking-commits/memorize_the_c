@@ -1,4 +1,4 @@
-"""Browse due/overdue banners, count bubbles, and nav badge."""
+"""Browse due ribbons, count lines, In news pills, and nav badge (variation 1c)."""
 
 from __future__ import annotations
 
@@ -13,68 +13,89 @@ from constitution_memorizer.web.browse import (
     article_due_summaries,
     browse_due_total,
     browse_parts_sections,
+    parse_news_articles,
 )
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 
 
+def test_parse_news_articles():
+    assert parse_news_articles("19") == {"19"}
+    assert parse_news_articles("19, 21") == {"19", "21"}
+    assert parse_news_articles(" 14  15,21 ") == {"14", "15", "21"}
+    assert parse_news_articles("") == set()
+    assert parse_news_articles(None) == set()
+
+
 def test_article_due_summaries_due_and_overdue(tmp_path: Path):
     engine = ReminderEngine.from_paths(tmp_path / "p.db", MINI_UNITS)
     today = date(2026, 7, 20)
-    # clause-1 due today
     engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 19))
-    # clause-2 overdue (next_revision yesterday)
     engine.mark_all_modes_seen("clause-2")
     engine.mark_done("clause-2", as_of=date(2026, 7, 18))
     summaries = article_due_summaries(engine, as_of=today)
     assert "20" in summaries
-    # both units are Article 20
     assert summaries["20"].due_count == 2
     assert summaries["20"].due_kind == "overdue"
     assert browse_due_total(engine, as_of=today) == 2
 
 
-def test_browse_parts_sections_attaches_due_fields(tmp_path: Path):
+def test_browse_parts_sections_attaches_due_and_news(tmp_path: Path):
     engine = ReminderEngine.from_paths(tmp_path / "p.db", MINI_UNITS)
     today = date(2026, 7, 20)
     engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 19))
+    engine.set_news_articles_raw("20")
     sections = browse_parts_sections(engine, None, as_of=today)
     cards = [c for s in sections for c in s.cards]
     art20 = next(c for c in cards if c.article_number == "20")
     assert art20.due_count == 1
     assert art20.due_kind == "due"
+    assert art20.in_news is True
+    assert art20.tracked is True
     untouched = [c for c in cards if c.article_number != "20"]
     assert all(c.due_count == 0 and c.due_kind is None for c in untouched)
+    assert all(c.in_news is False for c in untouched)
 
 
-def test_browse_index_html_banner_and_nav_badge(tmp_path: Path):
+def test_browse_index_html_ribbon_count_and_nav_badge(tmp_path: Path):
     db = tmp_path / "progress.db"
     engine = ReminderEngine.from_paths(db, MINI_UNITS)
     engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date.today() - timedelta(days=1))
+    engine.set_news_articles_raw("20")
     client = TestClient(create_app(units_path=MINI_UNITS, db_path=db))
     home = client.get("/")
     assert home.status_code == 200
     assert "nav-due-badge" in home.text
     browse = client.get("/browse")
     assert browse.status_code == 200
-    assert "browse-due-banner" in browse.text
-    assert "browse-due-bubble" in browse.text
-    assert "Due" in browse.text
+    assert "browse-due-ribbon" in browse.text
+    assert "browse-due-count" in browse.text
+    assert "browse-due-banner" not in browse.text
+    assert "browse-due-bubble" not in browse.text
+    assert "Due today" in browse.text
+    assert "1 unit due" in browse.text
+    assert "In news" in browse.text
+    assert "browse-in-news" in browse.text
+    assert "is-tracked" in browse.text
     assert "nav-due-badge" in browse.text
 
 
-def test_browse_overdue_banner_label(tmp_path: Path):
+def test_browse_overdue_ribbon_and_plural_count(tmp_path: Path):
     db = tmp_path / "progress.db"
     engine = ReminderEngine.from_paths(db, MINI_UNITS)
+    today = date.today()
     engine.mark_all_modes_seen("clause-1")
-    engine.mark_done("clause-1", as_of=date.today() - timedelta(days=3))
+    engine.mark_done("clause-1", as_of=today - timedelta(days=3))
+    engine.mark_all_modes_seen("clause-2")
+    engine.mark_done("clause-2", as_of=today - timedelta(days=2))
     client = TestClient(create_app(units_path=MINI_UNITS, db_path=db))
     html = client.get("/browse").text
     assert "Overdue" in html
     assert "is-overdue" in html
+    assert "2 units due" in html
 
 
 def test_browse_no_dues_unchanged(tmp_path: Path):
@@ -82,5 +103,33 @@ def test_browse_no_dues_unchanged(tmp_path: Path):
     ReminderEngine.from_paths(db, MINI_UNITS)
     client = TestClient(create_app(units_path=MINI_UNITS, db_path=db))
     html = client.get("/browse").text
-    assert "browse-due-banner" not in html
+    assert "browse-due-ribbon" not in html
+    assert "browse-due-count" not in html
     assert "nav-due-badge" not in client.get("/").text
+
+
+def test_default_news_articles_is_19(tmp_path: Path):
+    engine = ReminderEngine.from_paths(tmp_path / "p.db", MINI_UNITS)
+    assert engine.get_news_articles_raw() == "19"
+    sections = browse_parts_sections(engine, None)
+    cards = [c for s in sections for c in s.cards]
+    assert all(c.in_news is False for c in cards)  # mini fixture has Art 20 only
+
+
+def test_settings_saves_news_articles(tmp_path: Path):
+    db = tmp_path / "progress.db"
+    ReminderEngine.from_paths(db, MINI_UNITS)
+    client = TestClient(create_app(units_path=MINI_UNITS, db_path=db))
+    page = client.get("/settings")
+    assert page.status_code == 200
+    assert 'name="news_articles"' in page.text
+    assert 'value="19"' in page.text
+    saved = client.post(
+        "/settings",
+        data={"notification_frequency": "twice", "news_articles": "19, 21"},
+        follow_redirects=False,
+    )
+    assert saved.status_code == 303
+    engine = ReminderEngine.from_paths(db, MINI_UNITS)
+    assert engine.get_news_articles_raw() == "19, 21"
+    assert parse_news_articles(engine.get_news_articles_raw()) == {"19", "21"}

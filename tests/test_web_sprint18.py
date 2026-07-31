@@ -39,11 +39,11 @@ def test_recite_panel_has_voice_and_map_markup(client: TestClient):
     assert "data-recite-check" in html
     assert "Check accuracy" in html
     assert "recall_align.js?v=sprint22" in html
-    assert "app.js?v=macos1" in html
+    assert "app.js?v=browse1c" in html
 
 
 def test_recite_css_map_and_listening_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=macos1")
+    css = client.get("/static/styles.css?v=browse1c")
     assert css.status_code == 200
     text = css.text
     assert ".learn-recite-map-word.is-hit" in text
@@ -54,7 +54,7 @@ def test_recite_css_map_and_listening_styles(client: TestClient):
 
 
 def test_recite_js_wires_speech_recognition_and_align(client: TestClient):
-    js = client.get("/static/app.js?v=macos1")
+    js = client.get("/static/app.js?v=browse1c")
     assert js.status_code == 200
     text = js.text
     assert "SpeechRecognition" in text

@@ -44,6 +44,15 @@ class BrowseArticleCard:
     tracked: bool
     due_count: int = 0
     due_kind: str | None = None  # "due" | "overdue"
+    in_news: bool = False
+
+
+def parse_news_articles(raw: str | None) -> set[str]:
+    """Parse comma/space-separated article numbers into a normalized set."""
+    if not raw:
+        return set()
+    parts = raw.replace(",", " ").split()
+    return {p.strip() for p in parts if p.strip()}
 
 
 @dataclass(frozen=True)
@@ -199,6 +208,7 @@ def browse_parts_sections(
     reviewed: ConstitutionDocument | None,
     *,
     as_of: date | None = None,
+    news_articles: set[str] | None = None,
 ) -> list[BrowsePartSection]:
     """Part-grouped Browse index (Sprint 29) with due/overdue card badges."""
     from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
@@ -208,6 +218,8 @@ def browse_parts_sections(
     )
 
     dues = article_due_summaries(engine, as_of=as_of)
+    if news_articles is None:
+        news_articles = parse_news_articles(engine.get_news_articles_raw())
 
     def _card(number: str, title: str) -> BrowseArticleCard:
         summary = dues.get(number)
@@ -218,6 +230,7 @@ def browse_parts_sections(
             tracked=_article_is_tracked(engine, number),
             due_count=summary.due_count if summary else 0,
             due_kind=summary.due_kind if summary else None,
+            in_news=number in news_articles,
         )
 
     sections: list[BrowsePartSection] = []

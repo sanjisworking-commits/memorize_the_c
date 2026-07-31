@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.title }} · Memory log{% endblock %}
+{% block content %}
+<section class="panel memory-detail">
+  <p class="eyebrow"><a class="laws-back" href="/memory">← Memory log</a></p>
+  <h1 class="display">{{ entry.title }}</h1>
+  {% if entry.acronym %}
+  <p class="lede">{{ entry.acronym }}</p>
+  {% endif %}
+  <p class="memory-detail-meta">
+    Logged {{ entry.logged_date.isoformat() }}
+    · {% if entry.status == 'mastered' %}Mastered{% else %}{{ entry.status }} · interval {{ entry.interval_days }}d{% endif %}
+  </p>
+
+  <div class="memory-schedule" aria-label="Revision schedule">
+    {% for days, state in schedule %}
+    <span class="memory-schedule-chip is-{{ state }}">{{ days }}{% if state == 'done' %} ✓{% endif %}</span>
+    {% endfor %}
+  </div>
+
+  <h2 class="section-title">Photo notes</h2>
+  <div class="memory-photo-block">
+    {% if has_photo %}
+    <img class="memory-photo" src="/memory/media/{{ entry.id }}" alt="Revision notes photo">
+    {% else %}
+    <p class="empty memory-photo-empty">No photo yet — upload your handwritten revision notes.</p>
+    {% endif %}
+    <form class="memory-photo-form" method="post" action="/memory/{{ entry.id }}/photo" enctype="multipart/form-data">
+      <label class="memory-field">
+        <span class="memory-field-label">{% if has_photo %}Replace photo{% else %}Upload photo{% endif %}</span>
+        <input type="file" name="photo" accept="image/*" required>
+      </label>
+      <button type="submit" class="btn">Save photo</button>
+    </form>
+  </div>
+
+  <h2 class="section-title">Add notes</h2>
+  <form class="memory-notes-form" method="post" action="/memory/{{ entry.id }}/notes">
+    <label class="memory-field">
+      <span class="visually-hidden">Notes</span>
+      <textarea name="notes" rows="6" maxlength="8000" placeholder="Typed notes, palace hooks, corrections…">{{ entry.notes }}</textarea>
+    </label>
+    <button type="submit" class="btn">Save notes</button>
+  </form>
+
+  {% if entry.status != 'mastered' %}
+  <form class="memory-done-form" method="post" action="/memory/{{ entry.id }}/done">
+    <button type="submit" class="btn btn-accent">Done — next review</button>
+  </form>
+  {% else %}
+  <p class="memory-mastered">Mastered on the Memory log ladder.</p>
+  {% endif %}
+</section>
+{% endblock %}

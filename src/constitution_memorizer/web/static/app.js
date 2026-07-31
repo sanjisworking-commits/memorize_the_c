@@ -847,9 +847,6 @@
 
   function initThemeToggle() {
     const btn = document.getElementById("theme-toggle");
-    if (!btn) {
-      return;
-    }
     const KEY = "cm-theme";
     const CYCLE = ["auto", "dark", "light"];
     const LABELS = {
@@ -868,13 +865,36 @@
       return systemDark() ? "dark" : "light";
     }
 
+    function persist(pref) {
+      const body = new URLSearchParams();
+      body.set("theme", pref);
+      fetch("/api/theme", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      }).catch(() => {
+        /* ignore */
+      });
+    }
+
+    function syncSettingsButtons(pref) {
+      document.querySelectorAll("[data-theme-set]").forEach((el) => {
+        const on = el.getAttribute("data-theme-set") === pref;
+        el.classList.toggle("is-active", on);
+        el.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+
     function apply(pref) {
       const resolved = effective(pref);
       document.documentElement.setAttribute("data-theme", resolved);
       document.documentElement.setAttribute("data-theme-preference", pref);
       document.documentElement.style.colorScheme = resolved;
-      btn.dataset.themePref = pref;
-      btn.textContent = LABELS[pref] || LABELS.auto;
+      if (btn) {
+        btn.dataset.themePref = pref;
+        btn.textContent = LABELS[pref] || LABELS.auto;
+      }
+      syncSettingsButtons(pref);
       try {
         localStorage.setItem(KEY, pref);
       } catch (_e) {
@@ -882,7 +902,7 @@
       }
     }
 
-    let pref = btn.dataset.themePref || "auto";
+    let pref = (btn && btn.dataset.themePref) || "auto";
     try {
       const stored = localStorage.getItem(KEY);
       if (stored === "auto" || stored === "dark" || stored === "light") {
@@ -893,26 +913,32 @@
     }
     apply(pref);
 
-    btn.addEventListener("click", () => {
-      const current = btn.dataset.themePref || "auto";
-      const idx = CYCLE.indexOf(current);
-      const next = CYCLE[(idx + 1) % CYCLE.length];
-      apply(next);
-      const body = new URLSearchParams();
-      body.set("theme", next);
-      fetch("/api/theme", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
-      }).catch(() => {
-        /* ignore */
+    if (btn) {
+      btn.addEventListener("click", () => {
+        const current = btn.dataset.themePref || "auto";
+        const idx = CYCLE.indexOf(current);
+        const next = CYCLE[(idx + 1) % CYCLE.length];
+        apply(next);
+        persist(next);
+      });
+    }
+
+    document.querySelectorAll("[data-theme-set]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const next = el.getAttribute("data-theme-set");
+        if (next !== "auto" && next !== "dark" && next !== "light") {
+          return;
+        }
+        apply(next);
+        persist(next);
       });
     });
 
     if (window.matchMedia) {
       const mq = window.matchMedia("(prefers-color-scheme: dark)");
       const onChange = () => {
-        if ((btn.dataset.themePref || "auto") === "auto") {
+        const current = (btn && btn.dataset.themePref) || document.documentElement.getAttribute("data-theme-preference") || "auto";
+        if (current === "auto") {
           apply("auto");
         }
       };

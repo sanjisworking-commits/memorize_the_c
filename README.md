@@ -405,6 +405,7 @@ UI entry points: `/` Home · `/browse` · `/search` · `/progress` · `/learn/{i
 
 - CLI `send-reminders` builds today’s due digest from `due_checklist` (Home parity)
 - Channels: `console` (dry-run) and `ntfy` (`NTFY_TOPIC` / optional server + token)
+- Later: `macos` channel + Memory log dues + Browse due badges (see Mac daily-driver section)
 - Skips send when nothing is due; morning LaunchAgent at 07:00
 - Tests: `tests/test_reminder_digest.py`, `tests/test_send_reminders_cli.py`
 
@@ -581,39 +582,47 @@ Bookmark **http://127.0.0.1:8001/**.
 **Install both LaunchAgents** (UI at login + hourly reminder ticks):
 
 ```bash
-# Subscribe in the ntfy app to the same topic first
-export NTFY_TOPIC=cm-yourname-study
+# Default reminders use macOS Notification Center (no ntfy required)
 bash scripts/mac/install-all-agents.sh
+
+# Optional: phone push via ntfy instead
+# export REMINDER_CHANNEL=ntfy
+# export NTFY_TOPIC=cm-yourname-study
+# bash scripts/mac/install-all-agents.sh
 ```
 
 Or install separately: `install-serve-agent.sh` / `install-reminders-agent.sh`.  
 Unload: `uninstall-serve-agent.sh` / `uninstall-reminders-agent.sh`.  
 Logs: `~/Library/Logs/constitution-memorizer-*.log`.  
-Choose cadence in the UI: **http://127.0.0.1:8001/settings** (default thrice). Re-run `install-reminders-agent.sh` after pulling Sprint 26 so the agent uses hourly ticks.
+Choose cadence in the UI: **http://127.0.0.1:8001/settings** (default thrice). Re-run `install-reminders-agent.sh` after pulling so the agent defaults to `--channel macos`.
 
-### Study reminders (ntfy)
+### Study reminders (macOS + ntfy)
 
-Pushes today’s due units (same list as Home). Cadence is set under **Settings**. Does **not** require the UI server to be running for the send itself.
+Pushes today’s due Constitution units (same list as Home) **and** Memory log reviews that are due or overdue. Cadence is set under **Settings**. Does **not** require the UI server to be running for the send itself.
 
-1. Install the [ntfy](https://ntfy.sh/) app and subscribe to a private topic, e.g. `cm-yourname-study`.
-2. In the UI open **Settings** and pick Twice / Thrice / Every hour.
-3. Test from the repo:
+**Browse** also shows Due / Overdue banners and count bubbles on article cards, plus a total badge on the Browse nav link (Constitution only).
+
+1. In the UI open **Settings** and pick Twice / Thrice / Every hour.
+2. Install the reminders LaunchAgent (macOS banners by default), or test from the repo:
 
 ```bash
 source .venv/bin/activate
-export NTFY_TOPIC=cm-yourname-study
 python -m constitution_memorizer.cli send-reminders --channel console --dry-run --at 2026-07-20T08:00
-python -m constitution_memorizer.cli send-reminders --channel ntfy --at "$(date +%Y-%m-%dT%H:%M)"
-```
-
-4. Prefer `install-all-agents.sh` (above), or:
-
-```bash
-export NTFY_TOPIC=cm-yourname-study
+python -m constitution_memorizer.cli send-reminders --channel macos --at "$(date +%Y-%m-%dT%H:%M)"
 bash scripts/mac/install-reminders-agent.sh
 ```
 
-Optional env: `NTFY_SERVER` (default `https://ntfy.sh`), `NTFY_TOKEN`, `REMINDER_BASE_URL`.  
+3. Optional phone push with [ntfy](https://ntfy.sh/):
+
+```bash
+export REMINDER_CHANNEL=ntfy
+export NTFY_TOPIC=cm-yourname-study
+python -m constitution_memorizer.cli send-reminders --channel ntfy --at "$(date +%Y-%m-%dT%H:%M)"
+bash scripts/mac/install-reminders-agent.sh
+```
+
+Allow notifications for Script Editor / osascript under **System Settings → Notifications** if macOS banners do not appear.  
+Optional env: `NTFY_SERVER` (default `https://ntfy.sh`), `NTFY_TOKEN`, `REMINDER_BASE_URL`, `REMINDER_CHANNEL`.  
 Empty due lists skip the send; fixed slots and hourly also debounce within the same clock hour.
 
 ### What survives reboot
@@ -641,10 +650,11 @@ Time Machine also covers the repo (and Documents backups) if those paths are inc
 ### Smoke checklist (Mac daily driver)
 
 1. Login → UI responds at http://127.0.0.1:8001/ (serve LaunchAgent)
-2. Settings → pick thrice or hourly; at a reminder hour, ntfy lists today’s due units (silent if nothing due / wrong hour)
-3. Study a unit → Done clears it from Home; further hourly ticks stay silent once the due list is empty
-4. `bash scripts/mac/backup-progress.sh` → file appears under Documents backups
-5. Reboot → same progress, glosses, and reminder settings (same `progress.db`)
+2. Settings → pick thrice or hourly; at a reminder hour, macOS (or ntfy) lists today’s Constitution + Memory dues (silent if nothing due / wrong hour)
+3. Browse shows Due/Overdue banners when units are waiting
+4. Study a unit → Done clears it from Home; further hourly ticks stay silent once the due list is empty
+5. `bash scripts/mac/backup-progress.sh` → file appears under Documents backups
+6. Reboot → same progress, glosses, and reminder settings (same `progress.db`)
 
 ### Try a sprint branch on your Mac (step by step)
 

@@ -213,11 +213,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     remind_p = sub.add_parser(
         "send-reminders",
-        help="Send today's study reminder (due units) via console or ntfy",
+        help="Send today's study reminder (Constitution + Memory) via console, ntfy, or macos",
     )
     remind_p.add_argument(
         "--channel",
-        choices=("console", "ntfy"),
+        choices=("console", "ntfy", "macos"),
         default="console",
         help="Delivery channel (default: console)",
     )
@@ -635,6 +635,7 @@ def cmd_send_reminders(args: argparse.Namespace, config: PipelineConfig) -> int:
 
     from constitution_memorizer.notifications import build_study_digest, get_notifier
     from constitution_memorizer.notifications.schedule import should_notify
+    from constitution_memorizer.progress.memory import MemoryEngine
     from constitution_memorizer.progress.scheduler import ReminderEngine
 
     output_dir: Path = args.output_dir
@@ -663,11 +664,13 @@ def cmd_send_reminders(args: argparse.Namespace, config: PipelineConfig) -> int:
         or "http://127.0.0.1:8001/"
     )
     engine = ReminderEngine.from_paths(db_path, units_path)
+    memory = MemoryEngine.from_db_path(db_path)
     digest = build_study_digest(
         engine,
         as_of=as_of,
         base_url=base_url,
         include_continue=bool(args.include_continue or args.notify_empty),
+        memory=memory,
     )
 
     if digest.is_empty and not args.notify_empty:

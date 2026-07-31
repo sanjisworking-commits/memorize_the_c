@@ -19,11 +19,15 @@ echo "==> Installing serve agent (UI at login)…"
 bash "$MAC/install-serve-agent.sh"
 
 echo
-echo "==> Installing reminders agent (daily 07:00)…"
-if [[ -z "${NTFY_TOPIC:-}" ]]; then
-  echo "NTFY_TOPIC is not set."
+echo "==> Installing reminders agent (hourly ticks; default channel=macos)…"
+if [[ "${REMINDER_CHANNEL:-macos}" == "ntfy" && -z "${NTFY_TOPIC:-}" ]]; then
+  echo "NTFY_TOPIC is not set for REMINDER_CHANNEL=ntfy."
   echo "Export it first, then re-run this script, or install reminders alone:"
   echo "  export NTFY_TOPIC=cm-\$(whoami)-study"
+  echo "  export REMINDER_CHANNEL=ntfy"
+  echo "  bash scripts/mac/install-reminders-agent.sh"
+  echo
+  echo "Or use native banners (default):"
   echo "  bash scripts/mac/install-reminders-agent.sh"
   echo
   echo "Serve agent is installed. Reminders skipped."
@@ -36,4 +40,5 @@ echo
 echo "Both agents installed."
 echo "  UI:        http://127.0.0.1:8001/"
 echo "  Reminders: hourly ticks; cadence in Settings (default thrice)"
+echo "  Channel:   ${REMINDER_CHANNEL:-macos} (override with REMINDER_CHANNEL=ntfy)"
 echo "Optional weekly backup: bash scripts/mac/install-backup-agent.sh"

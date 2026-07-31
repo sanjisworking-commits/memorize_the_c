@@ -153,6 +153,7 @@ html[data-theme="dark"] .brand-mark {
 }
 
 .nav-link {
+  position: relative;
   color: var(--muted);
   text-decoration: none;
   font-weight: 600;
@@ -161,6 +162,27 @@ html[data-theme="dark"] .brand-mark {
   border: none;
   background: none;
   cursor: pointer;
+}
+
+.nav-due-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 4px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+  color: var(--on-accent, #fff);
+  background: var(--ink);
+}
+
+.nav-link.is-active .nav-due-badge {
+  color: var(--ink);
+  background: var(--on-accent, #fff);
 }
 
 .nav-link:hover {
@@ -2416,6 +2438,7 @@ code {
 }
 
 .browse-article-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -2429,8 +2452,48 @@ code {
   transition: border-color 0.15s ease;
 }
 
+.browse-article-card.has-due {
+  padding-top: 28px;
+}
+
 .browse-article-card:hover {
   border-color: var(--ink);
+}
+
+.browse-due-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 28px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent, #b45309) 22%, var(--paper));
+  border-bottom: 1px solid var(--hairline);
+}
+
+.browse-due-banner.is-overdue {
+  background: color-mix(in srgb, #9b1c1c 18%, var(--paper));
+}
+
+.browse-due-bubble {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: var(--ink);
 }
 
 .browse-article-num {

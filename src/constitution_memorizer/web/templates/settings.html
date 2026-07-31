@@ -19,8 +19,10 @@
 
   <h2 class="section-title">Study reminders</h2>
   <p class="settings-note">
-    Reminders use the same due list as Home. They stop for the day once every due unit is Done or deferred.
-    Phone delivery still needs the ntfy LaunchAgent (<code>NTFY_TOPIC</code>).
+    Reminders use the same Constitution due list as Home, plus Memory log reviews that are due or overdue.
+    They stop for the day once every due item is Done or deferred.
+    Mac banners use the LaunchAgent with channel <code>macos</code> (Notification Center via osascript).
+    Phone delivery still works with <code>REMINDER_CHANNEL=ntfy</code> and <code>NTFY_TOPIC</code>.
   </p>
 
   <form class="settings-form" method="post" action="/settings">

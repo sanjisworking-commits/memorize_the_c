@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitType
@@ -16,6 +17,7 @@ from constitution_memorizer.web.amendments import (
     get_article_amendments,
 )
 from constitution_memorizer.web.progress_stats import path_units_for_article
+from constitution_memorizer.web.service import due_checklist
 
 
 @dataclass
@@ -40,6 +42,8 @@ class BrowseArticleCard:
     title: str
     href: str
     tracked: bool
+    due_count: int = 0
+    due_kind: str | None = None  # "due" | "overdue"
 
 
 @dataclass(frozen=True)
@@ -49,6 +53,49 @@ class BrowsePartSection:
     article_range: str
     cards: list[BrowseArticleCard] = field(default_factory=list)
     note: str | None = None
+
+
+@dataclass(frozen=True)
+class ArticleDueSummary:
+    due_count: int
+    due_kind: str | None
+
+
+def article_due_summaries(
+    engine: ReminderEngine,
+    *,
+    as_of: date | None = None,
+) -> dict[str, ArticleDueSummary]:
+    """Map article_number → due/overdue unit counts (Home visibility rules)."""
+    today = as_of or date.today()
+    counts: dict[str, int] = {}
+    kinds: dict[str, str] = {}
+    for unit in due_checklist(engine, as_of=today):
+        number = unit.article_number
+        if not number:
+            continue
+        counts[number] = counts.get(number, 0) + 1
+        progress = engine.repo.get_progress(unit.id)
+        rev = progress.next_revision if progress is not None else None
+        if rev is None:
+            continue
+        if rev < today:
+            kinds[number] = "overdue"
+        elif rev == today and kinds.get(number) != "overdue":
+            kinds[number] = "due"
+    return {
+        number: ArticleDueSummary(due_count=count, due_kind=kinds.get(number))
+        for number, count in counts.items()
+    }
+
+
+def browse_due_total(
+    engine: ReminderEngine,
+    *,
+    as_of: date | None = None,
+) -> int:
+    """Total Constitution due+overdue units for the Browse nav badge."""
+    return len(due_checklist(engine, as_of=as_of))
 
 
 def load_reviewed_document(path: Path | None) -> ConstitutionDocument | None:
@@ -150,26 +197,33 @@ def _article_is_tracked(engine: ReminderEngine, article_number: str) -> bool:
 def browse_parts_sections(
     engine: ReminderEngine,
     reviewed: ConstitutionDocument | None,
+    *,
+    as_of: date | None = None,
 ) -> list[BrowsePartSection]:
-    """Part-grouped Browse index (Sprint 29)."""
+    """Part-grouped Browse index (Sprint 29) with due/overdue card badges."""
     from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
         _article_range_label,
         _display_part_title,
         _part_articles,
     )
 
+    dues = article_due_summaries(engine, as_of=as_of)
+
+    def _card(number: str, title: str) -> BrowseArticleCard:
+        summary = dues.get(number)
+        return BrowseArticleCard(
+            article_number=number,
+            title=title,
+            href=f"/browse/article/{number}",
+            tracked=_article_is_tracked(engine, number),
+            due_count=summary.due_count if summary else 0,
+            due_kind=summary.due_kind if summary else None,
+        )
+
     sections: list[BrowsePartSection] = []
     if reviewed is None:
         numbers = list_article_numbers(engine, None)
-        cards = [
-            BrowseArticleCard(
-                article_number=n,
-                title="",
-                href=f"/browse/article/{n}",
-                tracked=_article_is_tracked(engine, n),
-            )
-            for n in numbers
-        ]
+        cards = [_card(n, "") for n in numbers]
         if cards:
             sections.append(
                 BrowsePartSection(
@@ -201,13 +255,7 @@ def browse_parts_sections(
         if not articles:
             continue
         cards = [
-            BrowseArticleCard(
-                article_number=a.article_number,
-                title=_short_article_title(a.title),
-                href=f"/browse/article/{a.article_number}",
-                tracked=_article_is_tracked(engine, a.article_number),
-            )
-            for a in articles
+            _card(a.article_number, _short_article_title(a.title)) for a in articles
         ]
         sections.append(
             BrowsePartSection(

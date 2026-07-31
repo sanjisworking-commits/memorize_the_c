@@ -21,9 +21,15 @@
     <div class="browse-article-grid">
       {% for card in section.cards %}
       <a
-        class="browse-article-card{% if card.tracked %} is-tracked{% else %} is-untracked{% endif %}"
+        class="browse-article-card{% if card.tracked %} is-tracked{% else %} is-untracked{% endif %}{% if card.due_count %} has-due{% endif %}"
         href="{{ card.href }}"
       >
+        {% if card.due_count %}
+        <span class="browse-due-banner is-{{ card.due_kind or 'due' }}">
+          {% if card.due_kind == 'overdue' %}Overdue{% else %}Due{% endif %}
+        </span>
+        <span class="browse-due-bubble" aria-label="{{ card.due_count }} due">{{ card.due_count }}</span>
+        {% endif %}
         <span class="browse-article-num">Article {{ card.article_number }}</span>
         {% if card.title %}
         <span class="browse-article-title">{{ card.title }}</span>

@@ -13,9 +13,6 @@
   --destructive-deep: #8f1b12;
   --browse-due: #0e7569;
   --browse-news: #b45309;
-  --browse-untracked-border: #e0e0de;
-  --browse-untracked-bg: #fafaf9;
-  --browse-untracked-fg: #b5b5b3;
   --line: var(--hairline);
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   --sheet-border: #cfcfcd;
@@ -47,9 +44,6 @@ html[data-theme="dark"] {
   --destructive-deep: #8f1b12;
   --browse-due: #2a9d8f;
   --browse-news: #d97706;
-  --browse-untracked-border: #333333;
-  --browse-untracked-bg: #1a1a19;
-  --browse-untracked-fg: #6b6b6b;
   --line: var(--hairline);
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   --sheet-border: #333333;

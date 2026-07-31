@@ -28,7 +28,11 @@
           "body_text": { "type": ["string", "null"] },
           "opening_text": { "type": ["string", "null"] },
           "exclude": { "type": ["boolean", "null"] },
-          "create": { "type": ["boolean", "null"] }
+          "create": { "type": ["boolean", "null"] },
+          "prefer_article_unit": {
+            "type": ["boolean", "null"],
+            "description": "When true, generate a single ARTICLE learning unit instead of splitting letter/number markers into CLAUSE cards."
+          }
         }
       }
     }

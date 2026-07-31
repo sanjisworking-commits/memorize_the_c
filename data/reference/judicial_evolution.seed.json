@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Curated Judicial Evolution notes for Learn (not Bare Act text).",
+  "articles": {
+    "326": {
+      "section_title": "Judicial Evolution",
+      "entries": [
+        {
+          "heading": "Early interpretation",
+          "body": "Statutory right only. The Supreme Court historically called the right to vote a \"creature of statute\" — governed by the Representation of the People Act, 1950, not an absolute fundamental guarantee."
+        },
+        {
+          "heading": "ADR vs Union of India — 2002",
+          "body": "Voters’ right to information recognised. The Supreme Court held that voters have a constitutional right to know the background of candidates contesting elections."
+        },
+        {
+          "heading": "PUCL vs Union of India — 2003",
+          "body": "Upgraded to \"constitutional right.\" Justice P.V. Reddy observed that the right to vote, if not a fundamental right, is certainly a constitutional right under Article 326."
+        },
+        {
+          "heading": "PUCL vs Union of India — 2013",
+          "body": "NOTA introduced. The Supreme Court directed the introduction of the \"None of the Above\" option to protect voter choice and secrecy — the most recent major judicial expansion of voting rights."
+        }
+      ]
+    }
+  }
+}

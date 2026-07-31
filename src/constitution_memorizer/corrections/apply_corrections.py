@@ -37,6 +37,8 @@ class ArticleCorrection(BaseModel):
     exclude: bool | None = None
     # Insert a missing Article (parser never emitted the node).
     create: bool | None = None
+    # One Learn card titled "Article N" (keep lettered body intact).
+    prefer_article_unit: bool | None = None
 
 
 class CorrectionsFile(BaseModel):
@@ -91,15 +93,28 @@ def _detach_article(doc: ConstitutionDocument, article_id: str) -> Article | Non
     return None
 
 
-def _insert_article_sorted(part: Part, article: Article) -> None:
-    """Insert into part.articles keeping Bare Act article order."""
+def _insert_article_sorted_list(articles: list[Article], article: Article) -> None:
+    """Insert into an articles list keeping Bare Act article order."""
     key = article_sort_key(article.article_number)
-    insert_at = len(part.articles)
-    for index, existing in enumerate(part.articles):
+    insert_at = len(articles)
+    for index, existing in enumerate(articles):
         if article_sort_key(existing.article_number) > key:
             insert_at = index
             break
-    part.articles.insert(insert_at, article)
+    articles.insert(insert_at, article)
+
+
+def _insert_article_sorted(part: Part, article: Article) -> None:
+    """Insert into part.articles keeping Bare Act article order."""
+    _insert_article_sorted_list(part.articles, article)
+
+
+def _find_chapter(part: Part, chapter_number: str):
+    target = chapter_number.strip().upper()
+    for chapter in part.chapters:
+        if (chapter.chapter_number or "").strip().upper() == target:
+            return chapter
+    return None
 
 
 def _ensure_article_in_part(
@@ -110,6 +125,10 @@ def _ensure_article_in_part(
     """
     Place ``article`` under the Part matching ``part_number``.
 
+    When ``article.chapter_number`` matches a Chapter in that Part, insert into
+    the Chapter list (e.g. Art 81 → Part V / Chapter II). Otherwise attach to
+    ``part.articles``.
+
     Returns a change note when the article was moved or newly attached.
     """
     part = _find_part(doc, part_number)
@@ -119,19 +138,29 @@ def _ensure_article_in_part(
         )
         return f"SKIP {article.id}: part {part_number!r} not found for placement"
 
-    if any(a.id == article.id for a in part.articles):
+    target_chapter = (
+        _find_chapter(part, article.chapter_number) if article.chapter_number else None
+    )
+    if target_chapter is not None:
+        if any(a.id == article.id for a in target_chapter.articles):
+            article.part_number = part_number
+            return None
+    elif any(a.id == article.id for a in part.articles):
         article.part_number = part_number
         return None
 
     detached = _detach_article(doc, article.id)
+    target = detached if detached is not None else article
+    target.part_number = part_number
+    if target_chapter is not None:
+        _insert_article_sorted_list(target_chapter.articles, target)
+        where = f"Part {part_number} Chapter {target_chapter.chapter_number}"
+    else:
+        _insert_article_sorted(part, target)
+        where = f"Part {part_number}"
     if detached is None:
-        article.part_number = part_number
-        _insert_article_sorted(part, article)
-        return f"{article.id}: created in Part {part_number}"
-
-    detached.part_number = part_number
-    _insert_article_sorted(part, detached)
-    return f"{detached.id}: moved to Part {part_number}"
+        return f"{target.id}: created in {where}"
+    return f"{target.id}: moved to {where}"
 
 
 def _create_article_from_correction(
@@ -163,6 +192,7 @@ def _create_article_from_correction(
         body_text=corr.body_text,
         opening_text=corr.opening_text or "",
         manual_review_status=corr.manual_review_status,
+        prefer_article_unit=bool(corr.prefer_article_unit),
     )
 
 
@@ -266,6 +296,14 @@ def apply_corrections(
                 f"{article_id}: manual_review_status → {corr.manual_review_status!r}"
             )
             article.manual_review_status = corr.manual_review_status
+        if (
+            corr.prefer_article_unit is not None
+            and corr.prefer_article_unit != article.prefer_article_unit
+        ):
+            changes.append(
+                f"{article_id}: prefer_article_unit → {corr.prefer_article_unit!r}"
+            )
+            article.prefer_article_unit = corr.prefer_article_unit
 
     if exclude_ids:
         changes.extend(_remove_articles(reviewed, exclude_ids))

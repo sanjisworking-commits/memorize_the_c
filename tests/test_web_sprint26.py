@@ -32,9 +32,11 @@ def client(tmp_path: Path) -> TestClient:
 def test_settings_page_defaults_to_thrice(client: TestClient):
     html = client.get("/settings").text
     assert "Study reminders" in html
+    assert "macos" in html
+    assert "Memory log" in html
     assert 'value="thrice"' in html
     assert "checked" in html
-    assert "styles.css?v=footer1" in html
+    assert "styles.css?v=macos1" in html
     assert 'href="/settings"' in html
 
 

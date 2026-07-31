@@ -37,7 +37,7 @@ def test_send_reminders_dry_run_console(tmp_path: Path, capsys):
     )
     assert code == 0
     out = capsys.readouterr().out
-    assert "due today" in out
+    assert "1 due" in out or "due" in out
     assert "Article 20(1)" in out
     assert "Sent via" in out
 

@@ -20,6 +20,7 @@ from constitution_memorizer.progress.scheduler import ModesIncompleteError, Remi
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
+    browse_due_total,
     browse_parts_sections,
     build_article_view,
     list_article_numbers,
@@ -147,6 +148,7 @@ def create_app(
             lambda request: {
                 "app_name": "Recall the C",
                 "theme_preference": app.state.engine.get_theme(),
+                "browse_due_total": browse_due_total(app.state.engine),
             }
         ],
     )

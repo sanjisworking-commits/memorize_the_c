@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Hourly study reminder LaunchAgent (ntfy).
+  Hourly study reminder LaunchAgent (macOS Notification Center by default).
   Cadence (twice / thrice / hourly) is chosen in the Settings UI; this agent
   ticks every hour and send-reminders decides whether to fire.
   Install via: scripts/mac/install-reminders-agent.sh
-  Placeholders: __REPO_ROOT__, __VENV_PYTHON__, __HOME__, __NTFY_TOPIC__, __NTFY_SERVER__, __NTFY_TOKEN__
+  Placeholders: __REPO_ROOT__, __VENV_PYTHON__, __HOME__, __REMINDER_CHANNEL__,
+  __NTFY_TOPIC__, __NTFY_SERVER__, __NTFY_TOKEN__
 -->
 <plist version="1.0">
 <dict>
@@ -20,7 +21,7 @@
     <string>constitution_memorizer.cli</string>
     <string>send-reminders</string>
     <string>--channel</string>
-    <string>ntfy</string>
+    <string>__REMINDER_CHANNEL__</string>
     <string>--host-url</string>
     <string>http://127.0.0.1:8001</string>
   </array>

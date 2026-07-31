@@ -53,7 +53,7 @@ def test_nav_slim_and_footer_has_tools(client: TestClient):
     assert 'id="theme-toggle"' in html
     assert "Reference &amp; tools" in html
     assert 'href="/memory"' in html
-    assert "styles.css?v=main1" in html
+    assert "styles.css?v=main2" in html
 
 
 def test_constitution_calendar_has_no_memory_chips(client: TestClient):

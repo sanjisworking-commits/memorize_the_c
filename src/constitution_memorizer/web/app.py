@@ -157,6 +157,13 @@ def create_app(
     reviewed = load_reviewed_document(
         resolved_reviewed if resolved_reviewed.exists() else None
     )
+    # Stale non-editable installs often miss Browse Part segregation — surface paths.
+    import constitution_memorizer.web.browse as _browse_mod  # noqa: PLC0415
+
+    print(
+        f"Browse module: {_browse_mod.__file__} "
+        f"(reviewed={'yes' if reviewed is not None else 'missing → Part seed/tags'})"
+    )
     amendments = load_amendments(
         resolved_amendments if resolved_amendments.exists() else None
     )
@@ -466,12 +473,14 @@ def create_app(
     async def browse_index(request: Request) -> HTMLResponse:
         eng = _engine()
         sections = browse_parts_sections(eng, app.state.reviewed)
+        parts_source = "reviewed" if app.state.reviewed is not None else "units-seed"
         return templates.TemplateResponse(
             request,
             "browse_index.html",
             {
                 "sections": sections,
                 "has_reviewed": app.state.reviewed is not None,
+                "parts_source": parts_source,
             },
         )
 

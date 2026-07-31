@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Browse · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
-<section class="panel browse">
+<section class="panel browse" data-parts-source="{{ parts_source|default('unknown') }}">
   <h1 class="display">Browse</h1>
   <p class="lede">
     The Constitution, Part by Part. Open an Article, then learn any clause from inside it.

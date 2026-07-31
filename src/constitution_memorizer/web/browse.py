@@ -11,8 +11,15 @@ import re
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitType
 from constitution_memorizer.progress.scheduler import ReminderEngine
 from constitution_memorizer.schemas import Article, ConstitutionDocument
-from constitution_memorizer.utils.identifiers import article_sort_key, roman_to_int
+from constitution_memorizer.utils.identifiers import (
+    article_sort_key,
+    parse_article_number,
+    roman_to_int,
+)
 from constitution_memorizer.utils.json_io import read_json
+
+_PACKAGE_PARTS_SEED = Path(__file__).resolve().parent / "browse_parts.seed.json"
+_REPO_PARTS_SEED = Path(__file__).resolve().parents[3] / "data" / "reference" / "browse_parts.seed.json"
 from constitution_memorizer.web.amendments import (
     Amendment,
     ArticleAmendments,
@@ -214,6 +221,55 @@ def _part_tag_roman(tag: str) -> str | None:
     return match.group(1).upper()
 
 
+def load_browse_parts_seed(path: Path | None = None) -> list[dict]:
+    """Load Part roman/title/article-range rows for Browse without reviewed JSON."""
+    candidates = [path] if path is not None else [_PACKAGE_PARTS_SEED, _REPO_PARTS_SEED]
+    seed_path = next((p for p in candidates if p is not None and p.exists()), None)
+    if seed_path is None:
+        return []
+    data = read_json(seed_path)
+    if not isinstance(data, list):
+        return []
+    return [row for row in data if isinstance(row, dict) and row.get("roman")]
+
+
+def _suffix_in_band(suffix: str, suffix_min: str | None, suffix_max: str | None) -> bool:
+    s = (suffix or "").upper()
+    lo = (suffix_min or "").upper()
+    hi = (suffix_max or "").upper()
+    if suffix_min is not None and s < lo:
+        return False
+    if suffix_max is not None and s > hi:
+        return False
+    return True
+
+
+def _roman_from_seed(article_number: str, seed: list[dict]) -> str | None:
+    parts = parse_article_number(article_number)
+    if parts is None:
+        return None
+    num = parts.numeric_component
+    suffix = parts.suffix
+    for row in seed:
+        if row.get("repealed"):
+            continue
+        start = row.get("from")
+        end = row.get("to")
+        if start is None or end is None:
+            continue
+        if not (int(start) <= num <= int(end)):
+            continue
+        if start == end == 243 or row.get("suffix_min") is not None or row.get(
+            "suffix_max"
+        ) is not None:
+            if not _suffix_in_band(
+                suffix, row.get("suffix_min"), row.get("suffix_max")
+            ):
+                continue
+        return str(row["roman"]).upper()
+    return None
+
+
 def _part_titles_from_units(engine: ReminderEngine) -> dict[str, str]:
     """Map Part roman → display title from PART_OVERVIEW unit tags."""
     from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
@@ -238,46 +294,59 @@ def _part_titles_from_units(engine: ReminderEngine) -> dict[str, str]:
     return titles
 
 
+def _article_labels_from_units(engine: ReminderEngine) -> dict[str, str]:
+    labels: dict[str, str] = {}
+    for unit in engine.units.values():
+        number = unit.article_number
+        if not number:
+            continue
+        if number not in labels:
+            labels[number] = ""
+        if unit.type == LearningUnitType.ARTICLE:
+            labels[number] = _short_article_title(unit.title or unit.display_title)
+    return labels
+
+
 def browse_parts_from_units(
     engine: ReminderEngine,
     *,
     as_of: date | None = None,
     news_articles: set[str] | None = None,
+    parts_seed: list[dict] | None = None,
 ) -> list[BrowsePartSection]:
-    """Group Browse cards by Part tags when reviewed Bare Act JSON is absent."""
+    """Group Browse cards by Part tags + seed ranges when reviewed JSON is absent."""
     from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
         _article_range_label,
+        _display_part_title,
     )
 
     dues = article_due_summaries(engine, as_of=as_of)
     if news_articles is None:
         news_articles = parse_news_articles(engine.get_news_articles_raw())
-    titles = _part_titles_from_units(engine)
+    seed = parts_seed if parts_seed is not None else load_browse_parts_seed()
+    titles = {str(row["roman"]).upper(): _display_part_title(str(row.get("title") or "")) for row in seed}
+    titles.update(_part_titles_from_units(engine))
+    labels = _article_labels_from_units(engine)
+    seed_order = {str(row["roman"]).upper(): i for i, row in enumerate(seed)}
 
-    # article_number → (roman, short title from any unit on that article)
+    # Prefer explicit Part tags; fall back to article-number seed ranges.
     by_part: dict[str, dict[str, str]] = {}
-    for unit in engine.units.values():
-        number = unit.article_number
-        if not number:
-            continue
+    for number in list_article_numbers(engine, None):
         roman: str | None = None
-        for tag in unit.tags:
-            roman = _part_tag_roman(tag)
+        for unit in engine.units.values():
+            if unit.article_number != number:
+                continue
+            for tag in unit.tags:
+                roman = _part_tag_roman(tag)
+                if roman is not None:
+                    break
             if roman is not None:
                 break
         if roman is None:
-            continue
-        bucket = by_part.setdefault(roman, {})
-        if number not in bucket:
-            # Prefer ARTICLE unit title when present; else first display_title stem.
-            label = ""
-            if unit.type == LearningUnitType.ARTICLE and unit.title:
-                label = _short_article_title(unit.title)
-            elif unit.type == LearningUnitType.ARTICLE:
-                label = _short_article_title(unit.display_title)
-            bucket[number] = label
-        elif not bucket[number] and unit.type == LearningUnitType.ARTICLE:
-            bucket[number] = _short_article_title(unit.title or unit.display_title)
+            roman = _roman_from_seed(number, seed)
+        if roman is None:
+            roman = "—"
+        by_part.setdefault(roman, {})[number] = labels.get(number, "")
 
     def _card(number: str, title: str) -> BrowseArticleCard:
         summary = dues.get(number)
@@ -292,32 +361,57 @@ def browse_parts_from_units(
         )
 
     sections: list[BrowsePartSection] = []
-    for roman in sorted(
-        by_part.keys(),
-        key=lambda r: (roman_to_int(r) is None, roman_to_int(r) or 99, r),
-    ):
-        numbers = sorted(by_part[roman].keys(), key=article_sort_key)
-        cards = [_card(n, by_part[roman][n]) for n in numbers]
+    # Emit seed order first (includes repealed Part VII note), then any extras.
+    seen: set[str] = set()
+    for row in seed:
+        roman = str(row["roman"]).upper()
+        seen.add(roman)
+        arts = by_part.get(roman, {})
+        if row.get("repealed"):
+            sections.append(
+                BrowsePartSection(
+                    part_number=roman,
+                    part_title=titles.get(roman, _display_part_title(str(row.get("title") or ""))),
+                    article_range="—",
+                    cards=[],
+                    note="Repealed — States in Part B of the First Schedule.",
+                )
+            )
+            continue
+        if not arts:
+            continue
+        numbers = sorted(arts.keys(), key=article_sort_key)
         sections.append(
             BrowsePartSection(
                 part_number=roman,
                 part_title=titles.get(roman, ""),
                 article_range=_article_range_label(numbers),
-                cards=cards,
+                cards=[_card(n, arts[n]) for n in numbers],
             )
         )
-    # Articles with no Part tag (should be rare) — keep reachable at the end.
-    tagged = {n for arts in by_part.values() for n in arts}
-    orphan = [
-        n for n in list_article_numbers(engine, None) if n not in tagged
-    ]
-    if orphan:
+
+    extras = [r for r in by_part.keys() if r not in seen]
+    for roman in sorted(
+        extras,
+        key=lambda r: (
+            r == "—",
+            seed_order.get(r, 999),
+            roman_to_int(r) is None,
+            roman_to_int(r) or 99,
+            r,
+        ),
+    ):
+        arts = by_part[roman]
+        if not arts:
+            continue
+        numbers = sorted(arts.keys(), key=article_sort_key)
+        title = "Other articles" if roman == "—" else titles.get(roman, "")
         sections.append(
             BrowsePartSection(
-                part_number="—",
-                part_title="Other articles",
-                article_range=_article_range_label(orphan),
-                cards=[_card(n, "") for n in orphan],
+                part_number=roman,
+                part_title=title,
+                article_range=_article_range_label(numbers),
+                cards=[_card(n, arts[n]) for n in numbers],
             )
         )
     return sections

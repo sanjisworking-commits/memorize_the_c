@@ -66,6 +66,5 @@ def test_browse_html_parts_without_reviewed(tmp_path: Path):
     assert "Part III" in html
     assert "Articles 1–4" in html or "Articles 1" in html
     assert html.count("browse-part-roman") >= 10
-    # Old flat marker must be gone
-    assert "Part —" not in html or "Other articles" in html
-    assert ">Articles</span>" not in html.split("browse-part-name")[1][:40] if False else True
+    # Old flat marker (pre-fix single bucket) must be gone
+    assert 'class="browse-part-name">Articles</span>' not in html

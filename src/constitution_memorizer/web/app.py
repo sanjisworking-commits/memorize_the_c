@@ -321,8 +321,15 @@ def create_app(
         )
         curated = get_article_amendments(app.state.amendments, target.article_number)
         amend_note = curated.learn_note if curated is not None else None
-        unit_anns = annotations_for_unit(app.state.text_annotations, target.id)
-        annotated_text = annotate_plain_text(target.text, unit_anns)
+        catalog = app.state.text_annotations
+        unit_anns = annotations_for_unit(catalog, target.id)
+        notes = catalog.notes if hasattr(catalog, "notes") else {}
+        annotated_text = annotate_plain_text(
+            target.text,
+            unit_anns,
+            notes=notes,
+            unit_id=target.id,
+        )
         return templates.TemplateResponse(
             request,
             "learn.html",

@@ -1,0 +1,367 @@
+"""Arts 54–67 corpus restore + nested population/2026 tooltip."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from constitution_memorizer.corrections.apply_corrections import (
+    ArticleCorrection,
+    CorrectionsFile,
+    apply_corrections,
+    load_corrections,
+)
+from constitution_memorizer.learning.learning_unit_generator import generate_learning_units
+from constitution_memorizer.schemas import (
+    Article,
+    ArticleStatus,
+    Chapter,
+    ConstitutionDocument,
+    DocumentMetadata,
+    ExtractionSummary,
+    Part,
+)
+from constitution_memorizer.web.app import create_app
+from constitution_memorizer.web.text_annotations import (
+    ContentNoteRef,
+    ContentText,
+    NoteRecord,
+    TextAnnotation,
+    annotate_plain_text,
+    load_text_annotations,
+    render_tip_inner,
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+CORRECTIONS = ROOT / "data" / "corrections" / "corrections.json"
+ANNOTATIONS = ROOT / "data" / "reference" / "text_annotations.json"
+UNITS = ROOT / "data" / "output" / "learning_units.json"
+MINI_UNITS = ROOT / "tests" / "fixtures" / "mini_learning_units.json"
+
+
+def _part_v_doc(*articles: Article) -> ConstitutionDocument:
+    return ConstitutionDocument(
+        document=DocumentMetadata(title="t", schema_version="1.0.0"),
+        parts=[
+            Part(
+                id="part-v",
+                part_number="V",
+                title="THE UNION",
+                chapters=[
+                    Chapter(
+                        id="part-v-chapter-i",
+                        chapter_number="I",
+                        title="THE EXECUTIVE",
+                        articles=list(articles),
+                    )
+                ],
+            )
+        ],
+        extraction_summary=ExtractionSummary(),
+    )
+
+
+def test_corrections_json_has_54_55_56_67():
+    corr = load_corrections(CORRECTIONS)
+    assert corr.articles["article-54"].prefer_article_unit is True
+    assert corr.articles["article-54"].enable_letter_split is not True
+    assert "Explanation" not in (corr.articles["article-54"].body_text or "")
+    assert "(b) if, after taking the said multiples" in (
+        corr.articles["article-55"].body_text or ""
+    )
+    assert "2026" in (corr.articles["article-55"].body_text or "")
+    body56 = corr.articles["article-56"].body_text or ""
+    assert "Provided that—" in body56
+    assert body56.index("Provided that—") < body56.index("(2)")
+    assert corr.articles["article-67"].prefer_article_unit is True
+    assert corr.articles["article-67"].enable_letter_split is True
+
+
+def test_article_54_single_card_without_explanation():
+    corr = load_corrections(CORRECTIONS)
+    doc = _part_v_doc(
+        Article(
+            id="article-54",
+            article_number="54",
+            numeric_component=54,
+            title="Election of President",
+            part_number="V",
+            chapter_number="I",
+            status=ArticleStatus.ACTIVE,
+            body_text="(a) broken Explanation",
+        )
+    )
+    reviewed, _ = apply_corrections(
+        doc, CorrectionsFile(articles={"article-54": corr.articles["article-54"]})
+    )
+    units = {u.id: u for u in generate_learning_units(reviewed).units}
+    assert "article-54" in units
+    assert units["article-54"].display_title == "Article 54"
+    assert units["article-54"].allows_letter_split is False
+    assert "Explanation" not in units["article-54"].text
+    assert "electoral college" in units["article-54"].text
+    assert not any(uid.startswith("article-54-clause") for uid in units)
+
+
+def test_article_67_article_card_with_sibling_letter_split():
+    corr = load_corrections(CORRECTIONS)
+    doc = _part_v_doc(
+        Article(
+            id="article-67",
+            article_number="67",
+            numeric_component=67,
+            title="Term of office of Vice-President",
+            part_number="V",
+            chapter_number="I",
+            status=ArticleStatus.ACTIVE,
+            body_text="(a) broken",
+        )
+    )
+    reviewed, _ = apply_corrections(
+        doc, CorrectionsFile(articles={"article-67": corr.articles["article-67"]})
+    )
+    art = reviewed.parts[0].chapters[0].articles[0]
+    assert art.prefer_article_unit is True
+    assert art.enable_letter_split is True
+
+    units = {u.id: u for u in generate_learning_units(reviewed).units}
+    assert units["article-67"].display_title == "Article 67"
+    assert units["article-67"].allows_letter_split is True
+    assert units["article-67-subclause-a"].display_title == "Article 67(a)"
+    assert units["article-67-subclause-b"].display_title == "Article 67(b)"
+    assert units["article-67-subclause-c"].display_title == "Article 67(c)"
+    assert "67(a)(b)" not in units["article-67-subclause-b"].display_title
+    assert "article-67-clause-a" not in units
+    assert units["article-67"].child_unit_ids == [
+        "article-67-subclause-a",
+        "article-67-subclause-b",
+        "article-67-subclause-c",
+    ]
+
+
+def test_article_56_proviso_under_clause_one():
+    corr = load_corrections(CORRECTIONS)
+    doc = _part_v_doc(
+        Article(
+            id="article-56",
+            article_number="56",
+            numeric_component=56,
+            title="Term of office of President",
+            part_number="V",
+            chapter_number="I",
+            status=ArticleStatus.ACTIVE,
+            body_text="(1) broken",
+        )
+    )
+    reviewed, _ = apply_corrections(
+        doc, CorrectionsFile(articles={"article-56": corr.articles["article-56"]})
+    )
+    units = {u.id: u for u in generate_learning_units(reviewed).units}
+    assert "Provided that" in units["article-56-clause-1"].text
+    assert "continue to hold office until his successor" in units["article-56-clause-1"].text
+    assert "Provided that" not in units["article-56-clause-2"].text
+    assert "Speaker of the House of the People" in units["article-56-clause-2"].text
+
+
+def test_tracked_units_54_55_56_67():
+    units = {u["id"]: u for u in json.loads(UNITS.read_text())["units"]}
+    assert units["article-54"]["display_title"] == "Article 54"
+    assert "Explanation" not in units["article-54"]["text"]
+    assert "article-54-clause-a" not in units
+    assert "article-55-clause-2-subclause-b" in units
+    assert "article-55-clause-2-subclause-c" in units
+    assert "2026" in units["article-55-clause-3"]["text"]
+    assert "1971" in units["article-55-clause-3"]["text"]
+    assert "Provided that" in units["article-56-clause-1"]["text"]
+    assert "Provided that" not in units["article-56-clause-2"]["text"]
+    assert units["article-67"]["display_title"] == "Article 67"
+    assert units["article-67"]["allows_letter_split"] is True
+    assert units["article-67-subclause-b"]["display_title"] == "Article 67(b)"
+    assert "article-67-clause-a" not in units
+
+
+def test_legacy_note_annotations_still_load():
+    catalog = load_text_annotations(ANNOTATIONS)
+    assert catalog.units["article-124-clause-1"][0].target == "seven"
+    assert catalog.units["article-326"][0].note.startswith("Subs. by")
+    rendered = str(
+        annotate_plain_text(
+            "of not more than seven other Judges.",
+            catalog.units["article-124-clause-1"],
+            notes=catalog.notes,
+            unit_id="article-124-clause-1",
+        )
+    )
+    assert 'class="bare-fn-word">seven</span>' in rendered
+    assert "thirty-three" in rendered
+    assert "bare-fn-nested-trigger" not in rendered
+
+
+def test_structured_note_ref_and_safe_failures():
+    notes = {
+        "article-55-2026-amendment": NoteRecord(
+            id="article-55-2026-amendment",
+            note='Subs. by the Constitution (Eighty-fourth Amendment) Act, 2001, s. 2, for "2000" (w.e.f. 21-2-2002).',
+        )
+    }
+    ann = TextAnnotation(
+        target="population",
+        content=(
+            ContentText(value='means census after '),
+            ContentNoteRef(label="2026", note_id="article-55-2026-amendment"),
+            ContentText(value="."),
+        ),
+    )
+    html = str(
+        annotate_plain_text(
+            'the population as ascertained',
+            [ann],
+            notes=notes,
+            unit_id="article-55-clause-3",
+        )
+    )
+    assert 'class="bare-fn-word">population</span>' in html
+    assert 'class="bare-fn-nested-trigger"' in html
+    assert ">2026</button>" in html
+    assert "Eighty-fourth Amendment" in html
+    assert "bare-fn-nested-tip" in html
+
+    missing = TextAnnotation(
+        target="population",
+        content=(ContentNoteRef(label="2026", note_id="missing-note"),),
+    )
+    plain = render_tip_inner(missing, notes, id_prefix="t")
+    assert plain == "2026"
+    assert "<button" not in plain
+
+    ignored = _parse_via_load_unknown_type()
+    assert ignored  # loads without raising
+
+
+def _parse_via_load_unknown_type() -> bool:
+    import tempfile
+
+    payload = {
+        "schema_version": "1.1.0",
+        "notes": {},
+        "units": {
+            "article-x": [
+                {
+                    "target": "word",
+                    "content": [
+                        {"type": "text", "value": "ok "},
+                        {"type": "script", "value": "<evil>"},
+                        {"type": "text", "value": "end"},
+                    ],
+                }
+            ]
+        },
+    }
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "ann.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        catalog = load_text_annotations(path)
+        ann = catalog.units["article-x"][0]
+        assert len(ann.content) == 2
+        html = str(annotate_plain_text("a word here", [ann], notes={}, unit_id="article-x"))
+        assert "&lt;evil&gt;" not in html or "evil" not in html.replace("ok ", "").replace("end", "")
+        assert "<script" not in html
+        assert "ok " in html and "end" in html
+    return True
+
+
+def test_annotate_escapes_injection_in_structured_content():
+    notes = {"n1": NoteRecord(id="n1", note='<img src=x onerror=alert(1)>')}
+    ann = TextAnnotation(
+        target="population",
+        content=(
+            ContentText(value="<b>bold</b> "),
+            ContentNoteRef(label="<em>2026</em>", note_id="n1"),
+        ),
+    )
+    html = str(annotate_plain_text("population", [ann], notes=notes, unit_id="u1"))
+    assert "&lt;b&gt;bold&lt;/b&gt;" in html
+    assert "&lt;em&gt;2026&lt;/em&gt;" in html
+    assert "<img" not in html
+    assert "<em>" not in html
+    # Escaped tip may still contain the word onerror as text; raw tag must not execute.
+    assert "&lt;img src=x onerror=alert(1)&gt;" in html
+
+
+def test_article_55_learn_html_has_nested_trigger(tmp_path: Path):
+    if not UNITS.exists():
+        pytest.skip("learning_units.json missing")
+    # Build a tiny units file containing the Explanation-bearing unit from tracked JSON.
+    full = json.loads(UNITS.read_text())
+    unit = next(u for u in full["units"] if u["id"] == "article-55-clause-3")
+    mini = {
+        "schema_version": "1.0.0",
+        "source_document": "test",
+        "unit_count": 1,
+        "units": [unit],
+    }
+    units_path = tmp_path / "units.json"
+    units_path.write_text(json.dumps(mini), encoding="utf-8")
+    db = tmp_path / "progress.db"
+    app = create_app(units_path=units_path, db_path=db, text_annotations_path=ANNOTATIONS)
+    client = TestClient(app)
+    resp = client.get("/learn/article-55-clause-3?mode=read")
+    assert resp.status_code == 200
+    assert 'class="bare-fn-word">population</span>' in resp.text
+    assert "bare-fn-nested-trigger" in resp.text
+    assert "Eighty-fourth Amendment" in resp.text
+    cloze = client.get("/learn/article-55-clause-3?mode=cloze")
+    assert cloze.status_code == 200
+    # All mode panels share one page; Cloze itself uses plain unit.text.
+    assert 'data-cloze-text="' in cloze.text
+    assert "bare-fn-nested-trigger" not in cloze.text.split('data-cloze-text="')[1].split('"')[0]
+
+
+def test_article_54_learn_states_hover(tmp_path: Path):
+    if not UNITS.exists():
+        pytest.skip("learning_units.json missing")
+    full = json.loads(UNITS.read_text())
+    unit = next(u for u in full["units"] if u["id"] == "article-54")
+    mini = {
+        "schema_version": "1.0.0",
+        "source_document": "test",
+        "unit_count": 1,
+        "units": [unit],
+    }
+    units_path = tmp_path / "units.json"
+    units_path.write_text(json.dumps(mini), encoding="utf-8")
+    app = create_app(
+        units_path=units_path,
+        db_path=tmp_path / "progress.db",
+        text_annotations_path=ANNOTATIONS,
+    )
+    client = TestClient(app)
+    resp = client.get("/learn/article-54?mode=read")
+    assert resp.status_code == 200
+    assert 'class="bare-fn-word">States</span>' in resp.text
+    assert "National Capital Territory of Delhi" in resp.text
+    assert "Puducherry" in resp.text
+    assert "Explanation" not in unit["text"]
+
+
+def test_bare_fn_js_nested_wiring(client_or_skip=None):
+    app = create_app(
+        units_path=MINI_UNITS if MINI_UNITS.exists() else UNITS,
+        db_path=Path("/tmp/bare-fn-test.db"),
+        text_annotations_path=ANNOTATIONS,
+    )
+    client = TestClient(app)
+    js = client.get("/static/app.js")
+    assert js.status_code == 200
+    text = js.text
+    assert "bare-fn-nested-trigger" in text
+    assert "stopPropagation" in text
+    assert "Escape" in text
+    assert "aria-expanded" in text
+    css = client.get("/static/styles.css")
+    assert css.status_code == 200
+    assert "bare-fn-nested-tip" in css.text
+    assert "max-width: 560px" in css.text

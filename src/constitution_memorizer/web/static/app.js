@@ -664,34 +664,210 @@
 
   function initBareFns(root) {
     const scope = root || document;
+    const LEAVE_MS = 120;
+    let pinnedPrimary = null;
+
+    function closeNested(trigger) {
+      if (!trigger) {
+        return;
+      }
+      const tipId = trigger.getAttribute("aria-controls");
+      const nested = tipId ? document.getElementById(tipId) : null;
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.classList.remove("is-open");
+      if (nested) {
+        nested.hidden = true;
+        nested.classList.remove("is-open");
+      }
+    }
+
+    function openNested(trigger) {
+      if (!trigger) {
+        return;
+      }
+      const tipId = trigger.getAttribute("aria-controls");
+      const nested = tipId ? document.getElementById(tipId) : null;
+      trigger.setAttribute("aria-expanded", "true");
+      trigger.classList.add("is-open");
+      if (nested) {
+        nested.hidden = false;
+        nested.classList.add("is-open");
+      }
+    }
+
+    function closePrimary(el, tip) {
+      el.querySelectorAll(".bare-fn-nested-trigger").forEach(closeNested);
+      tip.hidden = true;
+      el.classList.remove("is-open", "is-pinned");
+      if (pinnedPrimary === el) {
+        pinnedPrimary = null;
+      }
+    }
+
+    function openPrimary(el, tip, pin) {
+      if (pinnedPrimary && pinnedPrimary !== el) {
+        const otherTip = pinnedPrimary.querySelector(":scope > .bare-fn-tip");
+        if (otherTip) {
+          closePrimary(pinnedPrimary, otherTip);
+        }
+      }
+      tip.hidden = false;
+      el.classList.add("is-open");
+      if (pin) {
+        el.classList.add("is-pinned");
+        pinnedPrimary = el;
+      }
+    }
+
     scope.querySelectorAll(".bare-fn").forEach((el) => {
-      const tip = el.querySelector(".bare-fn-tip");
+      const tip = el.querySelector(":scope > .bare-fn-tip");
       if (!tip || el.dataset.bareFnBound === "1") {
         return;
       }
       el.dataset.bareFnBound = "1";
+      let leaveTimer = null;
 
-      function show() {
-        tip.hidden = false;
-        el.classList.add("is-open");
+      function clearLeave() {
+        if (leaveTimer) {
+          window.clearTimeout(leaveTimer);
+          leaveTimer = null;
+        }
       }
 
-      function hide() {
-        tip.hidden = true;
-        el.classList.remove("is-open");
+      function scheduleLeave() {
+        clearLeave();
+        leaveTimer = window.setTimeout(() => {
+          if (el.classList.contains("is-pinned")) {
+            return;
+          }
+          if (el.contains(document.activeElement)) {
+            return;
+          }
+          closePrimary(el, tip);
+        }, LEAVE_MS);
       }
 
-      el.addEventListener("mouseenter", show);
-      el.addEventListener("mouseleave", hide);
-      el.addEventListener("focus", show);
-      el.addEventListener("blur", hide);
-      // Tap/click toggle for trackpads and touch (title tooltips are easy to miss).
+      el.addEventListener("mouseenter", () => {
+        clearLeave();
+        openPrimary(el, tip, false);
+      });
+      el.addEventListener("mouseleave", scheduleLeave);
+      el.addEventListener("focusin", () => {
+        clearLeave();
+        openPrimary(el, tip, false);
+      });
+      el.addEventListener("focusout", (event) => {
+        if (el.contains(event.relatedTarget)) {
+          return;
+        }
+        scheduleLeave();
+      });
+
+      // Tap/click on the marked word toggles pin (nested triggers stopPropagation).
       el.addEventListener("click", (event) => {
+        if (event.target.closest(".bare-fn-nested-trigger")) {
+          return;
+        }
         event.preventDefault();
-        if (tip.hidden) {
-          show();
+        if (el.classList.contains("is-pinned")) {
+          closePrimary(el, tip);
         } else {
-          hide();
+          openPrimary(el, tip, true);
+        }
+      });
+
+      tip.querySelectorAll(".bare-fn-nested-trigger").forEach((trigger) => {
+        if (trigger.dataset.bareNestedBound === "1") {
+          return;
+        }
+        trigger.dataset.bareNestedBound = "1";
+        const nestedId = trigger.getAttribute("aria-controls");
+        const nested = nestedId ? document.getElementById(nestedId) : null;
+
+        function showChild() {
+          clearLeave();
+          openPrimary(el, tip, el.classList.contains("is-pinned"));
+          openNested(trigger);
+        }
+
+        function hideChild() {
+          closeNested(trigger);
+        }
+
+        trigger.addEventListener("mouseenter", showChild);
+        trigger.addEventListener("focus", showChild);
+        if (nested) {
+          nested.addEventListener("mouseenter", () => {
+            clearLeave();
+            showChild();
+          });
+          nested.addEventListener("mouseleave", () => {
+            if (trigger.getAttribute("aria-expanded") !== "true") {
+              return;
+            }
+            // Keep open while pinned via click; hover-only closes with parent leave.
+          });
+        }
+        // Nested click must not toggle the parent tip.
+        trigger.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          clearLeave();
+          openPrimary(el, tip, true);
+          if (trigger.getAttribute("aria-expanded") === "true") {
+            hideChild();
+          } else {
+            showChild();
+          }
+        });
+        trigger.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.stopPropagation();
+            trigger.click();
+          }
+        });
+      });
+    });
+
+    if (scope.dataset.bareFnGlobalBound === "1") {
+      return;
+    }
+    scope.dataset.bareFnGlobalBound = "1";
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      const openNestedBtn = document.querySelector(
+        ".bare-fn-nested-trigger[aria-expanded='true']"
+      );
+      if (openNestedBtn) {
+        closeNested(openNestedBtn);
+        openNestedBtn.focus();
+        event.preventDefault();
+        return;
+      }
+      const openPrimaryEl = document.querySelector(".bare-fn.is-open, .bare-fn.is-pinned");
+      if (openPrimaryEl) {
+        const tip = openPrimaryEl.querySelector(":scope > .bare-fn-tip");
+        if (tip) {
+          closePrimary(openPrimaryEl, tip);
+        }
+        openPrimaryEl.focus();
+        event.preventDefault();
+      }
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+      const inside = event.target.closest(".bare-fn");
+      document.querySelectorAll(".bare-fn.is-open, .bare-fn.is-pinned").forEach((el) => {
+        if (inside === el || (inside && el.contains(inside))) {
+          return;
+        }
+        const tip = el.querySelector(":scope > .bare-fn-tip");
+        if (tip) {
+          closePrimary(el, tip);
         }
       });
     });

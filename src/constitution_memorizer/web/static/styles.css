@@ -1737,6 +1737,7 @@ html[data-theme="dark"] .bare-fn-word {
   line-height: 1.45;
   text-align: left;
   white-space: normal;
+  overflow: visible;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
 }
 
@@ -1745,10 +1746,92 @@ html[data-theme="dark"] .bare-fn-word {
 }
 
 .bare-fn.is-open .bare-fn-tip,
+.bare-fn.is-pinned .bare-fn-tip,
 .bare-fn:hover .bare-fn-tip,
 .bare-fn:focus .bare-fn-tip,
 .bare-fn:focus-within .bare-fn-tip {
   display: block !important;
+}
+
+.bare-fn-nested-trigger {
+  display: inline;
+  margin: 0;
+  padding: 0 1px;
+  border: none;
+  border-bottom: 1.5px solid var(--ink);
+  border-radius: 0;
+  background: rgba(20, 20, 20, 0.06);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  line-height: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+html[data-theme="dark"] .bare-fn-nested-trigger {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.bare-fn-nested-trigger:focus {
+  outline: none;
+}
+
+.bare-fn-nested-trigger:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.bare-fn-nested-tip {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(26rem, 76vw);
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  background: var(--paper, #fff);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.bare-fn-nested-tip[hidden] {
+  display: none !important;
+}
+
+.bare-fn-nested-trigger.is-open + .bare-fn-nested-tip,
+.bare-fn-nested-tip.is-open {
+  display: block !important;
+}
+
+@media (max-width: 560px) {
+  .bare-fn-nested-tip {
+    position: static;
+    display: none;
+    width: auto;
+    max-width: none;
+    margin-top: 8px;
+    box-shadow: none;
+  }
+
+  .bare-fn-nested-trigger.is-open + .bare-fn-nested-tip,
+  .bare-fn-nested-tip.is-open {
+    display: block !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bare-fn-tip,
+  .bare-fn-nested-tip {
+    transition: none;
+  }
 }
 
 .judicial-evolution {

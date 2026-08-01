@@ -193,6 +193,65 @@ def _resolve_clauses(article: Article) -> list[ProvisionNode]:
     return split_flat_article_body(article.article_number, body)
 
 
+def _alphabetic_segments_from_body(body: str) -> list[tuple[str, str]]:
+    """Return (label, '(a) …' text) for top-level alphabetic markers in body."""
+    from constitution_memorizer.learning.text_fallback_splitter import _MARKER_RE
+
+    text = (body or "").strip()
+    if not text:
+        return []
+    matches = list(_MARKER_RE.finditer(text))
+    out: list[tuple[str, str]] = []
+    for index, match in enumerate(matches):
+        label = match.group("label")
+        if not (len(label) == 1 and label.isalpha() and label.islower()):
+            continue
+        if label in {"i", "v", "x"}:
+            continue
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        segment = text[match.end() : end].strip()
+        if not segment:
+            continue
+        out.append((label, f"({label}) {segment}".strip()))
+    return out
+
+
+def _letter_subclauses_under_article(
+    article: Article,
+    tags: list[str],
+) -> list[LearningUnit]:
+    """
+    Sibling letter SUBCLAUSE units under a prefer_article_unit ARTICLE.
+
+    Used for letter-only articles (e.g. Art 67): Letters path shows
+    Article 67(a)/67(b)/67(c), never nested 67(a)(b).
+    """
+    letters = _alphabetic_segments_from_body(
+        article.body_text.strip() or article.opening_text.strip()
+    )
+    if not letters:
+        return []
+    letter_units: list[LearningUnit] = []
+    for label, kid_text in letters:
+        kid_id = subclause_id(article.id, label)
+        letter_units.append(
+            _make_unit(
+                unit_id=kid_id,
+                unit_type=LearningUnitType.SUBCLAUSE,
+                parent_id=article.id,
+                article_number=article.article_number,
+                display_title=f"Article {article.article_number}({label})",
+                title=article.title,
+                text=kid_text,
+                tags=tags,
+                clause_count=len(letters),
+                parent_clause_id=article.id,
+            )
+        )
+    _link_letter_sequence(letter_units)
+    return letter_units
+
+
 def _units_for_article(part: Part, article: Article) -> list[LearningUnit]:
     """ARTICLE / CLAUSE units; SUBCLAUSE dual units when alphabetic children exist."""
     tags = _part_tags(part, article)
@@ -207,19 +266,23 @@ def _units_for_article(part: Part, article: Article) -> list[LearningUnit]:
             tags = [*tags, "repealed"]
         if not text:
             return []
-        return [
-            _make_unit(
-                unit_id=article.id,
-                unit_type=LearningUnitType.ARTICLE,
-                parent_id=part.id,
-                article_number=article.article_number,
-                display_title=f"Article {article.article_number}",
-                title=article.title,
-                text=text,
-                tags=tags,
-                clause_count=0,
-            )
-        ]
+        letter_units: list[LearningUnit] = []
+        if article.enable_letter_split:
+            letter_units = _letter_subclauses_under_article(article, tags)
+        parent = _make_unit(
+            unit_id=article.id,
+            unit_type=LearningUnitType.ARTICLE,
+            parent_id=part.id,
+            article_number=article.article_number,
+            display_title=f"Article {article.article_number}",
+            title=article.title,
+            text=text,
+            tags=tags,
+            clause_count=0,
+            allows_letter_split=bool(letter_units),
+            child_unit_ids=[u.id for u in letter_units],
+        )
+        return [parent, *letter_units]
 
     clauses = _resolve_clauses(article)
 

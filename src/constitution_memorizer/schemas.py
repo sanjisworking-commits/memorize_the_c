@@ -130,6 +130,9 @@ class Article(BaseModel):
     # When true, Learning Unit generator emits one ARTICLE card (stem + letters
     # stay in body_text) instead of CLAUSE cards per provision marker.
     prefer_article_unit: bool = False
+    # With prefer_article_unit: also emit sibling letter SUBCLAUSE units for the
+    # Letters path (e.g. Article 67 → 67(a)/67(b)/67(c), not 67(a)(b)).
+    enable_letter_split: bool = False
 
 
 class Chapter(BaseModel):

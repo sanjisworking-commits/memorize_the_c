@@ -26,9 +26,9 @@
     {% endif %}
   </nav>
 
-  <article class="unit-text browse-article-text"{% if has_text_annotations %} data-bare-fn-root{% endif %}>
-    {% if has_text_annotations %}{{ annotated_text }}{% else %}{{ article.full_text }}{% endif %}
-  </article>
+  {# Keep body flush against the tag: .unit-text uses white-space:pre-wrap, so
+     indented Jinja would show as a leading blank line / indent before "(1)". #}
+  <article class="unit-text browse-article-text"{% if has_text_annotations %} data-bare-fn-root{% endif %}>{% if has_text_annotations %}{{ annotated_text }}{% else %}{{ article.full_text }}{% endif %}</article>
 
   <h2 class="section-title">Learn</h2>
   {% if article.learn_units %}

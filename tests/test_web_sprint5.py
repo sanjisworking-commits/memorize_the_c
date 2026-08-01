@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -78,6 +79,20 @@ def test_browse_article_shows_text_and_learn_cta(client: TestClient):
     assert "LearningUnitType" not in response.text
     assert "checklist-meta" not in response.text
     assert " · 60s" not in response.text and " · 30s" not in response.text
+
+
+def test_browse_article_text_has_no_leading_indent(client: TestClient):
+    """`.unit-text` uses pre-wrap; template indent must not precede Bare Act text."""
+    response = client.get("/browse/article/20")
+    assert response.status_code == 200
+    match = re.search(
+        r'<article class="unit-text browse-article-text"[^>]*>([\s\S]*?)</article>',
+        response.text,
+    )
+    assert match is not None
+    inner = match.group(1)
+    assert not inner.startswith(("\n", " ", "\t"))
+    assert "No person shall be convicted" in inner[:80]
 
 
 def test_browse_article_prev_next_on_last(client: TestClient):

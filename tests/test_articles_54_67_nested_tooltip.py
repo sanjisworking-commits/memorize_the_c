@@ -361,7 +361,49 @@ def test_bare_fn_js_nested_wiring(client_or_skip=None):
     assert "stopPropagation" in text
     assert "Escape" in text
     assert "aria-expanded" in text
+    assert "initBrowseArticle" in text
     css = client.get("/static/styles.css")
     assert css.status_code == 200
     assert "bare-fn-nested-tip" in css.text
     assert "max-width: 560px" in css.text
+
+
+def test_browse_article_55_shows_corpus_and_nested_tooltip(tmp_path: Path):
+    if not UNITS.exists():
+        pytest.skip("learning_units.json missing")
+    app = create_app(
+        units_path=UNITS,
+        db_path=tmp_path / "progress.db",
+        text_annotations_path=ANNOTATIONS,
+        reviewed_path=tmp_path / "missing-reviewed.json",
+    )
+    client = TestClient(app)
+    resp = client.get("/browse/article/55")
+    assert resp.status_code == 200
+    html = resp.text
+    assert "remainder is not less than five hundred" in html
+    assert "single transferable vote" in html
+    assert "1971 census" in html
+    assert 'class="bare-fn-word">population</span>' in html
+    assert "bare-fn-nested-trigger" in html
+    assert ">2026</button>" in html
+    assert "Eighty-fourth Amendment" in html
+    assert "data-bare-fn-root" in html
+
+
+def test_browse_article_54_states_hover(tmp_path: Path):
+    if not UNITS.exists():
+        pytest.skip("learning_units.json missing")
+    app = create_app(
+        units_path=UNITS,
+        db_path=tmp_path / "progress.db",
+        text_annotations_path=ANNOTATIONS,
+        reviewed_path=tmp_path / "missing-reviewed.json",
+    )
+    client = TestClient(app)
+    resp = client.get("/browse/article/54")
+    assert resp.status_code == 200
+    assert "electoral college" in resp.text
+    assert "Explanation" not in resp.text.split("unit-text")[1].split("Learn")[0]
+    assert 'class="bare-fn-word">States</span>' in resp.text
+    assert "National Capital Territory of Delhi" in resp.text

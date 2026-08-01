@@ -57,6 +57,7 @@ from constitution_memorizer.web.service import (
 from constitution_memorizer.web.tables_data import list_table_tabs, load_table_tab, row_is_muted
 from constitution_memorizer.web.text_annotations import (
     annotate_plain_text,
+    annotations_for_article,
     annotations_for_unit,
     load_text_annotations,
 )
@@ -512,6 +513,19 @@ def create_app(
         judicial = get_judicial_evolution(
             app.state.judicial_evolution, view.article_number
         )
+        catalog = app.state.text_annotations
+        browse_anns = annotations_for_article(
+            catalog,
+            view.article_number,
+            [u.id for u in view.learn_units],
+        )
+        notes = catalog.notes if hasattr(catalog, "notes") else {}
+        annotated_text = annotate_plain_text(
+            view.full_text,
+            browse_anns,
+            notes=notes,
+            unit_id=f"browse-article-{view.article_number}",
+        )
         return templates.TemplateResponse(
             request,
             "browse_article.html",
@@ -522,6 +536,8 @@ def create_app(
                 "gloss_text": gloss_text,
                 "gloss_placeholder": gloss_ph,
                 "judicial_evolution": judicial,
+                "annotated_text": annotated_text,
+                "has_text_annotations": bool(browse_anns),
             },
         )
 

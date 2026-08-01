@@ -946,14 +946,24 @@
     }
   }
 
+  function initBrowseArticle() {
+    const root = document.querySelector(".browse-article [data-bare-fn-root]");
+    if (!root) {
+      return;
+    }
+    initBareFns(root);
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       initLearn();
+      initBrowseArticle();
       initExplainBack();
       initThemeToggle();
     });
   } else {
     initLearn();
+    initBrowseArticle();
     initExplainBack();
     initThemeToggle();
   }

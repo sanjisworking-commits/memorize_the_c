@@ -26,7 +26,9 @@
     {% endif %}
   </nav>
 
-  <article class="unit-text">{{ article.full_text }}</article>
+  <article class="unit-text browse-article-text"{% if has_text_annotations %} data-bare-fn-root{% endif %}>
+    {% if has_text_annotations %}{{ annotated_text }}{% else %}{{ article.full_text }}{% endif %}
+  </article>
 
   <h2 class="section-title">Learn</h2>
   {% if article.learn_units %}

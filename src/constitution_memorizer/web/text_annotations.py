@@ -142,6 +142,38 @@ def annotations_for_unit(
     return list(catalog.get(unit_id) or [])
 
 
+def annotations_for_article(
+    catalog: TextAnnotationsCatalog | dict[str, list[TextAnnotation]],
+    article_number: str | None,
+    unit_ids: list[str] | None = None,
+) -> list[TextAnnotation]:
+    """
+    Annotations for a Browse article page.
+
+    Merges ``article-{n}`` keys with per-unit annotations, deduping by target
+    so the first match in full article text wins.
+    """
+    if not article_number:
+        return []
+    from constitution_memorizer.utils.identifiers import article_id  # noqa: PLC0415
+
+    ordered_ids: list[str] = [article_id(article_number)]
+    for uid in unit_ids or []:
+        if uid and uid not in ordered_ids:
+            ordered_ids.append(uid)
+
+    out: list[TextAnnotation] = []
+    seen_targets: set[str] = set()
+    for uid in ordered_ids:
+        for ann in annotations_for_unit(catalog, uid):
+            key = ann.target.casefold()
+            if key in seen_targets:
+                continue
+            seen_targets.add(key)
+            out.append(ann)
+    return out
+
+
 def _sanitize_id_part(value: str) -> str:
     cleaned = re.sub(r"[^a-zA-Z0-9_-]+", "-", value.strip()).strip("-").lower()
     return cleaned or "x"

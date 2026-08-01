@@ -119,7 +119,7 @@ def create_app(
     gloss_placeholders_path: Path | str | None = None,
     text_annotations_path: Path | str | None = None,
     judicial_evolution_path: Path | str | None = None,
-    multiuser: bool | None = None,
+    multiuser: bool = False,
     multiuser_settings: MultiUserSettings | None = None,
     auth_provider=None,
     session_store=None,
@@ -161,9 +161,12 @@ def create_app(
         )
 
     settings = multiuser_settings or MultiUserSettings()
-    multiuser_on = bool(multiuser) if multiuser is not None else bool(settings.multiuser_enabled)
-    if multiuser_on:
-        # Always require Supabase credentials when multi-user mode is on.
+    # Opt-in only via the multiuser= argument (CLI sets this from MULTIUSER_ENABLED).
+    # Do not infer from process env here — that leaks across pytest cases.
+    multiuser_on = bool(multiuser)
+    # Real Supabase credentials are required only when multi-user is on and
+    # the caller did not inject a test/fake auth provider.
+    if multiuser_on and auth_provider is None:
         settings.validate_for_startup(require_secrets=True)
         missing = settings.missing_supabase()
         if missing:

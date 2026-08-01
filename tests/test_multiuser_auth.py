@@ -81,12 +81,17 @@ def test_load_env_file_sets_supabase_vars(tmp_path: Path, monkeypatch: pytest.Mo
         "MULTIUSER_ENABLED=true\n",
         encoding="utf-8",
     )
-    monkeypatch.delenv("SUPABASE_URL", raising=False)
-    monkeypatch.delenv("SUPABASE_ANON_KEY", raising=False)
+    monkeypatch.setenv("SUPABASE_URL", "")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "")
+    monkeypatch.delenv("MULTIUSER_ENABLED", raising=False)
     loaded = load_env_file(env, override=True)
     assert loaded == env
     assert os.environ["SUPABASE_URL"] == "https://rzkolfpivlpkctvtggre.supabase.co"
     assert os.environ["SUPABASE_ANON_KEY"] == "test-anon"
+    # Avoid leaking multi-user flags into later single-user tests.
+    monkeypatch.delenv("MULTIUSER_ENABLED", raising=False)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_ANON_KEY", raising=False)
 
 
 def test_staging_requires_auth_method():

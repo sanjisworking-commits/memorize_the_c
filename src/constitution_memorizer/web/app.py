@@ -14,6 +14,7 @@ from constitution_memorizer.auth.fake_provider import FakeAuthProvider
 from constitution_memorizer.auth.rate_limit import OtpRateLimiter
 from constitution_memorizer.auth.routes import create_auth_router, install_auth_middleware
 from constitution_memorizer.auth.sessions import InMemorySessionStore, PostgresSessionStore
+from constitution_memorizer.auth.exceptions import AuthConfigError
 from constitution_memorizer.multiuser.settings import MultiUserSettings
 from constitution_memorizer.progress.memory import MemoryEngine
 from constitution_memorizer.progress.repository import (
@@ -162,7 +163,17 @@ def create_app(
     settings = multiuser_settings or MultiUserSettings()
     multiuser_on = bool(multiuser) if multiuser is not None else bool(settings.multiuser_enabled)
     if multiuser_on:
-        settings.validate_for_startup()
+        # Always require Supabase credentials when multi-user mode is on.
+        settings.validate_for_startup(require_secrets=True)
+        missing = settings.missing_supabase()
+        if missing:
+            raise AuthConfigError(
+                "Missing "
+                + ", ".join(missing)
+                + ". Add them to .env in the repo root, then restart. "
+                "SUPABASE_URL must be https://<project-ref>.supabase.co "
+                "(not https://supabase.com/dashboard/...)."
+            )
 
     resolved_db = Path(resolved_db).expanduser().resolve()
     resolved_units = Path(resolved_units).expanduser().resolve()
@@ -243,8 +254,8 @@ def create_app(
         from constitution_memorizer.auth.supabase_provider import SupabaseAuthProvider
 
         app.state.auth_provider = SupabaseAuthProvider(
-            supabase_url=settings.supabase_url,
-            anon_key=settings.supabase_anon_key,
+            supabase_url=settings.supabase_url.strip(),
+            anon_key=settings.supabase_anon_key.strip(),
         )
     else:
         app.state.auth_provider = FakeAuthProvider()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from uuid import UUID
 
@@ -68,6 +69,24 @@ def test_normalize_and_mask_phone():
     with pytest.raises(InvalidCredentialsError):
         normalize_e164("9876543210")
     assert mask_phone("+919876543210") == "+91******3210"
+
+
+def test_load_env_file_sets_supabase_vars(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    from constitution_memorizer.multiuser.settings import load_env_file
+
+    env = tmp_path / ".env"
+    env.write_text(
+        "SUPABASE_URL=https://rzkolfpivlpkctvtggre.supabase.co\n"
+        "SUPABASE_ANON_KEY=test-anon\n"
+        "MULTIUSER_ENABLED=true\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_ANON_KEY", raising=False)
+    loaded = load_env_file(env, override=True)
+    assert loaded == env
+    assert os.environ["SUPABASE_URL"] == "https://rzkolfpivlpkctvtggre.supabase.co"
+    assert os.environ["SUPABASE_ANON_KEY"] == "test-anon"
 
 
 def test_staging_requires_auth_method():

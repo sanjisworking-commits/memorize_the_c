@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, field_validator
@@ -13,6 +15,43 @@ from constitution_memorizer.auth.exceptions import AuthConfigError
 AppEnv = Literal["development", "staging", "production", "test"]
 
 
+def load_env_file(path: Path | str | None = None, *, override: bool = False) -> Path | None:
+    """
+    Load KEY=VALUE pairs from a .env file into os.environ.
+
+    Does not override existing non-empty environment variables unless override=True.
+    Returns the path loaded, or None if no file was found.
+    """
+    candidates: list[Path] = []
+    if path is not None:
+        candidates.append(Path(path))
+    else:
+        cwd = Path.cwd() / ".env"
+        candidates.append(cwd)
+        # Also try repo-root-ish relative to this package (…/memorize_the_c/.env)
+        pkg_root = Path(__file__).resolve().parents[3]
+        candidates.append(pkg_root / ".env")
+
+    env_path = next((p for p in candidates if p.is_file()), None)
+    if env_path is None:
+        return None
+
+    for raw in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            value = value[1:-1]
+        if not key:
+            continue
+        if override or key not in os.environ or os.environ.get(key, "") == "":
+            os.environ[key] = value
+    return env_path
+
+
 class MultiUserSettings(BaseSettings):
     """Hosted multi-user configuration."""
 
@@ -20,6 +59,7 @@ class MultiUserSettings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     app_env: AppEnv = Field(default="development", alias="APP_ENV")
@@ -59,32 +99,52 @@ class MultiUserSettings(BaseSettings):
                 return False
         return value
 
-    def validate_for_startup(self) -> None:
-        """Raise AuthConfigError when staging/production config is incomplete."""
-        if self.app_env in {"staging", "production"}:
+    def validate_for_startup(self, *, require_secrets: bool = False) -> None:
+        """Raise AuthConfigError when multi-user config is incomplete."""
+        staging = self.app_env in {"staging", "production"}
+        if staging:
+            require_secrets = True
             if not self.auth_google_enabled and not self.auth_phone_enabled:
                 raise AuthConfigError(
                     "At least one of AUTH_GOOGLE_ENABLED or AUTH_PHONE_ENABLED "
                     "must be true in staging/production."
                 )
-            missing = [
-                name
-                for name, val in (
-                    ("DATABASE_URL", self.database_url),
-                    ("SUPABASE_URL", self.supabase_url),
-                    ("SUPABASE_ANON_KEY", self.supabase_anon_key),
-                    ("SESSION_SECRET", self.session_secret),
-                )
-                if not val
-            ]
-            if missing:
-                raise AuthConfigError(
-                    "Missing required multi-user settings: " + ", ".join(missing)
-                )
-            if self.captcha_enabled and not self.captcha_secret:
-                raise AuthConfigError(
-                    "CAPTCHA_SECRET is required when CAPTCHA_ENABLED=true"
-                )
+        if not require_secrets:
+            return
+
+        required: list[tuple[str, str]] = [
+            ("SUPABASE_URL", self.supabase_url),
+            ("SUPABASE_ANON_KEY", self.supabase_anon_key),
+            ("SESSION_SECRET", self.session_secret),
+        ]
+        if staging:
+            required.insert(0, ("DATABASE_URL", self.database_url))
+
+        missing = [name for name, val in required if not (val or "").strip()]
+        if missing:
+            raise AuthConfigError(
+                "Missing required multi-user settings: "
+                + ", ".join(missing)
+                + ". Put them in .env (SUPABASE_URL must be "
+                "https://<project-ref>.supabase.co, not the dashboard URL)."
+            )
+        if "supabase.com/dashboard" in (self.supabase_url or ""):
+            raise AuthConfigError(
+                "SUPABASE_URL looks like the dashboard link. Use the API URL "
+                "instead, e.g. https://YOUR_PROJECT_REF.supabase.co"
+            )
+        if self.captcha_enabled and not self.captcha_secret:
+            raise AuthConfigError(
+                "CAPTCHA_SECRET is required when CAPTCHA_ENABLED=true"
+            )
+
+    def missing_supabase(self) -> list[str]:
+        missing: list[str] = []
+        if not (self.supabase_url or "").strip():
+            missing.append("SUPABASE_URL")
+        if not (self.supabase_anon_key or "").strip():
+            missing.append("SUPABASE_ANON_KEY")
+        return missing
 
 
 @lru_cache(maxsize=1)

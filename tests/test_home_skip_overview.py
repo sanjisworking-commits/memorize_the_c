@@ -20,6 +20,8 @@ def test_continue_skips_part_overview(tmp_path: Path):
 
 def test_due_checklist_skips_part_overview(tmp_path: Path):
     engine = ReminderEngine.from_paths(tmp_path / "p.db", MINI_UNITS)
+    # mark_done requires every recall mode for the current cycle.
+    engine.mark_all_modes_seen("part-overview")
     engine.mark_done("part-overview", as_of=date(2026, 7, 19))
     # Overview due tomorrow path — mark and force due
     # After mark_done, overview is review with next_revision; if due, still filtered

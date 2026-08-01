@@ -54,12 +54,27 @@ def test_seed_preserves_sprint21_hand_notes():
 
 
 def test_seed_articles_exist_in_reviewed_corpus():
+    # constitution.reviewed.json is a local/gitignored artifact — skip in CI.
+    if not REVIEWED.exists():
+        pytest.skip("reviewed corpus not present")
     catalog = load_amendments(SEED)
     reviewed = load_reviewed_document(REVIEWED)
     assert reviewed is not None
     corpus_ids = {a.article_number for a in iter_articles(reviewed)}
     missing = sorted(set(catalog) - corpus_ids, key=lambda x: (len(x), x))
     assert missing == [], f"Seed articles missing from corpus: {missing}"
+
+
+def test_seed_sprint21_articles_present_in_fixture_reviewed():
+    """CI-safe slice: hand-noted seed articles must exist in the amendment fixture."""
+    catalog = load_amendments(SEED)
+    reviewed = load_reviewed_document(AMENDMENT_REVIEWED)
+    assert reviewed is not None
+    fixture_ids = {a.article_number for a in iter_articles(reviewed)}
+    required = {"14", "15", "19", "21"}
+    assert required <= set(catalog)
+    missing = sorted(required - fixture_ids, key=lambda x: (len(x), x))
+    assert missing == [], f"Seed articles missing from amendment fixture: {missing}"
 
 
 def test_heavily_amended_articles_have_timelines():

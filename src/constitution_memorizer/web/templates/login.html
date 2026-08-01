@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Sign in · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block content %}
+<section class="panel login-panel">
+  <p class="eyebrow">Account</p>
+  <h1 class="display">Sign in</h1>
+  <p class="lede">Sign in to keep learning progress private to your account.</p>
+
+  {% if error %}
+  <p class="login-error" role="alert">
+    {% if error == 'phone_format' %}
+      Enter a full phone number in E.164 format, e.g. +919876543210.
+    {% elif error == 'bad_otp' %}
+      That code was not accepted. Try again or request a new code.
+    {% elif error == 'oauth_failed' or error == 'oauth_state' %}
+      Google sign-in did not complete. Please try again.
+    {% elif error == 'rate_limited' %}
+      Too many attempts. Please wait and try again.
+    {% elif error == 'csrf' %}
+      Session check failed. Reload the page and try again.
+    {% else %}
+      Sign-in could not be completed.
+    {% endif %}
+  </p>
+  {% endif %}
+
+  {% if google_enabled %}
+  <p class="actions">
+    <a class="btn" href="/auth/google/start">Continue with Google</a>
+  </p>
+  {% endif %}
+
+  {% if phone_enabled %}
+  <form class="login-phone" method="post" action="/auth/phone/send">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label class="field-label" for="phone">Phone number (E.164)</label>
+    <input
+      id="phone"
+      class="field-input"
+      name="phone"
+      type="tel"
+      inputmode="tel"
+      autocomplete="tel"
+      placeholder="+919876543210"
+      value="{{ phone_value }}"
+      required
+    >
+    <button class="btn btn-ghost" type="submit">Send code</button>
+  </form>
+
+  {% if otp_sent %}
+  <form class="login-otp" method="post" action="/auth/phone/verify">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="phone" value="{{ phone_value }}">
+    <p class="muted">If that number can receive SMS, a code was sent. Enter it below.</p>
+    <label class="field-label" for="otp">One-time code</label>
+    <input
+      id="otp"
+      class="field-input"
+      name="otp"
+      type="text"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      pattern="[0-9]*"
+      required
+    >
+    <button class="btn" type="submit">Verify and continue</button>
+  </form>
+  {% endif %}
+  {% endif %}
+
+  {% if not google_enabled and not phone_enabled %}
+  <p class="empty">Sign-in is temporarily unavailable.</p>
+  {% endif %}
+</section>
+{% endblock %}

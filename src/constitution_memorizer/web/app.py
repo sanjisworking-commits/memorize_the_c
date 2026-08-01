@@ -10,6 +10,11 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from constitution_memorizer.auth.fake_provider import FakeAuthProvider
+from constitution_memorizer.auth.rate_limit import OtpRateLimiter
+from constitution_memorizer.auth.routes import create_auth_router, install_auth_middleware
+from constitution_memorizer.auth.sessions import InMemorySessionStore, PostgresSessionStore
+from constitution_memorizer.multiuser.settings import MultiUserSettings
 from constitution_memorizer.progress.memory import MemoryEngine
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
@@ -17,6 +22,8 @@ from constitution_memorizer.progress.repository import (
     VALID_THEMES,
 )
 from constitution_memorizer.progress.scheduler import ModesIncompleteError, ReminderEngine
+from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
+from constitution_memorizer.web.request_context import bound_engine, bound_memory
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
@@ -111,6 +118,10 @@ def create_app(
     gloss_placeholders_path: Path | str | None = None,
     text_annotations_path: Path | str | None = None,
     judicial_evolution_path: Path | str | None = None,
+    multiuser: bool | None = None,
+    multiuser_settings: MultiUserSettings | None = None,
+    auth_provider=None,
+    session_store=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -148,12 +159,20 @@ def create_app(
             "Run: python -m constitution_memorizer.cli generate-units --force"
         )
 
+    settings = multiuser_settings or MultiUserSettings()
+    multiuser_on = bool(multiuser) if multiuser is not None else bool(settings.multiuser_enabled)
+    if multiuser_on:
+        settings.validate_for_startup()
+
     resolved_db = Path(resolved_db).expanduser().resolve()
     resolved_units = Path(resolved_units).expanduser().resolve()
-    engine = ReminderEngine.from_paths(resolved_db, resolved_units)
+    engine = ReminderEngine.from_paths(
+        resolved_db, resolved_units, user_id=LOCAL_USER_ID
+    )
     memory = MemoryEngine(
         engine.repo.conn,
         resolved_db.parent / "memory_media",
+        user_id=LOCAL_USER_ID,
     )
     reviewed = load_reviewed_document(
         resolved_reviewed if resolved_reviewed.exists() else None
@@ -177,18 +196,33 @@ def create_app(
     judicial_evolution = load_judicial_evolution(
         resolved_judicial_evolution if resolved_judicial_evolution.exists() else None
     )
+
+    def _theme_for_request(request: Request) -> str:
+        bound = getattr(request.state, "bound_engine", None) or app.state.engine
+        return bound.get_theme()
+
+    def _due_for_request(request: Request) -> int:
+        bound = getattr(request.state, "bound_engine", None) or app.state.engine
+        return browse_due_total(bound)
+
     templates = Jinja2Templates(
         directory=str(TEMPLATES_DIR),
         context_processors=[
             lambda request: {
                 "app_name": "Recall the C",
-                "theme_preference": app.state.engine.get_theme(),
-                "browse_due_total": browse_due_total(app.state.engine),
+                "theme_preference": _theme_for_request(request),
+                "browse_due_total": _due_for_request(request),
+                "current_user": getattr(request.state, "current_user", None),
+                "multiuser_enabled": app.state.multiuser_enabled,
+                "csrf_token": (
+                    getattr(getattr(request.state, "auth_session", None), "csrf_token", None)
+                    or request.cookies.get("rtc_csrf")
+                ),
             }
         ],
     )
 
-    app = FastAPI(title="Recall the C", version="0.7.0")
+    app = FastAPI(title="Recall the C", version="0.8.0")
     app.state.engine = engine
     app.state.memory = memory
     app.state.reviewed = reviewed
@@ -199,12 +233,42 @@ def create_app(
     app.state.units_path = resolved_units
     app.state.db_path = resolved_db
     app.state.reviewed_path = resolved_reviewed
+    app.state.multiuser_enabled = multiuser_on
+    app.state.multiuser_settings = settings
+    app.state.oauth_states = {}
+    app.state.otp_limiter = OtpRateLimiter()
+    if auth_provider is not None:
+        app.state.auth_provider = auth_provider
+    elif multiuser_on:
+        from constitution_memorizer.auth.supabase_provider import SupabaseAuthProvider
+
+        app.state.auth_provider = SupabaseAuthProvider(
+            supabase_url=settings.supabase_url,
+            anon_key=settings.supabase_anon_key,
+        )
+    else:
+        app.state.auth_provider = FakeAuthProvider()
+    if session_store is not None:
+        app.state.session_store = session_store
+    elif multiuser_on and settings.database_url.startswith("postgresql"):
+        app.state.session_store = PostgresSessionStore(settings.database_url)
+    else:
+        app.state.session_store = InMemorySessionStore()
+
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    install_auth_middleware(app)
+    app.include_router(create_auth_router(templates))
 
     def _engine() -> ReminderEngine:
+        bound = bound_engine.get()
+        if bound is not None:
+            return bound
         return app.state.engine
 
     def _memory() -> MemoryEngine:
+        bound = bound_memory.get()
+        if bound is not None:
+            return bound
         return app.state.memory
 
     def _modes_payload(unit_id: str, seen: set[str] | None = None) -> dict[str, object]:
@@ -310,7 +374,7 @@ def create_app(
         done_state = done_button_state(target, seen)
         modes_payload = _modes_payload(target.id, seen)
 
-        progress = eng.repo.get_progress(target.id)
+        progress = eng.get_progress(target.id)
         done_count, _position, chain_len = session_progress(eng, target)
         pct = int(round(100 * done_count / chain_len)) if chain_len else 0
         chips = sibling_chips(eng, target)
@@ -456,11 +520,7 @@ def create_app(
         eng = _engine()
         if eng.get_unit(unit_id) is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
-        eng.repo.conn.execute(
-            "DELETE FROM learning_unit_progress WHERE learning_unit_id = ?",
-            (unit_id,),
-        )
-        eng.repo.conn.commit()
+        eng.delete_progress(unit_id)
         eng.clear_modes_seen(unit_id)
         learn_mode = mode if mode in LEARN_MODES else "read"
         # Re-seed the currently open mode on the next GET; redirect preserves mode.
@@ -469,12 +529,9 @@ def create_app(
 
     @app.post("/reset")
     async def reset_all() -> RedirectResponse:
-        """Clear all progress and preferences (study reset)."""
+        """Clear this user's progress and preferences (study reset)."""
         eng = _engine()
-        eng.repo.conn.execute("DELETE FROM learning_unit_progress")
-        eng.repo.conn.execute("DELETE FROM split_preference")
-        eng.repo.conn.commit()
-        eng.repo.clear_all_modes_seen()
+        eng.reset_all_personal_data()
         return RedirectResponse(url="/", status_code=303)
 
     @app.get("/browse", response_class=HTMLResponse)
@@ -506,7 +563,7 @@ def create_app(
         prev_number, next_number = adjacent_article_numbers(
             eng, app.state.reviewed, view.article_number
         )
-        gloss_text = eng.repo.get_gloss(view.article_number) or ""
+        gloss_text = eng.get_gloss(view.article_number) or ""
         gloss_ph = gloss_placeholder_for(
             app.state.gloss_placeholders, view.article_number
         )
@@ -560,16 +617,16 @@ def create_app(
         text = str(payload.get("text", "")) if isinstance(payload, dict) else ""
         trimmed = text.strip()
         if not trimmed:
-            eng.repo.delete_gloss(article_number)
+            eng.delete_gloss(article_number)
             return JSONResponse({"ok": True, "text": "", "words": 0})
-        eng.repo.upsert_gloss(article_number, text)
+        eng.upsert_gloss(article_number, text)
         words = len(trimmed.split())
         return JSONResponse({"ok": True, "text": text, "words": words})
 
     @app.delete("/browse/article/{article_number}/gloss")
     async def delete_article_gloss(article_number: str) -> JSONResponse:
         eng = _engine()
-        eng.repo.delete_gloss(article_number)
+        eng.delete_gloss(article_number)
         return JSONResponse({"ok": True, "text": "", "words": 0})
 
     @app.get("/search", response_class=HTMLResponse)
@@ -685,7 +742,7 @@ def create_app(
             calendar = build_memory_month(_memory(), year=y, month=m, today=today)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        entries = _memory().repo.list_all()
+        entries = _memory().list_all()
         photo_ids = {
             entry.id for entry in entries if _memory().photo_file(entry.id) is not None
         }
@@ -707,7 +764,7 @@ def create_app(
         cleaned = title.strip()
         if not cleaned:
             raise HTTPException(status_code=400, detail="Title required")
-        entry = _memory().repo.create(title=cleaned, acronym=acronym.strip())
+        entry = _memory().create(title=cleaned, acronym=acronym.strip())
         return RedirectResponse(url=f"/memory/{entry.id}", status_code=303)
 
     @app.get("/memory/media/{entry_id}")
@@ -720,7 +777,7 @@ def create_app(
 
     @app.get("/memory/{entry_id}", response_class=HTMLResponse)
     async def memory_detail_page(request: Request, entry_id: str) -> HTMLResponse:
-        entry = _memory().repo.get(entry_id)
+        entry = _memory().get(entry_id)
         if entry is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
         photo_path = _memory().photo_file(entry_id)
@@ -739,16 +796,16 @@ def create_app(
         entry_id: str,
         notes: str = Form(""),
     ) -> RedirectResponse:
-        if _memory().repo.get(entry_id) is None:
+        if _memory().get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
-        _memory().repo.update_notes(entry_id, notes)
+        _memory().update_notes(entry_id, notes)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.post("/memory/{entry_id}/done")
     async def memory_done(entry_id: str) -> RedirectResponse:
-        if _memory().repo.get(entry_id) is None:
+        if _memory().get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
-        _memory().repo.mark_done(entry_id)
+        _memory().mark_done(entry_id)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.post("/memory/{entry_id}/photo")
@@ -757,7 +814,7 @@ def create_app(
         photo: UploadFile = File(...),
     ) -> RedirectResponse:
         mem = _memory()
-        if mem.repo.get(entry_id) is None:
+        if mem.get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
         content = await photo.read()
         if not content:
@@ -766,16 +823,20 @@ def create_app(
         suffix, _media_type = _sniff_photo(content, filename)
         if suffix not in _ALLOWED_PHOTO_SUFFIXES:
             raise HTTPException(status_code=400, detail="Unsupported image type")
+        user_dir = mem.user_media_dir()
         # Remove any prior file for this entry (extension may change after sniff).
-        for old in mem.media_dir.glob(f"{entry_id}.*"):
+        for old in user_dir.glob(f"{entry_id}.*"):
             try:
                 old.unlink()
             except OSError:
                 pass
         dest_name = f"{entry_id}{suffix}"
-        dest = mem.media_dir / dest_name
+        dest = user_dir / dest_name
         dest.write_bytes(content)
-        mem.repo.set_photo(entry_id, dest_name)
+        from constitution_memorizer.progress.user_ids import as_user_id
+
+        storage_key = f"{as_user_id(mem.user_id)}/{dest_name}"
+        mem.set_photo(entry_id, storage_key)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.get("/settings", response_class=HTMLResponse)

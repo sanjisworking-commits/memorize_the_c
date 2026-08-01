@@ -45,7 +45,11 @@
           <span class="brand-wordmark">{{ app_name|default('Recall the C') }}</span>
         </a>
         <nav class="nav" aria-label="Primary">
+          {% if multiuser_enabled|default(false) %}
+          <a href="/dashboard" class="nav-link{% if path.startswith('/dashboard') %} is-active{% endif %}">Home</a>
+          {% else %}
           <a href="/" class="nav-link{% if path == '/' %} is-active{% endif %}">Home</a>
+          {% endif %}
           <a href="/browse" class="nav-link{% if path.startswith('/browse') %} is-active{% endif %}">
             Browse{% if browse_due_total|default(0) > 0 %}
             <span class="nav-due-badge" aria-label="{{ browse_due_total }} due or overdue">{{ browse_due_total }}</span>
@@ -54,6 +58,12 @@
           <a href="/calendar" class="nav-link{% if path.startswith('/calendar') %} is-active{% endif %}">Calendar</a>
           <a href="/progress" class="nav-link{% if path.startswith('/progress') %} is-active{% endif %}">Progress</a>
           <a href="/search" class="nav-link{% if path.startswith('/search') %} is-active{% endif %}">Search</a>
+          {% if current_user %}
+          <form class="nav-logout" method="post" action="/logout">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="nav-link nav-logout-btn">Log out</button>
+          </form>
+          {% endif %}
         </nav>
       </header>
       <main class="main">

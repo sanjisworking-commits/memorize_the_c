@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block content %}
+<section class="panel dashboard-panel">
+  <p class="eyebrow">Dashboard</p>
+  <div class="dashboard-identity">
+    {% if user.avatar_url %}
+    <img class="dashboard-avatar" src="{{ user.avatar_url }}" alt="" width="48" height="48">
+    {% endif %}
+    <div>
+      <h1 class="display">{{ display_label }}</h1>
+      <p class="lede">Your learning progress stays private to this account.</p>
+    </div>
+  </div>
+
+  <ul class="dashboard-stats" aria-label="Study summary">
+    <li><strong>{{ due_count }}</strong> due today</li>
+    <li><strong>{{ started }}</strong> units started</li>
+    <li><strong>{{ mastered }}</strong> mastered</li>
+  </ul>
+
+  <p class="actions">
+    {% if continue_unit %}
+    <a class="btn" href="/learn/{{ continue_unit.id }}">Continue {{ continue_unit.display_title }}</a>
+    {% else %}
+    <a class="btn" href="/browse">Browse articles</a>
+    {% endif %}
+    <a class="btn btn-ghost" href="/progress">Progress</a>
+  </p>
+
+  {% if recent %}
+  <h2 class="section-title">Recent activity</h2>
+  <ul class="checklist">
+    {% for row in recent %}
+    <li>
+      <span class="checklist-title">{{ row.learning_unit_id }}</span>
+      <span class="muted">{{ row.status }} · {{ row.updated_at[:10] }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <form method="post" action="/logout" class="dashboard-logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="btn btn-ghost" type="submit">Log out</button>
+  </form>
+</section>
+{% endblock %}

@@ -104,7 +104,7 @@ def path_units_for_article(
 
 
 def _is_completed(engine: ReminderEngine, unit_id: str) -> bool:
-    progress = engine.repo.get_progress(unit_id)
+    progress = engine.get_progress(unit_id)
     if progress is None:
         return False
     return progress.times_completed > 0 or progress.status in {"review", "mastered"}
@@ -169,7 +169,7 @@ def _article_range_label(numbers: list[str]) -> str:
 
 def _is_on_first_review_rung(engine: ReminderEngine, unit_id: str) -> bool:
     """True when the unit was memorized and is still waiting on the 1-day rung."""
-    progress = engine.repo.get_progress(unit_id)
+    progress = engine.get_progress(unit_id)
     if progress is None:
         return False
     return (

@@ -106,7 +106,7 @@ def continue_unit_id(
                     continue
                 unit = target
 
-        progress = engine.repo.get_progress(unit.id)
+        progress = engine.get_progress(unit.id)
         if progress is None or progress.status == "new":
             return unit.id
         if progress.status == "mastered":
@@ -222,7 +222,7 @@ def session_progress(
     completed = 0
     position = 1
     for index, item in enumerate(chain, start=1):
-        progress = engine.repo.get_progress(item.id)
+        progress = engine.get_progress(item.id)
         if progress is not None and progress.status == "mastered":
             completed += 1
         if item.id == unit.id:
@@ -277,7 +277,7 @@ def _chip_state(
     if unit_id == current_id:
         return "current"
     if mark_done:
-        progress = engine.repo.get_progress(unit_id)
+        progress = engine.get_progress(unit_id)
         if progress is not None and progress.status in {"mastered", "review"}:
             return "done"
         if progress is not None and (progress.times_completed or 0) > 0:

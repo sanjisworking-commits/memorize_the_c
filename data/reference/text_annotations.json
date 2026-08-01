@@ -1,7 +1,18 @@
 {
-  "schema_version": "1.0.0",
-  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain).",
+  "schema_version": "1.1.0",
+  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain). schema 1.1 adds structured tip content + shared notes for nested refs.",
+  "notes": {
+    "article-55-2026-amendment": {
+      "note": "Subs. by the Constitution (Eighty-fourth Amendment) Act, 2001, s. 2, for \"2000\" (w.e.f. 21-2-2002)."
+    }
+  },
   "units": {
+    "article-54": [
+      {
+        "target": "States",
+        "note": "\"State\" includes the National Capital Territory of Delhi and the Union territory of *Puducherry."
+      }
+    ],
     "article-124-clause-1": [
       {
         "target": "seven",
@@ -12,6 +23,26 @@
       {
         "target": "eighteen",
         "note": "Subs. by the Constitution (Sixty-first Amendment) Act, 1988, s. 2, for \"twenty-one years\" (w.e.f. 28-3-1989)."
+      }
+    ],
+    "article-55-clause-2": [
+      {
+        "target": "population",
+        "content": [
+          {
+            "type": "text",
+            "value": "In this article, the expression \"population\" means the population as ascertained at the last preceding census of which the relevant figures have been published: Provided that the reference in this Explanation to the last preceding census of which the relevant figures have been published shall, until the relevant figures for the first census taken after the year "
+          },
+          {
+            "type": "note_ref",
+            "label": "2026",
+            "note_id": "article-55-2026-amendment"
+          },
+          {
+            "type": "text",
+            "value": " have been published, be construed as a reference to the 1971 census."
+          }
+        ]
       }
     ]
   }

@@ -583,26 +583,35 @@ def build_article_view(
         show_unamended = not curated.has_amendments
     meta = build_amendment_meta(engine, article_number, curated)
 
+    # Prefer tracked Learn units for body text so Browse matches the committed
+    # corpus (reviewed JSON is often local/stale). Fall back to reviewed body.
+    units_text = "\n\n".join(u.text for u in learn_units if u.text).strip()
+    if units_text:
+        full_text = units_text
+    elif article is not None:
+        full_text = _article_full_text(article)
+    else:
+        full_text = ""
+
     if article is not None:
         return ArticleBrowseView(
             article_number=article.article_number,
             title=article.title,
             part_number=article.part_number,
             status=article.status.value if hasattr(article.status, "value") else str(article.status),
-            full_text=_article_full_text(article),
+            full_text=full_text,
             learn_units=learn_units,
             amendments=amendments_list,
             amendment_meta=meta,
             show_unamended=show_unamended,
         )
 
-    text = "\n\n".join(u.text for u in learn_units if u.text)
     return ArticleBrowseView(
         article_number=article_number,
         title=learn_units[0].title if learn_units else None,
         part_number=None,
         status="unknown",
-        full_text=text,
+        full_text=full_text,
         learn_units=learn_units,
         amendments=amendments_list,
         amendment_meta=meta,

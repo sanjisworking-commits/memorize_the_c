@@ -72,7 +72,8 @@ def test_corrections_json_has_54_55_56_67():
     assert "(b) if, after taking the said multiples" in (
         corr.articles["article-55"].body_text or ""
     )
-    assert "2026" in (corr.articles["article-55"].body_text or "")
+    assert "Explanation" not in (corr.articles["article-55"].body_text or "")
+    assert "2026" not in (corr.articles["article-55"].body_text or "")
     body56 = corr.articles["article-56"].body_text or ""
     assert "Provided that—" in body56
     assert body56.index("Provided that—") < body56.index("(2)")
@@ -173,8 +174,10 @@ def test_tracked_units_54_55_56_67():
     assert "article-54-clause-a" not in units
     assert "article-55-clause-2-subclause-b" in units
     assert "article-55-clause-2-subclause-c" in units
-    assert "2026" in units["article-55-clause-3"]["text"]
-    assert "1971" in units["article-55-clause-3"]["text"]
+    assert "population" in units["article-55-clause-2"]["text"]
+    assert "Explanation" not in units["article-55-clause-3"]["text"]
+    assert "2026" not in units["article-55-clause-3"]["text"]
+    assert "1971" not in units["article-55-clause-3"]["text"]
     assert "Provided that" in units["article-56-clause-1"]["text"]
     assert "Provided that" not in units["article-56-clause-2"]["text"]
     assert units["article-67"]["display_title"] == "Article 67"
@@ -220,7 +223,7 @@ def test_structured_note_ref_and_safe_failures():
             'the population as ascertained',
             [ann],
             notes=notes,
-            unit_id="article-55-clause-3",
+            unit_id="article-55-clause-2",
         )
     )
     assert 'class="bare-fn-word">population</span>' in html
@@ -294,9 +297,10 @@ def test_annotate_escapes_injection_in_structured_content():
 def test_article_55_learn_html_has_nested_trigger(tmp_path: Path):
     if not UNITS.exists():
         pytest.skip("learning_units.json missing")
-    # Build a tiny units file containing the Explanation-bearing unit from tracked JSON.
+    # Annotate population on clause (2); Explanation is tip-only (not in body).
     full = json.loads(UNITS.read_text())
-    unit = next(u for u in full["units"] if u["id"] == "article-55-clause-3")
+    unit = next(u for u in full["units"] if u["id"] == "article-55-clause-2")
+    assert "Explanation" not in unit["text"]
     mini = {
         "schema_version": "1.0.0",
         "source_document": "test",
@@ -308,12 +312,21 @@ def test_article_55_learn_html_has_nested_trigger(tmp_path: Path):
     db = tmp_path / "progress.db"
     app = create_app(units_path=units_path, db_path=db, text_annotations_path=ANNOTATIONS)
     client = TestClient(app)
-    resp = client.get("/learn/article-55-clause-3?mode=read")
+    # Clause (2) offers letter-split; choose whole so Read renders the tip.
+    choose = client.post(
+        "/learn/article-55-clause-2/choose",
+        data={"mode": "whole"},
+        follow_redirects=True,
+    )
+    assert choose.status_code == 200
+    resp = client.get("/learn/article-55-clause-2?mode=read")
     assert resp.status_code == 200
     assert 'class="bare-fn-word">population</span>' in resp.text
     assert "bare-fn-nested-trigger" in resp.text
     assert "Eighty-fourth Amendment" in resp.text
-    cloze = client.get("/learn/article-55-clause-3?mode=cloze")
+    assert "1971 census" in resp.text  # tip copy
+    assert "Explanation.—" not in resp.text.split("learn-panel-read")[1].split("learn-panel-cloze")[0]
+    cloze = client.get("/learn/article-55-clause-2?mode=cloze")
     assert cloze.status_code == 200
     # All mode panels share one page; Cloze itself uses plain unit.text.
     assert 'data-cloze-text="' in cloze.text
@@ -383,11 +396,13 @@ def test_browse_article_55_shows_corpus_and_nested_tooltip(tmp_path: Path):
     html = resp.text
     assert "remainder is not less than five hundred" in html
     assert "single transferable vote" in html
-    assert "1971 census" in html
+    body = html.split("browse-article-text")[1].split("Learn")[0]
+    assert "Explanation.—" not in body
     assert 'class="bare-fn-word">population</span>' in html
     assert "bare-fn-nested-trigger" in html
     assert ">2026</button>" in html
     assert "Eighty-fourth Amendment" in html
+    assert "1971 census" in html  # tip only
     assert "data-bare-fn-root" in html
 
 

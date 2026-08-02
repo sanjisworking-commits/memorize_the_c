@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Opening… · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block content %}
+<section class="auth-transition" data-auth-transition data-next="{{ next_url|default('/dashboard') }}">
+  {% if error %}
+  <h1 class="display">Could not open your space</h1>
+  <p class="lede">Something went wrong while finishing sign-in.</p>
+  <p class="actions">
+    <a class="btn" href="/login">Return to sign in</a>
+    <a class="btn btn-ghost" href="/browse">Browse as guest</a>
+  </p>
+  {% else %}
+  <p class="auth-transition-mark" aria-hidden="true">●</p>
+  <h1 class="display">Opening your learning space…</h1>
+  <p class="lede">Taking you to your dashboard.</p>
+  <noscript>
+    <p class="actions"><a class="btn" href="{{ next_url|default('/dashboard') }}">Continue</a></p>
+  </noscript>
+  {% endif %}
+</section>
+{% endblock %}

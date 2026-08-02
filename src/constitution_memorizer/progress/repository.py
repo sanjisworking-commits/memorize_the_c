@@ -455,18 +455,50 @@ class ProgressRepository:
     ) -> None:
         now = _utc_now_iso()
         uid = as_user_id(user_id)
-        self._conn.execute(
-            """
-            INSERT INTO user_profile (user_id, display_name, avatar_url, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET
-                display_name = excluded.display_name,
-                avatar_url = excluded.avatar_url,
-                updated_at = excluded.updated_at
-            """,
-            (uid, display_name, avatar_url, now, now),
-        )
+        existing = self.get_profile(user_id)
+        if existing is None:
+            self._conn.execute(
+                """
+                INSERT INTO user_profile (user_id, display_name, avatar_url, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (uid, display_name, avatar_url, now, now),
+            )
+        else:
+            self._conn.execute(
+                """
+                UPDATE user_profile
+                SET display_name = ?, avatar_url = ?, updated_at = ?
+                WHERE user_id = ?
+                """,
+                (display_name, avatar_url, now, uid),
+            )
         self._conn.commit()
+
+    def get_profile(self, user_id: UUID | str) -> dict[str, str | None] | None:
+        row = self._conn.execute(
+            """
+            SELECT user_id, display_name, avatar_url, created_at, updated_at
+            FROM user_profile WHERE user_id = ?
+            """,
+            (as_user_id(user_id),),
+        ).fetchone()
+        if row is None:
+            return None
+        return {
+            "user_id": str(row["user_id"]),
+            "display_name": row["display_name"],
+            "avatar_url": row["avatar_url"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def needs_welcome(self, user_id: UUID | str) -> bool:
+        profile = self.get_profile(user_id)
+        if profile is None:
+            return True
+        name = (profile.get("display_name") or "").strip()
+        return not name
 
 
 # Backward-compatible alias used by docs/plan wording.

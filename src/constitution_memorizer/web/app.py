@@ -212,10 +212,17 @@ def create_app(
     )
 
     def _theme_for_request(request: Request) -> str:
+        if getattr(request.state, "is_guest", False) and app.state.multiuser_enabled:
+            return "auto"
         bound = getattr(request.state, "bound_engine", None) or app.state.engine
         return bound.get_theme()
 
     def _due_for_request(request: Request) -> int:
+        if getattr(request.state, "is_guest", False) or getattr(
+            request.state, "current_user", None
+        ) is None:
+            if app.state.multiuser_enabled:
+                return 0
         bound = getattr(request.state, "bound_engine", None) or app.state.engine
         return browse_due_total(bound)
 
@@ -227,6 +234,10 @@ def create_app(
                 "theme_preference": _theme_for_request(request),
                 "browse_due_total": _due_for_request(request),
                 "current_user": getattr(request.state, "current_user", None),
+                "is_guest": bool(
+                    app.state.multiuser_enabled
+                    and getattr(request.state, "current_user", None) is None
+                ),
                 "multiuser_enabled": app.state.multiuser_enabled,
                 "csrf_token": (
                     getattr(getattr(request.state, "auth_session", None), "csrf_token", None)
@@ -296,6 +307,12 @@ def create_app(
         }
     @app.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:
+        if app.state.multiuser_enabled and getattr(request.state, "current_user", None) is None:
+            return templates.TemplateResponse(
+                request,
+                "guest_home.html",
+                {},
+            )
         eng = _engine()
         today = date.today()
         due = due_checklist(eng, as_of=today)
@@ -352,6 +369,25 @@ def create_app(
             },
         )
 
+    @app.get("/learn", response_class=HTMLResponse)
+    async def learn_index(request: Request) -> RedirectResponse:
+        eng = _engine()
+        today = date.today()
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        if not is_guest:
+            due = eng.due_today(as_of=today)
+            if due:
+                return RedirectResponse(
+                    url=f"/learn/{due[0].learning_unit_id}", status_code=303
+                )
+            cont = continue_unit_id(eng, as_of=today)
+            if cont:
+                return RedirectResponse(url=f"/learn/{cont}", status_code=303)
+        return RedirectResponse(url="/browse", status_code=303)
+
     @app.get("/learn/{unit_id}", response_class=HTMLResponse)
     async def learn(
         request: Request,
@@ -364,14 +400,19 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
         learn_mode = mode if mode in {"read", "cloze", "letters", "type", "recite", "card"} else "read"
+        is_guest_early = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
 
-        if needs_split_choice(eng, unit):
+        # Guests skip split preference (no personal data); show the clause as-is.
+        if not is_guest_early and needs_split_choice(eng, unit):
             return RedirectResponse(
                 url=f"/learn/{unit_id}/choose",
                 status_code=303,
             )
 
-        target_id = resolve_learn_target(eng, unit_id)
+        target_id = unit_id if is_guest_early else resolve_learn_target(eng, unit_id)
         if target_id != unit_id:
             suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
             return RedirectResponse(
@@ -383,14 +424,29 @@ def create_app(
         if target is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
-        # Opening a unit marks the active mode (units open in Read by default).
-        seen = eng.mark_mode_seen(target.id, learn_mode)
-        done_state = done_button_state(target, seen)
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        # Guests may try modes without writing progress.
+        if is_guest:
+            seen: set[str] = {learn_mode}
+            progress = None
+            done_count, chain_len = 0, 1
+            pct = 0
+            # Guests can click Done/Again to open the sign-in prompt.
+            done_unlocked = True
+            done_label = "Mark as mastered"
+        else:
+            seen = eng.mark_mode_seen(target.id, learn_mode)
+            progress = eng.get_progress(target.id)
+            done_count, _position, chain_len = session_progress(eng, target)
+            pct = int(round(100 * done_count / chain_len)) if chain_len else 0
+            done_state = done_button_state(target, seen)
+            done_unlocked = done_state["unlocked"]
+            done_label = done_state["label"]
         modes_payload = _modes_payload(target.id, seen)
 
-        progress = eng.get_progress(target.id)
-        done_count, _position, chain_len = session_progress(eng, target)
-        pct = int(round(100 * done_count / chain_len)) if chain_len else 0
         chips = sibling_chips(eng, target)
         stem = subclause_stem_text(eng, target)
         rail_kind = (
@@ -422,9 +478,9 @@ def create_app(
                 "sibling_chips": chips,
                 "rail_kind": rail_kind,
                 "stem_text": stem,
-                "learn_meta": learn_meta_line(target, progress),
-                "done_label": done_state["label"],
-                "done_unlocked": done_state["unlocked"],
+                "learn_meta": learn_meta_line(target, progress) if progress else "Guest try",
+                "done_label": done_label,
+                "done_unlocked": done_unlocked,
                 "modes_seen": seen,
                 "modes_tracker": modes_payload["tracker"],
                 "mode_labels": LEARN_MODE_LABELS,
@@ -433,6 +489,7 @@ def create_app(
                 "amend_note": amend_note,
                 "annotated_text": annotated_text,
                 "has_text_annotations": bool(unit_anns),
+                "is_guest": is_guest,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),
@@ -683,6 +740,12 @@ def create_app(
 
     @app.get("/progress", response_class=HTMLResponse)
     async def progress_page(request: Request) -> HTMLResponse:
+        if app.state.multiuser_enabled and getattr(request.state, "current_user", None) is None:
+            return templates.TemplateResponse(
+                request,
+                "guest_gate.html",
+                {"gate_kind": "progress", "reason": "default"},
+            )
         dashboard = progress_dashboard(
             _engine(),
             reviewed=app.state.reviewed,

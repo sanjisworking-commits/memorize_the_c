@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Session expired · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block content %}
+<section class="panel system-state">
+  <p class="eyebrow">Session</p>
+  <h1 class="display">Your session expired</h1>
+  <p class="lede">Sign in again to open your personal learning space. Saved progress is still on your account.</p>
+  <p class="actions">
+    <a class="btn" href="/login">Sign in</a>
+    <a class="btn btn-ghost" href="/browse">Browse as guest</a>
+  </p>
+</section>
+{% endblock %}

@@ -1,76 +1,168 @@
 {% extends "base.html" %}
 {% block title %}Sign in · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block body_class %}auth-page{% endblock %}
 {% block content %}
-<section class="panel login-panel">
-  <p class="eyebrow">Account</p>
-  <h1 class="display">Sign in</h1>
-  <p class="lede">Sign in to keep learning progress private to your account.</p>
+{% set state = auth_state|default('default') %}
+{% set err = error %}
+{% if err == 'phone_format' %}{% set state = 'invalid-phone' %}{% endif %}
+{% if err == 'bad_otp' %}{% set state = 'incorrect' %}{% endif %}
+{% if err == 'rate_limited' %}{% set state = 'rate-limited' %}{% endif %}
+{% if err == 'phone_disabled' or err == 'google_disabled' %}{% set state = 'provider-unavailable' %}{% endif %}
+{% if err == 'oauth_failed' or err == 'oauth_state' or err == 'csrf' or err == 'auth-error' %}{% set state = 'auth-error' %}{% endif %}
+{% if otp_sent and state == 'default' %}{% set state = 'otp' %}{% endif %}
 
-  {% if error %}
-  <p class="login-error" role="alert">
-    {% if error == 'phone_format' %}
-      Enter a full phone number in E.164 format, e.g. +919876543210.
-    {% elif error == 'bad_otp' %}
-      That code was not accepted. Try again or request a new code.
-    {% elif error == 'oauth_failed' or error == 'oauth_state' %}
-      Google sign-in did not complete. Please try again.
-    {% elif error == 'rate_limited' %}
-      Too many attempts. Please wait and try again.
-    {% elif error == 'csrf' %}
-      Session check failed. Reload the page and try again.
+<section class="auth-shell" data-auth-state="{{ state }}">
+  <aside class="auth-rail">
+    <a class="auth-rail-brand" href="/">
+      <img class="brand-mark" src="/static/brand-c.png" width="28" height="28" alt="">
+      <span class="brand-wordmark">{{ app_name|default('Recall the C') }}</span>
+    </a>
+    <h1 class="auth-rail-title">Learn the Constitution.<br>Keep your place.</h1>
+    <p class="auth-rail-lede">Anyone can explore. Sign in only when you want progress saved to your account.</p>
+    <blockquote class="auth-rail-quote">
+      <p>WE, THE PEOPLE OF INDIA, having solemnly resolved to constitute India into a SOVEREIGN SOCIALIST SECULAR DEMOCRATIC REPUBLIC…</p>
+      <cite>Preamble</cite>
+    </blockquote>
+  </aside>
+
+  <div class="auth-panel">
+    {% if gate %}
+    <p class="auth-gate-eyebrow">Personal space</p>
+    <h2 class="auth-panel-title">Sign in to open your {{ gate }}</h2>
+    <p class="auth-panel-lede">Your dashboard and progress stay private to your account.</p>
+    {% elif otp_sent %}
+    <h2 class="auth-panel-title">Enter the code</h2>
+    <p class="auth-panel-lede">We sent a 6-digit code{% if phone_value %} to <strong>+91 {{ phone_value }}</strong>{% endif %}.</p>
     {% else %}
-      Sign-in could not be completed.
+    <h2 class="auth-panel-title">Sign in</h2>
+    <p class="auth-panel-lede">Use Google or your Indian mobile number.</p>
     {% endif %}
-  </p>
-  {% endif %}
 
-  {% if google_enabled %}
-  <p class="actions">
-    <a class="btn" href="/auth/google/start">Continue with Google</a>
-  </p>
-  {% endif %}
+    {% if err %}
+    <div class="auth-banner is-error" role="alert">
+      <span class="auth-banner-icon" aria-hidden="true">!</span>
+      <p>
+        {% if err == 'phone_format' %}
+          Enter a valid 10-digit Indian mobile number starting with 6–9.
+        {% elif err == 'bad_otp' %}
+          That code was not accepted. Try again or request a new code.
+        {% elif err == 'oauth_failed' or err == 'oauth_state' %}
+          Google sign-in did not complete. Please try again.
+        {% elif err == 'rate_limited' %}
+          Too many attempts. Please wait a moment and try again.
+        {% elif err == 'csrf' %}
+          Session check failed. Reload the page and try again.
+        {% elif err == 'phone_disabled' %}
+          Phone sign-in is temporarily unavailable.
+        {% elif err == 'google_disabled' %}
+          Google sign-in is temporarily unavailable.
+        {% elif err == 'captcha' %}
+          Complete the captcha check and try again.
+        {% else %}
+          Sign-in could not be completed. Please try again.
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
 
-  {% if phone_enabled %}
-  <form class="login-phone" method="post" action="/auth/phone/send">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <label class="field-label" for="phone">Phone number (E.164)</label>
-    <input
-      id="phone"
-      class="field-input"
-      name="phone"
-      type="tel"
-      inputmode="tel"
-      autocomplete="tel"
-      placeholder="+919876543210"
-      value="{{ phone_value }}"
-      required
-    >
-    <button class="btn btn-ghost" type="submit">Send code</button>
-  </form>
+    {% if state == 'provider-unavailable' and not google_enabled and not phone_enabled %}
+    <p class="empty">Sign-in is temporarily unavailable.</p>
+    {% else %}
 
-  {% if otp_sent %}
-  <form class="login-otp" method="post" action="/auth/phone/verify">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <input type="hidden" name="phone" value="{{ phone_value }}">
-    <p class="muted">If that number can receive SMS, a code was sent. Enter it below.</p>
-    <label class="field-label" for="otp">One-time code</label>
-    <input
-      id="otp"
-      class="field-input"
-      name="otp"
-      type="text"
-      inputmode="numeric"
-      autocomplete="one-time-code"
-      pattern="[0-9]*"
-      required
-    >
-    <button class="btn" type="submit">Verify and continue</button>
-  </form>
-  {% endif %}
-  {% endif %}
+    {% if google_enabled and not otp_sent %}
+    <p class="auth-google-wrap">
+      <a
+        class="btn btn-google"
+        id="google-signin"
+        href="/auth/google/start?next={{ next_url|urlencode }}"
+        data-google-signin
+      >
+        <span class="btn-google-g" aria-hidden="true">G</span>
+        <span data-google-label>Continue with Google</span>
+      </a>
+    </p>
+    {% if phone_enabled %}
+    <p class="auth-divider" aria-hidden="true"><span>or</span></p>
+    {% endif %}
+    {% endif %}
 
-  {% if not google_enabled and not phone_enabled %}
-  <p class="empty">Sign-in is temporarily unavailable.</p>
-  {% endif %}
+    {% if phone_enabled and not otp_sent %}
+    <form class="auth-phone-form" method="post" action="/auth/phone/send" data-phone-form>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next_url|default('/dashboard') }}">
+      <label class="field-label" for="national_number">Mobile number</label>
+      <div class="phone-input{% if state == 'invalid-phone' %} is-invalid{% endif %}">
+        <span class="phone-cc" aria-hidden="true">+91</span>
+        <input type="hidden" name="country_code" value="+91">
+        <input
+          id="national_number"
+          class="field-input phone-national"
+          name="national_number"
+          type="tel"
+          inputmode="numeric"
+          autocomplete="tel-national"
+          pattern="[6-9][0-9]{9}"
+          maxlength="10"
+          placeholder="9876543210"
+          value="{{ phone_value }}"
+          required
+          aria-invalid="{{ 'true' if state == 'invalid-phone' else 'false' }}"
+          aria-describedby="{% if state == 'invalid-phone' %}phone-error{% endif %}"
+        >
+      </div>
+      {% if state == 'invalid-phone' %}
+      <p class="field-error" id="phone-error">
+        <span aria-hidden="true">!</span>
+        Enter a valid 10-digit Indian mobile number starting with 6–9.
+      </p>
+      {% endif %}
+      <button class="btn auth-primary" type="submit" data-send-otp>
+        <span data-send-label>Send code</span>
+      </button>
+    </form>
+    {% endif %}
+
+    {% if phone_enabled and otp_sent %}
+    <form class="auth-otp-form" method="post" action="/auth/phone/verify" data-otp-form>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next_url|default('/dashboard') }}">
+      <input type="hidden" name="phone" value="{{ phone_e164 or ('+91' ~ phone_value) }}">
+      <input type="hidden" name="otp" id="otp-combined" value="">
+      <fieldset class="otp-fieldset">
+        <legend class="field-label">One-time code</legend>
+        <div class="otp-cells" data-otp-cells>
+          {% for i in range(6) %}
+          <input
+            class="otp-cell"
+            name="otp{{ i }}"
+            type="text"
+            inputmode="numeric"
+            autocomplete="{{ 'one-time-code' if i == 0 else 'off' }}"
+            maxlength="1"
+            pattern="[0-9]"
+            aria-label="Digit {{ i + 1 }}"
+            data-otp-index="{{ i }}"
+            required
+          >
+          {% endfor %}
+        </div>
+      </fieldset>
+      <button class="btn auth-primary" type="submit" data-verify-otp disabled>Verify and continue</button>
+      <p class="auth-resend" data-resend-wrap>
+        <span data-resend-timer>Resend available in <strong data-resend-count>24</strong>s</span>
+        <button type="submit" formaction="/auth/phone/send" formmethod="post" class="link-btn" data-resend-btn hidden>
+          Resend code
+        </button>
+        <input type="hidden" name="national_number" value="{{ phone_value }}">
+        <input type="hidden" name="country_code" value="+91">
+      </p>
+      <p class="muted"><a href="/login?next={{ next_url|urlencode }}">Use a different number</a></p>
+    </form>
+    {% endif %}
+
+    {% endif %}
+
+    <p class="auth-foot muted"><a href="/browse">Continue browsing as guest</a></p>
+  </div>
 </section>
 {% endblock %}

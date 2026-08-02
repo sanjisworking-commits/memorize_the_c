@@ -1,4 +1,4 @@
-"""Authentication HTTP routes."""
+"""Authentication HTTP routes + guest-first middleware."""
 
 from __future__ import annotations
 
@@ -15,7 +15,12 @@ from constitution_memorizer.auth.exceptions import (
     InvalidCredentialsError,
     RateLimitError,
 )
-from constitution_memorizer.auth.phone import mask_phone, normalize_e164
+from constitution_memorizer.auth.guest import requires_auth, signin_redirect
+from constitution_memorizer.auth.phone import (
+    display_national,
+    mask_phone,
+    normalize_e164,
+)
 from constitution_memorizer.auth.rate_limit import OtpRateLimiter
 from constitution_memorizer.auth.sessions import (
     CSRF_COOKIE_NAME,
@@ -25,13 +30,6 @@ from constitution_memorizer.auth.sessions import (
 
 logger = logging.getLogger(__name__)
 
-PUBLIC_PATH_PREFIXES = (
-    "/login",
-    "/auth/",
-    "/static/",
-    "/health",
-)
-
 
 def _client_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for")
@@ -40,6 +38,12 @@ def _client_ip(request: Request) -> str:
     if request.client:
         return request.client.host
     return "unknown"
+
+
+def _safe_next(raw: str | None) -> str:
+    if not raw or not raw.startswith("/") or raw.startswith("//"):
+        return "/dashboard"
+    return raw
 
 
 def create_auth_router(templates: Jinja2Templates) -> APIRouter:
@@ -53,16 +57,27 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
     async def login_page(request: Request, error: str | None = None) -> HTMLResponse:
         settings = request.app.state.multiuser_settings
         csrf = request.cookies.get(CSRF_COOKIE_NAME) or new_csrf_token()
+        phone_raw = request.query_params.get("phone") or ""
+        phone_national = display_national(phone_raw) if phone_raw else ""
+        gate = request.query_params.get("gate")
+        reason = request.query_params.get("reason") or "default"
         response = templates.TemplateResponse(
             request,
             "login.html",
             {
-                "error": error,
+                "error": error or request.query_params.get("error"),
                 "google_enabled": settings.auth_google_enabled,
                 "phone_enabled": settings.auth_phone_enabled,
                 "csrf_token": csrf,
                 "otp_sent": request.query_params.get("otp") == "1",
-                "phone_value": request.query_params.get("phone") or "",
+                "phone_value": phone_national,
+                "phone_e164": phone_raw if phone_raw.startswith("+") else "",
+                "next_url": _safe_next(request.query_params.get("next")),
+                "gate": gate,
+                "reason": reason,
+                "auth_state": request.query_params.get("state") or (
+                    "otp" if request.query_params.get("otp") == "1" else "default"
+                ),
             },
         )
         response.set_cookie(
@@ -87,9 +102,19 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             redirect_url, state=state
         )
         response = RedirectResponse(url=url, status_code=303)
+        next_url = _safe_next(request.query_params.get("next"))
         response.set_cookie(
             "rtc_oauth_state",
             state,
+            httponly=True,
+            samesite="lax",
+            secure=bool(settings.cookie_secure),
+            max_age=600,
+            path="/",
+        )
+        response.set_cookie(
+            "rtc_auth_next",
+            next_url,
             httponly=True,
             samesite="lax",
             secure=bool(settings.cookie_secure),
@@ -120,26 +145,51 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             return RedirectResponse(url="/login?error=oauth_failed", status_code=303)
         return _establish_session(request, auth_session)
 
+    @router.get("/auth/transition", response_class=HTMLResponse)
+    async def auth_transition(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request,
+            "auth_transition.html",
+            {
+                "next_url": _safe_next(request.query_params.get("next")),
+                "error": request.query_params.get("error"),
+            },
+        )
+
     @router.post("/auth/phone/send")
     async def phone_send(
         request: Request,
-        phone: str = Form(...),
         csrf_token: str = Form(...),
+        next: str = Form("/dashboard"),
+        phone: str = Form(""),
+        country_code: str = Form("+91"),
+        national_number: str = Form(""),
     ) -> RedirectResponse:
         settings = request.app.state.multiuser_settings
         if not settings.auth_phone_enabled:
             return RedirectResponse(url="/login?error=phone_disabled", status_code=303)
         if request.cookies.get(CSRF_COOKIE_NAME) != csrf_token:
             return RedirectResponse(url="/login?error=csrf", status_code=303)
-        # CAPTCHA integration point — no-op unless enabled.
         if settings.captcha_enabled:
             captcha = (await request.form()).get("captcha_token")
             if not captcha:
                 return RedirectResponse(url="/login?error=captcha", status_code=303)
+        raw_phone = (phone or "").strip()
+        if not raw_phone:
+            digits = "".join(ch for ch in national_number if ch.isdigit())
+            raw_phone = f"{country_code.strip() or '+91'}{digits}"
         try:
-            normalized = normalize_e164(phone)
+            normalized = normalize_e164(raw_phone)
         except InvalidCredentialsError:
-            return RedirectResponse(url="/login?error=phone_format", status_code=303)
+            qs = urlencode(
+                {
+                    "error": "phone_format",
+                    "phone": national_number or phone,
+                    "state": "invalid-phone",
+                    "next": _safe_next(next),
+                }
+            )
+            return RedirectResponse(url=f"/login?{qs}", status_code=303)
         limiter: OtpRateLimiter = request.app.state.otp_limiter
         ip = _client_ip(request)
         try:
@@ -148,10 +198,11 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             limiter.record_send(phone=normalized, ip=ip)
         except RateLimitError:
             logger.info("OTP rate limited for %s", mask_phone(normalized))
+            qs = urlencode({"otp": "1", "phone": normalized, "error": "rate_limited", "next": next})
+            return RedirectResponse(url=f"/login?{qs}", status_code=303)
         except InvalidCredentialsError:
             logger.info("OTP send failed for %s", mask_phone(normalized))
-        # Always generic success — do not reveal account existence.
-        qs = urlencode({"otp": "1", "phone": normalized})
+        qs = urlencode({"otp": "1", "phone": normalized, "next": _safe_next(next)})
         return RedirectResponse(url=f"/login?{qs}", status_code=303)
 
     @router.post("/auth/phone/verify")
@@ -160,6 +211,7 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         phone: str = Form(...),
         otp: str = Form(...),
         csrf_token: str = Form(...),
+        next: str = Form("/dashboard"),
     ) -> RedirectResponse:
         settings = request.app.state.multiuser_settings
         if not settings.auth_phone_enabled:
@@ -170,6 +222,12 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             normalized = normalize_e164(phone)
         except InvalidCredentialsError:
             return RedirectResponse(url="/login?error=phone_format", status_code=303)
+        # Combine 6 separate OTP cells if posted as otp0..otp5
+        form = await request.form()
+        if not otp or len(otp.strip()) < 6:
+            cells = "".join(str(form.get(f"otp{i}", "") or "") for i in range(6))
+            if cells:
+                otp = cells
         limiter: OtpRateLimiter = request.app.state.otp_limiter
         try:
             limiter.check_verify(phone=normalized)
@@ -181,9 +239,16 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             return RedirectResponse(url="/login?error=rate_limited", status_code=303)
         except InvalidCredentialsError:
             limiter.record_verify_failure(phone=normalized)
-            qs = urlencode({"otp": "1", "phone": normalized, "error": "bad_otp"})
+            qs = urlencode(
+                {
+                    "otp": "1",
+                    "phone": normalized,
+                    "error": "bad_otp",
+                    "next": _safe_next(next),
+                }
+            )
             return RedirectResponse(url=f"/login?{qs}", status_code=303)
-        return _establish_session(request, auth_session)
+        return _establish_session(request, auth_session, next_url=_safe_next(next))
 
     @router.post("/logout")
     async def logout(request: Request) -> RedirectResponse:
@@ -191,18 +256,71 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         session_id = request.cookies.get(SESSION_COOKIE_NAME)
         if session_id:
             request.app.state.session_store.delete(session_id)
-        response = RedirectResponse(url="/login", status_code=303)
+        response = RedirectResponse(url="/signed-out", status_code=303)
         response.delete_cookie(SESSION_COOKIE_NAME, path="/")
         response.delete_cookie("rtc_oauth_state", path="/")
         if settings.cookie_secure:
             response.delete_cookie(SESSION_COOKIE_NAME, path="/", secure=True)
         return response
 
+    @router.get("/signed-out", response_class=HTMLResponse)
+    async def signed_out(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(request, "signed_out.html", {})
+
+    @router.get("/session-expired", response_class=HTMLResponse)
+    async def session_expired(request: Request) -> HTMLResponse:
+        response = templates.TemplateResponse(request, "session_expired.html", {})
+        # Drop the stale cookie so guests are not looped back here.
+        response.delete_cookie(SESSION_COOKIE_NAME, path="/")
+        return response
+
+    @router.get("/welcome", response_class=HTMLResponse)
+    async def welcome_get(request: Request) -> HTMLResponse:
+        user = getattr(request.state, "current_user", None)
+        if user is None:
+            return signin_redirect(next_url="/welcome")
+        return templates.TemplateResponse(
+            request,
+            "welcome.html",
+            {
+                "user": user,
+                "csrf_token": request.cookies.get(CSRF_COOKIE_NAME) or "",
+                "display_name": user.display_name or "",
+            },
+        )
+
+    @router.post("/welcome")
+    async def welcome_post(
+        request: Request,
+        display_name: str = Form(...),
+        csrf_token: str = Form(...),
+    ) -> RedirectResponse:
+        user = getattr(request.state, "current_user", None)
+        if user is None:
+            return signin_redirect(next_url="/welcome")
+        if request.cookies.get(CSRF_COOKIE_NAME) != csrf_token:
+            return RedirectResponse(url="/welcome?error=csrf", status_code=303)
+        name = display_name.strip()
+        if not name:
+            return RedirectResponse(url="/welcome?error=name", status_code=303)
+        request.app.state.engine.repo.upsert_profile(
+            user.id,
+            display_name=name,
+            avatar_url=user.avatar_url,
+        )
+        return RedirectResponse(url="/dashboard", status_code=303)
+
     @router.get("/dashboard", response_class=HTMLResponse)
     async def dashboard(request: Request) -> HTMLResponse:
         user = getattr(request.state, "current_user", None)
         if user is None:
-            return RedirectResponse(url="/login", status_code=303)
+            return templates.TemplateResponse(
+                request,
+                "guest_gate.html",
+                {"gate_kind": "dashboard", "reason": "default"},
+            )
+        if request.app.state.engine.repo.needs_welcome(user.id):
+            return RedirectResponse(url="/welcome", status_code=303)
         eng = request.app.state.engine.for_user(user.id)
         today = date.today()
         due = eng.due_today(as_of=today)
@@ -211,12 +329,18 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
 
         cont = continue_unit_id(eng, as_of=today)
         cont_unit = eng.get_unit(cont) if cont else None
-        label = user.display_name or (mask_phone(user.phone) if user.phone else user.email or "Learner")
+        profile = eng.repo.get_profile(user.id) or {}
+        label = (
+            profile.get("display_name")
+            or user.display_name
+            or (mask_phone(user.phone) if user.phone else user.email or "Learner")
+        )
         recent = sorted(
             eng.list_all_progress(),
             key=lambda r: r.updated_at,
             reverse=True,
         )[:5]
+        is_new = stats["tracked"] == 0
         return templates.TemplateResponse(
             request,
             "dashboard.html",
@@ -226,29 +350,115 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
                 "due_count": len(due),
                 "started": stats["tracked"],
                 "mastered": stats["mastered"],
+                "review": stats["review"],
                 "continue_unit": cont_unit,
                 "recent": recent,
+                "is_new": is_new,
+                "nothing_due": len(due) == 0 and not is_new,
             },
         )
+
+    @router.get("/profile", response_class=HTMLResponse)
+    async def profile_get(request: Request) -> HTMLResponse:
+        user = getattr(request.state, "current_user", None)
+        if user is None:
+            return signin_redirect(next_url="/profile", reason="default")
+        eng = request.app.state.engine.for_user(user.id)
+        profile = eng.repo.get_profile(user.id) or {}
+        return templates.TemplateResponse(
+            request,
+            "profile.html",
+            {
+                "user": user,
+                "profile": profile,
+                "display_label": profile.get("display_name")
+                or user.display_name
+                or (mask_phone(user.phone) if user.phone else user.email or "Learner"),
+                "frequency": eng.get_notification_frequency(),
+                "news_articles": eng.get_news_articles_raw(),
+                "theme": eng.get_theme(),
+                "csrf_token": request.cookies.get(CSRF_COOKIE_NAME) or "",
+                "saved": request.query_params.get("saved") == "1",
+                "edit_name": request.query_params.get("edit") == "name",
+            },
+        )
+
+    @router.post("/profile")
+    async def profile_post(
+        request: Request,
+        csrf_token: str = Form(...),
+        action: str = Form("save"),
+        display_name: str = Form(""),
+        notification_frequency: str = Form("thrice"),
+        news_articles: str = Form(""),
+        theme: str = Form("auto"),
+    ) -> RedirectResponse:
+        user = getattr(request.state, "current_user", None)
+        if user is None:
+            return signin_redirect(next_url="/profile")
+        if request.cookies.get(CSRF_COOKIE_NAME) != csrf_token:
+            return RedirectResponse(url="/profile?error=csrf", status_code=303)
+        eng = request.app.state.engine.for_user(user.id)
+        if action == "delete_account":
+            # Soft delete for this phase: clear personal data + session.
+            eng.reset_all_personal_data()
+            session_id = request.cookies.get(SESSION_COOKIE_NAME)
+            if session_id:
+                request.app.state.session_store.delete(session_id)
+            response = RedirectResponse(url="/signed-out", status_code=303)
+            response.delete_cookie(SESSION_COOKIE_NAME, path="/")
+            return response
+        name = display_name.strip() or (user.display_name or "")
+        eng.repo.upsert_profile(user.id, display_name=name, avatar_url=user.avatar_url)
+        from constitution_memorizer.progress.repository import (
+            VALID_NOTIFICATION_FREQUENCIES,
+            VALID_THEMES,
+        )
+
+        if notification_frequency in VALID_NOTIFICATION_FREQUENCIES:
+            eng.set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
+        eng.set_news_articles_raw(news_articles)
+        if theme in VALID_THEMES:
+            eng.set_theme(theme)  # type: ignore[arg-type]
+        return RedirectResponse(url="/profile?saved=1", status_code=303)
 
     return router
 
 
-def _establish_session(request: Request, auth_session) -> RedirectResponse:
+def _establish_session(
+    request: Request,
+    auth_session,
+    *,
+    next_url: str | None = None,
+) -> RedirectResponse:
     settings = request.app.state.multiuser_settings
-    # Rotate: drop any prior cookie session id by issuing a new one.
     stored = request.app.state.session_store.create(
         auth_session.user,
         access_token=auth_session.access_token,
         refresh_token=auth_session.refresh_token,
     )
-    # Application profile upsert (SQLite or Postgres-backed engine repo).
-    request.app.state.engine.repo.upsert_profile(
-        auth_session.user.id,
-        display_name=auth_session.user.display_name,
-        avatar_url=auth_session.user.avatar_url,
-    )
-    response = RedirectResponse(url="/dashboard", status_code=303)
+    profile = request.app.state.engine.repo.get_profile(auth_session.user.id)
+    if profile is None:
+        request.app.state.engine.repo.upsert_profile(
+            auth_session.user.id,
+            display_name=auth_session.user.display_name,
+            avatar_url=auth_session.user.avatar_url,
+        )
+    elif auth_session.user.avatar_url and not profile.get("avatar_url"):
+        request.app.state.engine.repo.upsert_profile(
+            auth_session.user.id,
+            display_name=profile.get("display_name") or auth_session.user.display_name,
+            avatar_url=auth_session.user.avatar_url,
+        )
+
+    dest = next_url or request.cookies.get("rtc_auth_next") or "/dashboard"
+    dest = _safe_next(dest)
+    if request.app.state.engine.repo.needs_welcome(auth_session.user.id):
+        dest = "/welcome"
+    else:
+        dest = f"/auth/transition?next={dest}"
+
+    response = RedirectResponse(url=dest, status_code=303)
     response.set_cookie(
         SESSION_COOKIE_NAME,
         stored.session_id,
@@ -266,11 +476,12 @@ def _establish_session(request: Request, auth_session) -> RedirectResponse:
         secure=bool(settings.cookie_secure),
         path="/",
     )
+    response.delete_cookie("rtc_auth_next", path="/")
     return response
 
 
 def install_auth_middleware(app) -> None:
-    """Redirect unauthenticated users away from protected pages when multiuser is on."""
+    """Guest-first gate: corpus is public; personal data requires sign-in."""
 
     @app.middleware("http")
     async def multiuser_auth_gate(request: Request, call_next):
@@ -278,6 +489,7 @@ def install_auth_middleware(app) -> None:
 
         if not getattr(request.app.state, "multiuser_enabled", False):
             request.state.current_user = None
+            request.state.is_guest = False
             request.state.bound_engine = request.app.state.engine
             request.state.bound_memory = request.app.state.memory
             token_e = bound_engine.set(request.app.state.engine)
@@ -289,10 +501,25 @@ def install_auth_middleware(app) -> None:
                 bound_memory.reset(token_m)
 
         path = request.url.path
+        method = request.method
         from constitution_memorizer.auth.dependencies import get_optional_current_user
+        from constitution_memorizer.auth.sessions import SESSION_COOKIE_NAME
 
+        # Stale cookie → session expired page (once), for HTML GETs.
+        raw_cookie = request.cookies.get(SESSION_COOKIE_NAME)
         user = get_optional_current_user(request)
+        if (
+            raw_cookie
+            and user is None
+            and method == "GET"
+            and path not in {"/session-expired", "/login", "/signed-out", "/health"}
+            and not path.startswith("/static/")
+            and not path.startswith("/auth/")
+        ):
+            return RedirectResponse(url="/session-expired", status_code=303)
+
         request.state.current_user = user
+        request.state.is_guest = user is None
         if user is not None:
             request.state.bound_engine = request.app.state.engine.for_user(user.id)
             request.state.bound_memory = request.app.state.memory.for_user(user.id)
@@ -300,15 +527,38 @@ def install_auth_middleware(app) -> None:
             request.state.bound_engine = request.app.state.engine
             request.state.bound_memory = request.app.state.memory
 
-        public = path == "/login" or any(
-            path.startswith(p) for p in PUBLIC_PATH_PREFIXES if p != "/login"
-        )
-        if path == "/":
-            if user is not None:
-                return RedirectResponse(url="/dashboard", status_code=303)
-            return RedirectResponse(url="/login", status_code=303)
-        if not public and user is None:
-            return RedirectResponse(url="/login", status_code=303)
+        if user is None and requires_auth(path, method):
+            # Inline gates for dashboard/progress GET; otherwise sign-in.
+            if method == "GET" and (
+                path.startswith("/dashboard") or path.startswith("/progress")
+            ):
+                pass  # route handlers render guest_gate.html
+            elif method == "GET" and (
+                path.startswith("/calendar")
+                or path.startswith("/memory")
+                or path.startswith("/settings")
+                or path.startswith("/profile")
+                or path.startswith("/api/theme")
+            ):
+                return signin_redirect(next_url=path, reason="default")
+            elif method != "GET":
+                reason = (
+                    "mastered"
+                    if path.endswith("/done")
+                    else (
+                        "again"
+                        if path.endswith("/again")
+                        else (
+                            "note"
+                            if "/memory" in path or path.endswith("/gloss")
+                            else "default"
+                        )
+                    )
+                )
+                return signin_redirect(next_url=path, reason=reason)
+
+        if path == "/" and user is not None:
+            return RedirectResponse(url="/dashboard", status_code=303)
 
         token_e = bound_engine.set(request.state.bound_engine)
         token_m = bound_memory.set(request.state.bound_memory)

@@ -35,21 +35,70 @@
   <link rel="stylesheet" href="/static/styles.css?v=main3">
   <link rel="icon" href="/static/brand-c.png" type="image/png">
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}{% if multiuser_enabled|default(false) %}{% if current_user %} is-authed{% else %} is-guest{% endif %}{% endif %}">
   {% set path = request.url.path %}
+  {% set auth_surface = path.startswith('/login') or path.startswith('/auth/') or path.startswith('/signed-out') or path.startswith('/session-expired') %}
   <div class="page-wrap">
     <div class="sheet">
       <header class="site-header">
-        <a class="brand" href="/" aria-label="{{ app_name|default('Recall the C') }} — Home">
+        <a class="brand" href="{% if multiuser_enabled|default(false) and current_user %}/dashboard{% else %}/{% endif %}" aria-label="{{ app_name|default('Recall the C') }} — Home">
           <img class="brand-mark" src="/static/brand-c.png" width="26" height="26" alt="">
           <span class="brand-wordmark">{{ app_name|default('Recall the C') }}</span>
         </a>
         <nav class="nav" aria-label="Primary">
-          {% if multiuser_enabled|default(false) %}
-          <a href="/dashboard" class="nav-link{% if path.startswith('/dashboard') %} is-active{% endif %}">Home</a>
+          {% if multiuser_enabled|default(false) and auth_surface %}
+          <a href="/" class="nav-link{% if path == '/' %} is-active{% endif %}">Home</a>
+          <a href="/browse" class="nav-link{% if path.startswith('/browse') %} is-active{% endif %}">Browse</a>
+          <a href="/login" class="nav-link nav-signin{% if path.startswith('/login') %} is-active{% endif %}">Sign in</a>
+          {% elif multiuser_enabled|default(false) and current_user %}
+          <a href="/dashboard" class="nav-link{% if path.startswith('/dashboard') %} is-active{% endif %}">Dashboard</a>
+          <a href="/learn" class="nav-link{% if path.startswith('/learn') %} is-active{% endif %}">Learn</a>
+          <a href="/browse" class="nav-link{% if path.startswith('/browse') %} is-active{% endif %}">
+            Browse{% if browse_due_total|default(0) > 0 %}
+            <span class="nav-due-badge" aria-label="{{ browse_due_total }} due or overdue">{{ browse_due_total }}</span>
+            {% endif %}
+          </a>
+          <a href="/progress" class="nav-link{% if path.startswith('/progress') %} is-active{% endif %}">Progress</a>
+          <div class="account-menu" data-account-menu>
+            {% set label = current_user.display_name or current_user.email or current_user.phone or 'Account' %}
+            {% set initials = (label[:1])|upper %}
+            <button
+              type="button"
+              class="account-menu-btn"
+              data-account-toggle
+              aria-expanded="false"
+              aria-haspopup="menu"
+              aria-label="Account menu"
+            >
+              {% if current_user.avatar_url %}
+              <img class="account-avatar" src="{{ current_user.avatar_url }}" alt="" width="28" height="28">
+              {% else %}
+              <span class="account-avatar account-avatar-fallback" aria-hidden="true">{{ initials }}</span>
+              {% endif %}
+            </button>
+            <div class="account-menu-panel" role="menu" hidden data-account-panel>
+              <a role="menuitem" href="/profile">Profile</a>
+              <a role="menuitem" href="/settings">Settings</a>
+              <a role="menuitem" href="/calendar">Calendar</a>
+              <a role="menuitem" href="/memory">Memory log</a>
+              <form method="post" action="/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" role="menuitem" class="account-menu-logout">Sign out</button>
+              </form>
+            </div>
+          </div>
+          {% elif multiuser_enabled|default(false) %}
+          <a href="/" class="nav-link{% if path == '/' %} is-active{% endif %}">Home</a>
+          <a href="/browse" class="nav-link{% if path.startswith('/browse') %} is-active{% endif %}">Browse</a>
+          <a href="/search" class="nav-link{% if path.startswith('/search') %} is-active{% endif %}">Search</a>
+          <a href="/learn" class="nav-link{% if path.startswith('/learn') %} is-active{% endif %}">Learn</a>
+          <span class="guest-pill" title="Learning as guest">
+            <span class="guest-pill-dot" aria-hidden="true"></span>
+            Learning as guest
+          </span>
+          <a href="/login" class="nav-link nav-signin">Sign in</a>
           {% else %}
           <a href="/" class="nav-link{% if path == '/' %} is-active{% endif %}">Home</a>
-          {% endif %}
           <a href="/browse" class="nav-link{% if path.startswith('/browse') %} is-active{% endif %}">
             Browse{% if browse_due_total|default(0) > 0 %}
             <span class="nav-due-badge" aria-label="{{ browse_due_total }} due or overdue">{{ browse_due_total }}</span>
@@ -58,11 +107,6 @@
           <a href="/calendar" class="nav-link{% if path.startswith('/calendar') %} is-active{% endif %}">Calendar</a>
           <a href="/progress" class="nav-link{% if path.startswith('/progress') %} is-active{% endif %}">Progress</a>
           <a href="/search" class="nav-link{% if path.startswith('/search') %} is-active{% endif %}">Search</a>
-          {% if current_user %}
-          <form class="nav-logout" method="post" action="/logout">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <button type="submit" class="nav-link nav-logout-btn">Log out</button>
-          </form>
           {% endif %}
         </nav>
       </header>
@@ -73,8 +117,10 @@
         <nav class="footer-nav" aria-label="Tools">
           <a href="/tables" class="footer-link{% if path.startswith('/tables') %} is-active{% endif %}">Tables</a>
           <a href="/laws" class="footer-link{% if path.startswith('/laws') %} is-active{% endif %}">Relevant laws</a>
+          {% if not (multiuser_enabled|default(false) and not current_user) %}
           <a href="/memory" class="footer-link{% if path.startswith('/memory') %} is-active{% endif %}">Memory log</a>
           <a href="/settings" class="footer-link{% if path.startswith('/settings') %} is-active{% endif %}">Settings</a>
+          {% endif %}
         </nav>
         <button
           type="button"
@@ -88,7 +134,18 @@
     </div>
     <p class="sheet-footnote">Bare Act text verbatim · Constitution 1→3→7→14→30→60 · Memory log 1→3→7→14→30</p>
   </div>
+
+  {% if multiuser_enabled|default(false) and current_user %}
+  <nav class="mobile-tabbar" aria-label="Mobile">
+    <a href="/dashboard" class="mobile-tab{% if path.startswith('/dashboard') %} is-active{% endif %}">Today</a>
+    <a href="/learn" class="mobile-tab{% if path.startswith('/learn') %} is-active{% endif %}">Learn</a>
+    <a href="/browse" class="mobile-tab{% if path.startswith('/browse') %} is-active{% endif %}">Browse</a>
+    <a href="/progress" class="mobile-tab{% if path.startswith('/progress') %} is-active{% endif %}">Progress</a>
+  </nav>
+  {% endif %}
+
   <script src="/static/recall_align.js?v=sprint22" defer></script>
   <script src="/static/app.js?v=main3" defer></script>
+  <script src="/static/auth.js?v=main3" defer></script>
 </body>
 </html>

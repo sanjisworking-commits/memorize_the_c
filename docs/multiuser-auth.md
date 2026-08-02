@@ -1,17 +1,50 @@
 # Multi-user authentication (hosted)
 
 This branch adds Supabase Auth (Google + phone OTP), server-side sessions, and
-PostgreSQL-backed per-user progress. The Constitution corpus remains shared.
+per-user progress. The Constitution corpus remains shared.
+
+## Guest-first product rule
+
+**Anyone can explore and learn. Signing in is required only to save personal progress.**
+
+| Guests can | Guests cannot (prompt sign-in) |
+|---|---|
+| Browse, search, read Bare Act + explanations | Save progress / mark done / Again tomorrow |
+| Try Learn modes (read/type/etc. without persisting) | Memory notes, personal dashboard, Progress mastery |
+
+There is no guest progress database and no migrate-on-signup. Content is never blurred.
 
 Single-user local mode (`scripts/mac/start-ui.command`, SQLite without
-`MULTIUSER_ENABLED`) remains available on `main` and still works on this branch
-when `MULTIUSER_ENABLED` is unset/false.
+`MULTIUSER_ENABLED`) remains available when `MULTIUSER_ENABLED` is unset/false.
+
+## Page map
+
+```
+Guest
+  ├─ /                 guest home
+  ├─ /browse, /search  corpus
+  ├─ /learn/{id}       try modes + guest banner / sign-in modal
+  ├─ /dashboard        inline guest gate
+  └─ /progress         inline guest gate
+
+Authentication
+  ├─ /login            Google + India phone (+91 / 10 digits) + OTP
+  ├─ /auth/transition  “Opening your learning space…”
+  ├─ /welcome          first-time display name
+  ├─ /signed-out
+  └─ /session-expired
+
+Signed-in
+  ├─ /dashboard        greeting, due, continue, stats, activity
+  ├─ /profile          name, preferences, sign-out / delete
+  └─ /progress, /calendar, /memory, /settings
+```
 
 ## Local setup
 
-1. Create a PostgreSQL database and set `DATABASE_URL`.
+1. Create a PostgreSQL database and set `DATABASE_URL` (optional for local SQLite progress).
 2. Copy `.env.example` → `.env` and fill secrets.
-3. Apply migrations:
+3. Apply migrations when using Postgres:
 
 ```bash
 export DATABASE_URL=postgresql://user:password@localhost:5432/recall_the_c_multiuser
@@ -59,8 +92,21 @@ python -m constitution_memorizer.cli serve --host 0.0.0.0 --port "$PORT"
 ## Phone / SMS provider
 
 1. In Supabase Phone provider, configure an SMS gateway (Twilio, MessageBird, etc.).
-2. Use E.164 numbers only (`+919876543210`). The app does not guess country codes.
+2. The UI is India-first (`+91` + 10 digits `^[6-9]\d{9}$`). The server composes E.164
+   (`+91…`) before calling Supabase. Full E.164 values are still accepted.
 3. Application-level OTP rate limits apply in addition to provider limits.
+
+## Access control (multi-user)
+
+**Public (GET):** `/`, `/browse*`, `/search`, `/learn*` (try modes), `/tables`, `/laws*`,
+`/login`, `/auth/*`, `/static/*`, `/health`, `/signed-out`, `/session-expired`
+
+**Auth required:** `/dashboard`, `/progress`, `/calendar`, `/memory*`, `/settings`,
+`/profile` (writes), `/api/theme`, and progress-mutating POSTs
+(`/learn/*/done`, `/again`, `/seen`, `/choose`, `/reset`, gloss, memory writes).
+
+Unauthenticated mutating POSTs redirect to `/login?next=…&reason=…`.
+Learn GET for guests does **not** call `mark_mode_seen`.
 
 ## Feature flags
 
@@ -75,11 +121,13 @@ python -m constitution_memorizer.cli serve --host 0.0.0.0 --port "$PORT"
 Google and phone logins may create **different** Supabase user UUIDs.
 This phase does **not** auto-link accounts. Account linking is a future feature.
 
+First sign-in without a display name routes to `/welcome`.
+
 ## Tests
 
 ```bash
 pytest -m "not integration" -q
-pytest tests/test_multiuser_auth.py tests/test_multiuser_isolation.py -q
+pytest tests/test_multiuser_auth.py tests/test_multiuser_isolation.py tests/test_guest_first_ux.py -q
 ```
 
 Tests use `FakeAuthProvider` and never contact Google or send SMS.
@@ -88,5 +136,7 @@ Tests use `FakeAuthProvider` and never contact Google or send SMS.
 
 - No email/password auth.
 - No automatic Google↔phone account linking.
+- No guest→account progress transfer.
 - Hosted multi-user reminder fan-out is not implemented (CLI reminders remain single-tenant).
 - Local SQLite progress DBs are not auto-imported into Postgres.
+- Account delete clears personal progress + session; provider-side hard delete is not wired yet.

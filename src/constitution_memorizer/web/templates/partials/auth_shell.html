@@ -1,0 +1,18 @@
+{# Editorial auth shell — left rail + right slot. Expects block auth_body. #}
+<section class="auth-shell" data-auth-state="{{ auth_state|default('default') }}">
+  <aside class="auth-rail" aria-hidden="false">
+    <a class="auth-rail-brand" href="/">
+      <img class="brand-mark" src="/static/brand-c.png" width="28" height="28" alt="">
+      <span class="brand-wordmark">{{ app_name|default('Recall the C') }}</span>
+    </a>
+    <h1 class="auth-rail-title">Learn the Constitution.<br>Keep your place.</h1>
+    <p class="auth-rail-lede">Anyone can explore. Sign in only when you want progress saved to your account.</p>
+    <blockquote class="auth-rail-quote">
+      <p>WE, THE PEOPLE OF INDIA, having solemnly resolved to constitute India into a SOVEREIGN SOCIALIST SECULAR DEMOCRATIC REPUBLIC…</p>
+      <cite>Preamble</cite>
+    </blockquote>
+  </aside>
+  <div class="auth-panel">
+    {% block auth_body %}{% endblock %}
+  </div>
+</section>

@@ -2,47 +2,90 @@
 {% block title %}Dashboard · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
 <section class="panel dashboard-panel">
-  <p class="eyebrow">Dashboard</p>
-  <div class="dashboard-identity">
+  <header class="dash-greeting">
+    {% set initials = (display_label[:1] if display_label else 'L')|upper %}
     {% if user.avatar_url %}
-    <img class="dashboard-avatar" src="{{ user.avatar_url }}" alt="" width="48" height="48">
+    <img class="dash-avatar" src="{{ user.avatar_url }}" alt="" width="48" height="48">
+    {% else %}
+    <span class="dash-avatar dash-avatar-fallback" aria-hidden="true">{{ initials }}</span>
     {% endif %}
     <div>
-      <h1 class="display">{{ display_label }}</h1>
-      <p class="lede">Your learning progress stays private to this account.</p>
+      <p class="eyebrow">Dashboard</p>
+      <h1 class="display dash-hello">Hello, {{ display_label }}</h1>
+      <p class="lede">
+        {% if is_new %}
+          Your learning space is ready. Start with Browse or open a unit to learn.
+        {% elif nothing_due %}
+          Nothing due today. Keep exploring when you are ready.
+        {% else %}
+          Here is where you left off.
+        {% endif %}
+      </p>
     </div>
+  </header>
+
+  <div class="dash-grid">
+    <article class="dash-card dash-due{% if due_count == 0 %} is-empty{% elif due_count >= 5 %} is-heavy{% endif %}">
+      <h2 class="dash-card-title">Due today</h2>
+      {% if due_count == 0 %}
+      <p class="dash-stat">0</p>
+      <p class="muted">No revisions waiting.</p>
+      {% else %}
+      <p class="dash-stat">{{ due_count }}</p>
+      <p class="muted">{% if due_count == 1 %}One unit is waiting.{% else %}Units waiting for revision.{% endif %}</p>
+      <p class="actions"><a class="btn" href="/learn">Review due</a></p>
+      {% endif %}
+    </article>
+
+    <article class="dash-card dash-continue">
+      <h2 class="dash-card-title">Continue learning</h2>
+      {% if continue_unit %}
+      <p class="dash-continue-title">{{ continue_unit.display_title }}</p>
+      {% if continue_unit.title %}<p class="muted">{{ continue_unit.title }}</p>{% endif %}
+      <p class="actions">
+        <a class="btn" href="/learn/{{ continue_unit.id }}">Continue</a>
+      </p>
+      {% else %}
+      <p class="muted">No unit in progress yet.</p>
+      <p class="actions"><a class="btn btn-ghost" href="/browse">Browse articles</a></p>
+      {% endif %}
+    </article>
+
+    <article class="dash-card dash-progress-summary">
+      <h2 class="dash-card-title">Progress</h2>
+      <ul class="dash-stats" aria-label="Study summary">
+        <li><strong>{{ started }}</strong> started</li>
+        <li><strong>{{ review }}</strong> in review</li>
+        <li><strong>{{ mastered }}</strong> mastered</li>
+      </ul>
+      <p class="actions"><a class="btn btn-ghost" href="/progress">Open progress</a></p>
+    </article>
   </div>
 
-  <ul class="dashboard-stats" aria-label="Study summary">
-    <li><strong>{{ due_count }}</strong> due today</li>
-    <li><strong>{{ started }}</strong> units started</li>
-    <li><strong>{{ mastered }}</strong> mastered</li>
-  </ul>
-
-  <p class="actions">
-    {% if continue_unit %}
-    <a class="btn" href="/learn/{{ continue_unit.id }}">Continue {{ continue_unit.display_title }}</a>
+  <section class="dash-section">
+    <h2 class="section-title">Recent activity</h2>
+    {% if recent %}
+    <ul class="checklist dash-activity">
+      {% for row in recent %}
+      <li>
+        <a class="checklist-title" href="/learn/{{ row.learning_unit_id }}">{{ row.learning_unit_id }}</a>
+        <span class="muted">{{ row.status }} · {{ row.updated_at[:10] }}</span>
+      </li>
+      {% endfor %}
+    </ul>
     {% else %}
-    <a class="btn" href="/browse">Browse articles</a>
+    <p class="muted">No activity yet. Open Browse to begin.</p>
     {% endif %}
-    <a class="btn btn-ghost" href="/progress">Progress</a>
-  </p>
+  </section>
 
-  {% if recent %}
-  <h2 class="section-title">Recent activity</h2>
-  <ul class="checklist">
-    {% for row in recent %}
-    <li>
-      <span class="checklist-title">{{ row.learning_unit_id }}</span>
-      <span class="muted">{{ row.status }} · {{ row.updated_at[:10] }}</span>
-    </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-
-  <form method="post" action="/logout" class="dashboard-logout">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button class="btn btn-ghost" type="submit">Log out</button>
-  </form>
+  <section class="dash-section">
+    <h2 class="section-title">Explore</h2>
+    <ul class="dash-explore">
+      <li><a href="/browse">Browse Parts &amp; Articles</a></li>
+      <li><a href="/search">Search the Bare Act</a></li>
+      <li><a href="/tables">Schedules &amp; tables</a></li>
+      <li><a href="/learn">Open Learn</a></li>
+    </ul>
+  </section>
 </section>
 {% endblock %}

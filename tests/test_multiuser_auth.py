@@ -66,8 +66,9 @@ def _multi_client(tmp_path: Path, provider: FakeAuthProvider | None = None) -> T
 
 def test_normalize_and_mask_phone():
     assert normalize_e164("+91 98765 43210") == "+919876543210"
+    assert normalize_e164("9876543210") == "+919876543210"
     with pytest.raises(InvalidCredentialsError):
-        normalize_e164("9876543210")
+        normalize_e164("12345")
     assert mask_phone("+919876543210") == "+91******3210"
 
 
@@ -121,7 +122,7 @@ def test_login_page_feature_flags(tmp_path: Path):
     client = TestClient(app)
     html = client.get("/login").text
     assert 'href="/auth/google/start"' not in html
-    assert "Phone number" in html
+    assert "Mobile number" in html or "national_number" in html
 
 
 def test_google_oauth_callback_sets_session(tmp_path: Path):
@@ -136,7 +137,7 @@ def test_google_oauth_callback_sets_session(tmp_path: Path):
         follow_redirects=False,
     )
     assert cb.status_code == 303
-    assert cb.headers["location"] == "/dashboard"
+    assert cb.headers["location"].startswith("/auth/transition")
     assert SESSION_COOKIE_NAME in cb.cookies
     dash = client.get("/dashboard")
     assert dash.status_code == 200
@@ -172,7 +173,8 @@ def test_phone_otp_flow(tmp_path: Path):
         follow_redirects=False,
     )
     assert verify.status_code == 303
-    assert verify.headers["location"] == "/dashboard"
+    # Phone users without display_name land on welcome.
+    assert verify.headers["location"] == "/welcome"
 
 
 def test_invalid_otp(tmp_path: Path):
@@ -195,9 +197,13 @@ def test_invalid_otp(tmp_path: Path):
 
 def test_protected_route_redirects(tmp_path: Path):
     client = _multi_client(tmp_path)
-    resp = client.get("/progress", follow_redirects=False)
-    assert resp.status_code == 303
-    assert resp.headers["location"] == "/login"
+    # Progress/dashboard show inline guest gates (200). Calendar still redirects.
+    prog = client.get("/progress")
+    assert prog.status_code == 200
+    assert "Sign in to save your learning" in prog.text
+    cal = client.get("/calendar", follow_redirects=False)
+    assert cal.status_code == 303
+    assert cal.headers["location"].startswith("/login")
 
 
 def test_logout_clears_session(tmp_path: Path):
@@ -209,4 +215,7 @@ def test_logout_clears_session(tmp_path: Path):
     assert client.get("/dashboard").status_code == 200
     out = client.post("/logout", follow_redirects=False)
     assert out.status_code == 303
-    assert client.get("/dashboard", follow_redirects=False).headers["location"] == "/login"
+    assert out.headers["location"] == "/signed-out"
+    gate = client.get("/dashboard")
+    assert gate.status_code == 200
+    assert "Sign in to save your learning" in gate.text

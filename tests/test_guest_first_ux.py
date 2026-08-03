@@ -261,10 +261,41 @@ def test_dashboard_recent_activity_uses_display_title(tmp_path: Path):
     assert dash.status_code == 200
     assert "Article 20(1)" in dash.text
     assert 'href="/learn/clause-1"' in dash.text
+    assert "Mastered Article 20(1)" in dash.text or "Reviewed Article 20(1)" in dash.text
+
+
+def test_dashboard_multiuser_layout(tmp_path: Path):
+    client = _client(tmp_path)
+    start = client.get("/auth/google/start", follow_redirects=False)
+    state = start.cookies.get("rtc_oauth_state")
+    client.get(
+        f"/auth/callback?code=fake-google-code&state={state}",
+        follow_redirects=False,
+    )
+    dash = client.get("/dashboard")
+    assert dash.status_code == 200
+    html = dash.text
+    assert 'class="eyebrow"' not in html
+    assert "Welcome, User." in html or "Good morning, User." in html
+    assert "Due today" in html
+    assert "Continue learning" in html
+    assert "Articles started" in html
+    assert "Units completed" in html
+    assert "Units mastered" in html
+    assert "Day streak" in html
+    assert "Revisions done" in html
+    assert "Explore the Constitution" in html
+    assert "Browse Parts &amp; Articles" in html
+    assert "→" in html
+    assert "dash-progress-summary" not in html
+    assert "Progress summary" in html  # aria-label on strip
+    # Top-row Progress card (old 3-col) is gone — no started/review/mastered trio labels.
+    assert ">Started<" not in html
+    assert "Recent activity" in html
 
 
 def test_dashboard_data_error_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    from constitution_memorizer.progress.scheduler import ReminderEngine
+    from constitution_memorizer.web import dashboard as dash_mod
 
     client = _client(tmp_path)
     start = client.get("/auth/google/start", follow_redirects=False)
@@ -274,12 +305,11 @@ def test_dashboard_data_error_state(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         follow_redirects=False,
     )
 
-    def boom(self, *args, **kwargs):
+    def boom(*args, **kwargs):
         raise RuntimeError("forced dashboard failure")
 
-    # Patch stats (dashboard-only) so the shared due_today context processor still works.
-    monkeypatch.setattr(ReminderEngine, "stats", boom)
+    monkeypatch.setattr(dash_mod, "build_dashboard_context", boom)
     dash = client.get("/dashboard")
     assert dash.status_code == 200
-    assert "Couldn't load your dashboard" in dash.text
-    assert "Retry" in dash.text
+    assert "We couldn't load your dashboard" in dash.text
+    assert "Try again" in dash.text

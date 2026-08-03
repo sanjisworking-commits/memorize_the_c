@@ -387,49 +387,12 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             or (mask_phone(user.phone) if user.phone else user.email or "Learner")
         )
         try:
-            today = date.today()
-            due = eng.due_today(as_of=today)
-            stats = eng.stats()
-            from constitution_memorizer.web.service import continue_unit_id
+            from constitution_memorizer.web.dashboard import build_dashboard_context
 
-            cont = continue_unit_id(eng, as_of=today)
-            cont_unit = eng.get_unit(cont) if cont else None
-            recent_rows = sorted(
-                eng.list_all_progress(),
-                key=lambda r: r.updated_at,
-                reverse=True,
-            )[:5]
-            recent = []
-            for row in recent_rows:
-                unit = eng.get_unit(row.learning_unit_id)
-                recent.append(
-                    {
-                        "unit_id": row.learning_unit_id,
-                        "title": (
-                            unit.display_title if unit is not None else row.learning_unit_id
-                        ),
-                        "status": row.status,
-                        "updated_at": row.updated_at,
-                    }
-                )
-            is_new = stats["tracked"] == 0
-            return templates.TemplateResponse(
-                request,
-                "dashboard.html",
-                {
-                    "user": user,
-                    "display_label": label,
-                    "dashboard_state": "ok",
-                    "due_count": len(due),
-                    "started": stats["tracked"],
-                    "mastered": stats["mastered"],
-                    "review": stats["review"],
-                    "continue_unit": cont_unit,
-                    "recent": recent,
-                    "is_new": is_new,
-                    "nothing_due": len(due) == 0 and not is_new,
-                },
-            )
+            ctx = build_dashboard_context(eng, display_label=label)
+            ctx["user"] = user
+            ctx["dashboard_state"] = "ok"
+            return templates.TemplateResponse(request, "dashboard.html", ctx)
         except Exception:
             logger.exception("Dashboard data load failed for user %s", user.id)
             return templates.TemplateResponse(
@@ -438,15 +401,29 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
                 {
                     "user": user,
                     "display_label": label,
+                    "first_name": (label or "Learner").split()[0],
+                    "greeting": f"Hello, {(label or 'Learner').split()[0]}.",
+                    "subtext": "Your saved progress is safe.",
                     "dashboard_state": "data-error",
                     "due_count": 0,
-                    "started": 0,
-                    "mastered": 0,
-                    "review": 0,
+                    "due_minutes": 0,
+                    "due_chips": [],
+                    "due_chips_more": 0,
+                    "first_due_id": None,
                     "continue_unit": None,
+                    "continue_meta": "",
+                    "continue_mode_line": "",
+                    "continue_pct": 0,
+                    "strip": {
+                        "articles_started": 0,
+                        "units_completed": 0,
+                        "units_mastered": 0,
+                        "day_streak": 0,
+                        "revisions_done": 0,
+                    },
                     "recent": [],
                     "is_new": False,
-                    "nothing_due": False,
+                    "nothing_due": True,
                 },
             )
 

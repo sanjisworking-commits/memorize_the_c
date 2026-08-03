@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Home · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block content %}
+<section class="panel guest-home">
+  <p class="eyebrow">Guest</p>
+  <h1 class="display">Explore the Constitution</h1>
+  <p class="lede">Browse and try Learn modes freely. Sign in only when you want progress saved.</p>
+  <p class="actions">
+    <a class="btn" href="/browse">Browse articles</a>
+    <a class="btn btn-ghost" href="/learn">Try Learn</a>
+    <a class="btn btn-ghost" href="/login">Sign in</a>
+  </p>
+</section>
+{% include "partials/guest_modal.html" %}
+{% endblock %}

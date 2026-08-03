@@ -76,19 +76,42 @@ def test_india_mobile_to_e164():
 def test_guest_can_browse_and_learn(tmp_path: Path):
     client = _client(tmp_path)
     home = client.get("/", follow_redirects=False)
-    assert home.status_code == 303
-    assert home.headers["location"] == "/browse"
+    assert home.status_code == 200
+    assert "Explore the Constitution" in home.text
+    assert "Learning as guest" in home.text
+    assert 'href="/" class="nav-link is-active">Home' in home.text
+    assert 'class="brand" href="/"' in home.text
+    assert "main_logo.png" in home.text
 
     browse = client.get("/browse")
     assert browse.status_code == 200
     assert "Browse the Constitution" in browse.text
     assert "Learning as guest" in browse.text
     assert "guest-signin-modal" in browse.text
+    assert 'href="/" class="nav-link">Home' in browse.text
+    assert 'href="/browse" class="nav-link is-active">Browse' in browse.text
 
     learn = client.get("/learn/clause-1")
     assert learn.status_code == 200
     assert "learning as a guest" in learn.text.lower()
     assert "guest-signin-modal" in learn.text
+
+
+def test_authed_logo_and_root_go_to_dashboard(tmp_path: Path):
+    client = _client(tmp_path)
+    start = client.get("/auth/google/start", follow_redirects=False)
+    state = start.cookies.get("rtc_oauth_state")
+    client.get(
+        f"/auth/callback?code=fake-google-code&state={state}",
+        follow_redirects=False,
+    )
+    dash = client.get("/dashboard")
+    assert dash.status_code == 200
+    assert 'class="brand" href="/dashboard"' in dash.text
+    assert "main_logo.png" in dash.text
+    root = client.get("/", follow_redirects=False)
+    assert root.status_code == 303
+    assert root.headers["location"] == "/dashboard"
 
 
 def test_guest_post_done_redirects_to_login(tmp_path: Path):

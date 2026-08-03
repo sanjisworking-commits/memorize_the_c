@@ -21,8 +21,8 @@ Single-user local mode (`scripts/mac/start-ui.command`, SQLite without
 
 ```
 Guest
-  ├─ /                 redirects to /browse
-  ├─ /browse, /search  corpus (Browse is the guest home)
+  ├─ /                 guest home (logo + Home nav)
+  ├─ /browse, /search  corpus
   ├─ /learn/{id}       try modes + guest banner / sign-in modal
   ├─ /dashboard        inline guest gate
   └─ /progress         inline guest gate

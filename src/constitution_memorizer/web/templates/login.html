@@ -54,7 +54,9 @@
           That code was not accepted. Try again or request a new code.
         {% elif err == 'too_many_attempts' or err == 'rate_limited' %}
           Too many attempts — wait and try again.
-        {% elif err == 'oauth_failed' or err == 'oauth_state' %}
+        {% elif err == 'oauth_state' %}
+          Google sign-in session expired. Close the tab and try Continue with Google again.
+        {% elif err == 'oauth_failed' %}
           Google sign-in did not complete. Please try again.
         {% elif err == 'csrf' %}
           Session check failed. Reload the page and try again.

@@ -22,6 +22,7 @@ from constitution_memorizer.auth.phone import (
     mask_phone,
     normalize_e164,
 )
+from constitution_memorizer.auth.pkce import code_challenge_s256, new_code_verifier
 from constitution_memorizer.auth.rate_limit import OtpRateLimiter
 from constitution_memorizer.auth.sessions import (
     CSRF_COOKIE_NAME,
@@ -30,6 +31,8 @@ from constitution_memorizer.auth.sessions import (
 )
 
 logger = logging.getLogger(__name__)
+
+PKCE_COOKIE_NAME = "rtc_pkce_verifier"
 
 
 def _client_ip(request: Request) -> str:
@@ -96,54 +99,76 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         if not settings.auth_google_enabled:
             return RedirectResponse(url="/login?error=google_disabled", status_code=303)
         state = secrets.token_urlsafe(24)
+        verifier = new_code_verifier()
+        challenge = code_challenge_s256(verifier)
         request.app.state.oauth_states[state] = True
         redirect_url = f"{settings.app_base_url.rstrip('/')}/auth/callback"
         url = request.app.state.auth_provider.get_google_authorization_url(
-            redirect_url, state=state
+            redirect_url,
+            state=state,
+            code_challenge=challenge,
+            code_challenge_method="S256",
         )
         response = RedirectResponse(url=url, status_code=303)
         next_url = _safe_next(request.query_params.get("next"))
-        response.set_cookie(
-            "rtc_oauth_state",
-            state,
-            httponly=True,
-            samesite="lax",
-            secure=bool(settings.cookie_secure),
-            max_age=600,
-            path="/",
-        )
-        response.set_cookie(
-            "rtc_auth_next",
-            next_url,
-            httponly=True,
-            samesite="lax",
-            secure=bool(settings.cookie_secure),
-            max_age=600,
-            path="/",
-        )
+        cookie_kw = {
+            "httponly": True,
+            "samesite": "lax",
+            "secure": bool(settings.cookie_secure),
+            "max_age": 600,
+            "path": "/",
+        }
+        response.set_cookie("rtc_oauth_state", state, **cookie_kw)
+        response.set_cookie(PKCE_COOKIE_NAME, verifier, **cookie_kw)
+        response.set_cookie("rtc_auth_next", next_url, **cookie_kw)
         return response
 
-    @router.get("/auth/callback")
-    async def auth_callback(request: Request) -> RedirectResponse:
+    @router.get("/auth/callback", response_model=None)
+    async def auth_callback(request: Request):
         settings = request.app.state.multiuser_settings
         params = request.query_params
-        state = params.get("state") or ""
+        # Implicit-flow fallback: tokens arrive in the URL hash (not sent to server).
+        if (
+            not params.get("code")
+            and not params.get("access_token")
+            and not params.get("error")
+        ):
+            return templates.TemplateResponse(request, "auth_callback.html", {})
+
+        if params.get("error"):
+            logger.info(
+                "OAuth provider error=%s desc=%s",
+                params.get("error"),
+                params.get("error_description"),
+            )
+            return RedirectResponse(url="/login?error=oauth_failed", status_code=303)
+
         cookie_state = request.cookies.get("rtc_oauth_state")
-        if not state or state != cookie_state or state not in request.app.state.oauth_states:
+        state = params.get("state") or ""
+        # CSRF: require the start cookie. Query state must match when present.
+        if not cookie_state:
             return RedirectResponse(url="/login?error=oauth_state", status_code=303)
-        request.app.state.oauth_states.pop(state, None)
+        if state and state != cookie_state:
+            return RedirectResponse(url="/login?error=oauth_state", status_code=303)
+        request.app.state.oauth_states.pop(cookie_state, None)
+
         redirect_url = f"{settings.app_base_url.rstrip('/')}/auth/callback"
+        verifier = request.cookies.get(PKCE_COOKIE_NAME)
         try:
             auth_session = request.app.state.auth_provider.exchange_oauth_callback(
                 code=params.get("code"),
                 access_token=params.get("access_token"),
                 refresh_token=params.get("refresh_token"),
                 redirect_url=redirect_url,
+                code_verifier=verifier,
             )
         except InvalidCredentialsError:
-            logger.info("OAuth callback failed")
+            logger.info("OAuth callback exchange failed")
             return RedirectResponse(url="/login?error=oauth_failed", status_code=303)
-        return _establish_session(request, auth_session)
+        response = _establish_session(request, auth_session)
+        response.delete_cookie(PKCE_COOKIE_NAME, path="/")
+        response.delete_cookie("rtc_oauth_state", path="/")
+        return response
 
     @router.get("/auth/transition", response_class=HTMLResponse)
     async def auth_transition(request: Request) -> HTMLResponse:

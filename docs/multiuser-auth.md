@@ -90,6 +90,10 @@ python -m constitution_memorizer.cli serve --host 0.0.0.0 --port "$PORT"
    Do **not** put `{APP_BASE_URL}/auth/callback` here — that belongs in
    Supabase → Authentication → URL configuration.
 3. Paste Client ID/secret into Supabase Google provider settings.
+4. App OAuth uses **PKCE**: `/auth/google/start` stores a code verifier cookie and
+   Supabase returns `?code=` to `{APP_BASE_URL}/auth/callback`. Ensure
+   `APP_BASE_URL` matches the URL you open in the browser (`http://127.0.0.1:8010`
+   vs `http://localhost:8010` must match exactly).
 
 ### Why Google says “Sign in to ….supabase.co”
 

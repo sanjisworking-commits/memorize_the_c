@@ -10,7 +10,14 @@ from constitution_memorizer.auth.models import AuthenticatedSession, Authenticat
 class AuthProvider(Protocol):
     """Provider-agnostic authentication operations."""
 
-    def get_google_authorization_url(self, redirect_url: str, *, state: str) -> str:
+    def get_google_authorization_url(
+        self,
+        redirect_url: str,
+        *,
+        state: str,
+        code_challenge: str | None = None,
+        code_challenge_method: str = "S256",
+    ) -> str:
         """Return the Google OAuth authorization URL (with state/PKCE as supported)."""
         ...
 
@@ -21,6 +28,7 @@ class AuthProvider(Protocol):
         access_token: str | None,
         refresh_token: str | None,
         redirect_url: str,
+        code_verifier: str | None = None,
     ) -> AuthenticatedSession:
         """Complete an OAuth redirect and return a session."""
         ...

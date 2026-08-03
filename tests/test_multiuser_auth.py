@@ -132,6 +132,7 @@ def test_google_oauth_callback_sets_session(tmp_path: Path):
     assert start.status_code == 303
     state = start.cookies.get("rtc_oauth_state")
     assert state
+    assert start.cookies.get("rtc_pkce_verifier")
     cb = client.get(
         f"/auth/callback?code=fake-google-code&state={state}",
         follow_redirects=False,
@@ -144,8 +145,32 @@ def test_google_oauth_callback_sets_session(tmp_path: Path):
     assert "User A" in dash.text
 
 
+def test_oauth_callback_accepts_code_with_cookie_only(tmp_path: Path):
+    """Supabase PKCE may omit state in the query; the start cookie is enough CSRF."""
+    provider = FakeAuthProvider()
+    client = _multi_client(tmp_path, provider)
+    start = client.get("/auth/google/start", follow_redirects=False)
+    assert start.cookies.get("rtc_oauth_state")
+    cb = client.get(
+        "/auth/callback?code=fake-google-code",
+        follow_redirects=False,
+    )
+    assert cb.status_code == 303
+    assert cb.headers["location"].startswith("/auth/transition")
+
+
+def test_oauth_callback_bridge_when_no_query_tokens(tmp_path: Path):
+    client = _multi_client(tmp_path)
+    page = client.get("/auth/callback")
+    assert page.status_code == 200
+    assert "Completing sign-in" in page.text
+    assert "access_token" in page.text
+
+
 def test_oauth_callback_rejects_bad_state(tmp_path: Path):
     client = _multi_client(tmp_path)
+    start = client.get("/auth/google/start", follow_redirects=False)
+    assert start.status_code == 303
     resp = client.get("/auth/callback?code=fake-google-code&state=nope", follow_redirects=False)
     assert resp.status_code == 303
     assert "oauth_state" in resp.headers["location"]

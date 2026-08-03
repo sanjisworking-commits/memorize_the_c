@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
@@ -11,6 +12,8 @@ import httpx
 from constitution_memorizer.auth.exceptions import AuthConfigError, InvalidCredentialsError
 from constitution_memorizer.auth.models import AuthenticatedSession, AuthenticatedUser
 from constitution_memorizer.auth.phone import normalize_e164
+
+logger = logging.getLogger(__name__)
 
 
 class SupabaseAuthProvider:
@@ -27,19 +30,29 @@ class SupabaseAuthProvider:
             "Content-Type": "application/json",
         }
 
-    def get_google_authorization_url(self, redirect_url: str, *, state: str) -> str:
-        # Supabase authorize endpoint; state is round-tripped by the provider.
+    def get_google_authorization_url(
+        self,
+        redirect_url: str,
+        *,
+        state: str,
+        code_challenge: str | None = None,
+        code_challenge_method: str = "S256",
+    ) -> str:
+        """Build Supabase /auth/v1/authorize URL (PKCE when challenge provided)."""
         from urllib.parse import urlencode
 
-        query = urlencode(
-            {
-                "provider": "google",
-                "redirect_to": redirect_url,
-                "scopes": "openid email profile",
-                "query_params": f'{{"state":"{state}"}}',
-            }
-        )
-        return f"{self.base_url}/auth/v1/authorize?{query}"
+        # Carry our CSRF state on redirect_to so it returns in the query string.
+        separator = "&" if "?" in redirect_url else "?"
+        redirect_with_state = f"{redirect_url}{separator}state={state}"
+        params: dict[str, str] = {
+            "provider": "google",
+            "redirect_to": redirect_with_state,
+            "scopes": "openid email profile",
+        }
+        if code_challenge:
+            params["code_challenge"] = code_challenge
+            params["code_challenge_method"] = code_challenge_method or "S256"
+        return f"{self.base_url}/auth/v1/authorize?{urlencode(params)}"
 
     def exchange_oauth_callback(
         self,
@@ -48,6 +61,7 @@ class SupabaseAuthProvider:
         access_token: str | None,
         refresh_token: str | None,
         redirect_url: str,
+        code_verifier: str | None = None,
     ) -> AuthenticatedSession:
         if access_token and refresh_token:
             user = self.verify_access_token(access_token)
@@ -58,17 +72,23 @@ class SupabaseAuthProvider:
             )
         if not code:
             raise InvalidCredentialsError("Missing OAuth credentials")
-        payload = {
-            "auth_code": code,
-            "code_verifier": "",  # PKCE verifier stored server-side in sessions module when used
-            "redirect_uri": redirect_url,
-        }
-        # Prefer token hash exchange when Supabase returns tokens in the fragment;
-        # for code flow use /token?grant_type=pkce when verifier is available.
-        data = self._post("/auth/v1/token?grant_type=authorization_code", {
-            "auth_code": code,
-            "redirect_to": redirect_url,
-        })
+        if code_verifier:
+            data = self._post(
+                "/auth/v1/token?grant_type=pkce",
+                {
+                    "auth_code": code,
+                    "code_verifier": code_verifier,
+                },
+            )
+        else:
+            # Legacy / non-PKCE authorization_code (rarely used with hosted Supabase).
+            data = self._post(
+                "/auth/v1/token?grant_type=authorization_code",
+                {
+                    "auth_code": code,
+                    "redirect_to": redirect_url,
+                },
+            )
         return self._session_from_token_payload(data)
 
     def send_phone_otp(self, phone_number: str) -> None:
@@ -145,6 +165,12 @@ class SupabaseAuthProvider:
         with httpx.Client(timeout=20.0) as client:
             response = client.post(url, headers=self._headers, json=json_body)
         if response.status_code >= 400:
+            logger.info(
+                "Supabase auth POST %s failed status=%s body=%s",
+                path,
+                response.status_code,
+                (response.text or "")[:300],
+            )
             raise InvalidCredentialsError("Authentication request failed")
         payload = response.json()
         if not isinstance(payload, dict):

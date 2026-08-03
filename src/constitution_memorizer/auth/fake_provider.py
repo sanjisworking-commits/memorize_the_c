@@ -63,7 +63,15 @@ class FakeAuthProvider:
         self.phone_users[normalized] = user
         return user
 
-    def get_google_authorization_url(self, redirect_url: str, *, state: str) -> str:
+    def get_google_authorization_url(
+        self,
+        redirect_url: str,
+        *,
+        state: str,
+        code_challenge: str | None = None,
+        code_challenge_method: str = "S256",
+    ) -> str:
+        del code_challenge, code_challenge_method
         self.oauth_states.add(state)
         return f"{redirect_url}?state={state}&code=fake-google-code"
 
@@ -74,8 +82,9 @@ class FakeAuthProvider:
         access_token: str | None,
         refresh_token: str | None,
         redirect_url: str,
+        code_verifier: str | None = None,
     ) -> AuthenticatedSession:
-        del redirect_url, access_token, refresh_token
+        del redirect_url, access_token, refresh_token, code_verifier
         if code != "fake-google-code":
             raise InvalidCredentialsError("Invalid OAuth code")
         user = next(iter(self.google_users.values()), None)

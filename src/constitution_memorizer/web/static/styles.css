@@ -115,9 +115,10 @@ a:hover {
   align-items: baseline;
   justify-content: space-between;
   gap: 24px;
-  padding: 18px 32px;
-  margin: 0 auto;
-  max-width: 1180px;
+  /* Full-bleed bar; keep brand/nav aligned to the 1180 content column */
+  padding: 18px max(32px, calc((100% - 1180px) / 2));
+  margin: 0;
+  max-width: none;
   border-bottom: 1px solid var(--ink);
   box-sizing: border-box;
   width: 100%;
@@ -2842,9 +2843,9 @@ code {
   align-items: center;
   justify-content: space-between;
   gap: 12px 20px;
-  padding: 14px 32px;
-  margin: 0 auto;
-  max-width: 1180px;
+  padding: 14px max(32px, calc((100% - 1180px) / 2));
+  margin: 0;
+  max-width: none;
   width: 100%;
   box-sizing: border-box;
   border-top: 1px solid var(--ink);
@@ -3247,7 +3248,9 @@ html[data-theme="dark"] .memory-sheet-row:hover {
 }
 
 .auth-rail {
-  padding: 28px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  padding: 36px 36px 40px;
   border-right: 1px solid var(--hairline);
   background: #f7f7f5;
 }
@@ -3275,7 +3278,7 @@ html[data-theme="dark"] .memory-sheet-row:hover {
 }
 
 .auth-rail-quote {
-  margin: 0;
+  margin: auto 0 0;
   padding: 0;
   border: 0;
   font-family: var(--font-display);
@@ -3287,7 +3290,10 @@ html[data-theme="dark"] .memory-sheet-row:hover {
 }
 
 .auth-panel {
-  padding: 28px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 36px 36px 40px;
 }
 
 .auth-panel-title {
@@ -4338,24 +4344,35 @@ body.auth-page .sheet-footnote {
   display: none;
 }
 
-/* Auth pages fill the viewport so there's no grey gutter below the card */
+/* Auth pages: full-height shell with the sign-in card centered in the viewport */
 body.auth-page .page-wrap {
   display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 body.auth-page .sheet {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 100vh;
 }
 
 body.auth-page .main {
   flex: 1;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px max(24px, calc((100% - 1180px) / 2)) 40px;
+  box-sizing: border-box;
 }
 
 body.auth-page .auth-shell {
-  flex: 1;
+  flex: 0 1 auto;
+  width: min(1040px, 100%);
+  max-width: 1040px;
+  min-height: min(34rem, calc(100vh - 10rem));
+  margin: 0 auto;
 }
 
 @media (max-width: 820px) {

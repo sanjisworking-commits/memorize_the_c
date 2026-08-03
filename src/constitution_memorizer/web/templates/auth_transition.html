@@ -4,16 +4,17 @@
 {% block content %}
 <section class="auth-transition" data-auth-transition data-next="{{ next_url|default('/dashboard') }}">
   {% if error %}
-  <h1 class="display">Could not open your space</h1>
-  <p class="lede">Something went wrong while finishing sign-in.</p>
+  <div class="auth-error-mark" aria-hidden="true">!</div>
+  <h1 class="display">We couldn't open your account</h1>
+  <p class="lede">Something went wrong while signing you in. Your progress is safe.</p>
   <p class="actions">
-    <a class="btn" href="/login">Return to sign in</a>
-    <a class="btn btn-ghost" href="/browse">Browse as guest</a>
+    <a class="btn" href="/auth/transition?next={{ next_url|default('/dashboard')|urlencode }}">Try again</a>
+    <a class="btn btn-ghost" href="/login">Return to sign in</a>
   </p>
   {% else %}
-  <p class="auth-transition-mark" aria-hidden="true">●</p>
+  <span class="auth-spinner" aria-hidden="true"></span>
   <h1 class="display">Opening your learning space…</h1>
-  <p class="lede">Taking you to your dashboard.</p>
+  <p class="lede auth-transition-sub">Just a moment.</p>
   <noscript>
     <p class="actions"><a class="btn" href="{{ next_url|default('/dashboard') }}">Continue</a></p>
   </noscript>

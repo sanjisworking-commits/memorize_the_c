@@ -87,6 +87,7 @@ a:hover {
   min-height: 100vh;
   padding: 0;
   box-sizing: border-box;
+  background: var(--paper);
 }
 
 .sheet {
@@ -3238,9 +3239,9 @@ html[data-theme="dark"] .memory-sheet-row:hover {
 
 .auth-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 1.05fr 1fr;
   gap: 0;
-  min-height: 28rem;
+  min-height: 0;
   border: 1px solid var(--sheet-border);
   background: var(--paper);
 }
@@ -3277,18 +3278,12 @@ html[data-theme="dark"] .memory-sheet-row:hover {
   margin: 0;
   padding: 0;
   border: 0;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.auth-rail-quote cite {
-  display: block;
-  margin-top: 10px;
-  font-style: normal;
-  color: var(--faint);
-  font-size: 0.8rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #8a8a88;
+  max-width: 340px;
 }
 
 .auth-panel {
@@ -3513,17 +3508,48 @@ html[data-theme="dark"] .memory-sheet-row:hover {
 .auth-transition {
   text-align: center;
   padding: 48px 20px;
+  max-width: 340px;
+  margin: 0 auto;
 }
 
-.auth-transition-mark {
-  color: var(--teal);
-  font-size: 1.4rem;
-  animation: auth-pulse 1.2s ease-in-out infinite;
+.auth-transition-sub {
+  color: #9a9a9a;
 }
 
-@keyframes auth-pulse {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 1; }
+.auth-spinner {
+  width: 34px;
+  height: 34px;
+  display: inline-block;
+  margin: 0 0 20px;
+  border: 3px solid var(--hairline);
+  border-top-color: #0e7569;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-spinner {
+    animation: none;
+  }
+}
+
+.auth-error-mark {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 18px;
+  border: 1.5px solid #b42318;
+  border-radius: 50%;
+  color: #b42318;
+  font-size: 22px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  line-height: 1;
 }
 
 .guest-pill {
@@ -4310,6 +4336,26 @@ html[data-theme="dark"] .nav-signin {
 body.auth-page .site-footer,
 body.auth-page .sheet-footnote {
   display: none;
+}
+
+/* Auth pages fill the viewport so there's no grey gutter below the card */
+body.auth-page .page-wrap {
+  display: flex;
+}
+
+body.auth-page .sheet {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+body.auth-page .main {
+  flex: 1;
+  display: flex;
+}
+
+body.auth-page .auth-shell {
+  flex: 1;
 }
 
 @media (max-width: 820px) {

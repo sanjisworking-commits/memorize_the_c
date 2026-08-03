@@ -304,21 +304,72 @@ def build_parts_mastery_map(
             )
         return rows
 
-    # Fallback: single synthetic row from learning-unit article numbers.
-    numbers = sorted(
+    # Fallback: Part rows from browse_parts.seed.json (reviewed JSON may be absent).
+    from constitution_memorizer.utils.identifiers import parse_article_number
+    from constitution_memorizer.web.browse import (
+        _suffix_in_band,
+        load_browse_parts_seed,
+    )
+
+    seed = load_browse_parts_seed()
+    all_numbers = sorted(
         {u.article_number for u in engine.units.values() if u.article_number},
         key=article_sort_key,
     )
+    if seed:
+        for row in seed:
+            if row.get("repealed"):
+                continue
+            start = row.get("from")
+            end = row.get("to")
+            if start is None or end is None:
+                continue
+            start_i, end_i = int(start), int(end)
+            numbers: list[str] = []
+            for number in all_numbers:
+                parsed = parse_article_number(number)
+                if parsed is None:
+                    continue
+                if not (start_i <= parsed.numeric_component <= end_i):
+                    continue
+                if start_i == end_i == 243 or row.get("suffix_min") is not None or row.get(
+                    "suffix_max"
+                ) is not None:
+                    if not _suffix_in_band(
+                        parsed.suffix, row.get("suffix_min"), row.get("suffix_max")
+                    ):
+                        continue
+                numbers.append(number)
+            if not numbers:
+                continue
+            cells = [
+                _build_mastery_cell(
+                    engine, n, today=today, continue_id=continue_id
+                )
+                for n in numbers
+            ]
+            rows.append(
+                PartMasteryRow(
+                    part_number=str(row["roman"]).upper(),
+                    part_title=_display_part_title(str(row.get("title") or "")),
+                    article_range=_article_range_label(numbers),
+                    cells=cells,
+                )
+            )
+        if rows:
+            return rows
+
+    # Last resort: single synthetic row from learning-unit article numbers.
     cells = [
         _build_mastery_cell(engine, n, today=today, continue_id=continue_id)
-        for n in numbers
+        for n in all_numbers
     ]
     if cells:
         rows.append(
             PartMasteryRow(
                 part_number="—",
                 part_title="Learning units",
-                article_range=_article_range_label(numbers),
+                article_range=_article_range_label(all_numbers),
                 cells=cells,
             )
         )
@@ -342,7 +393,8 @@ def build_tracked_article_rows(
     """Articles with any completion or a pending split choice."""
     rows: list[TrackedArticleRow] = []
     for prog in all_article_progress(engine):
-        if prog.completed <= 0 and not prog.pending_choice:
+        # Unset split choice is the default — not a signal the user is tracking.
+        if prog.completed <= 0:
             continue
         state = article_mastery_state(
             engine, prog.article_number, today=today, continue_id=continue_id

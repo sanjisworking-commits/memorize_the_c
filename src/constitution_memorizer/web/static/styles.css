@@ -85,12 +85,12 @@ a:hover {
 
 .page-wrap {
   min-height: 100vh;
-  padding: 28px 16px;
+  padding: 26px 16px 40px;
   box-sizing: border-box;
 }
 
 .sheet {
-  width: min(980px, 100%);
+  width: min(1120px, 100%);
   margin: 0 auto;
   background: var(--paper);
   border: 1px solid var(--sheet-border);
@@ -99,7 +99,7 @@ a:hover {
 }
 
 .sheet-footnote {
-  width: min(980px, 100%);
+  width: min(1120px, 100%);
   margin: 14px auto 0;
   font-size: 11.5px;
   color: var(--faint);
@@ -3604,6 +3604,8 @@ html[data-theme="dark"] .nav-signin {
 }
 
 .dashboard-panel {
+  max-width: none;
+  padding: 30px 30px 48px;
   font-family: var(--font-body);
   font-weight: 400;
 }

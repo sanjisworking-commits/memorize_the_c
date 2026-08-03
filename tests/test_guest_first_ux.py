@@ -76,12 +76,14 @@ def test_india_mobile_to_e164():
 def test_guest_can_browse_and_learn(tmp_path: Path):
     client = _client(tmp_path)
     home = client.get("/", follow_redirects=False)
-    assert home.status_code == 200
-    assert "Explore the Constitution" in home.text
-    assert "Learning as guest" in home.text
+    assert home.status_code == 303
+    assert home.headers["location"] == "/browse"
 
     browse = client.get("/browse")
     assert browse.status_code == 200
+    assert "Browse the Constitution" in browse.text
+    assert "Learning as guest" in browse.text
+    assert "guest-signin-modal" in browse.text
 
     learn = client.get("/learn/clause-1")
     assert learn.status_code == 200
@@ -103,9 +105,12 @@ def test_guest_dashboard_and_progress_gates(tmp_path: Path):
     dash = client.get("/dashboard")
     assert dash.status_code == 200
     assert "Sign in to save your learning" in dash.text
+    assert "Create a personal learning record" in dash.text
     prog = client.get("/progress")
     assert prog.status_code == 200
     assert "Sign in to save your learning" in prog.text
+    assert "Create a personal learning record" in prog.text
+    assert "Progress and mastery are private" not in prog.text
 
 
 def test_login_ui_india_phone_and_otp_states(tmp_path: Path):
@@ -235,3 +240,46 @@ def test_auth_transition_and_profile_pages(tmp_path: Path):
     profile = client.get("/profile")
     assert profile.status_code == 200
     assert "Profile" in profile.text
+    assert "Learning preferences → Settings" in profile.text
+    assert 'name="notification_frequency"' not in profile.text
+    assert 'name="theme"' not in profile.text
+
+
+def test_dashboard_recent_activity_uses_display_title(tmp_path: Path):
+    client = _client(tmp_path)
+    start = client.get("/auth/google/start", follow_redirects=False)
+    state = start.cookies.get("rtc_oauth_state")
+    client.get(
+        f"/auth/callback?code=fake-google-code&state={state}",
+        follow_redirects=False,
+    )
+    # Mark modes seen then done so a progress row exists.
+    for mode in ("read", "cloze", "letters", "type", "recite", "card"):
+        client.post("/learn/clause-1/seen", data={"mode": mode})
+    client.post("/learn/clause-1/done", follow_redirects=False)
+    dash = client.get("/dashboard")
+    assert dash.status_code == 200
+    assert "Article 20(1)" in dash.text
+    assert 'href="/learn/clause-1"' in dash.text
+
+
+def test_dashboard_data_error_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    from constitution_memorizer.progress.scheduler import ReminderEngine
+
+    client = _client(tmp_path)
+    start = client.get("/auth/google/start", follow_redirects=False)
+    state = start.cookies.get("rtc_oauth_state")
+    client.get(
+        f"/auth/callback?code=fake-google-code&state={state}",
+        follow_redirects=False,
+    )
+
+    def boom(self, *args, **kwargs):
+        raise RuntimeError("forced dashboard failure")
+
+    # Patch stats (dashboard-only) so the shared due_today context processor still works.
+    monkeypatch.setattr(ReminderEngine, "stats", boom)
+    dash = client.get("/dashboard")
+    assert dash.status_code == 200
+    assert "Couldn't load your dashboard" in dash.text
+    assert "Retry" in dash.text

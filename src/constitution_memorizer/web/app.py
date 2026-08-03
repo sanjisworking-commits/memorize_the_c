@@ -308,11 +308,8 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:
         if app.state.multiuser_enabled and getattr(request.state, "current_user", None) is None:
-            return templates.TemplateResponse(
-                request,
-                "guest_home.html",
-                {},
-            )
+            # Design: guest Home is Browse (no splash landing).
+            return RedirectResponse(url="/browse", status_code=303)
         eng = _engine()
         today = date.today()
         due = due_checklist(eng, as_of=today)

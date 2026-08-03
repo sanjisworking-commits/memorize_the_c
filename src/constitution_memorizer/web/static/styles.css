@@ -3315,8 +3315,64 @@ html[data-theme="dark"] .memory-sheet-row:hover {
   color: var(--teal);
 }
 
+.auth-banner.is-warn {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+  border-color: var(--amber-border);
+}
+
 .auth-banner p {
   margin: 0;
+}
+
+.dash-skel {
+  background: #e8e8e6;
+  border-radius: 50%;
+}
+
+.dash-skel-stack {
+  flex: 1;
+}
+
+.dash-skel-line {
+  height: 12px;
+  background: #e8e8e6;
+  margin: 8px 0;
+  max-width: 16rem;
+}
+
+.dash-skel-line.is-short {
+  max-width: 5rem;
+  height: 10px;
+}
+
+.dash-skel-line.is-medium {
+  max-width: 12rem;
+}
+
+.dash-skel-card {
+  min-height: 8rem;
+  background: linear-gradient(90deg, #f2f2f0 0%, #e8e8e6 50%, #f2f2f0 100%);
+  background-size: 200% 100%;
+  animation: dash-skel-shine 1.2s ease-in-out infinite;
+}
+
+.dash-error {
+  border-color: var(--amber-border);
+  background: var(--amber-soft);
+}
+
+.profile-settings-link {
+  margin: 8px 0 24px;
+}
+
+.profile-settings-link a {
+  text-decoration: underline;
+}
+
+@keyframes dash-skel-shine {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 .auth-banner-icon {

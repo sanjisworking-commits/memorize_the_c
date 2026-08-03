@@ -5,7 +5,10 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
-from constitution_memorizer.auth.exceptions import InvalidCredentialsError
+from constitution_memorizer.auth.exceptions import (
+    InvalidCredentialsError,
+    OtpExpiredError,
+)
 from constitution_memorizer.auth.models import AuthenticatedSession, AuthenticatedUser
 from constitution_memorizer.auth.phone import normalize_e164
 
@@ -88,10 +91,14 @@ class FakeAuthProvider:
             self.seed_phone_user(phone=normalized)
 
     def verify_phone_otp(self, phone_number: str, otp: str) -> AuthenticatedSession:
+        """Demo OTP codes (local FakeAuthProvider only): 123456 ok, 000000 expired."""
         normalized = normalize_e164(phone_number)
+        code = (otp or "").strip()
+        if code == "000000":
+            raise OtpExpiredError("This code has expired")
         expected = self.pending_otps.get(normalized)
-        if expected is None or otp != expected:
-            raise InvalidCredentialsError("Invalid or expired code")
+        if expected is None or code != expected:
+            raise InvalidCredentialsError("Invalid code")
         user = self.phone_users.get(normalized)
         if user is None:
             user = self.seed_phone_user(phone=normalized)

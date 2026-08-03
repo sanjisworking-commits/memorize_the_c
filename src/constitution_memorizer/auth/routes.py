@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 
 from constitution_memorizer.auth.exceptions import (
     InvalidCredentialsError,
+    OtpExpiredError,
     RateLimitError,
 )
 from constitution_memorizer.auth.guest import requires_auth, signin_redirect
@@ -59,7 +60,6 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         csrf = request.cookies.get(CSRF_COOKIE_NAME) or new_csrf_token()
         phone_raw = request.query_params.get("phone") or ""
         phone_national = display_national(phone_raw) if phone_raw else ""
-        gate = request.query_params.get("gate")
         reason = request.query_params.get("reason") or "default"
         response = templates.TemplateResponse(
             request,
@@ -70,10 +70,10 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
                 "phone_enabled": settings.auth_phone_enabled,
                 "csrf_token": csrf,
                 "otp_sent": request.query_params.get("otp") == "1",
+                "resent": request.query_params.get("resent") == "1",
                 "phone_value": phone_national,
                 "phone_e164": phone_raw if phone_raw.startswith("+") else "",
                 "next_url": _safe_next(request.query_params.get("next")),
-                "gate": gate,
                 "reason": reason,
                 "auth_state": request.query_params.get("state") or (
                     "otp" if request.query_params.get("otp") == "1" else "default"
@@ -164,6 +164,7 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         phone: str = Form(""),
         country_code: str = Form("+91"),
         national_number: str = Form(""),
+        resend: str = Form(""),
     ) -> RedirectResponse:
         settings = request.app.state.multiuser_settings
         if not settings.auth_phone_enabled:
@@ -198,12 +199,25 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             limiter.record_send(phone=normalized, ip=ip)
         except RateLimitError:
             logger.info("OTP rate limited for %s", mask_phone(normalized))
-            qs = urlencode({"otp": "1", "phone": normalized, "error": "rate_limited", "next": next})
+            qs = urlencode(
+                {
+                    "otp": "1",
+                    "phone": normalized,
+                    "error": "too_many_attempts",
+                    "next": _safe_next(next),
+                }
+            )
             return RedirectResponse(url=f"/login?{qs}", status_code=303)
         except InvalidCredentialsError:
             logger.info("OTP send failed for %s", mask_phone(normalized))
-        qs = urlencode({"otp": "1", "phone": normalized, "next": _safe_next(next)})
-        return RedirectResponse(url=f"/login?{qs}", status_code=303)
+        params = {
+            "otp": "1",
+            "phone": normalized,
+            "next": _safe_next(next),
+        }
+        if (resend or "").strip() in {"1", "true", "yes"}:
+            params["resent"] = "1"
+        return RedirectResponse(url=f"/login?{urlencode(params)}", status_code=303)
 
     @router.post("/auth/phone/verify")
     async def phone_verify(
@@ -236,7 +250,26 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             )
             limiter.record_verify_success(phone=normalized)
         except RateLimitError:
-            return RedirectResponse(url="/login?error=rate_limited", status_code=303)
+            qs = urlencode(
+                {
+                    "otp": "1",
+                    "phone": normalized,
+                    "error": "too_many_attempts",
+                    "next": _safe_next(next),
+                }
+            )
+            return RedirectResponse(url=f"/login?{qs}", status_code=303)
+        except OtpExpiredError:
+            limiter.record_verify_failure(phone=normalized)
+            qs = urlencode(
+                {
+                    "otp": "1",
+                    "phone": normalized,
+                    "error": "otp_expired",
+                    "next": _safe_next(next),
+                }
+            )
+            return RedirectResponse(url=f"/login?{qs}", status_code=303)
         except InvalidCredentialsError:
             limiter.record_verify_failure(phone=normalized)
             qs = urlencode(
@@ -322,41 +355,75 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         if request.app.state.engine.repo.needs_welcome(user.id):
             return RedirectResponse(url="/welcome", status_code=303)
         eng = request.app.state.engine.for_user(user.id)
-        today = date.today()
-        due = eng.due_today(as_of=today)
-        stats = eng.stats()
-        from constitution_memorizer.web.service import continue_unit_id
-
-        cont = continue_unit_id(eng, as_of=today)
-        cont_unit = eng.get_unit(cont) if cont else None
         profile = eng.repo.get_profile(user.id) or {}
         label = (
             profile.get("display_name")
             or user.display_name
             or (mask_phone(user.phone) if user.phone else user.email or "Learner")
         )
-        recent = sorted(
-            eng.list_all_progress(),
-            key=lambda r: r.updated_at,
-            reverse=True,
-        )[:5]
-        is_new = stats["tracked"] == 0
-        return templates.TemplateResponse(
-            request,
-            "dashboard.html",
-            {
-                "user": user,
-                "display_label": label,
-                "due_count": len(due),
-                "started": stats["tracked"],
-                "mastered": stats["mastered"],
-                "review": stats["review"],
-                "continue_unit": cont_unit,
-                "recent": recent,
-                "is_new": is_new,
-                "nothing_due": len(due) == 0 and not is_new,
-            },
-        )
+        try:
+            today = date.today()
+            due = eng.due_today(as_of=today)
+            stats = eng.stats()
+            from constitution_memorizer.web.service import continue_unit_id
+
+            cont = continue_unit_id(eng, as_of=today)
+            cont_unit = eng.get_unit(cont) if cont else None
+            recent_rows = sorted(
+                eng.list_all_progress(),
+                key=lambda r: r.updated_at,
+                reverse=True,
+            )[:5]
+            recent = []
+            for row in recent_rows:
+                unit = eng.get_unit(row.learning_unit_id)
+                recent.append(
+                    {
+                        "unit_id": row.learning_unit_id,
+                        "title": (
+                            unit.display_title if unit is not None else row.learning_unit_id
+                        ),
+                        "status": row.status,
+                        "updated_at": row.updated_at,
+                    }
+                )
+            is_new = stats["tracked"] == 0
+            return templates.TemplateResponse(
+                request,
+                "dashboard.html",
+                {
+                    "user": user,
+                    "display_label": label,
+                    "dashboard_state": "ok",
+                    "due_count": len(due),
+                    "started": stats["tracked"],
+                    "mastered": stats["mastered"],
+                    "review": stats["review"],
+                    "continue_unit": cont_unit,
+                    "recent": recent,
+                    "is_new": is_new,
+                    "nothing_due": len(due) == 0 and not is_new,
+                },
+            )
+        except Exception:
+            logger.exception("Dashboard data load failed for user %s", user.id)
+            return templates.TemplateResponse(
+                request,
+                "dashboard.html",
+                {
+                    "user": user,
+                    "display_label": label,
+                    "dashboard_state": "data-error",
+                    "due_count": 0,
+                    "started": 0,
+                    "mastered": 0,
+                    "review": 0,
+                    "continue_unit": None,
+                    "recent": [],
+                    "is_new": False,
+                    "nothing_due": False,
+                },
+            )
 
     @router.get("/profile", response_class=HTMLResponse)
     async def profile_get(request: Request) -> HTMLResponse:
@@ -374,9 +441,6 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
                 "display_label": profile.get("display_name")
                 or user.display_name
                 or (mask_phone(user.phone) if user.phone else user.email or "Learner"),
-                "frequency": eng.get_notification_frequency(),
-                "news_articles": eng.get_news_articles_raw(),
-                "theme": eng.get_theme(),
                 "csrf_token": request.cookies.get(CSRF_COOKIE_NAME) or "",
                 "saved": request.query_params.get("saved") == "1",
                 "edit_name": request.query_params.get("edit") == "name",
@@ -389,9 +453,6 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         csrf_token: str = Form(...),
         action: str = Form("save"),
         display_name: str = Form(""),
-        notification_frequency: str = Form("thrice"),
-        news_articles: str = Form(""),
-        theme: str = Form("auto"),
     ) -> RedirectResponse:
         user = getattr(request.state, "current_user", None)
         if user is None:
@@ -410,16 +471,6 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             return response
         name = display_name.strip() or (user.display_name or "")
         eng.repo.upsert_profile(user.id, display_name=name, avatar_url=user.avatar_url)
-        from constitution_memorizer.progress.repository import (
-            VALID_NOTIFICATION_FREQUENCIES,
-            VALID_THEMES,
-        )
-
-        if notification_frequency in VALID_NOTIFICATION_FREQUENCIES:
-            eng.set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
-        eng.set_news_articles_raw(news_articles)
-        if theme in VALID_THEMES:
-            eng.set_theme(theme)  # type: ignore[arg-type]
         return RedirectResponse(url="/profile?saved=1", status_code=303)
 
     return router

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from urllib.parse import quote, urlencode
+from urllib.parse import urlencode
 
 from fastapi.responses import RedirectResponse
 
@@ -19,7 +19,7 @@ GUEST_PUBLIC_PREFIXES = (
     "/welcome",
     "/session-expired",
     "/signed-out",
-    "/profile",  # GET shows gate; POST requires auth in handler
+    "/profile",  # GET redirects to login in handler; POST requires auth
 )
 
 # Personal surfaces — unauthenticated users see a gate or redirect to sign-in.
@@ -49,18 +49,30 @@ def is_guest_public_get(path: str, method: str) -> bool:
         return False
     if path == "/" or path == "/learn" or path.startswith("/learn/"):
         return True
-    return any(path == p or path.startswith(p + "/") or path.startswith(p)
-               for p in GUEST_PUBLIC_PREFIXES if p != "/profile")
+    return any(
+        path == p or path.startswith(p + "/") or path.startswith(p)
+        for p in GUEST_PUBLIC_PREFIXES
+        if p != "/profile"
+    )
 
 
 def requires_auth(path: str, method: str) -> bool:
     """Return True when an unauthenticated request must be blocked."""
     m = method.upper()
-    if path.startswith("/auth/") or path in {"/login", "/health", "/signed-out", "/session-expired"}:
+    if path.startswith("/auth/") or path in {
+        "/login",
+        "/health",
+        "/signed-out",
+        "/session-expired",
+    }:
         return False
     if any(path == p or path.startswith(p + "/") for p in AUTH_REQUIRED_PREFIXES):
         return True
-    if path.startswith("/browse/") and path.endswith("/gloss") and m in {"PUT", "DELETE", "POST"}:
+    if path.startswith("/browse/") and path.endswith("/gloss") and m in {
+        "PUT",
+        "DELETE",
+        "POST",
+    }:
         return True
     if path == "/reset" and m == "POST":
         return True
@@ -85,18 +97,3 @@ def signin_redirect(
     if error:
         params["error"] = error
     return RedirectResponse(url=f"/login?{urlencode(params)}", status_code=303)
-
-
-def guest_gate_redirect(path: str, reason: str = "default") -> RedirectResponse:
-    """Send guests to an inline gate page rather than an empty dashboard."""
-    if path.startswith("/progress"):
-        return RedirectResponse(
-            url=f"/login?gate=progress&{urlencode({'reason': reason})}",
-            status_code=303,
-        )
-    if path.startswith("/dashboard"):
-        return RedirectResponse(
-            url=f"/login?gate=dashboard&{urlencode({'reason': reason})}",
-            status_code=303,
-        )
-    return signin_redirect(next_url=path, reason=reason)

@@ -15,6 +15,10 @@ class InvalidCredentialsError(AuthError):
     """OTP, token, or OAuth callback validation failed."""
 
 
+class OtpExpiredError(InvalidCredentialsError):
+    """OTP was rejected because it has expired (distinct from incorrect)."""
+
+
 class SessionExpiredError(AuthError):
     """Server session is missing, expired, or revoked."""
 

@@ -62,7 +62,7 @@
     var timerEl = qs("[data-resend-count]", form);
     var timerWrap = qs("[data-resend-timer]", form);
     var resendBtn = qs("[data-resend-btn]", form);
-    var seconds = 24;
+    var seconds = 30;
     if (timerEl && resendBtn && timerWrap) {
       var tick = setInterval(function () {
         seconds -= 1;

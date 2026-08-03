@@ -6,11 +6,7 @@
   <p class="eyebrow">Personal space</p>
   <h1 class="display">Sign in to save your learning</h1>
   <p class="lede">
-    {% if kind == 'progress' %}
-      Progress and mastery are private to your account. Create a learning record to track revisions.
-    {% else %}
-      Create a personal learning record, continue across devices and receive future revisions.
-    {% endif %}
+    Create a personal learning record, continue across devices and receive future revisions.
   </p>
   <p class="actions">
     <a class="btn" href="/login?next=/{% if kind == 'progress' %}progress{% else %}dashboard{% endif %}&reason={{ reason|default('default') }}">Sign in</a>

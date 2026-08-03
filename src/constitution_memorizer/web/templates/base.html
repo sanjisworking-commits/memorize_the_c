@@ -41,13 +41,13 @@
   <div class="page-wrap">
     <div class="sheet">
       <header class="site-header">
-        <a class="brand" href="{% if multiuser_enabled|default(false) and current_user %}/dashboard{% else %}/{% endif %}" aria-label="{{ app_name|default('Recall the C') }} — Home">
+        <a class="brand" href="{% if multiuser_enabled|default(false) and current_user %}/dashboard{% elif multiuser_enabled|default(false) %}/browse{% else %}/{% endif %}" aria-label="{{ app_name|default('Recall the C') }} — Home">
           <img class="brand-mark" src="/static/brand-c.png" width="26" height="26" alt="">
           <span class="brand-wordmark">{{ app_name|default('Recall the C') }}</span>
         </a>
         <nav class="nav" aria-label="Primary">
           {% if multiuser_enabled|default(false) and auth_surface %}
-          <a href="/" class="nav-link{% if path == '/' %} is-active{% endif %}">Home</a>
+          <a href="/browse" class="nav-link{% if path == '/' or path.startswith('/browse') %} is-active{% endif %}">Home</a>
           <a href="/browse" class="nav-link{% if path.startswith('/browse') %} is-active{% endif %}">Browse</a>
           <a href="/login" class="nav-link nav-signin{% if path.startswith('/login') %} is-active{% endif %}">Sign in</a>
           {% elif multiuser_enabled|default(false) and current_user %}
@@ -88,7 +88,7 @@
             </div>
           </div>
           {% elif multiuser_enabled|default(false) %}
-          <a href="/" class="nav-link{% if path == '/' %} is-active{% endif %}">Home</a>
+          <a href="/browse" class="nav-link{% if path == '/' or path == '/browse' %} is-active{% endif %}">Home</a>
           <a href="/browse" class="nav-link{% if path.startswith('/browse') %} is-active{% endif %}">Browse</a>
           <a href="/search" class="nav-link{% if path.startswith('/search') %} is-active{% endif %}">Search</a>
           <a href="/learn" class="nav-link{% if path.startswith('/learn') %} is-active{% endif %}">Learn</a>

@@ -1,7 +1,43 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
+{% set state = dashboard_state|default('ok') %}
 <section class="panel dashboard-panel">
+  {% if state == 'loading' %}
+  <header class="dash-greeting">
+    <span class="dash-avatar dash-skel" aria-hidden="true"></span>
+    <div class="dash-skel-stack">
+      <p class="dash-skel-line is-short"></p>
+      <p class="dash-skel-line"></p>
+      <p class="dash-skel-line is-medium"></p>
+    </div>
+  </header>
+  <div class="dash-grid" aria-busy="true" aria-label="Loading dashboard">
+    <article class="dash-card dash-skel-card"></article>
+    <article class="dash-card dash-skel-card"></article>
+    <article class="dash-card dash-skel-card"></article>
+  </div>
+
+  {% elif state == 'data-error' %}
+  <header class="dash-greeting">
+    {% set initials = (display_label[:1] if display_label else 'L')|upper %}
+    {% if user.avatar_url %}
+    <img class="dash-avatar" src="{{ user.avatar_url }}" alt="" width="48" height="48">
+    {% else %}
+    <span class="dash-avatar dash-avatar-fallback" aria-hidden="true">{{ initials }}</span>
+    {% endif %}
+    <div>
+      <p class="eyebrow">Dashboard</p>
+      <h1 class="display dash-hello">Hello, {{ display_label }}</h1>
+    </div>
+  </header>
+  <article class="dash-card dash-error" role="alert">
+    <h2 class="dash-card-title">Couldn't load your dashboard</h2>
+    <p class="muted">Something went wrong fetching your learning data. Your progress is still saved.</p>
+    <p class="actions"><a class="btn" href="/dashboard">Retry</a></p>
+  </article>
+
+  {% else %}
   <header class="dash-greeting">
     {% set initials = (display_label[:1] if display_label else 'L')|upper %}
     {% if user.avatar_url %}
@@ -68,7 +104,7 @@
     <ul class="checklist dash-activity">
       {% for row in recent %}
       <li>
-        <a class="checklist-title" href="/learn/{{ row.learning_unit_id }}">{{ row.learning_unit_id }}</a>
+        <a class="checklist-title" href="/learn/{{ row.unit_id }}">{{ row.title }}</a>
         <span class="muted">{{ row.status }} · {{ row.updated_at[:10] }}</span>
       </li>
       {% endfor %}
@@ -87,5 +123,6 @@
       <li><a href="/learn">Open Learn</a></li>
     </ul>
   </section>
+  {% endif %}
 </section>
 {% endblock %}

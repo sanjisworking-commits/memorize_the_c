@@ -4,12 +4,12 @@
 <section class="panel profile-panel">
   <p class="eyebrow">Account</p>
   <h1 class="display">Profile</h1>
-  <p class="lede">Your sign-in method, learning preferences, and account actions.</p>
+  <p class="lede">Your account identity and sign-in method. Learning preferences live in Settings.</p>
 
   {% if saved %}
   <div class="auth-banner is-ok" role="status">
     <span class="auth-banner-icon" aria-hidden="true">✓</span>
-    <p>Preferences saved.</p>
+    <p>Profile saved.</p>
   </div>
   {% endif %}
 
@@ -46,6 +46,10 @@
       value="{{ profile.display_name or display_label }}"
       required
     >
+    <p class="actions">
+      <button class="btn" type="submit">Save name</button>
+      <a class="btn btn-ghost" href="/profile">Cancel</a>
+    </p>
     {% else %}
     <input type="hidden" name="display_name" value="{{ profile.display_name or display_label }}">
     {% endif %}
@@ -66,47 +70,11 @@
       </div>
       {% endif %}
     </div>
-
-    <h2 class="section-title">Learning preferences</h2>
-    <fieldset class="pref-group">
-      <legend class="field-label">Study reminders</legend>
-      <label class="pref-option">
-        <input type="radio" name="notification_frequency" value="twice" {% if frequency == 'twice' %}checked{% endif %}>
-        Twice a day
-      </label>
-      <label class="pref-option">
-        <input type="radio" name="notification_frequency" value="thrice" {% if frequency == 'thrice' %}checked{% endif %}>
-        Three times a day
-      </label>
-      <label class="pref-option">
-        <input type="radio" name="notification_frequency" value="hourly" {% if frequency == 'hourly' %}checked{% endif %}>
-        Every hour
-      </label>
-    </fieldset>
-
-    <label class="field-label" for="news_articles">News articles of interest</label>
-    <textarea id="news_articles" class="field-input" name="news_articles" rows="3" placeholder="Optional notes">{{ news_articles }}</textarea>
-
-    <fieldset class="pref-group">
-      <legend class="field-label">Theme</legend>
-      <label class="pref-option">
-        <input type="radio" name="theme" value="auto" {% if theme == 'auto' %}checked{% endif %}>
-        Auto
-      </label>
-      <label class="pref-option">
-        <input type="radio" name="theme" value="light" {% if theme == 'light' %}checked{% endif %}>
-        Light
-      </label>
-      <label class="pref-option">
-        <input type="radio" name="theme" value="dark" {% if theme == 'dark' %}checked{% endif %}>
-        Dark
-      </label>
-    </fieldset>
-
-    <p class="actions">
-      <button class="btn" type="submit">Save preferences</button>
-    </p>
   </form>
+
+  <p class="profile-settings-link">
+    <a href="/settings">Learning preferences → Settings</a>
+  </p>
 
   <h2 class="section-title">Account</h2>
   <ul class="account-actions">

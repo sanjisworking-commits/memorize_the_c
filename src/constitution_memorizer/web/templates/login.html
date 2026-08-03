@@ -6,14 +6,15 @@
 {% set err = error %}
 {% if err == 'phone_format' %}{% set state = 'invalid-phone' %}{% endif %}
 {% if err == 'bad_otp' %}{% set state = 'incorrect' %}{% endif %}
-{% if err == 'rate_limited' %}{% set state = 'rate-limited' %}{% endif %}
+{% if err == 'otp_expired' %}{% set state = 'expired' %}{% endif %}
+{% if err == 'rate_limited' or err == 'too_many_attempts' %}{% set state = 'too-many' %}{% endif %}
 {% if err == 'phone_disabled' or err == 'google_disabled' %}{% set state = 'provider-unavailable' %}{% endif %}
 {% if err == 'oauth_failed' or err == 'oauth_state' or err == 'csrf' or err == 'auth-error' %}{% set state = 'auth-error' %}{% endif %}
 {% if otp_sent and state == 'default' %}{% set state = 'otp' %}{% endif %}
 
 <section class="auth-shell" data-auth-state="{{ state }}">
   <aside class="auth-rail">
-    <a class="auth-rail-brand" href="/">
+    <a class="auth-rail-brand" href="/browse">
       <img class="brand-mark" src="/static/brand-c.png" width="28" height="28" alt="">
       <span class="brand-wordmark">{{ app_name|default('Recall the C') }}</span>
     </a>
@@ -26,11 +27,7 @@
   </aside>
 
   <div class="auth-panel">
-    {% if gate %}
-    <p class="auth-gate-eyebrow">Personal space</p>
-    <h2 class="auth-panel-title">Sign in to open your {{ gate }}</h2>
-    <p class="auth-panel-lede">Your dashboard and progress stay private to your account.</p>
-    {% elif otp_sent %}
+    {% if otp_sent %}
     <h2 class="auth-panel-title">Enter the code</h2>
     <p class="auth-panel-lede">We sent a 6-digit code{% if phone_value %} to <strong>+91 {{ phone_value }}</strong>{% endif %}.</p>
     {% else %}
@@ -38,18 +35,27 @@
     <p class="auth-panel-lede">Use Google or your Indian mobile number.</p>
     {% endif %}
 
+    {% if resent and not err %}
+    <div class="auth-banner is-ok" role="status">
+      <span class="auth-banner-icon" aria-hidden="true">✓</span>
+      <p>New code sent.</p>
+    </div>
+    {% endif %}
+
     {% if err %}
-    <div class="auth-banner is-error" role="alert">
+    <div class="auth-banner {% if state == 'too-many' or state == 'expired' %}is-warn{% else %}is-error{% endif %}" role="alert">
       <span class="auth-banner-icon" aria-hidden="true">!</span>
       <p>
         {% if err == 'phone_format' %}
           Enter a valid 10-digit Indian mobile number starting with 6–9.
+        {% elif err == 'otp_expired' %}
+          This code has expired — request a new one.
         {% elif err == 'bad_otp' %}
           That code was not accepted. Try again or request a new code.
+        {% elif err == 'too_many_attempts' or err == 'rate_limited' %}
+          Too many attempts — wait and try again.
         {% elif err == 'oauth_failed' or err == 'oauth_state' %}
           Google sign-in did not complete. Please try again.
-        {% elif err == 'rate_limited' %}
-          Too many attempts. Please wait a moment and try again.
         {% elif err == 'csrf' %}
           Session check failed. Reload the page and try again.
         {% elif err == 'phone_disabled' %}
@@ -149,8 +155,17 @@
       </fieldset>
       <button class="btn auth-primary" type="submit" data-verify-otp disabled>Verify and continue</button>
       <p class="auth-resend" data-resend-wrap>
-        <span data-resend-timer>Resend available in <strong data-resend-count>24</strong>s</span>
-        <button type="submit" formaction="/auth/phone/send" formmethod="post" class="link-btn" data-resend-btn hidden>
+        <span data-resend-timer>Resend available in <strong data-resend-count>30</strong>s</span>
+        <button
+          type="submit"
+          formaction="/auth/phone/send"
+          formmethod="post"
+          class="link-btn"
+          name="resend"
+          value="1"
+          data-resend-btn
+          hidden
+        >
           Resend code
         </button>
         <input type="hidden" name="national_number" value="{{ phone_value }}">

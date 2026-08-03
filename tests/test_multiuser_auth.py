@@ -177,7 +177,7 @@ def test_phone_otp_flow(tmp_path: Path):
     assert verify.headers["location"] == "/welcome"
 
 
-def test_invalid_otp(tmp_path: Path):
+def test_otp_expired_vs_incorrect(tmp_path: Path):
     provider = FakeAuthProvider()
     client = _multi_client(tmp_path, provider)
     login = client.get("/login")
@@ -187,12 +187,76 @@ def test_invalid_otp(tmp_path: Path):
         data={"phone": "+14155552671", "csrf_token": csrf},
         follow_redirects=False,
     )
-    bad = client.post(
+    expired = client.post(
         "/auth/phone/verify",
         data={"phone": "+14155552671", "otp": "000000", "csrf_token": csrf},
         follow_redirects=False,
     )
+    assert "otp_expired" in expired.headers["location"]
+    expired_page = client.get(expired.headers["location"])
+    assert "This code has expired" in expired_page.text
+
+    bad = client.post(
+        "/auth/phone/verify",
+        data={"phone": "+14155552671", "otp": "111111", "csrf_token": csrf},
+        follow_redirects=False,
+    )
     assert "bad_otp" in bad.headers["location"]
+    bad_page = client.get(bad.headers["location"])
+    assert "not accepted" in bad_page.text
+
+
+def test_otp_resent_banner(tmp_path: Path):
+    provider = FakeAuthProvider()
+    client = _multi_client(tmp_path, provider)
+    login = client.get("/login")
+    csrf = login.cookies.get(CSRF_COOKIE_NAME)
+    client.post(
+        "/auth/phone/send",
+        data={"phone": "+919876543210", "csrf_token": csrf},
+        follow_redirects=False,
+    )
+    # Bypass resend cooldown so the second send succeeds in the test.
+    client.app.state.otp_limiter._by_phone.clear()
+    resent = client.post(
+        "/auth/phone/send",
+        data={
+            "phone": "+919876543210",
+            "csrf_token": csrf,
+            "resend": "1",
+        },
+        follow_redirects=False,
+    )
+    assert resent.status_code == 303
+    assert "resent=1" in resent.headers["location"]
+    page = client.get(resent.headers["location"])
+    assert "New code sent" in page.text
+
+
+def test_otp_too_many_attempts_banner(tmp_path: Path):
+    provider = FakeAuthProvider()
+    client = _multi_client(tmp_path, provider)
+    login = client.get("/login")
+    csrf = login.cookies.get(CSRF_COOKIE_NAME)
+    client.post(
+        "/auth/phone/send",
+        data={"phone": "+919876543210", "csrf_token": csrf},
+        follow_redirects=False,
+    )
+    for _ in range(5):
+        client.post(
+            "/auth/phone/verify",
+            data={"phone": "+919876543210", "otp": "111111", "csrf_token": csrf},
+            follow_redirects=False,
+        )
+    blocked = client.post(
+        "/auth/phone/verify",
+        data={"phone": "+919876543210", "otp": "111111", "csrf_token": csrf},
+        follow_redirects=False,
+    )
+    assert "too_many_attempts" in blocked.headers["location"]
+    page = client.get(blocked.headers["location"])
+    assert "Too many attempts" in page.text
 
 
 def test_protected_route_redirects(tmp_path: Path):

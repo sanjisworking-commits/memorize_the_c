@@ -311,7 +311,7 @@ def create_app(
             if getattr(request.state, "current_user", None) is None:
                 return templates.TemplateResponse(
                     request,
-                    "guest_home.html",
+                    "landing.html",
                     {},
                 )
             # Authenticated home is the dashboard.

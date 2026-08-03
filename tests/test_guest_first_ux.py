@@ -73,15 +73,19 @@ def test_india_mobile_to_e164():
         normalize_e164("12345")
 
 
-def test_guest_can_browse_and_learn(tmp_path: Path):
+def test_guest_landing_and_browse_learn(tmp_path: Path):
     client = _client(tmp_path)
     home = client.get("/", follow_redirects=False)
     assert home.status_code == 200
-    assert "Explore the Constitution" in home.text
-    assert "Learning as guest" in home.text
-    assert 'href="/" class="nav-link is-active">Home' in home.text
-    assert 'class="brand" href="/"' in home.text
-    assert "main_logo.png" in home.text
+    assert "landing-page" in home.text
+    assert "MEMORIZE THE C" in home.text.upper()
+    assert "Start remembering" in home.text
+    assert 'href="/login"' in home.text
+    assert "Explore the Constitution" not in home.text
+    assert "Articles" not in home.text
+    assert "data-landing-demo" in home.text
+    assert "Check" in home.text
+    assert "landing.js" in home.text
 
     browse = client.get("/browse")
     assert browse.status_code == 200

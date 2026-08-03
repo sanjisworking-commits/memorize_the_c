@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Memorize the C{% endblock %}
+{% block body_class %}landing-page{% endblock %}
+{% block content %}
+<div class="landing" id="top">
+  <header class="landing-header">
+    <div class="landing-inner landing-header-inner">
+      <a class="landing-brand" href="#top">
+        <img class="landing-brand-mark" src="/static/main_logo.png" width="30" height="30" alt="">
+        <span class="landing-brand-word">Memorize the C</span>
+      </a>
+      <nav class="landing-nav" aria-label="Landing">
+        <a href="#how">How it works</a>
+        <a href="#try">Try it</a>
+        <a class="landing-btn landing-btn-ink" href="/login">Sign in</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="landing-hero landing-reveal">
+    <div class="landing-inner landing-hero-grid">
+      <div class="landing-hero-copy">
+        <p class="landing-eyebrow">Memorize the C</p>
+        <h1 class="landing-hero-title">
+          You don't truly
+          <span class="landing-blank"><span class="landing-fade" style="animation-delay:0s">know</span></span>
+          something until you can
+          <span class="landing-blank"><span class="landing-fade" style="animation-delay:1.1s">recall</span></span>
+          it without
+          <span class="landing-blank"><span class="landing-fade" style="animation-delay:2.2s">seeing</span></span>
+          it.
+        </h1>
+        <p class="landing-lede">Turn dense material into small, repeatable units — and return to each one at the moment your memory needs it.</p>
+        <p class="landing-actions">
+          <a class="landing-btn landing-btn-ink" href="/login">Start remembering</a>
+          <a class="landing-btn landing-btn-ghost" href="#how">See how it works</a>
+        </p>
+      </div>
+      <div class="landing-hero-c" aria-hidden="true">
+        <span class="landing-giant-c">C</span>
+        <span class="landing-c-words">
+          <span class="landing-c-word">Complex</span>
+          <span class="landing-c-word is-teal" style="opacity:0;animation-delay:2.5s">Critical</span>
+          <span class="landing-c-word" style="opacity:0;animation-delay:5s">Core</span>
+          <span class="landing-c-word" style="opacity:0;animation-delay:7.5s">Concepts</span>
+          <span class="landing-c-word is-teal" style="opacity:0;animation-delay:10s">Clauses</span>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-problem landing-reveal">
+    <div class="landing-inner">
+      <p class="landing-eyebrow">The gap</p>
+      <h2 class="landing-section-title">Recognition feels like knowledge. Recall proves it.</h2>
+      <div class="landing-gap-cards">
+        <article class="landing-gap-card">
+          <h3 class="landing-gap-quote">“I recognise this.”</h3>
+          <p>Familiar on the page — and gone the moment you look away.</p>
+        </article>
+        <article class="landing-gap-card is-strong">
+          <h3 class="landing-gap-quote">“I can reproduce this.”</h3>
+          <p>Retrieved from memory, in your own words, without the text in front of you.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-how landing-reveal" id="how">
+    <div class="landing-inner">
+      <p class="landing-eyebrow">The method</p>
+      <h2 class="landing-section-title">Four steps that turn the C into lasting memory.</h2>
+      <ol class="landing-steps">
+        <li class="landing-step" style="transition-delay:0s">
+          <span class="landing-step-num">01</span>
+          <h3 class="landing-step-title">Capture the C</h3>
+          <p>Pin down the exact unit worth learning — a clause, a definition, a precise line.</p>
+        </li>
+        <li class="landing-step" style="transition-delay:0.1s">
+          <span class="landing-step-num">02</span>
+          <h3 class="landing-step-title">Clarify the C</h3>
+          <p>Break dense wording into pieces small enough to hold in your head at once.</p>
+        </li>
+        <li class="landing-step" style="transition-delay:0.2s">
+          <span class="landing-step-num">03</span>
+          <h3 class="landing-step-title">Recall the C</h3>
+          <p>Reproduce it without looking — typing, cloze blanks, first letters, or aloud.</p>
+        </li>
+        <li class="landing-step" style="transition-delay:0.3s">
+          <span class="landing-step-num">04</span>
+          <h3 class="landing-step-title">Continue the C</h3>
+          <p>Return right before it fades — each review stretches how long it stays.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="landing-try landing-reveal" id="try">
+    <div class="landing-inner landing-try-inner">
+      <p class="landing-eyebrow landing-eyebrow-mint">Try one now</p>
+      <h2 class="landing-try-title">Fill the blank from memory.</h2>
+      <div class="landing-demo" data-landing-demo>
+        <p class="landing-demo-prompt">
+          Difficult material becomes memorable when it is broken into meaningful
+          <span class="landing-demo-blank" data-demo-blank>____</span>.
+        </p>
+        <div class="landing-demo-row">
+          <label class="visually-hidden" for="landing-demo-input">Your answer</label>
+          <input
+            id="landing-demo-input"
+            class="landing-demo-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            data-demo-input
+            placeholder="Type your recall"
+          >
+          <button type="button" class="landing-btn landing-btn-ink" data-demo-check>Check</button>
+        </div>
+        <p class="landing-demo-status" data-demo-status hidden></p>
+      </div>
+      <p class="landing-try-foot">Recognition would have let you nod along. Recall made you produce it.</p>
+    </div>
+  </section>
+
+  <section class="landing-close landing-reveal">
+    <div class="landing-inner landing-close-inner">
+      <h2 class="landing-close-title">You found the C.<br>Now make it stay.</h2>
+      <p class="landing-lede landing-close-lede">Read with purpose. Recall without looking. Return before it fades.</p>
+      <p class="landing-actions">
+        <a class="landing-btn landing-btn-ink" href="/login">Start remembering</a>
+      </p>
+      <p class="landing-kicker">Whatever the C is — make it stay.</p>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <div class="landing-inner landing-footer-inner">
+      <a class="landing-brand" href="#top">
+        <img class="landing-brand-mark" src="/static/main_logo.png" width="30" height="30" alt="">
+        <span class="landing-brand-word">Memorize the C</span>
+      </a>
+      <p class="landing-footer-tag">Complex ideas. Critical details. Core knowledge. Built for recall.</p>
+    </div>
+  </footer>
+</div>
+<script src="/static/landing.js?v=main3" defer></script>
+{% endblock %}

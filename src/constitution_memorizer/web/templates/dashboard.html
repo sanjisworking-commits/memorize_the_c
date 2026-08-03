@@ -56,57 +56,65 @@
 
   <div class="dash-top">
     <article class="dash-card dash-hero dash-due{% if due_count == 0 %} is-empty{% else %} is-due{% endif %}">
-      <h2 class="dash-eyebrow">
-        <span class="dash-dot" aria-hidden="true"></span>
-        Due today
-      </h2>
-      {% if due_count == 0 %}
-      <p class="dash-due-empty-title">Nothing is due today</p>
-      <p class="muted">You're caught up. Browse when you're ready for something new.</p>
-      <p class="actions">
-        <a class="btn btn-ghost dash-btn-full" href="/browse">Browse the Constitution</a>
-      </p>
-      {% else %}
-      <p class="dash-due-line">
-        <span class="dash-due-count">{{ due_count }}</span>
-        <span class="dash-due-units">learning unit{% if due_count != 1 %}s{% endif %} due</span>
-      </p>
-      <p class="dash-load">About {{ due_minutes }} minute{% if due_minutes != 1 %}s{% endif %} of review.</p>
-      {% if due_chips %}
-      <ul class="dash-chips" aria-label="Due articles">
-        {% for chip in due_chips %}
-        <li class="dash-chip">{{ chip }}</li>
-        {% endfor %}
-        {% if due_chips_more %}
-        <li class="dash-chip is-more">+{{ due_chips_more }} more</li>
+      <header class="dash-card-head">
+        <h2 class="dash-eyebrow">
+          <span class="dash-dot" aria-hidden="true"></span>
+          Due today
+        </h2>
+      </header>
+      <div class="dash-card-body">
+        {% if due_count == 0 %}
+        <p class="dash-due-empty-title">Nothing is due today</p>
+        <p class="muted">You're caught up. Browse when you're ready for something new.</p>
+        <p class="actions">
+          <a class="btn btn-ghost dash-btn-outline" href="/browse">Browse the Constitution</a>
+        </p>
+        {% else %}
+        <p class="dash-due-line">
+          <span class="dash-due-count">{{ due_count }}</span>
+          <span class="dash-due-units">learning unit{% if due_count != 1 %}s{% endif %} due</span>
+        </p>
+        <p class="dash-load">About {{ due_minutes }} minute{% if due_minutes != 1 %}s{% endif %} of review.</p>
+        {% if due_chips %}
+        <ul class="dash-chips" aria-label="Due articles">
+          {% for chip in due_chips %}
+          <li class="dash-chip">{{ chip }}</li>
+          {% endfor %}
+          {% if due_chips_more %}
+          <li class="dash-chip is-more">+{{ due_chips_more }} more</li>
+          {% endif %}
+        </ul>
         {% endif %}
-      </ul>
-      {% endif %}
-      <p class="actions">
-        <a class="btn dash-btn-full" href="{% if first_due_id %}/learn/{{ first_due_id }}{% else %}/learn{% endif %}">Start revision</a>
-      </p>
-      {% endif %}
+        <p class="actions">
+          <a class="btn dash-btn-full" href="{% if first_due_id %}/learn/{{ first_due_id }}{% else %}/learn{% endif %}">Start revision</a>
+        </p>
+        {% endif %}
+      </div>
     </article>
 
     <article class="dash-card dash-hero dash-continue">
-      <h2 class="dash-eyebrow">Continue learning</h2>
-      {% if continue_unit %}
-      <p class="dash-continue-title">{{ continue_unit.display_title }}</p>
-      {% if continue_meta %}<p class="dash-continue-meta">{{ continue_meta }}</p>{% endif %}
-      <p class="dash-continue-mode">{{ continue_mode_line }}</p>
-      <div class="dash-progress-track" aria-hidden="true">
-        <div class="dash-progress-fill" style="width: {{ continue_pct }}%"></div>
+      <header class="dash-card-head">
+        <h2 class="dash-eyebrow">Continue learning</h2>
+      </header>
+      <div class="dash-card-body">
+        {% if continue_unit %}
+        <p class="dash-continue-title">{{ continue_unit.display_title }}</p>
+        {% if continue_meta %}<p class="dash-continue-meta">{{ continue_meta }}</p>{% endif %}
+        <p class="dash-continue-mode">{{ continue_mode_line }}</p>
+        <div class="dash-progress-track" aria-hidden="true">
+          <div class="dash-progress-fill" style="width: {{ continue_pct }}%"></div>
+        </div>
+        <p class="actions">
+          <a class="btn btn-ghost dash-btn-full" href="/learn/{{ continue_unit.id }}">Continue where you stopped</a>
+        </p>
+        {% else %}
+        <p class="dash-continue-title">Nothing in progress</p>
+        <p class="muted">Open Browse to pick your next unit.</p>
+        <p class="actions">
+          <a class="btn btn-ghost dash-btn-full" href="/browse">Start a learning unit</a>
+        </p>
+        {% endif %}
       </div>
-      <p class="actions">
-        <a class="btn btn-ghost dash-btn-full" href="/learn/{{ continue_unit.id }}">Continue where you stopped</a>
-      </p>
-      {% else %}
-      <p class="dash-continue-title">Nothing in progress</p>
-      <p class="muted">Open Browse to pick your next unit.</p>
-      <p class="actions">
-        <a class="btn btn-ghost dash-btn-full" href="/browse">Start a learning unit</a>
-      </p>
-      {% endif %}
     </article>
   </div>
 
@@ -135,30 +143,38 @@
 
   <div class="dash-bottom">
     <section class="dash-card dash-secondary dash-activity">
-      <h2 class="dash-eyebrow">Recent activity</h2>
-      {% if recent %}
-      <ul class="dash-activity-list">
-        {% for row in recent %}
-        <li class="dash-activity-row">
-          <span class="dash-activity-dot is-{{ row.tone }}" aria-hidden="true"></span>
-          <a class="dash-activity-text" href="{{ row.href }}">{{ row.text }}</a>
-          <span class="dash-activity-time">{{ row.relative }}</span>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p class="muted">No activity yet. Your reviews and notes will appear here as you learn.</p>
-      {% endif %}
+      <header class="dash-card-head">
+        <h2 class="dash-eyebrow">Recent activity</h2>
+      </header>
+      <div class="dash-card-body">
+        {% if recent %}
+        <ul class="dash-activity-list">
+          {% for row in recent %}
+          <li class="dash-activity-row">
+            <span class="dash-activity-dot is-{{ row.tone }}" aria-hidden="true"></span>
+            <a class="dash-activity-text" href="{{ row.href }}">{{ row.text }}</a>
+            <span class="dash-activity-time">{{ row.relative }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted">No activity yet. Your reviews and notes will appear here as you learn.</p>
+        {% endif %}
+      </div>
     </section>
 
     <section class="dash-card dash-secondary dash-explore">
-      <h2 class="dash-eyebrow">Explore the Constitution</h2>
-      <ul class="dash-explore-list">
-        <li><a href="/browse"><span>Browse Parts &amp; Articles</span><span aria-hidden="true">→</span></a></li>
-        <li><a href="/search"><span>Search the Bare Act</span><span aria-hidden="true">→</span></a></li>
-        <li><a href="/tables"><span>Schedules &amp; tables</span><span aria-hidden="true">→</span></a></li>
-        <li><a href="/learn"><span>Open Learn</span><span aria-hidden="true">→</span></a></li>
-      </ul>
+      <header class="dash-card-head">
+        <h2 class="dash-eyebrow">Explore the Constitution</h2>
+      </header>
+      <div class="dash-card-body">
+        <ul class="dash-explore-list">
+          <li><a href="/browse"><span>Browse Parts &amp; Articles</span><span aria-hidden="true">→</span></a></li>
+          <li><a href="/search"><span>Search the Bare Act</span><span aria-hidden="true">→</span></a></li>
+          <li><a href="/tables"><span>Schedules &amp; tables</span><span aria-hidden="true">→</span></a></li>
+          <li><a href="/learn"><span>Open Learn</span><span aria-hidden="true">→</span></a></li>
+        </ul>
+      </div>
     </section>
   </div>
   {% endif %}

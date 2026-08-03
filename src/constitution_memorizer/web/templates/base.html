@@ -77,6 +77,19 @@
               {% endif %}
             </button>
             <div class="account-menu-panel" role="menu" hidden data-account-panel>
+              <div class="account-menu-identity">
+                <div class="account-menu-identity-main">
+                  <p class="account-menu-name">{{ label }}</p>
+                  {% if current_user.email or current_user.phone %}
+                  <p class="account-menu-contact">{{ current_user.email or current_user.phone }}</p>
+                  {% endif %}
+                </div>
+                {% if current_user.provider == 'google' %}
+                <span class="account-provider-badge is-google" title="Signed in with Google" aria-label="Signed in with Google">G</span>
+                {% else %}
+                <span class="account-provider-badge is-phone" title="Signed in with phone" aria-label="Signed in with phone">☎</span>
+                {% endif %}
+              </div>
               <a role="menuitem" href="/profile">Profile</a>
               <a role="menuitem" href="/settings">Settings</a>
               <a role="menuitem" href="/calendar">Calendar</a>

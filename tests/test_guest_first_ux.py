@@ -292,6 +292,23 @@ def test_dashboard_multiuser_layout(tmp_path: Path):
     # Top-row Progress card (old 3-col) is gone — no started/review/mastered trio labels.
     assert ">Started<" not in html
     assert "Recent activity" in html
+    assert "dash-card-head" in html
+    assert "dash-card-body" in html
+    assert "Nothing is due today" in html
+    assert "dash-btn-outline" in html
+    assert 'dash-btn-full" href="/browse">Browse the Constitution' not in html
+    # Account dropdown identity header + menu order
+    assert "account-menu-identity" in html
+    assert "account-menu-name" in html
+    assert "User A" in html
+    assert "a@example.com" in html
+    assert "account-provider-badge is-google" in html
+    profile_i = html.index('href="/profile"')
+    settings_i = html.index('href="/settings"')
+    calendar_i = html.index('href="/calendar"')
+    memory_i = html.index('href="/memory"')
+    assert profile_i < settings_i < calendar_i < memory_i
+    assert "Sign out" in html
 
 
 def test_dashboard_data_error_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

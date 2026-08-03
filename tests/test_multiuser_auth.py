@@ -142,7 +142,7 @@ def test_google_oauth_callback_sets_session(tmp_path: Path):
     assert SESSION_COOKIE_NAME in cb.cookies
     dash = client.get("/dashboard")
     assert dash.status_code == 200
-    assert "User A" in dash.text
+    assert "Welcome, User." in dash.text or "Good morning, User." in dash.text
 
 
 def test_oauth_callback_accepts_code_with_cookie_only(tmp_path: Path):

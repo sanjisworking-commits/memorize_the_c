@@ -236,7 +236,7 @@ def test_auth_transition_and_profile_pages(tmp_path: Path):
     assert "Opening your learning space" in trans.text
     dash = client.get("/dashboard")
     assert dash.status_code == 200
-    assert "User A" in dash.text
+    assert "Welcome, User." in dash.text or "Good morning, User." in dash.text
     profile = client.get("/profile")
     assert profile.status_code == 200
     assert "Profile" in profile.text

@@ -65,7 +65,7 @@
   }
 
   function initReveal() {
-    var nodes = document.querySelectorAll(".landing-reveal, .landing-step");
+    var nodes = document.querySelectorAll("[data-reveal], .landing-reveal, .landing-step");
     if (!nodes.length) return;
 
     function showAll() {

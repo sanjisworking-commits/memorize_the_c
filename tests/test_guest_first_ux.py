@@ -77,15 +77,22 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     client = _client(tmp_path)
     home = client.get("/", follow_redirects=False)
     assert home.status_code == 200
-    assert "landing-page" in home.text
-    assert "MEMORIZE THE C" in home.text.upper()
-    assert "Start remembering" in home.text
-    assert 'href="/login"' in home.text
-    assert "Explore the Constitution" not in home.text
-    assert "Articles" not in home.text
-    assert "data-landing-demo" in home.text
-    assert "Check" in home.text
-    assert "landing.js" in home.text
+    html = home.text
+    assert "Memorize the C" in html
+    assert "Start remembering" in html
+    assert 'href="/login"' in html
+    assert "data-landing-demo" in html
+    assert "Check" in html
+    assert "landing.js" in html
+    assert "family=Fraunces" in html or "@keyframes recallFade" in html
+    assert "@keyframes floatC" in html
+    # Standalone page: no app chrome from base.html
+    assert "Learning as guest" not in html
+    assert 'class="nav-link">Home' not in html
+    assert 'class="nav-link">Browse' not in html
+    assert "Explore the Constitution" not in html
+    assert "Articles" not in html
+    assert "{% extends" not in html
 
     browse = client.get("/browse")
     assert browse.status_code == 200

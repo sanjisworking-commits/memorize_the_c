@@ -87,7 +87,27 @@ python -m constitution_memorizer.cli serve --host 0.0.0.0 --port "$PORT"
 1. Google Cloud Console → OAuth client (Web).
 2. Authorized redirect URI must be the Supabase callback
    (`https://<project>.supabase.co/auth/v1/callback`).
+   Do **not** put `{APP_BASE_URL}/auth/callback` here — that belongs in
+   Supabase → Authentication → URL configuration.
 3. Paste Client ID/secret into Supabase Google provider settings.
+
+### Why Google says “Sign in to ….supabase.co”
+
+Google shows the **OAuth redirect host** on the consent screen. With Supabase Auth
+that host is your project URL (`https://<ref>.supabase.co`), so the screen reads
+“Sign in to `<ref>.supabase.co`” even though users came from Recall the C.
+
+To brand it better:
+
+1. Google Cloud → **Google Auth Platform → Branding** (or APIs & Services →
+   OAuth consent screen): set **App name** to `Recall the C`, add a logo, and
+   support email / home page.
+2. Publish the consent screen (Testing → add test users, or Production when ready).
+3. Optional (paid Supabase): attach a **custom auth domain** so Google shows
+   something like `auth.yourdomain.com` instead of `<ref>.supabase.co`.
+
+The app itself cannot rename that Google screen — it is controlled by Google +
+the redirect URI host.
 
 ## Phone / SMS provider
 

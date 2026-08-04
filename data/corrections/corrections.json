@@ -777,6 +777,40 @@
       "opening_text": "",
       "body_text": "The Governor may by public notification direct that the foregoing provisions of this Chapter and any rules made thereunder shall with effect from such date as may be fixed by him in that behalf apply in relation to any class or classes of magistrates in the State as they apply in relation to persons appointed to the judicial service of the State subject to such exceptions and modifications as may be specified in the notification.",
       "manual_review_status": "approved"
+    },
+    "article-74": {
+      "title": "Council of Ministers to aid and advise President",
+      "part_number": "V",
+      "chapter_number": "I",
+      "opening_text": "",
+      "body_text": "(1) There shall be a Council of Ministers with the Prime Minister at the head to aid and advise the President who shall, in the exercise of his functions, act in accordance with such advice:\nProvided that the President may require the Council of Ministers to reconsider such advice, either generally or otherwise, and the President shall act in accordance with the advice tendered after such reconsideration.\n(2) The question whether any, and if so what, advice was tendered by Ministers to the President shall not be inquired into in any court.",
+      "manual_review_status": "approved"
+    },
+    "article-75": {
+      "title": "Other provisions as to Ministers",
+      "part_number": "V",
+      "chapter_number": "I",
+      "opening_text": "",
+      "body_text": "(1) The Prime Minister shall be appointed by the President and the other Ministers shall be appointed by the President on the advice of the Prime Minister.\n(1A) The total number of Ministers, including the Prime Minister, in the Council of Ministers shall not exceed fifteen per cent. of the total number of members of the House of the People.\n(1B) A member of either House of Parliament belonging to any political party who is disqualified for being a member of that House under paragraph 2 of the Tenth Schedule shall also be disqualified to be appointed as a Minister under clause (1) for duration of the period commencing from the date of his disqualification till the date on which the term of his office as such member would expire or where he contests any election to either House of Parliament before the expiry of such period, till the date on which he is declared elected, whichever is earlier.\n(2) The Ministers shall hold office during the pleasure of the President.\n(3) The Council of Ministers shall be collectively responsible to the House of the People.\n(4) Before a Minister enters upon his office, the President shall administer to him the oaths of office and of secrecy according to the forms set out for the purpose in the Third Schedule.\n(5) A Minister who for any period of six consecutive months is not a member of either House of Parliament shall at the expiration of that period cease to be a Minister.\n(6) The salaries and allowances of Ministers shall be such as Parliament may from time to time by law determine and, until Parliament so determines, shall be as specified in the Second Schedule.",
+      "manual_review_status": "approved"
+    },
+    "article-78": {
+      "title": "Duties of Prime Minister as respects the furnishing of information to the President, etc.",
+      "part_number": "V",
+      "chapter_number": "I",
+      "opening_text": "It shall be the duty of the Prime Minister—",
+      "body_text": "(a) to communicate to the President all decisions of the Council of Ministers relating to the administration of the affairs of the Union and proposals for legislation;\n(b) to furnish such information relating to the administration of the affairs of the Union and proposals for legislation as the President may call for; and\n(c) if the President so requires, to submit for the consideration of the Council of Ministers any matter on which a decision has been taken by a Minister but which has not been considered by the Council.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-80": {
+      "title": "Composition of the Council of States",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) The Council of States shall consist of—\n(a) twelve members to be nominated by the President in accordance with the provisions of clause (3); and\n(b) not more than two hundred and thirty-eight representatives of the States and of the Union territories.\n(2) The allocation of seats in the Council of States to be filled by representatives of the States and of the Union territories shall be in accordance with the provisions in that behalf contained in the Fourth Schedule.\n(3) The members to be nominated by the President under sub-clause (a) of clause (1) shall consist of persons having special knowledge or practical experience in respect of such matters as the following, namely:—\nLiterature, science, art and social service.\n(4) The representatives of each State in the Council of States shall be elected by the elected members of the Legislative Assembly of the State in accordance with the system of proportional representation by means of the single transferable vote.\n(5) The representatives of the Union territories in the Council of States shall be chosen in such manner as Parliament may by law prescribe.",
+      "manual_review_status": "approved"
     }
   },
   "notes": [
@@ -814,11 +848,20 @@
     "article-324: diglot title swallowed clause (1) (Learn crumb/lede showed (1) on every 324(n) card; clause tree started at (2); (5) truncated and (6) missing); restored Bare Act title + clauses (1)–(6) from Bare Act PDF.",
     "article-13: diglot parse started at (2) with (4) glued onto 3(b) plus 'Right to Equality'; restored Bare Act (1)–(4) and title.",
     "article-15: Learn/Browse body omits trailing Explanation (EWS definition) — clauses (1)–(6) only.",
+<<<<<<< HEAD
     "article-31: omitted by 44th Amdt; parser left 'Saving of Certain Laws' heading as Art 31 — excluded from reviewed corpus/Learn.",
     "article-31a: diglot body started mid-(1) at (b) and truncated (2); restored full Bare Act (1)(a)–(e)+provisos+(2)(a)–(b); prefer_article_unit.",
     "article-33: diglot dropped stem 'Parliament may, by law…'; restored full Bare Act; prefer_article_unit.",
     "article-34: title truncated after 'martial law is in' and body began mid-title ('force in any area'); restored full title + Bare Act sentence.",
     "article-244 / 244a: Art 244A heading+body were glued into Art 244 with duplicate clause ids; restored Art 244(1)–(2) only and corrections.create for Art 244A(1)–(4).",
     "article-223–237: High Court/Subordinate Courts merge/steal from page breaks; restored Bare Act bodies; created 224/226/233A; 232 omitted."
+=======
+    "article-54: diglot split as 54(a) with Explanation glued on; prefer_article_unit single card (stem+(a)+(b)); Explanation moved to States hover annotation.",
+    "article-56: Provided that wrongly attached to (2); restored proviso (a)(b)(c) under (1) and clean Speaker-notice (2).",
+    "article-67: letter-only article shown as 67(a)/67(a)(b); prefer_article_unit + enable_letter_split → Article 67 with Letters 67(a)/(b)/(c).",
+    "article-55: Explanation (population/2026) omitted from memorized/Browse body; definition lives in nested population tooltip (text_annotations).",
+    "article-223–237: High Court/Subordinate Courts merge/steal from page breaks; restored Bare Act bodies; created 224/226/233A; 232 omitted.",
+    "article-74/75/78/80: restore missing stems; strip diglot 3[(1A)] / 1[2***; clean 75(1A)/(1B); Art 78 opening + prefer_article_unit."
+>>>>>>> 5b0f2b8 (Restore Bare Act text for Articles 74, 75, 78, and 80)
   ]
 }

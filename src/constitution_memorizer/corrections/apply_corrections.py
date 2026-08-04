@@ -39,6 +39,8 @@ class ArticleCorrection(BaseModel):
     create: bool | None = None
     # One Learn card titled "Article N" (keep lettered body intact).
     prefer_article_unit: bool | None = None
+    # With prefer_article_unit: emit letter SUBCLAUSE siblings for Letters mode.
+    enable_letter_split: bool | None = None
 
 
 class CorrectionsFile(BaseModel):
@@ -193,6 +195,7 @@ def _create_article_from_correction(
         opening_text=corr.opening_text or "",
         manual_review_status=corr.manual_review_status,
         prefer_article_unit=bool(corr.prefer_article_unit),
+        enable_letter_split=bool(corr.enable_letter_split),
     )
 
 
@@ -304,6 +307,14 @@ def apply_corrections(
                 f"{article_id}: prefer_article_unit → {corr.prefer_article_unit!r}"
             )
             article.prefer_article_unit = corr.prefer_article_unit
+        if (
+            corr.enable_letter_split is not None
+            and corr.enable_letter_split != article.enable_letter_split
+        ):
+            changes.append(
+                f"{article_id}: enable_letter_split → {corr.enable_letter_split!r}"
+            )
+            article.enable_letter_split = corr.enable_letter_split
 
     if exclude_ids:
         changes.extend(_remove_articles(reviewed, exclude_ids))

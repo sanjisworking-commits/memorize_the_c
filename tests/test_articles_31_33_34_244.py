@@ -309,7 +309,8 @@ def test_article_31_excluded_and_neighbours_restored():
 
 def test_corrections_json_includes_31_family_and_244_split():
     corr = load_corrections(CORRECTIONS)
-    assert corr.articles["article-31"].exclude is True
+    assert corr.articles["article-31"].status == "omitted"
+    assert corr.articles["article-31"].create is True
     assert corr.articles["article-31a"].prefer_article_unit is True
     assert corr.articles["article-31a"].body_text.startswith("(1) Notwithstanding")
     assert "(2) In this article" in corr.articles["article-31a"].body_text

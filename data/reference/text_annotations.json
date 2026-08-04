@@ -49,105 +49,261 @@
       {
         "target": "education",
         "note": "Ins. by the Constitution (Eighty-sixth Amendment) Act, 2002, s. 2 (w.e.f. 1-4-2010).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-30-clause-1a": [
       {
         "target": "acquisition",
         "note": "Ins. by the Constitution (Forty-fourth Amendment) Act, 1978, s. 4 (w.e.f. 20-6-1979).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-31b": [
       {
         "target": "Ninth Schedule",
         "note": "Ins. by the Constitution (First Amendment) Act, 1951, s. 5 (w.e.f. 18-6-1951).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-32a": [
       {
         "target": "Omitted",
         "note": "Art. 32A omitted by the Constitution (Forty-third Amendment) Act, 1977, s. 3 (w.e.f. 13-4-1978).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-38-clause-1": [
       {
         "target": "welfare",
         "note": "Art. 38 renumbered as cl. (1) by the Constitution (Forty-fourth Amendment) Act, 1978, s. 9 (w.e.f. 20-6-1979).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-38-clause-2": [
       {
         "target": "minimise",
         "note": "Ins. by the Constitution (Forty-fourth Amendment) Act, 1978, s. 9 (w.e.f. 20-6-1979).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-39a": [
       {
         "target": "legal aid",
         "note": "Ins. by the Constitution (Forty-second Amendment) Act, 1976, s. 8 (w.e.f. 3-1-1977).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-43a": [
       {
         "target": "workers",
         "note": "Ins. by the Constitution (Forty-second Amendment) Act, 1976, s. 9 (w.e.f. 3-1-1977).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-48a": [
       {
         "target": "environment",
         "note": "Ins. by the Constitution (Forty-second Amendment) Act, 1976, s. 10 (w.e.f. 3-1-1977).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-51a": [
       {
         "target": "citizen",
         "note": "Part IVA / Art. 51A ins. by the Constitution (Forty-second Amendment) Act, 1976, s. 11 (w.e.f. 3-1-1977).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-51a-subclause-k": [
       {
         "target": "guardian",
         "note": "Ins. by the Constitution (Eighty-sixth Amendment) Act, 2002, s. 4 (w.e.f. 1-4-2010).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-77-clause-3": [
       {
         "target": "allocation",
         "note": "Cl. (4) was inserted by the Constitution (Forty-second Amendment) Act, 1976, s. 14 (w.e.f. 3-1-1977) and omitted by the Constitution (Forty-fourth Amendment) Act, 1978, s. 12 (w.e.f. 20-6-1979).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-87-clause-1": [
       {
         "target": "first session",
         "note": "Subs. by the Constitution (First Amendment) Act, 1951, s. 7, for \"every session\" (w.e.f. 18-6-1951).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-87-clause-2": [
       {
         "target": "address",
         "note": "The words \"and for the precedence of such discussion over other business of the House\" omitted by the Constitution (First Amendment) Act, 1951, s. 7 (w.e.f. 18-6-1951).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
       }
     ],
     "article-102-clause-1": [
       {
         "target": "Explanation",
         "note": "Subs. by the Constitution (Fifty-second Amendment) Act, 1985, s. 3, for \"(2) for the purposes of this art.\" (w.e.f. 1-3-1985).",
-        "surfaces": ["browse"]
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-144a": [
+      {
+        "target": "Omitted",
+        "note": "Art. 144A (special provision as to disposal of questions relating to constitutional validity of laws) was omitted by the Constitution (Forty-third Amendment) Act, 1977, s. 5 (w.e.f. 13-4-1978). The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-124c": [
+      {
+        "target": "Omitted",
+        "note": "Art. 124C (Parliament’s power to regulate NJAC procedure) was inserted by the Constitution (Ninety-ninth Amendment) Act, 2014 and later omitted after that Amendment was struck down. The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-170-clause-3": [
+      {
+        "target": "readjusted",
+        "note": "Art. 170’s composition and readjustment clauses include diglot insertions on census-based delimitation and the freeze until the first census taken after the year 2026. Browse keeps the Bare Act wording used for learning.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-189-clause-3": [
+      {
+        "target": "quorum",
+        "note": "Art. 189’s diglot brackets and omission markers around voting and quorum wording are stripped in the Bare Act restore so cls. (1)–(4) read as continuous operative text.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-124b": [
+      {
+        "target": "Omitted",
+        "note": "Art. 124B (functions of the National Judicial Appointments Commission) was inserted by the Constitution (Ninety-ninth Amendment) Act, 2014 and later omitted after that Amendment was struck down. The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-176-clause-1": [
+      {
+        "target": "first session",
+        "note": "Art. 176’s diglot markings record later wording for the Governor’s special address at the commencement of the first session each year. The Bare Act text used here omits the struck/superseded fragments.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-166-clause-3": [
+      {
+        "target": "discretion",
+        "note": "Cl. (4) of art. 166 was omitted (diglot markings / Forty-second Amendment history). The Bare Act keeps cls. (1)–(3) only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-192-clause-1": [
+      {
+        "target": "Governor",
+        "note": "Art. 192 (decision on questions as to disqualifications of members) is a separate Bare Act article from art. 191. Diglot/PDF glue had merged its text into 191; this restore keeps Governor / Election Commission wording under art. 192 only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-132-clause-3": [
+      {
+        "target": "certificate",
+        "note": "Cl. (2) of art. 132 was omitted by the Constitution (Forty-fourth Amendment) Act, 1978, s. 17 (w.e.f. 20-6-1979). The Bare Act keeps cls. (1) and (3) plus the Explanation.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-151-clause-2": [
+      {
+        "target": "Governor",
+        "note": "In cl. (2), the words “or Rajpramukh” were omitted by the Constitution (Seventh Amendment) Act, 1956, s. 29 and Sch. The Bare Act now refers only to the Governor of a State.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-127-clause-1": [
+      {
+        "target": "Chief Justice of India",
+        "note": "After the Ninety-ninth Amendment (NJAC) was struck down, art. 127 again requires the Chief Justice of India to be consulted / to request attendance of an ad hoc Judge (not the National Judicial Appointments Commission).",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-123-clause-3": [
+      {
+        "target": "void",
+        "note": "Cl. (4) of art. 123 was omitted by the Constitution (Forty-fourth Amendment) Act, 1978, s. 16 (w.e.f. 20-6-1979). The Bare Act keeps cls. (1)–(3) and the Explanation only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-153": [
+      {
+        "target": "Provided",
+        "note": "The proviso allowing one person to be appointed Governor for two or more States was inserted by the Constitution (Seventh Amendment) Act, 1956, s. 6.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-128": [
+      {
+        "target": "Chief Justice of India",
+        "note": "After the Ninety-ninth Amendment (NJAC) was struck down, art. 128 again lets the Chief Justice of India (with the President’s previous consent) request a retired Supreme Court or High Court Judge to sit and act as a Supreme Court Judge.",
+        "surfaces": [
+          "browse"
+        ]
       }
     ]
   }

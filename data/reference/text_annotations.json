@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.1.0",
-  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain). schema 1.1 adds structured tip content + shared notes for nested refs.",
+  "schema_version": "1.2.0",
+  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain). schema 1.1 adds structured tip content + shared notes for nested refs. schema 1.2 adds optional surfaces ([browse]/[learn]; default both) so diglot footer tips can be Browse-only.",
   "notes": {
     "article-55-2026-amendment": {
       "note": "Subs. by the Constitution (Eighty-fourth Amendment) Act, 2001, s. 2, for \"2000\" (w.e.f. 21-2-2002)."
@@ -42,6 +42,174 @@
             "type": "text",
             "value": " have been published, be construed as a reference to the 1971 census."
           }
+        ]
+      }
+    ],
+    "article-49": [
+      {
+        "target": "declared by or under law made by Parliament",
+        "note": "Subs. by the Constitution (Seventh Amendment) Act, 1956, s. 27, for \"declared by Parliament by law\" (w.e.f. 1-11-1956)."
+      }
+    ],
+    "article-208-clause-3": [
+      {
+        "target": "Houses",
+        "note": "The brackets and words “(including the quorum to constitute a meeting of the House)” were inserted by the Forty-second Amendment and later omitted by the Forty-fourth Amendment. The Bare Act keeps clause (3) without that diglot footer.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-210-clause-2": [
+      {
+        "target": "fifteen years",
+        "note": "Diglot insertions substitute “twenty-five years” / “forty years” for particular State Legislatures (Himachal Pradesh, Manipur, Meghalaya, Tripura; Arunachal Pradesh, Goa and Mizoram). Browse keeps the operative Bare Act provisos.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-216": [
+      {
+        "target": "appoint",
+        "note": "The proviso to article 216 was omitted by the Constitution (Seventh Amendment) Act, 1956, s. 11 (w.e.f. 1-11-1956).",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-217-clause-1": [
+      {
+        "target": "Chief Justice of India",
+        "note": "After the Ninety-ninth Amendment (NJAC) was struck down, article 217 again requires appointment after consultation with the Chief Justice of India, the Governor of the State, and (except for the Chief Justice) the Chief Justice of the High Court.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-219": [
+      {
+        "target": "High Court",
+        "note": "The words “in a State” were omitted by the Constitution (Seventh Amendment) Act, 1956, s. 29 and Sch. (w.e.f. 1-11-1956).",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-221-clause-1": [
+      {
+        "target": "salaries",
+        "note": "Clause (1) was substituted by the Constitution (Fifty-fourth Amendment) Act, 1986, s. 3; diglot brackets around the substituted wording are stripped in the Bare Act restore.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-222-clause-1": [
+      {
+        "target": "Chief Justice of India",
+        "note": "After the Ninety-ninth Amendment (NJAC) was struck down, article 222(1) again lets the President transfer a Judge after consultation with the Chief Justice of India.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-224a": [
+      {
+        "target": "Chief Justice of a High Court",
+        "note": "After the Ninety-ninth Amendment (NJAC) was struck down, article 224A again lets the Chief Justice of a High Court (with the President’s previous consent) request a retired Judge to sit and act as a Judge of that High Court.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-242": [
+      {
+        "target": "Omitted",
+        "note": "Article 242 (Coorg) was omitted by the Constitution (Seventh Amendment) Act, 1956, s. 29 and Sch. (w.e.f. 1-11-1956). The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-244-clause-1": [
+      {
+        "target": "Meghalaya",
+        "note": "State-name diglot insertions (Assam, Meghalaya, Tripura and Mizoram) record later amendments to the Fifth/Sixth Schedule carve-out. Browse keeps the Bare Act State list.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-246-clause-1": [
+      {
+        "target": "Union List",
+        "note": "Diglot asterisks/brackets around “also” / “in a State” wording are stripped so clauses (1)–(4) read as continuous Bare Act text.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-248-clause-1": [
+      {
+        "target": "Subject to article 246A, Parliament",
+        "note": "Ins. by the Constitution (One Hundred and First Amendment) Act, 2016, s. 3 (w.e.f. 16-9-2016).",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-249-clause-1": [
+      {
+        "target": "goods and services tax provided under article 246A or",
+        "note": "Ins. by the Constitution (One Hundred and First Amendment) Act, 2016, s. 4 (w.e.f. 16-9-2016).",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-250-clause-1": [
+      {
+        "target": "goods and services tax provided under article 246A or",
+        "note": "Ins. by the Constitution (One Hundred and First Amendment) Act, 2016, s. 5 (w.e.f. 16-9-2016).",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-254-clause-2": [
+      {
+        "target": "Concurrent List",
+        "note": "Diglot asterisks after “Legislature of a State” were omitted by the Constitution (Seventh Amendment) Act, 1956. The Bare Act restore keeps the proviso under clause (2).",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-255": [
+      {
+        "target": "recommendation",
+        "note": "Diglot asterisks after “Legislature of a State” were omitted by the Constitution (Seventh Amendment) Act, 1956, s. 29 and Sch.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-257a": [
+      {
+        "target": "Omitted",
+        "note": "Article 257A was omitted by the Constitution (Forty-fourth Amendment) Act, 1978, s. 33 (w.e.f. 20-6-1979). The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-259": [
+      {
+        "target": "Omitted",
+        "note": "Article 259 was omitted by the Constitution (Seventh Amendment) Act, 1956, s. 29 and Sch. (w.e.f. 1-11-1956). The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
         ]
       }
     ]

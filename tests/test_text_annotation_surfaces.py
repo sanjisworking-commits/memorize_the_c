@@ -48,10 +48,10 @@ def test_load_parses_surfaces_browse_only(tmp_path: Path):
                 "schema_version": "1.2.0",
                 "notes": {},
                 "units": {
-                    "article-87-clause-2": [
+                    "article-123-clause-3": [
                         {
-                            "target": "address",
-                            "note": "omitted words diglot footer",
+                            "target": "void",
+                            "note": "cl. (4) omitted diglot footer",
                             "surfaces": ["browse"],
                         }
                     ],
@@ -66,30 +66,46 @@ def test_load_parses_surfaces_browse_only(tmp_path: Path):
         )
     )
     catalog = load_text_annotations(path)
-    diglot = catalog["article-87-clause-2"][0]
+    diglot = catalog["article-123-clause-3"][0]
     assert diglot.surfaces == ("browse",)
     defaulted = catalog["article-54"][0]
     assert defaulted.surfaces == DEFAULT_SURFACES
 
     learn_diglot = annotations_for_unit(
-        catalog, "article-87-clause-2", surface="learn"
+        catalog, "article-123-clause-3", surface="learn"
     )
     assert learn_diglot == []
     browse_diglot = annotations_for_unit(
-        catalog, "article-87-clause-2", surface="browse"
+        catalog, "article-123-clause-3", surface="browse"
     )
     assert len(browse_diglot) == 1
-    assert browse_diglot[0].target == "address"
+    assert browse_diglot[0].target == "void"
 
 
 def test_committed_diglot_tips_are_browse_only():
     catalog = load_text_annotations(ANNOTATIONS)
     browse_only_ids = (
+        # 21A–105 pass
         "article-21a",
         "article-87-clause-2",
         "article-77-clause-3",
         "article-102-clause-1",
         "article-51a-subclause-k",
+        # 111–192 pass
+        "article-123-clause-3",
+        "article-124b",
+        "article-124c",
+        "article-127-clause-1",
+        "article-128",
+        "article-132-clause-3",
+        "article-144a",
+        "article-151-clause-2",
+        "article-153",
+        "article-166-clause-3",
+        "article-170-clause-3",
+        "article-176-clause-1",
+        "article-189-clause-3",
+        "article-192-clause-1",
     )
     for unit_id in browse_only_ids:
         anns = catalog.get(unit_id) or []
@@ -114,3 +130,11 @@ def test_committed_diglot_tips_are_browse_only():
     targets = {a.target for a in browse_87}
     assert "address" in targets
     assert "first session" in targets
+
+    browse_123 = annotations_for_article(
+        catalog,
+        "123",
+        ["article-123-clause-3"],
+        surface="browse",
+    )
+    assert any(a.target == "void" for a in browse_123)

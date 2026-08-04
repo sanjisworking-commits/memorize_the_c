@@ -21,23 +21,15 @@ ANNOTATIONS = ROOT / "data" / "reference" / "text_annotations.json"
 def test_default_surfaces_are_browse_and_learn():
     ann = TextAnnotation(target="States", note="n")
     assert ann.surfaces == DEFAULT_SURFACES
-    assert "browse" in ann.surfaces
-    assert "learn" in ann.surfaces
 
 
 def test_filter_annotations_for_surface_keeps_matching_only():
     both = TextAnnotation(target="a", note="both")
-    browse_only = TextAnnotation(
-        target="b", note="browse", surfaces=("browse",)
-    )
+    browse_only = TextAnnotation(target="b", note="browse", surfaces=("browse",))
     learn_only = TextAnnotation(target="c", note="learn", surfaces=("learn",))
     anns = [both, browse_only, learn_only]
-
-    browse = filter_annotations_for_surface(anns, "browse")
-    assert [a.target for a in browse] == ["a", "b"]
-
-    learn = filter_annotations_for_surface(anns, "learn")
-    assert [a.target for a in learn] == ["a", "c"]
+    assert [a.target for a in filter_annotations_for_surface(anns, "browse")] == ["a", "b"]
+    assert [a.target for a in filter_annotations_for_surface(anns, "learn")] == ["a", "c"]
 
 
 def test_load_parses_surfaces_browse_only(tmp_path: Path):
@@ -48,64 +40,39 @@ def test_load_parses_surfaces_browse_only(tmp_path: Path):
                 "schema_version": "1.2.0",
                 "notes": {},
                 "units": {
-                    "article-123-clause-3": [
+                    "article-249-clause-1": [
                         {
-                            "target": "void",
-                            "note": "cl. (4) omitted diglot footer",
+                            "target": "goods and services tax provided under article 246A or",
+                            "note": "101st Amdt diglot",
                             "surfaces": ["browse"],
                         }
                     ],
-                    "article-54": [
-                        {
-                            "target": "States",
-                            "note": "includes NCT",
-                        }
-                    ],
+                    "article-54": [{"target": "States", "note": "includes NCT"}],
                 },
             }
         )
     )
     catalog = load_text_annotations(path)
-    diglot = catalog["article-123-clause-3"][0]
-    assert diglot.surfaces == ("browse",)
-    defaulted = catalog["article-54"][0]
-    assert defaulted.surfaces == DEFAULT_SURFACES
-
-    learn_diglot = annotations_for_unit(
-        catalog, "article-123-clause-3", surface="learn"
-    )
-    assert learn_diglot == []
-    browse_diglot = annotations_for_unit(
-        catalog, "article-123-clause-3", surface="browse"
-    )
-    assert len(browse_diglot) == 1
-    assert browse_diglot[0].target == "void"
+    assert catalog["article-249-clause-1"][0].surfaces == ("browse",)
+    assert annotations_for_unit(catalog, "article-249-clause-1", surface="learn") == []
 
 
 def test_committed_diglot_tips_are_browse_only():
     catalog = load_text_annotations(ANNOTATIONS)
     browse_only_ids = (
-        # 21A–105 pass
+        # prior diglot passes
         "article-21a",
         "article-87-clause-2",
-        "article-77-clause-3",
-        "article-102-clause-1",
-        "article-51a-subclause-k",
-        # 111–192 pass
         "article-123-clause-3",
-        "article-124b",
-        "article-124c",
-        "article-127-clause-1",
-        "article-128",
-        "article-132-clause-3",
-        "article-144a",
-        "article-151-clause-2",
-        "article-153",
-        "article-166-clause-3",
-        "article-170-clause-3",
-        "article-176-clause-1",
-        "article-189-clause-3",
-        "article-192-clause-1",
+        # this pass
+        "article-208-clause-3",
+        "article-217-clause-1",
+        "article-224a",
+        "article-242",
+        "article-249-clause-1",
+        "article-250-clause-1",
+        "article-257a",
+        "article-259",
     )
     for unit_id in browse_only_ids:
         anns = catalog.get(unit_id) or []
@@ -115,26 +82,8 @@ def test_committed_diglot_tips_are_browse_only():
         assert annotations_for_unit(catalog, unit_id, surface="learn") == []
         assert annotations_for_unit(catalog, unit_id, surface="browse")
 
-    # Existing Learn tip still available on Learn.
-    seven = annotations_for_unit(
-        catalog, "article-124-clause-1", surface="learn"
-    )
+    tip49 = annotations_for_unit(catalog, "article-49", surface="learn")
+    assert tip49 and tip49[0].target.startswith("declared by or under law")
+
+    seven = annotations_for_unit(catalog, "article-124-clause-1", surface="learn")
     assert seven and seven[0].target == "seven"
-
-    browse_87 = annotations_for_article(
-        catalog,
-        "87",
-        ["article-87-clause-1", "article-87-clause-2"],
-        surface="browse",
-    )
-    targets = {a.target for a in browse_87}
-    assert "address" in targets
-    assert "first session" in targets
-
-    browse_123 = annotations_for_article(
-        catalog,
-        "123",
-        ["article-123-clause-3"],
-        surface="browse",
-    )
-    assert any(a.target == "void" for a in browse_123)

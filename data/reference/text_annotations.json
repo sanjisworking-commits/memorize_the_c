@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.1.0",
-  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain). schema 1.1 adds structured tip content + shared notes for nested refs.",
+  "schema_version": "1.2.0",
+  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain). schema 1.1 adds structured tip content + shared notes for nested refs. schema 1.2 adds optional surfaces for Browse-only diglot tips.",
   "notes": {
     "article-55-2026-amendment": {
       "note": "Subs. by the Constitution (Eighty-fourth Amendment) Act, 2001, s. 2, for \"2000\" (w.e.f. 21-2-2002)."
@@ -42,6 +42,246 @@
             "type": "text",
             "value": " have been published, be construed as a reference to the 1971 census."
           }
+        ]
+      }
+    ],
+    "article-288-clause-1": [
+      {
+        "target": "law of a State in force",
+        "note": "Explanation.—The expression 'law of a State in force' in this clause shall include a law of a State passed or made before the commencement of this Constitution and not previously repealed, notwithstanding that it or parts of it may not be then in operation either at all or in particular areas."
+      }
+    ],
+    "article-264": [
+      {
+        "target": "Finance Commission",
+        "note": "The diglot Bare Act closes article 264 with a trailing amendment bracket (']'). This app prints the operative definition without that marker.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-267-clause-2": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 1 ***'. This app prints 'Governor' only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-268-clause-1": [
+      {
+        "target": "stamp duties",
+        "note": "The diglot Bare Act shows omitted excise-on-medicinal-and-toilet-preparations wording as '2***' after 'stamp duties'. This app prints the current Bare Act without that marker.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-268a": [
+      {
+        "target": "Omitted",
+        "note": "Article 268A was omitted by the Constitution (One Hundred and First Amendment) Act, 2016, s. 7 (w.e.f. 16-9-2016). The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-269-clause-1": [
+      {
+        "target": "except as provided in article 269A",
+        "note": "Article 269A (GST on inter-State supplies) was inserted by the Constitution (One Hundred and First Amendment) Act, 2016. Diglot amendment brackets around clause (1) are stripped in this app.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-271": [
+      {
+        "target": "except the goods and services tax under article 246A",
+        "note": "The GST carve-out was inserted by the Constitution (One Hundred and First Amendment) Act, 2016. Diglot brackets are stripped; article 272’s omission note is not glued here.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-272": [
+      {
+        "target": "Omitted",
+        "note": "Article 272 was omitted by the Constitution (Eightieth Amendment) Act, 2000, s. 4 (w.e.f. 9-6-2000). The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-278": [
+      {
+        "target": "Omitted",
+        "note": "Article 278 was omitted by the Constitution (Seventh Amendment) Act, 1956, s. 29 and Sch. (w.e.f. 1-11-1956). The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-283-clause-2": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 1 ***'. This app prints 'Governor' only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-286-clause-1": [
+      {
+        "target": "supply of goods or of services or both",
+        "note": "Substituted by the Constitution (One Hundred and First Amendment) Act, 2016, for the earlier “sale or purchase of goods” formulation. Diglot superscripts are stripped.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-290a": [
+      {
+        "target": "Tamil Nadu",
+        "note": "Article 290A was inserted by the Constitution (Seventh Amendment) Act, 1956, s. 19; “Tamil Nadu” substituted for “Madras” by the Madras State (Alteration of Name) Act, 1968.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-291": [
+      {
+        "target": "Omitted",
+        "note": "Article 291 was omitted by the Constitution (Twenty-sixth Amendment) Act, 1971, s. 2. The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-299-clause-1": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 1 ***'. This app prints 'Governor' only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-300a": [
+      {
+        "target": "authority of law",
+        "note": "Article 300A was inserted by the Constitution (Forty-fourth Amendment) Act, 1978, s. 34. The diglot trailing “]” is stripped.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-304": [
+      {
+        "target": "or the Union territories",
+        "note": "Inserted by the Constitution (Seventh Amendment) Act, 1956, s. 29 and Sch. Diglot brackets/superscripts are stripped; the operative words remain.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-306": [
+      {
+        "target": "Omitted",
+        "note": "Article 306 was omitted by the Constitution (Seventh Amendment) Act, 1956, s. 29 and Sch. The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-308": [
+      {
+        "target": "Jammu and Kashmir",
+        "note": "The diglot Bare Act marks the J&K carve-out with amendment brackets ('1 […]'). This app keeps the operative Bare Act wording without those markers.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-309": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 2 ***'. This app prints 'Governor' only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-310-clause-1": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 3 ***'. This app prints 'Governor' only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-310-clause-2": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 2 ***'. This app prints 'Governor' only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-311-clause-2": [
+      {
+        "target": "reasonable opportunity of being heard",
+        "note": "Clauses (2) and (3) were substituted by the Constitution (Fifteenth Amendment) Act, 1963, and further amended by the Forty-second Amendment. Diglot markers and trailing “]” debris are stripped.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-312-clause-1": [
+      {
+        "target": "Chapter VI of Part VI or Part XI",
+        "note": "Substituted/inserted language from the Forty-second Amendment (all-India judicial service). Diglot brackets are stripped; article 312A is not glued after clause (4).",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-314": [
+      {
+        "target": "Omitted",
+        "note": "Article 314 was omitted by the Constitution (Twenty-eighth Amendment) Act, 1972, s. 3 (w.e.f. 29-8-1972). The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-315-clause-4": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 1 ***'. This app prints 'Governor' only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-269a-clause-1": [
+      {
+        "target": "Goods and services tax",
+        "note": "Article 269A was inserted by the Constitution (One Hundred and First Amendment) Act, 2016, s. 9 (w.e.f. 16-9-2016).",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-312a-clause-1": [
+      {
+        "target": "vary or revoke",
+        "note": "Article 312A was inserted by the Constitution (Twenty-eighth Amendment) Act, 1972, s. 2 (w.e.f. 29-8-1972).",
+        "surfaces": [
+          "browse"
         ]
       }
     ]

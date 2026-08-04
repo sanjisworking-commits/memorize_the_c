@@ -191,15 +191,16 @@ def test_article_19_restored_from_truncated_stem():
                 ),
             ),
             "article-51": ArticleCorrection(
-                opening_text="",
+                opening_text="The State shall endeavour to—",
                 body_text=(
-                    "The State shall endeavour to—\n"
                     "(a) promote international peace and security;\n"
                     "(b) maintain just and honourable relations between nations;\n"
                     "(c) foster respect for international law and treaty obligations "
                     "in the dealings of organised peoples with one another; and\n"
                     "(d) encourage settlement of international disputes by arbitration."
                 ),
+                prefer_article_unit=True,
+                enable_letter_split=True,
             ),
         }
     )
@@ -217,6 +218,7 @@ def test_article_19_restored_from_truncated_stem():
     assert any("clauses cleared" in c for c in changes)
 
     assert "(d) encourage settlement" in by_id["article-51"].body_text
+    assert by_id["article-51"].prefer_article_unit is True
 
     units = {u.id: u for u in generate_learning_units(reviewed).units}
     # Flat corrected bodies are split into clause/letter units for Learn.
@@ -224,4 +226,8 @@ def test_article_19_restored_from_truncated_stem():
     assert "freedom of speech and expression" in units["article-19-clause-1"].text
     assert "(f)" not in units["article-19-clause-1"].text
     assert "access to shops" in units["article-15-clause-2"].text
-    assert "arbitration" in units["article-51-clause-d"].text
+    # Art 51 is a whole-article Learn card with Letters breakdown.
+    assert "article-51" in units
+    assert "article-51-subclause-d" in units
+    assert "arbitration" in units["article-51-subclause-d"].text
+    assert units["article-51"].text.startswith("The State shall endeavour to")

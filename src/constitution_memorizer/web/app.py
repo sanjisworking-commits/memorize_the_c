@@ -323,7 +323,7 @@ def create_app(
         curated = get_article_amendments(app.state.amendments, target.article_number)
         amend_note = curated.learn_note if curated is not None else None
         catalog = app.state.text_annotations
-        unit_anns = annotations_for_unit(catalog, target.id)
+        unit_anns = annotations_for_unit(catalog, target.id, surface="learn")
         notes = catalog.notes if hasattr(catalog, "notes") else {}
         annotated_text = annotate_plain_text(
             target.text,
@@ -518,6 +518,7 @@ def create_app(
             catalog,
             view.article_number,
             [u.id for u in view.learn_units],
+            surface="browse",
         )
         notes = catalog.notes if hasattr(catalog, "notes") else {}
         annotated_text = annotate_plain_text(

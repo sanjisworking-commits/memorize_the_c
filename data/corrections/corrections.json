@@ -848,20 +848,12 @@
     "article-324: diglot title swallowed clause (1) (Learn crumb/lede showed (1) on every 324(n) card; clause tree started at (2); (5) truncated and (6) missing); restored Bare Act title + clauses (1)–(6) from Bare Act PDF.",
     "article-13: diglot parse started at (2) with (4) glued onto 3(b) plus 'Right to Equality'; restored Bare Act (1)–(4) and title.",
     "article-15: Learn/Browse body omits trailing Explanation (EWS definition) — clauses (1)–(6) only.",
-<<<<<<< HEAD
     "article-31: omitted by 44th Amdt; parser left 'Saving of Certain Laws' heading as Art 31 — excluded from reviewed corpus/Learn.",
     "article-31a: diglot body started mid-(1) at (b) and truncated (2); restored full Bare Act (1)(a)–(e)+provisos+(2)(a)–(b); prefer_article_unit.",
     "article-33: diglot dropped stem 'Parliament may, by law…'; restored full Bare Act; prefer_article_unit.",
     "article-34: title truncated after 'martial law is in' and body began mid-title ('force in any area'); restored full title + Bare Act sentence.",
     "article-244 / 244a: Art 244A heading+body were glued into Art 244 with duplicate clause ids; restored Art 244(1)–(2) only and corrections.create for Art 244A(1)–(4).",
-    "article-223–237: High Court/Subordinate Courts merge/steal from page breaks; restored Bare Act bodies; created 224/226/233A; 232 omitted."
-=======
-    "article-54: diglot split as 54(a) with Explanation glued on; prefer_article_unit single card (stem+(a)+(b)); Explanation moved to States hover annotation.",
-    "article-56: Provided that wrongly attached to (2); restored proviso (a)(b)(c) under (1) and clean Speaker-notice (2).",
-    "article-67: letter-only article shown as 67(a)/67(a)(b); prefer_article_unit + enable_letter_split → Article 67 with Letters 67(a)/(b)/(c).",
-    "article-55: Explanation (population/2026) omitted from memorized/Browse body; definition lives in nested population tooltip (text_annotations).",
     "article-223–237: High Court/Subordinate Courts merge/steal from page breaks; restored Bare Act bodies; created 224/226/233A; 232 omitted.",
     "article-74/75/78/80: restore missing stems; strip diglot 3[(1A)] / 1[2***; clean 75(1A)/(1B); Art 78 opening + prefer_article_unit."
->>>>>>> 5b0f2b8 (Restore Bare Act text for Articles 74, 75, 78, and 80)
   ]
 }

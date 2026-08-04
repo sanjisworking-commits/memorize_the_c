@@ -44,6 +44,10 @@ class ContentNoteRef:
 ContentNode = ContentText | ContentNoteRef
 
 
+AnnotationSurface = Literal["browse", "learn"]
+DEFAULT_SURFACES: tuple[AnnotationSurface, ...] = ("browse", "learn")
+
+
 @dataclass(frozen=True)
 class TextAnnotation:
     """Word annotation: legacy flat note and/or structured tip content."""
@@ -51,6 +55,8 @@ class TextAnnotation:
     target: str
     note: str = ""
     content: tuple[ContentNode, ...] = ()
+    # When omitted in JSON, annotation appears on both Learn and Browse.
+    surfaces: tuple[AnnotationSurface, ...] = DEFAULT_SURFACES
 
 
 @dataclass(frozen=True)
@@ -68,6 +74,28 @@ class TextAnnotationsCatalog:
 
     def get(self, key: str, default: list[TextAnnotation] | None = None) -> list[TextAnnotation]:
         return self.units.get(key, [] if default is None else default)
+
+
+def _parse_surfaces(raw: object) -> tuple[AnnotationSurface, ...]:
+    """Parse optional surfaces list; default both Browse and Learn."""
+    if raw is None:
+        return DEFAULT_SURFACES
+    if not isinstance(raw, list) or not raw:
+        return DEFAULT_SURFACES
+    out: list[AnnotationSurface] = []
+    for item in raw:
+        value = str(item or "").strip().lower()
+        if value in ("browse", "learn") and value not in out:
+            out.append(value)  # type: ignore[arg-type]
+    return tuple(out) if out else DEFAULT_SURFACES
+
+
+def filter_annotations_for_surface(
+    annotations: list[TextAnnotation],
+    surface: AnnotationSurface,
+) -> list[TextAnnotation]:
+    """Keep annotations allowed on the given surface (browse or learn)."""
+    return [ann for ann in annotations if surface in ann.surfaces]
 
 
 def _parse_content_nodes(raw: object) -> tuple[ContentNode, ...]:
@@ -125,7 +153,15 @@ def load_text_annotations(
             content = _parse_content_nodes(row.get("content"))
             if not note and not content:
                 continue
-            anns.append(TextAnnotation(target=target, note=note, content=content))
+            surfaces = _parse_surfaces(row.get("surfaces"))
+            anns.append(
+                TextAnnotation(
+                    target=target,
+                    note=note,
+                    content=content,
+                    surfaces=surfaces,
+                )
+            )
         if anns:
             out[str(unit_id)] = anns
     return TextAnnotationsCatalog(units=out, notes=notes)
@@ -134,18 +170,26 @@ def load_text_annotations(
 def annotations_for_unit(
     catalog: TextAnnotationsCatalog | dict[str, list[TextAnnotation]],
     unit_id: str | None,
+    *,
+    surface: AnnotationSurface | None = None,
 ) -> list[TextAnnotation]:
     if not unit_id:
         return []
     if isinstance(catalog, TextAnnotationsCatalog):
-        return list(catalog.get(unit_id) or [])
-    return list(catalog.get(unit_id) or [])
+        anns = list(catalog.get(unit_id) or [])
+    else:
+        anns = list(catalog.get(unit_id) or [])
+    if surface is None:
+        return anns
+    return filter_annotations_for_surface(anns, surface)
 
 
 def annotations_for_article(
     catalog: TextAnnotationsCatalog | dict[str, list[TextAnnotation]],
     article_number: str | None,
     unit_ids: list[str] | None = None,
+    *,
+    surface: AnnotationSurface = "browse",
 ) -> list[TextAnnotation]:
     """
     Annotations for a Browse article page.
@@ -165,7 +209,7 @@ def annotations_for_article(
     out: list[TextAnnotation] = []
     seen_targets: set[str] = set()
     for uid in ordered_ids:
-        for ann in annotations_for_unit(catalog, uid):
+        for ann in annotations_for_unit(catalog, uid, surface=surface):
             key = ann.target.casefold()
             if key in seen_targets:
                 continue

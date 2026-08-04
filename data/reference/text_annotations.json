@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.1.0",
-  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain). schema 1.1 adds structured tip content + shared notes for nested refs.",
+  "schema_version": "1.2.0",
+  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain). schema 1.1 adds structured tip content + shared notes for nested refs. schema 1.2 adds optional surfaces ([browse]/[learn]; default both) so diglot footer tips can be Browse-only.",
   "notes": {
     "article-55-2026-amendment": {
       "note": "Subs. by the Constitution (Eighty-fourth Amendment) Act, 2001, s. 2, for \"2000\" (w.e.f. 21-2-2002)."
@@ -43,6 +43,111 @@
             "value": " have been published, be construed as a reference to the 1971 census."
           }
         ]
+      }
+    ],
+    "article-21a": [
+      {
+        "target": "education",
+        "note": "Ins. by the Constitution (Eighty-sixth Amendment) Act, 2002, s. 2 (w.e.f. 1-4-2010).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-30-clause-1a": [
+      {
+        "target": "acquisition",
+        "note": "Ins. by the Constitution (Forty-fourth Amendment) Act, 1978, s. 4 (w.e.f. 20-6-1979).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-31b": [
+      {
+        "target": "Ninth Schedule",
+        "note": "Ins. by the Constitution (First Amendment) Act, 1951, s. 5 (w.e.f. 18-6-1951).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-32a": [
+      {
+        "target": "Omitted",
+        "note": "Art. 32A omitted by the Constitution (Forty-third Amendment) Act, 1977, s. 3 (w.e.f. 13-4-1978).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-38-clause-1": [
+      {
+        "target": "welfare",
+        "note": "Art. 38 renumbered as cl. (1) by the Constitution (Forty-fourth Amendment) Act, 1978, s. 9 (w.e.f. 20-6-1979).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-38-clause-2": [
+      {
+        "target": "minimise",
+        "note": "Ins. by the Constitution (Forty-fourth Amendment) Act, 1978, s. 9 (w.e.f. 20-6-1979).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-39a": [
+      {
+        "target": "legal aid",
+        "note": "Ins. by the Constitution (Forty-second Amendment) Act, 1976, s. 8 (w.e.f. 3-1-1977).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-43a": [
+      {
+        "target": "workers",
+        "note": "Ins. by the Constitution (Forty-second Amendment) Act, 1976, s. 9 (w.e.f. 3-1-1977).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-48a": [
+      {
+        "target": "environment",
+        "note": "Ins. by the Constitution (Forty-second Amendment) Act, 1976, s. 10 (w.e.f. 3-1-1977).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-51a": [
+      {
+        "target": "citizen",
+        "note": "Part IVA / Art. 51A ins. by the Constitution (Forty-second Amendment) Act, 1976, s. 11 (w.e.f. 3-1-1977).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-51a-subclause-k": [
+      {
+        "target": "guardian",
+        "note": "Ins. by the Constitution (Eighty-sixth Amendment) Act, 2002, s. 4 (w.e.f. 1-4-2010).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-77-clause-3": [
+      {
+        "target": "allocation",
+        "note": "Cl. (4) was inserted by the Constitution (Forty-second Amendment) Act, 1976, s. 14 (w.e.f. 3-1-1977) and omitted by the Constitution (Forty-fourth Amendment) Act, 1978, s. 12 (w.e.f. 20-6-1979).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-87-clause-1": [
+      {
+        "target": "first session",
+        "note": "Subs. by the Constitution (First Amendment) Act, 1951, s. 7, for \"every session\" (w.e.f. 18-6-1951).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-87-clause-2": [
+      {
+        "target": "address",
+        "note": "The words \"and for the precedence of such discussion over other business of the House\" omitted by the Constitution (First Amendment) Act, 1951, s. 7 (w.e.f. 18-6-1951).",
+        "surfaces": ["browse"]
+      }
+    ],
+    "article-102-clause-1": [
+      {
+        "target": "Explanation",
+        "note": "Subs. by the Constitution (Fifty-second Amendment) Act, 1985, s. 3, for \"(2) for the purposes of this art.\" (w.e.f. 1-3-1985).",
+        "surfaces": ["browse"]
       }
     ]
   }

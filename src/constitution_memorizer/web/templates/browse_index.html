@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Browse · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block title %}Browse the Constitution · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
 <section class="panel browse" data-parts-source="{{ parts_source|default('unknown') }}">
-  <h1 class="display">Browse</h1>
+  <h1 class="display">Browse the Constitution</h1>
   <p class="lede">
     The Constitution, Part by Part. Open an Article, then learn any clause from inside it.
   </p>
@@ -50,4 +50,7 @@
   <p class="empty">No articles available to browse.</p>
   {% endfor %}
 </section>
+{% if is_guest|default(false) %}
+{% include "partials/guest_modal.html" %}
+{% endif %}
 {% endblock %}

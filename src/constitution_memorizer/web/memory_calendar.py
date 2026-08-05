@@ -115,7 +115,7 @@ def build_memory_month(
     if month < 1 or month > 12:
         raise ValueError("month must be 1–12")
 
-    entries = engine.repo.list_all()
+    entries = engine.list_all()
     chips_by_day: dict[str, list[MemoryChip]] = {}
 
     def add(iso: str, chip: MemoryChip) -> None:

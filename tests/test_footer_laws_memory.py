@@ -53,7 +53,7 @@ def test_nav_slim_and_footer_has_tools(client: TestClient):
     assert 'id="theme-toggle"' in html
     assert "Reference &amp; tools" in html
     assert 'href="/memory"' in html
-    assert "styles.css?v=main3" in html
+    assert "styles.css?v=main4" in html
 
 
 def test_constitution_calendar_has_no_memory_chips(client: TestClient):
@@ -125,7 +125,9 @@ def test_memory_create_done_notes_photo(client: TestClient, db_path: Path):
     assert 'alt="Revision notes photo"' in detail.text
     assert "Replace photo" in detail.text
 
-    media_dir = db_path.parent / "memory_media"
+    from constitution_memorizer.progress.user_ids import LOCAL_USER_ID, as_user_id
+
+    media_dir = db_path.parent / "memory_media" / as_user_id(LOCAL_USER_ID)
     assert media_dir.is_dir()
     assert any(media_dir.glob(f"{entry_id}.*"))
 
@@ -136,7 +138,7 @@ def test_memory_create_done_notes_photo(client: TestClient, db_path: Path):
     from constitution_memorizer.progress.memory import MemoryRepository
 
     repo = MemoryRepository(open_progress_db(db_path))
-    entry = repo.get(entry_id)
+    entry = repo.get(LOCAL_USER_ID, entry_id)
     assert entry is not None
     assert entry.interval_days == 3
     assert entry.times_completed == 1

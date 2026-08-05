@@ -185,8 +185,8 @@ def build_parser() -> argparse.ArgumentParser:
     serve_p.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Bind port (default: 8000)",
+        default=None,
+        help="Bind port (default: PORT env, else 8000; multi-user launcher uses 8010)",
     )
     serve_p.add_argument(
         "--units",
@@ -605,9 +605,20 @@ def cmd_generate_units(args: argparse.Namespace, config: PipelineConfig) -> int:
 
 def cmd_serve(args: argparse.Namespace, config: PipelineConfig) -> int:
     """Run the FastAPI learning UI with uvicorn."""
+    import os
+
     import uvicorn
 
+    from constitution_memorizer.multiuser.settings import (
+        clear_settings_cache,
+        load_env_file,
+    )
     from constitution_memorizer.web.app import create_app
+
+    env_path = load_env_file()
+    clear_settings_cache()
+    if env_path is not None:
+        print(f"Loaded environment from {env_path}")
 
     output_dir: Path = args.output_dir
     units_path = args.units or (output_dir / "output" / "learning_units.json")
@@ -615,16 +626,27 @@ def cmd_serve(args: argparse.Namespace, config: PipelineConfig) -> int:
     reviewed_path = args.reviewed or (
         output_dir / "output" / "constitution.reviewed.json"
     )
+    port = args.port
+    if port is None:
+        port = int(os.environ.get("PORT", "8000"))
+    multiuser = os.environ.get("MULTIUSER_ENABLED", "").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     app = create_app(
         units_path=units_path,
         db_path=db_path,
         reviewed_path=reviewed_path,
+        multiuser=multiuser,
     )
-    print(f"Serving learning UI on http://{args.host}:{args.port}")
+    print(f"Serving learning UI on http://{args.host}:{port}")
     print(f"  units={units_path}")
     print(f"  db={db_path}")
     print(f"  reviewed={reviewed_path}")
-    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    print(f"  multiuser={multiuser}")
+    uvicorn.run(app, host=args.host, port=port, log_level="info")
     return 0
 
 
@@ -680,7 +702,7 @@ def cmd_send_reminders(args: argparse.Namespace, config: PipelineConfig) -> int:
         return 0
 
     frequency = engine.get_notification_frequency()
-    last_slot = engine.repo.get_notification_last_slot()
+    last_slot = engine.repo.get_notification_last_slot(engine.user_id)
     # --notify-empty bypasses cadence so tests/manual pings still work.
     if not args.notify_empty:
         decision = should_notify(
@@ -701,7 +723,7 @@ def cmd_send_reminders(args: argparse.Namespace, config: PipelineConfig) -> int:
     channel = "console" if args.dry_run else args.channel
     notifier = get_notifier(channel)
     notifier.send(title, body)
-    engine.repo.set_notification_last_slot(now)
+    engine.repo.set_notification_last_slot(engine.user_id, now)
     print(
         f"Sent via {channel}: {digest.due_count} due "
         f"({as_of.isoformat()} {now.strftime('%H:%M')}, {frequency})"

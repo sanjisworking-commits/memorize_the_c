@@ -40,7 +40,7 @@ def test_digest_includes_memory_only(tmp_path: Path):
     engine = ReminderEngine.from_paths(db, MINI_UNITS)
     memory = MemoryEngine.from_db_path(db)
     today = date(2026, 7, 20)
-    entry = memory.repo.create(
+    entry = memory.create(
         title="UNESCO sites",
         acronym="ABCD",
         logged_date=today - timedelta(days=1),
@@ -66,7 +66,7 @@ def test_digest_constitution_and_memory_sections(tmp_path: Path):
     today = date(2026, 7, 20)
     engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 19))
-    memory.repo.create(
+    memory.create(
         title="Duties acronym",
         acronym="FD",
         logged_date=today - timedelta(days=2),
@@ -88,7 +88,7 @@ def test_digest_memory_overdue_included(tmp_path: Path):
     engine = ReminderEngine.from_paths(db, MINI_UNITS)
     memory = MemoryEngine.from_db_path(db)
     today = date(2026, 7, 20)
-    memory.repo.create(
+    memory.create(
         title="Old list",
         logged_date=today - timedelta(days=5),
     )

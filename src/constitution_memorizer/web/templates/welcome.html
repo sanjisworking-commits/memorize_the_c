@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Welcome · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block content %}
+<section class="panel welcome-panel">
+  <p class="eyebrow">First time here</p>
+  <h1 class="display">What should we call you?</h1>
+  <p class="lede">This name greets you on your dashboard. You can change it later in Profile.</p>
+
+  {% if request.query_params.get('error') %}
+  <div class="auth-banner is-error" role="alert">
+    <span class="auth-banner-icon" aria-hidden="true">!</span>
+    <p>
+      {% if request.query_params.get('error') == 'name' %}
+        Enter a short display name to continue.
+      {% else %}
+        Could not save your name. Try again.
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/welcome" class="welcome-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label class="field-label" for="display_name">Display name</label>
+    <input
+      id="display_name"
+      class="field-input"
+      name="display_name"
+      type="text"
+      maxlength="80"
+      autocomplete="nickname"
+      required
+      value="{{ display_name }}"
+      placeholder="Your name"
+    >
+    <p class="actions">
+      <button class="btn" type="submit">Start learning</button>
+      <a class="btn btn-ghost" href="/browse">Continue browsing</a>
+    </p>
+  </form>
+</section>
+{% endblock %}

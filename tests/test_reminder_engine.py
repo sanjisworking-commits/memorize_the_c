@@ -187,7 +187,7 @@ def test_split_preference_crud(engine: ReminderEngine):
     assert engine.get_split_preference("clause-2") == "letters"
     engine.set_split_preference("clause-2", "whole")
     assert engine.get_split_preference("clause-2") == "whole"
-    engine.repo.delete_split_preference("clause-2")
+    engine.delete_split_preference("clause-2")
     assert engine.get_split_preference("clause-2") is None
 
 
@@ -222,6 +222,8 @@ def test_schema_tables_exist(tmp_path: Path):
     }
     assert "learning_unit_progress" in tables
     assert "split_preference" in tables
+    from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
+
     repo = ProgressRepository(conn)
-    repo.ensure_progress("x")
-    assert repo.get_progress("x") is not None
+    repo.ensure_progress(LOCAL_USER_ID, "x")
+    assert repo.get_progress(LOCAL_USER_ID, "x") is not None

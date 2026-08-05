@@ -48,7 +48,7 @@ def test_again_tomorrow_defers_without_advancing_ladder(
     # Seed via mark_done first so interval is on the ladder.
     engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=day0)
-    progress = engine.repo.get_progress("clause-1")
+    progress = engine.get_progress("clause-1")
     assert progress is not None
     assert progress.interval_days == 1
     assert progress.times_completed == 1
@@ -76,7 +76,7 @@ def test_again_route_schedules_tomorrow_on_fresh_unit(client: TestClient, tmp_pa
     assert response.headers["location"] == "/learn/clause-2/choose"
 
     eng = ReminderEngine.from_paths(tmp_path / "again.db", MINI_UNITS)
-    progress = eng.repo.get_progress("clause-1")
+    progress = eng.get_progress("clause-1")
     assert progress is not None
     assert progress.status == "review"
     assert progress.times_completed == 0

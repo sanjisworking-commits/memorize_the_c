@@ -33,12 +33,12 @@ def engine(tmp_path: Path) -> ReminderEngine:
 def test_brand_and_how_to_use(client: TestClient):
     html = client.get("/").text
     assert "Recall the C" in html
-    assert "brand-c.png" in html
+    assert "main_logo.png" in html
     assert "How to use" in html
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Flip the card and self-grade your recall." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=main3" in html
+    assert "styles.css?v=main4" in html
 
 
 def test_learn_marks_read_and_locks_done(client: TestClient):

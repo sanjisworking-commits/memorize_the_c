@@ -10,6 +10,12 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from constitution_memorizer.auth.fake_provider import FakeAuthProvider
+from constitution_memorizer.auth.rate_limit import OtpRateLimiter
+from constitution_memorizer.auth.routes import create_auth_router, install_auth_middleware
+from constitution_memorizer.auth.sessions import InMemorySessionStore, PostgresSessionStore
+from constitution_memorizer.auth.exceptions import AuthConfigError
+from constitution_memorizer.multiuser.settings import MultiUserSettings
 from constitution_memorizer.progress.memory import MemoryEngine
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
@@ -17,6 +23,8 @@ from constitution_memorizer.progress.repository import (
     VALID_THEMES,
 )
 from constitution_memorizer.progress.scheduler import ModesIncompleteError, ReminderEngine
+from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
+from constitution_memorizer.web.request_context import bound_engine, bound_memory
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
@@ -111,6 +119,10 @@ def create_app(
     gloss_placeholders_path: Path | str | None = None,
     text_annotations_path: Path | str | None = None,
     judicial_evolution_path: Path | str | None = None,
+    multiuser: bool = False,
+    multiuser_settings: MultiUserSettings | None = None,
+    auth_provider=None,
+    session_store=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -148,12 +160,33 @@ def create_app(
             "Run: python -m constitution_memorizer.cli generate-units --force"
         )
 
+    settings = multiuser_settings or MultiUserSettings()
+    # Opt-in only via the multiuser= argument (CLI sets this from MULTIUSER_ENABLED).
+    # Do not infer from process env here — that leaks across pytest cases.
+    multiuser_on = bool(multiuser)
+    # Real Supabase credentials are required only when multi-user is on and
+    # the caller did not inject a test/fake auth provider.
+    if multiuser_on and auth_provider is None:
+        settings.validate_for_startup(require_secrets=True)
+        missing = settings.missing_supabase()
+        if missing:
+            raise AuthConfigError(
+                "Missing "
+                + ", ".join(missing)
+                + ". Add them to .env in the repo root, then restart. "
+                "SUPABASE_URL must be https://<project-ref>.supabase.co "
+                "(not https://supabase.com/dashboard/...)."
+            )
+
     resolved_db = Path(resolved_db).expanduser().resolve()
     resolved_units = Path(resolved_units).expanduser().resolve()
-    engine = ReminderEngine.from_paths(resolved_db, resolved_units)
+    engine = ReminderEngine.from_paths(
+        resolved_db, resolved_units, user_id=LOCAL_USER_ID
+    )
     memory = MemoryEngine(
         engine.repo.conn,
         resolved_db.parent / "memory_media",
+        user_id=LOCAL_USER_ID,
     )
     reviewed = load_reviewed_document(
         resolved_reviewed if resolved_reviewed.exists() else None
@@ -177,18 +210,44 @@ def create_app(
     judicial_evolution = load_judicial_evolution(
         resolved_judicial_evolution if resolved_judicial_evolution.exists() else None
     )
+
+    def _theme_for_request(request: Request) -> str:
+        if getattr(request.state, "is_guest", False) and app.state.multiuser_enabled:
+            return "auto"
+        bound = getattr(request.state, "bound_engine", None) or app.state.engine
+        return bound.get_theme()
+
+    def _due_for_request(request: Request) -> int:
+        if getattr(request.state, "is_guest", False) or getattr(
+            request.state, "current_user", None
+        ) is None:
+            if app.state.multiuser_enabled:
+                return 0
+        bound = getattr(request.state, "bound_engine", None) or app.state.engine
+        return browse_due_total(bound)
+
     templates = Jinja2Templates(
         directory=str(TEMPLATES_DIR),
         context_processors=[
             lambda request: {
                 "app_name": "Recall the C",
-                "theme_preference": app.state.engine.get_theme(),
-                "browse_due_total": browse_due_total(app.state.engine),
+                "theme_preference": _theme_for_request(request),
+                "browse_due_total": _due_for_request(request),
+                "current_user": getattr(request.state, "current_user", None),
+                "is_guest": bool(
+                    app.state.multiuser_enabled
+                    and getattr(request.state, "current_user", None) is None
+                ),
+                "multiuser_enabled": app.state.multiuser_enabled,
+                "csrf_token": (
+                    getattr(getattr(request.state, "auth_session", None), "csrf_token", None)
+                    or request.cookies.get("rtc_csrf")
+                ),
             }
         ],
     )
 
-    app = FastAPI(title="Recall the C", version="0.7.0")
+    app = FastAPI(title="Recall the C", version="0.8.0")
     app.state.engine = engine
     app.state.memory = memory
     app.state.reviewed = reviewed
@@ -199,12 +258,42 @@ def create_app(
     app.state.units_path = resolved_units
     app.state.db_path = resolved_db
     app.state.reviewed_path = resolved_reviewed
+    app.state.multiuser_enabled = multiuser_on
+    app.state.multiuser_settings = settings
+    app.state.oauth_states = {}
+    app.state.otp_limiter = OtpRateLimiter()
+    if auth_provider is not None:
+        app.state.auth_provider = auth_provider
+    elif multiuser_on:
+        from constitution_memorizer.auth.supabase_provider import SupabaseAuthProvider
+
+        app.state.auth_provider = SupabaseAuthProvider(
+            supabase_url=settings.supabase_url.strip(),
+            anon_key=settings.supabase_anon_key.strip(),
+        )
+    else:
+        app.state.auth_provider = FakeAuthProvider()
+    if session_store is not None:
+        app.state.session_store = session_store
+    elif multiuser_on and settings.database_url.startswith("postgresql"):
+        app.state.session_store = PostgresSessionStore(settings.database_url)
+    else:
+        app.state.session_store = InMemorySessionStore()
+
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    install_auth_middleware(app)
+    app.include_router(create_auth_router(templates))
 
     def _engine() -> ReminderEngine:
+        bound = bound_engine.get()
+        if bound is not None:
+            return bound
         return app.state.engine
 
     def _memory() -> MemoryEngine:
+        bound = bound_memory.get()
+        if bound is not None:
+            return bound
         return app.state.memory
 
     def _modes_payload(unit_id: str, seen: set[str] | None = None) -> dict[str, object]:
@@ -218,6 +307,15 @@ def create_app(
         }
     @app.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:
+        if app.state.multiuser_enabled:
+            if getattr(request.state, "current_user", None) is None:
+                return templates.TemplateResponse(
+                    request,
+                    "landing.html",
+                    {},
+                )
+            # Authenticated home is the dashboard.
+            return RedirectResponse(url="/dashboard", status_code=303)
         eng = _engine()
         today = date.today()
         due = due_checklist(eng, as_of=today)
@@ -274,6 +372,25 @@ def create_app(
             },
         )
 
+    @app.get("/learn", response_class=HTMLResponse)
+    async def learn_index(request: Request) -> RedirectResponse:
+        eng = _engine()
+        today = date.today()
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        if not is_guest:
+            due = eng.due_today(as_of=today)
+            if due:
+                return RedirectResponse(
+                    url=f"/learn/{due[0].learning_unit_id}", status_code=303
+                )
+            cont = continue_unit_id(eng, as_of=today)
+            if cont:
+                return RedirectResponse(url=f"/learn/{cont}", status_code=303)
+        return RedirectResponse(url="/browse", status_code=303)
+
     @app.get("/learn/{unit_id}", response_class=HTMLResponse)
     async def learn(
         request: Request,
@@ -286,14 +403,19 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
         learn_mode = mode if mode in {"read", "cloze", "letters", "type", "recite", "card"} else "read"
+        is_guest_early = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
 
-        if needs_split_choice(eng, unit):
+        # Guests skip split preference (no personal data); show the clause as-is.
+        if not is_guest_early and needs_split_choice(eng, unit):
             return RedirectResponse(
                 url=f"/learn/{unit_id}/choose",
                 status_code=303,
             )
 
-        target_id = resolve_learn_target(eng, unit_id)
+        target_id = unit_id if is_guest_early else resolve_learn_target(eng, unit_id)
         if target_id != unit_id:
             suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
             return RedirectResponse(
@@ -305,14 +427,29 @@ def create_app(
         if target is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
-        # Opening a unit marks the active mode (units open in Read by default).
-        seen = eng.mark_mode_seen(target.id, learn_mode)
-        done_state = done_button_state(target, seen)
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        # Guests may try modes without writing progress.
+        if is_guest:
+            seen: set[str] = {learn_mode}
+            progress = None
+            done_count, chain_len = 0, 1
+            pct = 0
+            # Guests can click Done/Again to open the sign-in prompt.
+            done_unlocked = True
+            done_label = "Mark as mastered"
+        else:
+            seen = eng.mark_mode_seen(target.id, learn_mode)
+            progress = eng.get_progress(target.id)
+            done_count, _position, chain_len = session_progress(eng, target)
+            pct = int(round(100 * done_count / chain_len)) if chain_len else 0
+            done_state = done_button_state(target, seen)
+            done_unlocked = done_state["unlocked"]
+            done_label = done_state["label"]
         modes_payload = _modes_payload(target.id, seen)
 
-        progress = eng.repo.get_progress(target.id)
-        done_count, _position, chain_len = session_progress(eng, target)
-        pct = int(round(100 * done_count / chain_len)) if chain_len else 0
         chips = sibling_chips(eng, target)
         stem = subclause_stem_text(eng, target)
         rail_kind = (
@@ -323,7 +460,7 @@ def create_app(
         curated = get_article_amendments(app.state.amendments, target.article_number)
         amend_note = curated.learn_note if curated is not None else None
         catalog = app.state.text_annotations
-        unit_anns = annotations_for_unit(catalog, target.id)
+        unit_anns = annotations_for_unit(catalog, target.id, surface="learn")
         notes = catalog.notes if hasattr(catalog, "notes") else {}
         annotated_text = annotate_plain_text(
             target.text,
@@ -344,9 +481,9 @@ def create_app(
                 "sibling_chips": chips,
                 "rail_kind": rail_kind,
                 "stem_text": stem,
-                "learn_meta": learn_meta_line(target, progress),
-                "done_label": done_state["label"],
-                "done_unlocked": done_state["unlocked"],
+                "learn_meta": learn_meta_line(target, progress) if progress else "Guest try",
+                "done_label": done_label,
+                "done_unlocked": done_unlocked,
                 "modes_seen": seen,
                 "modes_tracker": modes_payload["tracker"],
                 "mode_labels": LEARN_MODE_LABELS,
@@ -355,6 +492,7 @@ def create_app(
                 "amend_note": amend_note,
                 "annotated_text": annotated_text,
                 "has_text_annotations": bool(unit_anns),
+                "is_guest": is_guest,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),
@@ -456,11 +594,7 @@ def create_app(
         eng = _engine()
         if eng.get_unit(unit_id) is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
-        eng.repo.conn.execute(
-            "DELETE FROM learning_unit_progress WHERE learning_unit_id = ?",
-            (unit_id,),
-        )
-        eng.repo.conn.commit()
+        eng.delete_progress(unit_id)
         eng.clear_modes_seen(unit_id)
         learn_mode = mode if mode in LEARN_MODES else "read"
         # Re-seed the currently open mode on the next GET; redirect preserves mode.
@@ -469,12 +603,9 @@ def create_app(
 
     @app.post("/reset")
     async def reset_all() -> RedirectResponse:
-        """Clear all progress and preferences (study reset)."""
+        """Clear this user's progress and preferences (study reset)."""
         eng = _engine()
-        eng.repo.conn.execute("DELETE FROM learning_unit_progress")
-        eng.repo.conn.execute("DELETE FROM split_preference")
-        eng.repo.conn.commit()
-        eng.repo.clear_all_modes_seen()
+        eng.reset_all_personal_data()
         return RedirectResponse(url="/", status_code=303)
 
     @app.get("/browse", response_class=HTMLResponse)
@@ -506,7 +637,7 @@ def create_app(
         prev_number, next_number = adjacent_article_numbers(
             eng, app.state.reviewed, view.article_number
         )
-        gloss_text = eng.repo.get_gloss(view.article_number) or ""
+        gloss_text = eng.get_gloss(view.article_number) or ""
         gloss_ph = gloss_placeholder_for(
             app.state.gloss_placeholders, view.article_number
         )
@@ -518,6 +649,7 @@ def create_app(
             catalog,
             view.article_number,
             [u.id for u in view.learn_units],
+            surface="browse",
         )
         notes = catalog.notes if hasattr(catalog, "notes") else {}
         annotated_text = annotate_plain_text(
@@ -560,16 +692,16 @@ def create_app(
         text = str(payload.get("text", "")) if isinstance(payload, dict) else ""
         trimmed = text.strip()
         if not trimmed:
-            eng.repo.delete_gloss(article_number)
+            eng.delete_gloss(article_number)
             return JSONResponse({"ok": True, "text": "", "words": 0})
-        eng.repo.upsert_gloss(article_number, text)
+        eng.upsert_gloss(article_number, text)
         words = len(trimmed.split())
         return JSONResponse({"ok": True, "text": text, "words": words})
 
     @app.delete("/browse/article/{article_number}/gloss")
     async def delete_article_gloss(article_number: str) -> JSONResponse:
         eng = _engine()
-        eng.repo.delete_gloss(article_number)
+        eng.delete_gloss(article_number)
         return JSONResponse({"ok": True, "text": "", "words": 0})
 
     @app.get("/search", response_class=HTMLResponse)
@@ -612,6 +744,12 @@ def create_app(
 
     @app.get("/progress", response_class=HTMLResponse)
     async def progress_page(request: Request) -> HTMLResponse:
+        if app.state.multiuser_enabled and getattr(request.state, "current_user", None) is None:
+            return templates.TemplateResponse(
+                request,
+                "guest_gate.html",
+                {"gate_kind": "progress", "reason": "default"},
+            )
         dashboard = progress_dashboard(
             _engine(),
             reviewed=app.state.reviewed,
@@ -685,7 +823,7 @@ def create_app(
             calendar = build_memory_month(_memory(), year=y, month=m, today=today)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        entries = _memory().repo.list_all()
+        entries = _memory().list_all()
         photo_ids = {
             entry.id for entry in entries if _memory().photo_file(entry.id) is not None
         }
@@ -707,7 +845,7 @@ def create_app(
         cleaned = title.strip()
         if not cleaned:
             raise HTTPException(status_code=400, detail="Title required")
-        entry = _memory().repo.create(title=cleaned, acronym=acronym.strip())
+        entry = _memory().create(title=cleaned, acronym=acronym.strip())
         return RedirectResponse(url=f"/memory/{entry.id}", status_code=303)
 
     @app.get("/memory/media/{entry_id}")
@@ -720,7 +858,7 @@ def create_app(
 
     @app.get("/memory/{entry_id}", response_class=HTMLResponse)
     async def memory_detail_page(request: Request, entry_id: str) -> HTMLResponse:
-        entry = _memory().repo.get(entry_id)
+        entry = _memory().get(entry_id)
         if entry is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
         photo_path = _memory().photo_file(entry_id)
@@ -739,16 +877,16 @@ def create_app(
         entry_id: str,
         notes: str = Form(""),
     ) -> RedirectResponse:
-        if _memory().repo.get(entry_id) is None:
+        if _memory().get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
-        _memory().repo.update_notes(entry_id, notes)
+        _memory().update_notes(entry_id, notes)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.post("/memory/{entry_id}/done")
     async def memory_done(entry_id: str) -> RedirectResponse:
-        if _memory().repo.get(entry_id) is None:
+        if _memory().get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
-        _memory().repo.mark_done(entry_id)
+        _memory().mark_done(entry_id)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.post("/memory/{entry_id}/photo")
@@ -757,7 +895,7 @@ def create_app(
         photo: UploadFile = File(...),
     ) -> RedirectResponse:
         mem = _memory()
-        if mem.repo.get(entry_id) is None:
+        if mem.get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
         content = await photo.read()
         if not content:
@@ -766,16 +904,20 @@ def create_app(
         suffix, _media_type = _sniff_photo(content, filename)
         if suffix not in _ALLOWED_PHOTO_SUFFIXES:
             raise HTTPException(status_code=400, detail="Unsupported image type")
+        user_dir = mem.user_media_dir()
         # Remove any prior file for this entry (extension may change after sniff).
-        for old in mem.media_dir.glob(f"{entry_id}.*"):
+        for old in user_dir.glob(f"{entry_id}.*"):
             try:
                 old.unlink()
             except OSError:
                 pass
         dest_name = f"{entry_id}{suffix}"
-        dest = mem.media_dir / dest_name
+        dest = user_dir / dest_name
         dest.write_bytes(content)
-        mem.repo.set_photo(entry_id, dest_name)
+        from constitution_memorizer.progress.user_ids import as_user_id
+
+        storage_key = f"{as_user_id(mem.user_id)}/{dest_name}"
+        mem.set_photo(entry_id, storage_key)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.get("/settings", response_class=HTMLResponse)

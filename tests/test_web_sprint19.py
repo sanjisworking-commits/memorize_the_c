@@ -45,7 +45,7 @@ def test_calendar_page_renders_month_grid(client: TestClient):
     assert "Sun" in html and "Sat" in html
     assert 'href="/calendar?year=2026&amp;month=6"' in html
     assert 'href="/calendar?year=2026&amp;month=8"' in html
-    assert "styles.css?v=main3" in html
+    assert "styles.css?v=main4" in html
     assert "app.js?v=main3" in html
 
 
@@ -55,7 +55,7 @@ def test_calendar_invalid_month_returns_400(client: TestClient):
 
 
 def test_calendar_css_chip_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=main3")
+    css = client.get("/static/styles.css?v=main4")
     assert css.status_code == 200
     text = css.text
     assert ".calendar-grid" in text
@@ -114,7 +114,7 @@ def test_remaining_ladder_projects_full_intervals(engine: ReminderEngine):
 
     engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 5))
-    row = engine.repo.get_progress("clause-1")
+    row = engine.get_progress("clause-1")
     assert row is not None
     schedule = remaining_review_schedule(row)
     assert [rung for _, rung in schedule] == [1, 3, 7, 14, 30, 60]
@@ -135,7 +135,7 @@ def test_ladder_after_review_starts_at_next_rung(engine: ReminderEngine):
     engine.mark_done("clause-1", as_of=date(2026, 7, 5))
     engine.mark_all_modes_seen("clause-1")
     engine.mark_done("clause-1", as_of=date(2026, 7, 6))  # completed 1-day → next is 3
-    row = engine.repo.get_progress("clause-1")
+    row = engine.get_progress("clause-1")
     assert row is not None
     schedule = remaining_review_schedule(row)
     assert [rung for _, rung in schedule] == [3, 7, 14, 30, 60]

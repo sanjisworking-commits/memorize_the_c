@@ -40,10 +40,10 @@ def test_load_parses_surfaces_browse_only(tmp_path: Path):
                 "schema_version": "1.2.0",
                 "notes": {},
                 "units": {
-                    "article-264": [
+                    "article-323-clause-2": [
                         {
-                            "target": "Finance Commission",
-                            "note": "trailing diglot",
+                            "target": "Governor",
+                            "note": "diglot",
                             "surfaces": ["browse"],
                         }
                     ],
@@ -53,10 +53,10 @@ def test_load_parses_surfaces_browse_only(tmp_path: Path):
         )
     )
     catalog = load_text_annotations(path)
-    assert catalog["article-264"][0].surfaces == ("browse",)
+    assert catalog["article-323-clause-2"][0].surfaces == ("browse",)
     assert catalog["article-54"][0].surfaces == DEFAULT_SURFACES
-    assert annotations_for_unit(catalog, "article-264", surface="learn") == []
-    assert annotations_for_unit(catalog, "article-264", surface="browse")
+    assert annotations_for_unit(catalog, "article-323-clause-2", surface="learn") == []
+    assert annotations_for_unit(catalog, "article-323-clause-2", surface="browse")
 
 
 def test_committed_diglot_tips_are_browse_only():
@@ -88,6 +88,12 @@ def test_committed_diglot_tips_are_browse_only():
         "article-312a-clause-1",
         "article-314",
         "article-315-clause-4",
+        "article-320-clause-3",
+        "article-323-clause-2",
+        "article-329",
+        "article-329a",
+        "article-332-clause-1",
+        "article-333",
         "article-87-clause-2",
     )
     for unit_id in browse_only_ids:
@@ -98,19 +104,23 @@ def test_committed_diglot_tips_are_browse_only():
         assert annotations_for_unit(catalog, unit_id, surface="learn") == []
         assert annotations_for_unit(catalog, unit_id, surface="browse")
 
-    # Art 49 tip available on Learn.
-    tip49 = annotations_for_unit(catalog, "article-49", surface="learn")
-    assert tip49 and tip49[0].target.startswith("declared by or under law")
+    # Art 330 population Explanation tip available on Learn.
+    tip330 = annotations_for_unit(catalog, "article-330-clause-2", surface="learn")
+    assert any(t.target == "population" for t in tip330)
 
     # Art 288 Explanation tip available on Learn.
     tip288 = annotations_for_unit(catalog, "article-288-clause-1", surface="learn")
     assert tip288 and tip288[0].target == "law of a State in force"
 
+    # Art 49 tip available on Learn.
+    tip49 = annotations_for_unit(catalog, "article-49", surface="learn")
+    assert tip49 and tip49[0].target.startswith("declared by or under law")
+
     # Existing Learn tip still available.
     seven = annotations_for_unit(catalog, "article-124-clause-1", surface="learn")
     assert seven and seven[0].target == "seven"
 
-    browse_304 = annotations_for_article(
-        catalog, "304", ["article-304"], surface="browse"
+    browse_323 = annotations_for_article(
+        catalog, "323", ["article-323-clause-2"], surface="browse"
     )
-    assert any("Union territories" in a.target for a in browse_304)
+    assert any(a.target == "Governor" for a in browse_323)

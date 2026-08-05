@@ -81,6 +81,7 @@ _PART_TITLES: dict[str, str] = {
     "IX": "THE PANCHAYATS",
     "IXA": "THE MUNICIPALITIES",
     "IXB": "THE CO-OPERATIVE SOCIETIES",
+    "XIVA": "TRIBUNALS",
 }
 
 

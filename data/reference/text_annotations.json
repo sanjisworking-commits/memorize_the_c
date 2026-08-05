@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.1.0",
-  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain). schema 1.1 adds structured tip content + shared notes for nested refs.",
+  "schema_version": "1.2.0",
+  "description": "Word-level Bare Act footnotes for Learn Read/Card hover (memorized unit.text stays plain). schema 1.1 adds structured tip content + shared notes for nested refs. schema 1.2 adds optional surfaces for Browse-only diglot tips.",
   "notes": {
     "article-55-2026-amendment": {
       "note": "Subs. by the Constitution (Eighty-fourth Amendment) Act, 2001, s. 2, for \"2000\" (w.e.f. 21-2-2002)."
@@ -42,6 +42,73 @@
             "type": "text",
             "value": " have been published, be construed as a reference to the 1971 census."
           }
+        ]
+      }
+    ],
+    "article-323-clause-2": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 1 ***' / 'Governor 2 ***'. This app prints 'Governor' only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-330-clause-2": [
+      {
+        "target": "population",
+        "note": "Explanation.—In this article and in article 332, the expression 'population' means the population as ascertained at the last preceding census of which the relevant figures have been published:\n\nProvided that the reference in this Explanation to the last preceding census of which the relevant figures have been published shall, until the relevant figures for the first census taken after the year 2026 have been published, be construed as a reference to the 2001 census."
+      },
+      {
+        "target": "Union territory",
+        "note": "Inserted by the Constitution (Seventh Amendment) Act, 1956, s. 29 and Sch. Diglot brackets/superscripts are stripped; the operative words remain.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-320-clause-3": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 1 ***' / '2 ***'. This app prints 'Governor' only.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-329": [
+      {
+        "target": "Notwithstanding anything in this Constitution",
+        "note": "The diglot Bare Act marked a Thirty-ninth / Forty-fourth Amendment wrapper and omitted 'but subject to the provisions of article 329A' as '2 ***'. This app prints the operative Bare Act stem without those markers.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-329a": [
+      {
+        "target": "Omitted",
+        "note": "Article 329A was omitted by the Constitution (Forty-fourth Amendment) Act, 1978, s. 36 (w.e.f. 20-6-1979). The Bare Act prints “[Omitted.]”.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-332-clause-1": [
+      {
+        "target": "except the Scheduled Tribes in the autonomous districts of Assam",
+        "note": "Substituted by the Constitution (Fifty-first Amendment) Act, 1984. Diglot brackets and omitted Part A/B Schedule wording (`3 ***`) are stripped.",
+        "surfaces": [
+          "browse"
+        ]
+      }
+    ],
+    "article-333": [
+      {
+        "target": "Governor",
+        "note": "The diglot Bare Act shows omitted Rajpramukh wording as 'Governor 2 ***' and marks the nomination phrase with amendment brackets. This app prints the operative Bare Act wording without those markers.",
+        "surfaces": [
+          "browse"
         ]
       }
     ]

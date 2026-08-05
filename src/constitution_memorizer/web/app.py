@@ -22,7 +22,11 @@ from constitution_memorizer.progress.repository import (
     VALID_NOTIFICATION_FREQUENCIES,
     VALID_THEMES,
 )
-from constitution_memorizer.progress.scheduler import ModesIncompleteError, ReminderEngine
+from constitution_memorizer.progress.scheduler import (
+    INTERVAL_LADDER,
+    ModesIncompleteError,
+    ReminderEngine,
+)
 from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
 from constitution_memorizer.web.request_context import bound_engine, bound_memory
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
@@ -312,7 +316,9 @@ def create_app(
                 return templates.TemplateResponse(
                     request,
                     "landing.html",
-                    {},
+                    {
+                        "landing_review_days": list(INTERVAL_LADDER[:5]),
+                    },
                 )
             # Authenticated home is the dashboard.
             return RedirectResponse(url="/dashboard", status_code=303)

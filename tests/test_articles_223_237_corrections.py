@@ -333,9 +333,12 @@ def test_learning_units_from_synthetic_doc_split_cleanly():
     texts_229 = " ".join(u.text for u in by_art["229"])
     assert "Union territory" not in texts_229
 
+    # Letter-only articles emit SUBCLAUSE units directly under the article
+    # (see _letter_subclauses_under_article), not CLAUSE ids.
     ids_236 = {u.id for u in by_art["236"]}
-    assert "article-236-clause-a" in ids_236
-    assert "article-236-clause-b" in ids_236
+    assert "article-236-subclause-a" in ids_236
+    assert "article-236-subclause-b" in ids_236
+    assert "article-236-clause-a" not in ids_236
     assert "article-236-clause-a-subclause-b" not in ids_236
 
     texts_237 = " ".join(u.text for u in by_art["237"])

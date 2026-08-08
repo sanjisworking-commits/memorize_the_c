@@ -78,7 +78,8 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     home = client.get("/", follow_redirects=False)
     assert home.status_code == 200
     html = home.text
-    assert "Memorize the C" in html
+    assert "Recall the C" in html
+    assert "Memorize the C" not in html
     assert "Start remembering" in html
     assert 'href="/login"' in html
     assert "data-landing-demo" in html
@@ -86,6 +87,16 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert "landing.js" in html
     assert "family=Fraunces" in html or "@keyframes recallFade" in html
     assert "@keyframes floatC" in html
+    # Gap panel: recognition vs recall with Art 21 demo line
+    assert "On the page" in html
+    assert "From memory" in html
+    assert "No person shall be deprived of his life or personal liberty" in html
+    assert "landing-gap-blank" in html
+    assert "day 1, 3, 7, 14, 30" in html
+    assert "Day 30" in html
+    assert "Toward mastered" in html
+    assert "landing-close .landing-actions" in html
+    assert "justify-content: center" in html
     # Standalone page: no app chrome from base.html
     assert "Learning as guest" not in html
     assert 'class="nav-link">Home' not in html

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 from pathlib import Path
 
@@ -16,6 +17,10 @@ from constitution_memorizer.auth.routes import create_auth_router, install_auth_
 from constitution_memorizer.auth.sessions import InMemorySessionStore, PostgresSessionStore
 from constitution_memorizer.auth.exceptions import AuthConfigError
 from constitution_memorizer.multiuser.settings import MultiUserSettings
+from constitution_memorizer.reports.repository import PostgresIssueReportRepository
+from constitution_memorizer.reports.schemas import ReportIssueRequest, ReportIssueResponse
+
+logger = logging.getLogger(__name__)
 from constitution_memorizer.progress.memory import MemoryEngine
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
@@ -123,6 +128,7 @@ def create_app(
     multiuser_settings: MultiUserSettings | None = None,
     auth_provider=None,
     session_store=None,
+    issue_report_repo=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -279,6 +285,15 @@ def create_app(
         app.state.session_store = PostgresSessionStore(settings.database_url)
     else:
         app.state.session_store = InMemorySessionStore()
+
+    if issue_report_repo is not None:
+        app.state.issue_report_repo = issue_report_repo
+    elif settings.database_url.startswith("postgresql"):
+        app.state.issue_report_repo = PostgresIssueReportRepository(
+            settings.database_url
+        )
+    else:
+        app.state.issue_report_repo = None
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     install_auth_middleware(app)
@@ -954,5 +969,42 @@ def create_app(
             raise HTTPException(status_code=400, detail="Invalid theme")
         _engine().set_theme(theme)  # type: ignore[arg-type]
         return JSONResponse({"theme": theme})
+
+    @app.post(
+        "/api/report-issue",
+        response_model=ReportIssueResponse,
+        status_code=201,
+    )
+    async def report_issue(payload: ReportIssueRequest) -> ReportIssueResponse:
+        """Accept a guest-or-auth issue report and insert into PostgreSQL."""
+        repo = getattr(app.state, "issue_report_repo", None)
+        if repo is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to submit report right now.",
+            )
+        try:
+            report = repo.create_report(
+                article_number=payload.article_number,
+                section=payload.section,
+                selected_text=payload.selected_text,
+                issue_type=payload.issue_type,
+                description=payload.description,
+                suggested_correction=payload.suggested_correction,
+                source_url=payload.source_url,
+                reporter_email=payload.reporter_email,
+                page_url=payload.page_url,
+            )
+        except Exception:
+            logger.exception("Failed to insert issue_reports row")
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to submit report right now.",
+            ) from None
+        return ReportIssueResponse(
+            success=True,
+            report_id=report.id,
+            status=report.status,
+        )
 
     return app

@@ -1,13 +1,22 @@
-"""Report-an-issue domain helpers (schema constants only in V1)."""
+"""Report-an-issue domain helpers."""
 
 from constitution_memorizer.reports.constants import (
     DEFAULT_ISSUE_STATUS,
     ISSUE_STATUSES,
     ISSUE_TYPES,
 )
+from constitution_memorizer.reports.repository import (
+    IssueReport,
+    PostgresIssueReportRepository,
+)
+from constitution_memorizer.reports.schemas import ReportIssueRequest, ReportIssueResponse
 
 __all__ = [
     "DEFAULT_ISSUE_STATUS",
     "ISSUE_STATUSES",
     "ISSUE_TYPES",
+    "IssueReport",
+    "PostgresIssueReportRepository",
+    "ReportIssueRequest",
+    "ReportIssueResponse",
 ]

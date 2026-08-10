@@ -148,3 +148,13 @@ def test_authenticated_dashboard_omits_report_assets(tmp_path: Path):
     assert site not in html
     assert secret not in html
     assert "data-report-open" not in html
+
+
+def test_report_dialog_hidden_overrides_display_flex():
+    """display:flex on .rc-banner must not defeat HTML [hidden] after success."""
+    css = Path(
+        __file__
+    ).resolve().parents[1] / "src/constitution_memorizer/web/static/styles.css"
+    text = css.read_text(encoding="utf-8")
+    assert ".rc-dialog [hidden]" in text
+    assert "display: none !important" in text

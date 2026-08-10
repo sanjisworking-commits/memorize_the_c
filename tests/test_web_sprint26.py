@@ -36,7 +36,7 @@ def test_settings_page_defaults_to_thrice(client: TestClient):
     assert "Memory log" in html
     assert 'value="thrice"' in html
     assert "checked" in html
-    assert "styles.css?v=main5" in html
+    assert "styles.css?v=main6" in html
     assert 'href="/settings"' in html
 
 

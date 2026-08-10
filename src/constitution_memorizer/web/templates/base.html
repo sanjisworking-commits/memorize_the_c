@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=main4">
+  <link rel="stylesheet" href="/static/styles.css?v=main5">
   <link rel="icon" href="/static/main_logo.png" type="image/png">
 </head>
 <body class="{% block body_class %}{% endblock %}{% if multiuser_enabled|default(false) %}{% if current_user %} is-authed{% else %} is-guest{% endif %}{% endif %}">
@@ -157,8 +157,18 @@
   </nav>
   {% endif %}
 
+  {% if current_user and path.startswith('/browse/article/') %}
+  {% include "partials/report_dialog.html" %}
+  {% endif %}
+
   <script src="/static/recall_align.js?v=sprint22" defer></script>
   <script src="/static/app.js?v=main3" defer></script>
   <script src="/static/auth.js?v=main3" defer></script>
+  {% if current_user and path.startswith('/browse/article/') %}
+  {% if report_turnstile_enabled|default(false) %}
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+  {% endif %}
+  <script src="/static/report.js?v=report2" defer></script>
+  {% endif %}
 </body>
 </html>

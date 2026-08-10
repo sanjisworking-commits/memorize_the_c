@@ -93,7 +93,7 @@ class FakeTurnstileVerifier:
         self.calls: list[str] = []
         self.outcome = outcome
 
-    async def verify(self, token: str) -> None:
+    async def verify(self, token: str, **kwargs) -> None:
         self.calls.append(token)
         if self.outcome == "reject":
             raise TurnstileRejectedError("Turnstile verification failed")
@@ -111,6 +111,22 @@ def _turnstile_settings(**overrides) -> MultiUserSettings:
     return _settings(**base)
 
 
+def _login(
+    client: TestClient,
+    provider: FakeAuthProvider,
+    *,
+    email: str = "reader@example.com",
+) -> None:
+    if email not in provider.google_users:
+        provider.seed_google_user(email=email, display_name="Reporter")
+    start = client.get("/auth/google/start", follow_redirects=False)
+    state = start.cookies.get("rtc_oauth_state")
+    client.get(
+        f"/auth/callback?code=fake-google-code&state={state}",
+        follow_redirects=False,
+    )
+
+
 def _client(
     tmp_path: Path,
     *,
@@ -119,13 +135,17 @@ def _client(
     turnstile: FakeTurnstileVerifier | None | object = ...,
     settings: MultiUserSettings | None = None,
     multiuser: bool = True,
+    as_guest: bool = False,
+    user_email: str = "reader@example.com",
+    auth_provider: FakeAuthProvider | None = None,
 ) -> TestClient:
+    provider = auth_provider or FakeAuthProvider()
     kwargs: dict = {
         "units_path": MINI_UNITS,
         "db_path": tmp_path / "progress.db",
         "multiuser": multiuser,
         "multiuser_settings": settings or _settings(),
-        "auth_provider": FakeAuthProvider(),
+        "auth_provider": provider,
         "session_store": InMemorySessionStore(),
     }
     if repo is not ...:
@@ -134,19 +154,21 @@ def _client(
         kwargs["issue_report_notifier"] = notifier
     if turnstile is not ...:
         kwargs["issue_report_turnstile_verifier"] = turnstile
-    return TestClient(create_app(**kwargs))
+    client = TestClient(create_app(**kwargs))
+    if multiuser and not as_guest:
+        _login(client, provider, email=user_email)
+    return client
 
 
 def _valid_body(**overrides) -> dict:
     body = {
         "article_number": "55",
-        "section": "Explanation",
+        "section": "Browse Article",
         "selected_text": "Population means...",
         "issue_type": "incorrect_fact",
         "description": "This appears to use the wrong census reference.",
         "suggested_correction": "Suggested wording...",
         "source_url": "https://example.com/source",
-        "reporter_email": "reader@example.com",
         "page_url": "/browse/article/55",
     }
     body.update(overrides)
@@ -186,7 +208,8 @@ def test_optional_fields_can_be_omitted(tmp_path: Path):
     assert call["selected_text"] is None
     assert call["suggested_correction"] is None
     assert call["source_url"] is None
-    assert call["reporter_email"] is None
+    # Server fills reporter_email from the signed-in session.
+    assert call["reporter_email"] == "reader@example.com"
     assert call["page_url"] == "/browse/article/21"
 
 
@@ -251,7 +274,8 @@ def test_empty_reporter_email_treated_as_absent(tmp_path: Path):
         json=_valid_body(reporter_email="  "),
     )
     assert resp.status_code == 201
-    assert repo.calls[0]["reporter_email"] is None
+    # Blank client email is ignored; session email wins.
+    assert repo.calls[0]["reporter_email"] == "reader@example.com"
 
 
 def test_repository_unavailable_returns_503(tmp_path: Path):
@@ -273,14 +297,24 @@ def test_database_failure_returns_generic_503(tmp_path: Path):
     assert "simulated" not in detail.lower()
 
 
-def test_guest_can_submit_without_authentication(tmp_path: Path):
+def test_guest_post_in_multiuser_returns_401(tmp_path: Path):
     repo = FakeIssueReportRepository()
-    client = _client(tmp_path, repo=repo, multiuser=True)
-    # No session cookies — guest.
+    notifier = FakeIssueReportNotifier()
+    verifier = FakeTurnstileVerifier()
+    client = _client(
+        tmp_path,
+        repo=repo,
+        notifier=notifier,
+        turnstile=verifier,
+        as_guest=True,
+        settings=_turnstile_settings(),
+    )
     resp = client.post("/api/report-issue", json=_valid_body(), follow_redirects=False)
-    assert resp.status_code == 201
-    assert resp.json()["success"] is True
-    assert len(repo.calls) == 1
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Sign in to report an issue."
+    assert repo.calls == []
+    assert notifier.calls == []
+    assert verifier.calls == []
 
 
 def test_repository_sql_is_parameterized():
@@ -452,12 +486,13 @@ def test_turnstile_disabled_injected_verifier_not_called(tmp_path: Path):
 def test_turnstile_enabled_verifier_absent_returns_503(tmp_path: Path):
     repo = FakeIssueReportRepository()
     notifier = FakeIssueReportNotifier()
+    provider = FakeAuthProvider()
     app = create_app(
         units_path=MINI_UNITS,
         db_path=tmp_path / "progress.db",
         multiuser=True,
         multiuser_settings=_turnstile_settings(),
-        auth_provider=FakeAuthProvider(),
+        auth_provider=provider,
         session_store=InMemorySessionStore(),
         issue_report_repo=repo,
         issue_report_notifier=notifier,
@@ -465,6 +500,7 @@ def test_turnstile_enabled_verifier_absent_returns_503(tmp_path: Path):
     # Defense-in-depth: enabled but verifier somehow missing.
     app.state.issue_report_turnstile_verifier = None
     client = TestClient(app)
+    _login(client, provider)
     resp = client.post(
         "/api/report-issue",
         json=_valid_body(turnstile_token="XXXX.DUMMY.TOKEN.XXXX"),
@@ -615,3 +651,53 @@ def test_create_app_wires_turnstile_verifier_when_configured(tmp_path: Path):
         issue_report_repo=FakeIssueReportRepository(),
     )
     assert isinstance(app.state.issue_report_turnstile_verifier, TurnstileVerifier)
+
+
+def test_authenticated_email_used_as_reporter_email(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    notifier = FakeIssueReportNotifier()
+    client = _client(
+        tmp_path,
+        repo=repo,
+        notifier=notifier,
+        user_email="signed-in@example.com",
+    )
+    resp = client.post(
+        "/api/report-issue",
+        json=_valid_body(reporter_email="spoofed@evil.example"),
+    )
+    assert resp.status_code == 201
+    assert repo.calls[0]["reporter_email"] == "signed-in@example.com"
+    assert notifier.calls[0]["payload"].reporter_email == "signed-in@example.com"
+
+
+def test_authenticated_user_without_email_persists_none(tmp_path: Path):
+    from constitution_memorizer.auth.models import AuthenticatedUser
+
+    repo = FakeIssueReportRepository()
+    provider = FakeAuthProvider()
+    provider.google_users["holder@example.com"] = AuthenticatedUser(
+        id=UUID("22222222-2222-4222-8222-222222222222"),
+        email=None,
+        phone="+919876543210",
+        display_name="Phone-linked",
+        avatar_url=None,
+        provider="google",
+    )
+    client = _client(
+        tmp_path,
+        repo=repo,
+        auth_provider=provider,
+        user_email="holder@example.com",
+    )
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 201
+    assert repo.calls[0]["reporter_email"] is None
+
+
+def test_non_multiuser_still_accepts_without_login(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    client = _client(tmp_path, repo=repo, multiuser=False)
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 201
+    assert repo.calls[0]["reporter_email"] is None

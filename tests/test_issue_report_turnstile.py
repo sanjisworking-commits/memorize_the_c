@@ -39,7 +39,14 @@ def test_verify_posts_expected_url_and_fields() -> None:
         captured["url"] = str(request.url)
         captured["method"] = request.method
         captured["body"] = json.loads(request.content.decode("utf-8"))
-        return httpx.Response(200, json={"success": True})
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "action": "report_issue",
+                "hostname": "localhost",
+            },
+        )
 
     verifier = TurnstileVerifier(
         "turnstile_secret_value",
@@ -58,13 +65,25 @@ def test_verify_posts_expected_url_and_fields() -> None:
 
 def test_success_true_accepted() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"success": True})
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "action": "report_issue",
+                "hostname": "localhost",
+            },
+        )
 
     verifier = TurnstileVerifier(
         "secret",
         transport=httpx.MockTransport(handler),
     )
-    asyncio.run(verifier.verify("ok-token"))
+    asyncio.run(
+        verifier.verify(
+            "ok-token",
+            allowed_hostnames=frozenset({"localhost"}),
+        )
+    )
 
 
 def test_success_false_rejected_without_leaking_secrets() -> None:
@@ -147,15 +166,141 @@ def test_custom_verify_url_for_tests() -> None:
 
     def handler(request: httpx.Request) -> httpx.Response:
         captured["url"] = str(request.url)
-        return httpx.Response(200, json={"success": True})
+        return httpx.Response(
+            200,
+            json={"success": True, "action": "report_issue", "hostname": "localhost"},
+        )
 
     verifier = TurnstileVerifier(
         "secret",
         transport=httpx.MockTransport(handler),
         verify_url="https://turnstile.test.example/siteverify",
     )
-    asyncio.run(verifier.verify("token"))
+    asyncio.run(verifier.verify("token", expected_action=None))
     assert captured["url"] == "https://turnstile.test.example/siteverify"
+
+
+def test_wrong_action_rejected() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "action": "other_action",
+                "hostname": "localhost",
+            },
+        )
+
+    verifier = TurnstileVerifier(
+        "secret",
+        transport=httpx.MockTransport(handler),
+    )
+    with pytest.raises(TurnstileRejectedError):
+        asyncio.run(
+            verifier.verify(
+                "token",
+                allowed_hostnames=frozenset({"localhost"}),
+            )
+        )
+
+
+def test_wrong_hostname_rejected() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "action": "report_issue",
+                "hostname": "evil.example",
+            },
+        )
+
+    verifier = TurnstileVerifier(
+        "secret",
+        transport=httpx.MockTransport(handler),
+    )
+    with pytest.raises(TurnstileRejectedError):
+        asyncio.run(
+            verifier.verify(
+                "token",
+                allowed_hostnames=frozenset({"localhost", "127.0.0.1"}),
+            )
+        )
+
+
+def test_matching_action_and_hostname_accepted() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "action": "report_issue",
+                "hostname": "app.example.com",
+            },
+        )
+
+    verifier = TurnstileVerifier(
+        "secret",
+        transport=httpx.MockTransport(handler),
+    )
+    asyncio.run(
+        verifier.verify(
+            "token",
+            allowed_hostnames=frozenset({"app.example.com"}),
+        )
+    )
+
+
+def test_development_test_accepts_dummy_style_success_response() -> None:
+    """Cloudflare dummy keys may return action=test; local env skips action/hostname."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "action": "test",
+                "hostname": "localhost",
+            },
+        )
+
+    verifier = TurnstileVerifier(
+        "secret",
+        transport=httpx.MockTransport(handler),
+    )
+    # Mirrors APP_ENV=development/test route gating: success:true only.
+    asyncio.run(
+        verifier.verify(
+            "XXXX.DUMMY.TOKEN.XXXX",
+            expected_action=None,
+            allowed_hostnames=None,
+        )
+    )
+
+
+def test_production_style_rejects_dummy_action_when_checks_enabled() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "action": "test",
+                "hostname": "localhost",
+            },
+        )
+
+    verifier = TurnstileVerifier(
+        "secret",
+        transport=httpx.MockTransport(handler),
+    )
+    with pytest.raises(TurnstileRejectedError):
+        asyncio.run(
+            verifier.verify(
+                "XXXX.DUMMY.TOKEN.XXXX",
+                expected_action="report_issue",
+                allowed_hostnames=frozenset({"localhost"}),
+            )
+        )
 
 
 def test_settings_helpers_and_independent_validation() -> None:
@@ -196,6 +341,22 @@ def test_settings_helpers_and_independent_validation() -> None:
     )
     assert full.issue_report_turnstile_configured() is True
     full.validate_issue_report_turnstile()
+
+    hosts = MultiUserSettings(
+        _env_file=None,
+        APP_ENV="test",
+        APP_BASE_URL="https://recall.example.com",
+    ).issue_report_turnstile_allowed_hostnames()
+    assert "recall.example.com" in hosts
+    assert "localhost" in hosts
+    assert "127.0.0.1" in hosts
+
+    prod_hosts = MultiUserSettings(
+        _env_file=None,
+        APP_ENV="production",
+        APP_BASE_URL="https://recall.example.com",
+    ).issue_report_turnstile_allowed_hostnames()
+    assert prod_hosts == frozenset({"recall.example.com"})
 
 
 def test_turnstile_token_never_in_resend_email_body() -> None:

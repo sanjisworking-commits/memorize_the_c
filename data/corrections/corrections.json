@@ -140,6 +140,24 @@
       "chapter_number": "II",
       "status": "omitted"
     },
+    "article-5": {
+      "title": "Citizenship at the commencement of the Constitution",
+      "part_number": "II",
+      "opening_text": "",
+      "body_text": "At the commencement of this Constitution, every person who has his domicile in the territory of India and—\n(a) who was born in the territory of India; or\n(b) either of whose parents was born in the territory of India; or\n(c) who has been ordinarily resident in the territory of India for not less than five years immediately preceding such commencement,\nshall be a citizen of India.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-6": {
+      "title": "Rights of citizenship of certain persons who have migrated to India from Pakistan",
+      "part_number": "II",
+      "opening_text": "",
+      "body_text": "Notwithstanding anything in article 5, a person who has migrated to the territory of India from the territory now included in Pakistan shall be deemed to be a citizen of India at the commencement of this Constitution if—\n(a) he or either of his parents or any of his grand-parents was born in India as defined in the Government of India Act, 1935 (as originally enacted); and\n(b) (i) in the case where such person has so migrated before the nineteenth day of July, 1948, he has been ordinarily resident in the territory of India since the date of his migration, or\n(ii) in the case where such person has so migrated on or after the nineteenth day of July, 1948, he has been registered as a citizen of India by an officer appointed in that behalf by the Government of the Dominion of India on an application made by him therefor to such officer before the commencement of this Constitution in the form and manner prescribed by that Government:\nProvided that no person shall be so registered unless he has been resident in the territory of India for at least six months immediately preceding the date of his application.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
     "article-7": {
       "title": "Rights of citizenship of certain migrants to Pakistan",
       "part_number": "II",
@@ -2621,6 +2639,8 @@
     "article-348/350/350a/350b/352: diglot truncated Part XVII language articles and Art 352 Emergency; restored Bare Act 348(1)–(3) (complete (b) texts + English-language closing; stripped Rajpramukh ***); split glued 350A out of 350 and create 350A; strip 350B trailing ]; 352 Explanation on new line, separate (2)–(9), restore (4) proviso and (5)–(9).",
     "article-353/354/356/357/358/359: diglot Emergency Part XVIII truncations; 353 prefer+letter so stem line is not lost under (a); 354 title vs (1)/(2); 356 full (1)–(5) (title had swallowed body); 357 (1) stem out of title + (2); 358 blank line before Provided that; 359 separate (1)/(1A)/(1B)/(2)/(3) without diglot glue.",
     "article-360/361/361a/362/363/363a/364: diglot Part XVIII/XIX truncations; 360 title+(1)–(4); 361 (1) out of title, strip ***; create 361A; omit 362; 363 title+(1)/(2) and split glued 363A (create); 364 (1) stem out of title.",
-    "article-361b/366/367/368/369: create missing 361B; scrub 366 diglot junk (6./7. markers, * * *, 1[(30)) and keep (29A) continuous with (30) on new line; strip 367 C.O.272 footer/footnote digits; omit Minerva-invalid 368(4)/(5) so (3) is clean; 369 prefer+letter so stem is not glued under (a)."
+    "article-361b/366/367/368/369: create missing 361B; scrub 366 diglot junk (6./7. markers, * * *, 1[(30)) and keep (29A) continuous with (30) on new line; strip 367 C.O.272 footer/footnote digits; omit Minerva-invalid 368(4)/(5) so (3) is clean; 369 prefer+letter so stem is not glued under (a).",
+    "article-5: diglot parse dropped the stem ('At the commencement… and—'); restored Bare Act stem+(a)–(c)+closing; prefer_article_unit + enable_letter_split.",
+    "article-6: diglot parse dropped the stem ('Notwithstanding… if—') and glued (b)(i)/(ii); restored Bare Act stem+(a)+(b)(i)–(ii)+proviso; prefer_article_unit + enable_letter_split."
   ]
 }

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from constitution_memorizer.progress.repository import (
     DEFAULT_NEWS_ARTICLES,
@@ -237,6 +237,77 @@ class PostgresProgressRepository:
             ).fetchall()
         return {str(r["parent_clause_id"]): r["mode"] for r in rows}
 
+    def delete_progress(self, user_id: UUID | str, unit_id: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                DELETE FROM learning_unit_progress
+                WHERE user_id = %s AND learning_unit_id = %s
+                """,
+                (as_user_id(user_id), unit_id),
+            )
+            conn.commit()
+
+    def delete_all_progress(self, user_id: UUID | str) -> None:
+        uid = as_user_id(user_id)
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM learning_unit_progress WHERE user_id = %s", (uid,)
+            )
+            conn.execute("DELETE FROM split_preference WHERE user_id = %s", (uid,))
+            conn.commit()
+
+    def delete_split_preference(
+        self, user_id: UUID | str, parent_clause_id: str
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                DELETE FROM split_preference
+                WHERE user_id = %s AND parent_clause_id = %s
+                """,
+                (as_user_id(user_id), parent_clause_id),
+            )
+            conn.commit()
+
+    def get_gloss(self, user_id: UUID | str, article_number: str) -> str | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT text FROM article_gloss
+                WHERE user_id = %s AND article_number = %s
+                """,
+                (as_user_id(user_id), article_number),
+            ).fetchone()
+        return None if row is None else str(row["text"])
+
+    def upsert_gloss(
+        self, user_id: UUID | str, article_number: str, text: str
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO article_gloss (user_id, article_number, text, updated_at)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id, article_number) DO UPDATE SET
+                    text = EXCLUDED.text,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (as_user_id(user_id), article_number, text, _utc_now()),
+            )
+            conn.commit()
+
+    def delete_gloss(self, user_id: UUID | str, article_number: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                DELETE FROM article_gloss
+                WHERE user_id = %s AND article_number = %s
+                """,
+                (as_user_id(user_id), article_number),
+            )
+            conn.commit()
+
     def get_setting(self, user_id: UUID | str, key: str) -> str | None:
         with self._connect() as conn:
             row = conn.execute(
@@ -279,6 +350,22 @@ class PostgresProgressRepository:
     ) -> None:
         self.set_setting(user_id, NOTIFICATION_FREQUENCY_KEY, frequency)
 
+    def get_notification_last_slot(self, user_id: UUID | str) -> datetime | None:
+        raw = self.get_setting(user_id, NOTIFICATION_LAST_SLOT_KEY)
+        if not raw:
+            return None
+        try:
+            return datetime.fromisoformat(raw)
+        except ValueError:
+            return None
+
+    def set_notification_last_slot(self, user_id: UUID | str, when: datetime) -> None:
+        self.set_setting(
+            user_id,
+            NOTIFICATION_LAST_SLOT_KEY,
+            when.replace(microsecond=0).isoformat(),
+        )
+
     def get_news_articles_raw(self, user_id: UUID | str) -> str:
         raw = self.get_setting(user_id, NEWS_ARTICLES_KEY)
         return DEFAULT_NEWS_ARTICLES if raw is None else raw
@@ -319,6 +406,14 @@ class PostgresProgressRepository:
             )
             conn.commit()
 
+    def clear_all_modes_seen(self, user_id: UUID | str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM unit_modes_seen WHERE user_id = %s",
+                (as_user_id(user_id),),
+            )
+            conn.commit()
+
     def modes_complete(self, user_id: UUID | str, unit_id: str) -> bool:
         return self.modes_seen(user_id, unit_id) >= LEARN_MODES_SET
 
@@ -343,3 +438,35 @@ class PostgresProgressRepository:
                 (as_user_id(user_id), display_name, avatar_url, now, now),
             )
             conn.commit()
+
+    def get_profile(self, user_id: UUID | str) -> dict[str, str | None] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT user_id, display_name, avatar_url, created_at, updated_at
+                FROM user_profile WHERE user_id = %s
+                """,
+                (as_user_id(user_id),),
+            ).fetchone()
+        if row is None:
+            return None
+        created = row["created_at"]
+        updated = row["updated_at"]
+        return {
+            "user_id": str(row["user_id"]),
+            "display_name": row["display_name"],
+            "avatar_url": row["avatar_url"],
+            "created_at": created.isoformat()
+            if hasattr(created, "isoformat")
+            else str(created) if created is not None else None,
+            "updated_at": updated.isoformat()
+            if hasattr(updated, "isoformat")
+            else str(updated) if updated is not None else None,
+        }
+
+    def needs_welcome(self, user_id: UUID | str) -> bool:
+        profile = self.get_profile(user_id)
+        if profile is None:
+            return True
+        name = (profile.get("display_name") or "").strip()
+        return not name

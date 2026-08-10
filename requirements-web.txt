@@ -1,6 +1,5 @@
-# Lightweight dependencies for GitHub Actions unit tests (no Docling).
-# Keep in sync with pyproject.toml runtime deps that CI installs via
-# `pip install -e . --no-deps` (so transitive deps are not pulled in).
+# Web runtime for Render (no Docling, no pytest).
+# Install: pip install -r requirements-web.txt && pip install . --no-deps
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 rapidfuzz>=3.0.0
@@ -8,7 +7,6 @@ fastapi>=0.110.0
 uvicorn[standard]>=0.27.0
 jinja2>=3.1.0
 python-multipart>=0.0.9
-pytest>=7.0.0
 httpx>=0.27.0
 itsdangerous>=2.1.0
 psycopg[binary]>=3.1.0

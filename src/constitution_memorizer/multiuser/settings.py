@@ -98,6 +98,12 @@ class MultiUserSettings(BaseSettings):
 
     multiuser_enabled: bool = Field(default=False, alias="MULTIUSER_ENABLED")
 
+    # V1 production: Memory Log and Relevant Laws stay off until Postgres-ready.
+    memory_log_enabled: bool = Field(default=False, alias="MEMORY_LOG_ENABLED")
+    relevant_laws_enabled: bool = Field(
+        default=False, alias="RELEVANT_LAWS_ENABLED"
+    )
+
     @field_validator(
         "auth_google_enabled",
         "auth_phone_enabled",
@@ -105,6 +111,8 @@ class MultiUserSettings(BaseSettings):
         "captcha_enabled",
         "report_turnstile_enabled",
         "multiuser_enabled",
+        "memory_log_enabled",
+        "relevant_laws_enabled",
         mode="before",
     )
     @classmethod

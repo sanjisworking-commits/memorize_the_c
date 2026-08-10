@@ -10,6 +10,7 @@ from uuid import UUID
 
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitsDocument
 from constitution_memorizer.progress.db import open_progress_db
+from constitution_memorizer.progress.protocols import ReminderRepositoryProtocol
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
     LEARN_MODES_SET,
@@ -69,7 +70,7 @@ class ReminderEngine:
 
     def __init__(
         self,
-        repo: ProgressRepository,
+        repo: ReminderRepositoryProtocol,
         units: Mapping[str, LearningUnit],
         *,
         user_id: UUID = LOCAL_USER_ID,
@@ -83,6 +84,21 @@ class ReminderEngine:
         return ReminderEngine(self.repo, self.units, user_id=user_id)
 
     @classmethod
+    def from_repository(
+        cls,
+        repo: ReminderRepositoryProtocol,
+        units: Mapping[str, LearningUnit] | Iterable[LearningUnit],
+        *,
+        user_id: UUID = LOCAL_USER_ID,
+    ) -> ReminderEngine:
+        """Bind an engine to an already-constructed repository (SQLite or Postgres)."""
+        if isinstance(units, Mapping):
+            catalog = dict(units)
+        else:
+            catalog = {u.id: u for u in units}
+        return cls(repo, catalog, user_id=user_id)
+
+    @classmethod
     def from_paths(
         cls,
         db_path: Path | str,
@@ -93,7 +109,9 @@ class ReminderEngine:
         conn = open_progress_db(db_path)
         doc = LearningUnitsDocument.model_validate(read_json(Path(units_path)))
         catalog = {u.id: u for u in doc.units}
-        return cls(ProgressRepository(conn), catalog, user_id=user_id)
+        return cls.from_repository(
+            ProgressRepository(conn), catalog, user_id=user_id
+        )
 
     @classmethod
     def from_units(
@@ -105,7 +123,9 @@ class ReminderEngine:
     ) -> ReminderEngine:
         conn = open_progress_db(db_path)
         catalog = {u.id: u for u in units}
-        return cls(ProgressRepository(conn), catalog, user_id=user_id)
+        return cls.from_repository(
+            ProgressRepository(conn), catalog, user_id=user_id
+        )
 
     def get_unit(self, unit_id: str) -> LearningUnit | None:
         return self.units.get(unit_id)

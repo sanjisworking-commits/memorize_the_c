@@ -8,6 +8,7 @@ TURNSTILE_SITEVERIFY_URL = (
     "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 )
 TURNSTILE_REPORT_ACTION = "report_issue"
+TURNSTILE_CONTACT_ACTION = "contact_us"
 DEFAULT_TIMEOUT_SECONDS = 10.0
 
 

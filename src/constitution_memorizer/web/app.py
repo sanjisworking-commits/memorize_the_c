@@ -17,16 +17,28 @@ from constitution_memorizer.auth.routes import create_auth_router, install_auth_
 from constitution_memorizer.auth.sessions import InMemorySessionStore, PostgresSessionStore
 from constitution_memorizer.auth.exceptions import AuthConfigError
 from constitution_memorizer.multiuser.settings import MultiUserSettings
+from constitution_memorizer.learning.schemas import LearningUnitsDocument
 from constitution_memorizer.progress.memory import MemoryEngine
+from constitution_memorizer.progress.postgres_repository import PostgresProgressRepository
+from constitution_memorizer.reports.contact_notifier import ResendContactMessageNotifier
+from constitution_memorizer.reports.contact_repository import (
+    PostgresContactMessageRepository,
+)
+from constitution_memorizer.reports.contact_schemas import (
+    ContactMessageRequest,
+    ContactMessageResponse,
+)
 from constitution_memorizer.reports.notifier import ResendIssueReportNotifier
 from constitution_memorizer.reports.repository import PostgresIssueReportRepository
 from constitution_memorizer.reports.schemas import ReportIssueRequest, ReportIssueResponse
 from constitution_memorizer.reports.turnstile import (
+    TURNSTILE_CONTACT_ACTION,
     TURNSTILE_REPORT_ACTION,
     TurnstileRejectedError,
     TurnstileUnavailableError,
     TurnstileVerifier,
 )
+from constitution_memorizer.utils.json_io import read_json
 
 logger = logging.getLogger(__name__)
 from constitution_memorizer.progress.repository import (
@@ -138,6 +150,8 @@ def create_app(
     issue_report_repo=None,
     issue_report_notifier=None,
     issue_report_turnstile_verifier=None,
+    contact_message_repo=None,
+    contact_message_notifier=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -197,14 +211,38 @@ def create_app(
 
     resolved_db = Path(resolved_db).expanduser().resolve()
     resolved_units = Path(resolved_units).expanduser().resolve()
-    engine = ReminderEngine.from_paths(
-        resolved_db, resolved_units, user_id=LOCAL_USER_ID
+    use_postgres = multiuser_on and (settings.database_url or "").strip().startswith(
+        "postgresql"
     )
-    memory = MemoryEngine(
-        engine.repo.conn,
-        resolved_db.parent / "memory_media",
-        user_id=LOCAL_USER_ID,
-    )
+    memory_log_enabled = bool(settings.memory_log_enabled)
+    relevant_laws_enabled = bool(settings.relevant_laws_enabled)
+
+    if memory_log_enabled and use_postgres:
+        raise AuthConfigError(
+            "MEMORY_LOG_ENABLED=true is not supported with PostgreSQL yet."
+        )
+
+    units_doc = LearningUnitsDocument.model_validate(read_json(resolved_units))
+    catalog = {unit.id: unit for unit in units_doc.units}
+    if use_postgres:
+        engine = ReminderEngine.from_repository(
+            PostgresProgressRepository(settings.database_url),
+            catalog,
+            user_id=LOCAL_USER_ID,
+        )
+    else:
+        engine = ReminderEngine.from_paths(
+            resolved_db, resolved_units, user_id=LOCAL_USER_ID
+        )
+
+    if memory_log_enabled:
+        memory = MemoryEngine(
+            engine.repo.conn,  # type: ignore[attr-defined]
+            resolved_db.parent / "memory_media",
+            user_id=LOCAL_USER_ID,
+        )
+    else:
+        memory = None
     reviewed = load_reviewed_document(
         resolved_reviewed if resolved_reviewed.exists() else None
     )
@@ -256,6 +294,8 @@ def create_app(
                     and getattr(request.state, "current_user", None) is None
                 ),
                 "multiuser_enabled": app.state.multiuser_enabled,
+                "memory_log_enabled": memory_log_enabled,
+                "relevant_laws_enabled": relevant_laws_enabled,
                 "report_turnstile_enabled": bool(settings.report_turnstile_enabled),
                 "report_turnstile_site_key": (
                     (settings.report_turnstile_site_key or "").strip()
@@ -283,6 +323,9 @@ def create_app(
     app.state.reviewed_path = resolved_reviewed
     app.state.multiuser_enabled = multiuser_on
     app.state.multiuser_settings = settings
+    app.state.memory_log_enabled = memory_log_enabled
+    app.state.relevant_laws_enabled = relevant_laws_enabled
+    app.state.use_postgres_progress = use_postgres
     app.state.oauth_states = {}
     app.state.otp_limiter = OtpRateLimiter()
     if auth_provider is not None:
@@ -333,8 +376,43 @@ def create_app(
     else:
         app.state.issue_report_turnstile_verifier = None
 
+    if contact_message_repo is not None:
+        app.state.contact_message_repo = contact_message_repo
+    elif settings.database_url.startswith("postgresql"):
+        app.state.contact_message_repo = PostgresContactMessageRepository(
+            settings.database_url
+        )
+    else:
+        app.state.contact_message_repo = None
+
+    if contact_message_notifier is not None:
+        app.state.contact_message_notifier = contact_message_notifier
+    elif settings.issue_report_notify_configured():
+        app.state.contact_message_notifier = ResendContactMessageNotifier(
+            settings.resend_api_key,
+            settings.report_email_from,
+            settings.report_email_to,
+        )
+    else:
+        app.state.contact_message_notifier = None
+
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     install_auth_middleware(app)
+
+    @app.middleware("http")
+    async def feature_flag_gate(request: Request, call_next):
+        """404 disabled Memory/Laws prefixes before auth can redirect guests."""
+        path = request.url.path
+        if not app.state.memory_log_enabled and (
+            path == "/memory" or path.startswith("/memory/")
+        ):
+            return HTMLResponse("Not Found", status_code=404)
+        if not app.state.relevant_laws_enabled and (
+            path == "/laws" or path.startswith("/laws/")
+        ):
+            return HTMLResponse("Not Found", status_code=404)
+        return await call_next(request)
+
     app.include_router(create_auth_router(templates))
 
     def _engine() -> ReminderEngine:
@@ -347,7 +425,10 @@ def create_app(
         bound = bound_memory.get()
         if bound is not None:
             return bound
-        return app.state.memory
+        memory = app.state.memory
+        if memory is None:
+            raise HTTPException(status_code=404, detail="Not Found")
+        return memory
 
     def _modes_payload(unit_id: str, seen: set[str] | None = None) -> dict[str, object]:
         current = seen if seen is not None else _engine().modes_seen(unit_id)
@@ -1116,6 +1197,107 @@ def create_app(
             success=True,
             report_id=report.id,
             status=report.status,
+        )
+
+    @app.post(
+        "/api/contact",
+        response_model=ContactMessageResponse,
+        status_code=201,
+    )
+    async def contact_message(
+        request: Request, payload: ContactMessageRequest
+    ) -> ContactMessageResponse:
+        """Accept a signed-in Contact Us message and insert into PostgreSQL."""
+        user = getattr(request.state, "current_user", None)
+        if app.state.multiuser_enabled and user is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Sign in to contact us.",
+            )
+        session_email = None
+        if user is not None:
+            session_email = (user.email or "").strip() or None
+        payload = payload.model_copy(update={"reporter_email": session_email})
+
+        if settings.report_turnstile_enabled:
+            verifier = getattr(app.state, "issue_report_turnstile_verifier", None)
+            if verifier is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                )
+            if not payload.turnstile_token:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Verification required. Please try again.",
+                )
+            try:
+                if settings.app_env in {"staging", "production"}:
+                    await verifier.verify(
+                        payload.turnstile_token,
+                        expected_action=TURNSTILE_CONTACT_ACTION,
+                        allowed_hostnames=(
+                            settings.issue_report_turnstile_allowed_hostnames()
+                        ),
+                    )
+                else:
+                    await verifier.verify(
+                        payload.turnstile_token,
+                        expected_action=None,
+                        allowed_hostnames=None,
+                    )
+            except TurnstileRejectedError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Verification failed. Please try again.",
+                ) from None
+            except TurnstileUnavailableError:
+                logger.exception("Turnstile Siteverify unavailable")
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                ) from None
+            except Exception:
+                logger.exception("Unexpected Turnstile verification error")
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                ) from None
+
+        repo = getattr(app.state, "contact_message_repo", None)
+        if repo is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to send message right now.",
+            )
+        try:
+            message = repo.create_message(
+                topic=payload.topic,
+                message=payload.message,
+                page_url=payload.page_url,
+                reporter_email=payload.reporter_email,
+            )
+        except Exception:
+            logger.exception("Failed to insert contact_messages row")
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to send message right now.",
+            ) from None
+
+        notifier = getattr(app.state, "contact_message_notifier", None)
+        if notifier is not None:
+            try:
+                await notifier.send(message=message, payload=payload)
+            except Exception:
+                logger.exception(
+                    "Failed to send contact message email for message_id=%s",
+                    message.id,
+                )
+
+        return ContactMessageResponse(
+            success=True,
+            message_id=message.id,
+            status=message.status,
         )
 
     return app

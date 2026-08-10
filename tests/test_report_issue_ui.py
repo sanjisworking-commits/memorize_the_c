@@ -82,10 +82,13 @@ def test_guest_browse_article_hides_report_button_and_dialog(tmp_path: Path):
     provider = FakeAuthProvider()
     client = TestClient(_app(tmp_path, provider))
     html = client.get("/browse/article/20").text
+    # Article report trigger stays signed-in only.
     assert "data-report-open" not in html
-    assert "data-report-overlay" not in html
-    assert "report.js" not in html
-    assert "Report an issue" not in html
+    assert "report-issue-link" not in html
+    # Contact Us needs the shared dialog site-wide (guest gate).
+    assert "data-report-overlay" in html
+    assert "report.js" in html
+    assert 'data-contact-mode="gate"' in html
 
 
 def test_turnstile_secret_never_in_html_when_enabled(tmp_path: Path):
@@ -127,7 +130,7 @@ def test_turnstile_site_key_omitted_when_disabled(tmp_path: Path):
     assert "challenges.cloudflare.com/turnstile" not in html
 
 
-def test_authenticated_dashboard_omits_report_assets(tmp_path: Path):
+def test_authenticated_dashboard_has_contact_not_article_report(tmp_path: Path):
     site = "1x00000000000000000000AA"
     secret = "turnstile_secret_must_not_leak"
     provider = FakeAuthProvider()
@@ -142,12 +145,15 @@ def test_authenticated_dashboard_omits_report_assets(tmp_path: Path):
     )
     _login(client, provider)
     html = client.get("/dashboard").text
-    assert "data-report-overlay" not in html
-    assert "report.js" not in html
-    assert "challenges.cloudflare.com/turnstile" not in html
-    assert site not in html
-    assert secret not in html
+    # Contact Us is site-wide; Article report trigger is not.
+    assert "data-report-overlay" in html
+    assert "report.js" in html
+    assert 'data-contact-mode="contact"' in html
     assert "data-report-open" not in html
+    assert "report-issue-link" not in html
+    assert secret not in html
+    assert site in html
+    assert "challenges.cloudflare.com/turnstile" in html
 
 
 def test_report_dialog_hidden_overrides_display_flex():

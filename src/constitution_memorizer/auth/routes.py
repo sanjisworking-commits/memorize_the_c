@@ -575,10 +575,13 @@ def install_auth_middleware(app) -> None:
         request.state.is_guest = user is None
         if user is not None:
             request.state.bound_engine = request.app.state.engine.for_user(user.id)
-            request.state.bound_memory = request.app.state.memory.for_user(user.id)
+            memory = getattr(request.app.state, "memory", None)
+            request.state.bound_memory = (
+                memory.for_user(user.id) if memory is not None else None
+            )
         else:
             request.state.bound_engine = request.app.state.engine
-            request.state.bound_memory = request.app.state.memory
+            request.state.bound_memory = getattr(request.app.state, "memory", None)
 
         if user is None and requires_auth(path, method):
             # Inline gates for dashboard/progress GET; otherwise sign-in.

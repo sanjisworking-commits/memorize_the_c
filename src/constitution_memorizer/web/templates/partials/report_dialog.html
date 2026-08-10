@@ -1,4 +1,4 @@
-{# Shared report dialog chrome (Contact us reuses this in a later PR). #}
+{# Shared Report Issue / Contact Us dialog chrome. #}
 <div
   class="rc-overlay"
   hidden
@@ -42,9 +42,9 @@
             ></textarea>
           </div>
 
-          <div class="rc-field">
+          <div class="rc-field" data-rc-report-fields>
             <label class="rc-label" for="rc-issue-type">Issue type</label>
-            <select id="rc-issue-type" class="rc-input" name="issue_type" required data-rc-issue-type>
+            <select id="rc-issue-type" class="rc-input" name="issue_type" data-rc-issue-type>
               <option value="">Select an issue type…</option>
               <option value="incorrect_fact">Incorrect fact</option>
               <option value="outdated_information">Outdated information</option>
@@ -56,19 +56,30 @@
             <p class="rc-field-error" hidden data-rc-error-for="issue_type"></p>
           </div>
 
-          <div class="rc-field">
-            <label class="rc-label" for="rc-description">What seems wrong?</label>
+          <div class="rc-field" hidden data-rc-contact-fields>
+            <fieldset class="rc-fieldset">
+              <legend class="rc-label">What would you like to contact us about?</legend>
+              <label class="rc-radio"><input type="radio" name="contact_topic" value="technical_issue" data-rc-topic> Technical issue</label>
+              <label class="rc-radio"><input type="radio" name="contact_topic" value="general_feedback" data-rc-topic> General feedback</label>
+              <label class="rc-radio"><input type="radio" name="contact_topic" value="feature_suggestion" data-rc-topic> Feature suggestion</label>
+              <label class="rc-radio"><input type="radio" name="contact_topic" value="other" data-rc-topic> Other</label>
+            </fieldset>
+            <p class="rc-field-error" hidden data-rc-error-for="topic"></p>
+          </div>
+
+          <div class="rc-field" data-rc-description-field>
+            <label class="rc-label" for="rc-description" data-rc-description-label>What seems wrong?</label>
             <textarea
               id="rc-description"
               class="rc-input"
               name="description"
               rows="4"
               maxlength="8000"
-              required
               placeholder="Explain what appears incorrect or unclear…"
               data-rc-description
             ></textarea>
             <p class="rc-field-error" hidden data-rc-error-for="description"></p>
+            <p class="rc-field-error" hidden data-rc-error-for="message"></p>
           </div>
 
           <button
@@ -115,8 +126,8 @@
 
         <div class="rc-success" hidden data-rc-success>
           <div class="rc-success-mark" aria-hidden="true">✓</div>
-          <h3 class="rc-success-title">Thank you</h3>
-          <p class="rc-success-lede">Your report has been submitted for review.</p>
+          <h3 class="rc-success-title" data-rc-success-title>Thank you</h3>
+          <p class="rc-success-lede" data-rc-success-lede>Your report has been submitted for review.</p>
           <p class="rc-success-id" data-rc-report-id></p>
         </div>
       </div>

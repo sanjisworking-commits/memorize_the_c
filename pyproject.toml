@@ -42,8 +42,8 @@ multiuser = [
 
 [tool.setuptools.package-data]
 constitution_memorizer = [
-    "web/templates/*",
-    "web/static/*",
+    "web/templates/**/*",
+    "web/static/**/*",
 ]
 
 [project.scripts]

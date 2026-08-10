@@ -149,6 +149,10 @@
       state.turnstileWidgetId = window.turnstile.render(mount, {
         sitekey: sitekey,
         action: "report_issue",
+        theme: "auto",
+        size: "compact",
+        appearance: "interaction-only",
+        "response-field": false,
         callback: function (token) {
           state.turnstileToken = token || "";
           setTurnstileChip(true);

@@ -1043,11 +1043,22 @@ def create_app(
                     detail="Verification required. Please try again.",
                 )
             try:
-                await verifier.verify(
-                    payload.turnstile_token,
-                    expected_action=TURNSTILE_REPORT_ACTION,
-                    allowed_hostnames=settings.issue_report_turnstile_allowed_hostnames(),
-                )
+                # Staging/production: also enforce action + hostname.
+                # Development/test: require success:true only (dummy keys return action=test).
+                if settings.app_env in {"staging", "production"}:
+                    await verifier.verify(
+                        payload.turnstile_token,
+                        expected_action=TURNSTILE_REPORT_ACTION,
+                        allowed_hostnames=(
+                            settings.issue_report_turnstile_allowed_hostnames()
+                        ),
+                    )
+                else:
+                    await verifier.verify(
+                        payload.turnstile_token,
+                        expected_action=None,
+                        allowed_hostnames=None,
+                    )
             except TurnstileRejectedError:
                 raise HTTPException(
                     status_code=400,

@@ -125,3 +125,26 @@ def test_turnstile_site_key_omitted_when_disabled(tmp_path: Path):
     assert "should-not-appear" not in html
     assert 'data-turnstile-enabled="false"' in html
     assert "challenges.cloudflare.com/turnstile" not in html
+
+
+def test_authenticated_dashboard_omits_report_assets(tmp_path: Path):
+    site = "1x00000000000000000000AA"
+    secret = "turnstile_secret_must_not_leak"
+    provider = FakeAuthProvider()
+    client = TestClient(
+        _app(
+            tmp_path,
+            provider,
+            REPORT_TURNSTILE_ENABLED="true",
+            REPORT_TURNSTILE_SITE_KEY=site,
+            REPORT_TURNSTILE_SECRET_KEY=secret,
+        )
+    )
+    _login(client, provider)
+    html = client.get("/dashboard").text
+    assert "data-report-overlay" not in html
+    assert "report.js" not in html
+    assert "challenges.cloudflare.com/turnstile" not in html
+    assert site not in html
+    assert secret not in html
+    assert "data-report-open" not in html

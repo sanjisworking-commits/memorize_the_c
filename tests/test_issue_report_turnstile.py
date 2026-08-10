@@ -251,6 +251,58 @@ def test_matching_action_and_hostname_accepted() -> None:
     )
 
 
+def test_development_test_accepts_dummy_style_success_response() -> None:
+    """Cloudflare dummy keys may return action=test; local env skips action/hostname."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "action": "test",
+                "hostname": "localhost",
+            },
+        )
+
+    verifier = TurnstileVerifier(
+        "secret",
+        transport=httpx.MockTransport(handler),
+    )
+    # Mirrors APP_ENV=development/test route gating: success:true only.
+    asyncio.run(
+        verifier.verify(
+            "XXXX.DUMMY.TOKEN.XXXX",
+            expected_action=None,
+            allowed_hostnames=None,
+        )
+    )
+
+
+def test_production_style_rejects_dummy_action_when_checks_enabled() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "action": "test",
+                "hostname": "localhost",
+            },
+        )
+
+    verifier = TurnstileVerifier(
+        "secret",
+        transport=httpx.MockTransport(handler),
+    )
+    with pytest.raises(TurnstileRejectedError):
+        asyncio.run(
+            verifier.verify(
+                "XXXX.DUMMY.TOKEN.XXXX",
+                expected_action="report_issue",
+                allowed_hostnames=frozenset({"localhost"}),
+            )
+        )
+
+
 def test_settings_helpers_and_independent_validation() -> None:
     disabled = MultiUserSettings(
         _env_file=None,

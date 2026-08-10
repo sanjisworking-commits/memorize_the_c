@@ -21,6 +21,11 @@ from constitution_memorizer.progress.memory import MemoryEngine
 from constitution_memorizer.reports.notifier import ResendIssueReportNotifier
 from constitution_memorizer.reports.repository import PostgresIssueReportRepository
 from constitution_memorizer.reports.schemas import ReportIssueRequest, ReportIssueResponse
+from constitution_memorizer.reports.turnstile import (
+    TurnstileRejectedError,
+    TurnstileUnavailableError,
+    TurnstileVerifier,
+)
 
 logger = logging.getLogger(__name__)
 from constitution_memorizer.progress.repository import (
@@ -131,6 +136,7 @@ def create_app(
     session_store=None,
     issue_report_repo=None,
     issue_report_notifier=None,
+    issue_report_turnstile_verifier=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -169,6 +175,8 @@ def create_app(
         )
 
     settings = multiuser_settings or MultiUserSettings()
+    # Turnstile config is independent of multi-user auth startup validation.
+    settings.validate_issue_report_turnstile()
     # Opt-in only via the multiuser= argument (CLI sets this from MULTIUSER_ENABLED).
     # Do not infer from process env here — that leaks across pytest cases.
     multiuser_on = bool(multiuser)
@@ -307,6 +315,16 @@ def create_app(
         )
     else:
         app.state.issue_report_notifier = None
+
+    # Injection alone does not enable Turnstile; REPORT_TURNSTILE_ENABLED is source of truth.
+    if issue_report_turnstile_verifier is not None:
+        app.state.issue_report_turnstile_verifier = issue_report_turnstile_verifier
+    elif settings.issue_report_turnstile_configured():
+        app.state.issue_report_turnstile_verifier = TurnstileVerifier(
+            settings.report_turnstile_secret_key,
+        )
+    else:
+        app.state.issue_report_turnstile_verifier = None
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     install_auth_middleware(app)
@@ -990,6 +1008,39 @@ def create_app(
     )
     async def report_issue(payload: ReportIssueRequest) -> ReportIssueResponse:
         """Accept a guest-or-auth issue report and insert into PostgreSQL."""
+        # REPORT_TURNSTILE_ENABLED is the source of truth (not verifier presence).
+        if settings.report_turnstile_enabled:
+            verifier = getattr(app.state, "issue_report_turnstile_verifier", None)
+            if verifier is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                )
+            if not payload.turnstile_token:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Verification required. Please try again.",
+                )
+            try:
+                await verifier.verify(payload.turnstile_token)
+            except TurnstileRejectedError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Verification failed. Please try again.",
+                ) from None
+            except TurnstileUnavailableError:
+                logger.exception("Turnstile Siteverify unavailable")
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                ) from None
+            except Exception:
+                logger.exception("Unexpected Turnstile verification error")
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                ) from None
+
         repo = getattr(app.state, "issue_report_repo", None)
         if repo is None:
             raise HTTPException(

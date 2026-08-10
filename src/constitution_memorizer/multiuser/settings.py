@@ -84,6 +84,17 @@ class MultiUserSettings(BaseSettings):
     report_email_from: str = Field(default="", alias="REPORT_EMAIL_FROM")
     report_email_to: str = Field(default="", alias="REPORT_EMAIL_TO")
 
+    # Optional Cloudflare Turnstile for POST /api/report-issue (not CAPTCHA_*).
+    report_turnstile_enabled: bool = Field(
+        default=False, alias="REPORT_TURNSTILE_ENABLED"
+    )
+    report_turnstile_site_key: str = Field(
+        default="", alias="REPORT_TURNSTILE_SITE_KEY"
+    )
+    report_turnstile_secret_key: str = Field(
+        default="", alias="REPORT_TURNSTILE_SECRET_KEY"
+    )
+
     multiuser_enabled: bool = Field(default=False, alias="MULTIUSER_ENABLED")
 
     @field_validator(
@@ -91,6 +102,7 @@ class MultiUserSettings(BaseSettings):
         "auth_phone_enabled",
         "cookie_secure",
         "captcha_enabled",
+        "report_turnstile_enabled",
         "multiuser_enabled",
         mode="before",
     )
@@ -158,6 +170,33 @@ class MultiUserSettings(BaseSettings):
             and (self.report_email_from or "").strip()
             and (self.report_email_to or "").strip()
         )
+
+    def issue_report_turnstile_configured(self) -> bool:
+        """True when Turnstile is enabled and both keys are non-empty."""
+        return bool(
+            self.report_turnstile_enabled
+            and (self.report_turnstile_site_key or "").strip()
+            and (self.report_turnstile_secret_key or "").strip()
+        )
+
+    def validate_issue_report_turnstile(self) -> None:
+        """
+        Fail closed when Turnstile is enabled without both keys.
+
+        Independent of multi-user auth validate_for_startup(); call from create_app
+        unconditionally so Report Issue wiring cannot skip this check.
+        """
+        if not self.report_turnstile_enabled:
+            return
+        missing: list[str] = []
+        if not (self.report_turnstile_site_key or "").strip():
+            missing.append("REPORT_TURNSTILE_SITE_KEY")
+        if not (self.report_turnstile_secret_key or "").strip():
+            missing.append("REPORT_TURNSTILE_SECRET_KEY")
+        if missing:
+            raise AuthConfigError(
+                "REPORT_TURNSTILE_ENABLED=true requires: " + ", ".join(missing)
+            )
 
 
 @lru_cache(maxsize=1)

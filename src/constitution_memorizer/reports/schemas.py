@@ -48,6 +48,8 @@ class ReportIssueRequest(BaseModel):
     suggested_correction: str | None = Field(default=None, max_length=8000)
     source_url: str | None = Field(default=None, max_length=2000)
     reporter_email: str | None = Field(default=None, max_length=254)
+    # Transient Turnstile token — never persisted or emailed.
+    turnstile_token: str | None = Field(default=None, max_length=2048)
 
     @field_validator("issue_type")
     @classmethod
@@ -73,6 +75,7 @@ class ReportIssueRequest(BaseModel):
         "selected_text",
         "suggested_correction",
         "source_url",
+        "turnstile_token",
         mode="before",
     )
     @classmethod

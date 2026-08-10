@@ -22,6 +22,7 @@ from constitution_memorizer.reports.notifier import ResendIssueReportNotifier
 from constitution_memorizer.reports.repository import PostgresIssueReportRepository
 from constitution_memorizer.reports.schemas import ReportIssueRequest, ReportIssueResponse
 from constitution_memorizer.reports.turnstile import (
+    TURNSTILE_REPORT_ACTION,
     TurnstileRejectedError,
     TurnstileUnavailableError,
     TurnstileVerifier,
@@ -255,6 +256,12 @@ def create_app(
                     and getattr(request.state, "current_user", None) is None
                 ),
                 "multiuser_enabled": app.state.multiuser_enabled,
+                "report_turnstile_enabled": bool(settings.report_turnstile_enabled),
+                "report_turnstile_site_key": (
+                    (settings.report_turnstile_site_key or "").strip()
+                    if settings.report_turnstile_enabled
+                    else ""
+                ),
                 "csrf_token": (
                     getattr(getattr(request.state, "auth_session", None), "csrf_token", None)
                     or request.cookies.get("rtc_csrf")
@@ -1006,8 +1013,22 @@ def create_app(
         response_model=ReportIssueResponse,
         status_code=201,
     )
-    async def report_issue(payload: ReportIssueRequest) -> ReportIssueResponse:
-        """Accept a guest-or-auth issue report and insert into PostgreSQL."""
+    async def report_issue(
+        request: Request, payload: ReportIssueRequest
+    ) -> ReportIssueResponse:
+        """Accept a signed-in issue report and insert into PostgreSQL."""
+        user = getattr(request.state, "current_user", None)
+        if app.state.multiuser_enabled and user is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Sign in to report an issue.",
+            )
+        # Never trust browser-supplied reporter_email; derive from session.
+        session_email = None
+        if user is not None:
+            session_email = (user.email or "").strip() or None
+        payload = payload.model_copy(update={"reporter_email": session_email})
+
         # REPORT_TURNSTILE_ENABLED is the source of truth (not verifier presence).
         if settings.report_turnstile_enabled:
             verifier = getattr(app.state, "issue_report_turnstile_verifier", None)
@@ -1022,7 +1043,11 @@ def create_app(
                     detail="Verification required. Please try again.",
                 )
             try:
-                await verifier.verify(payload.turnstile_token)
+                await verifier.verify(
+                    payload.turnstile_token,
+                    expected_action=TURNSTILE_REPORT_ACTION,
+                    allowed_hostnames=settings.issue_report_turnstile_allowed_hostnames(),
+                )
             except TurnstileRejectedError:
                 raise HTTPException(
                     status_code=400,

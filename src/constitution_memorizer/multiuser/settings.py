@@ -6,6 +6,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -197,6 +198,16 @@ class MultiUserSettings(BaseSettings):
             raise AuthConfigError(
                 "REPORT_TURNSTILE_ENABLED=true requires: " + ", ".join(missing)
             )
+
+    def issue_report_turnstile_allowed_hostnames(self) -> frozenset[str]:
+        """Hostnames accepted from Turnstile Siteverify (production uses APP_BASE_URL)."""
+        hosts: set[str] = set()
+        parsed = urlparse((self.app_base_url or "").strip())
+        if parsed.hostname:
+            hosts.add(parsed.hostname.lower())
+        if self.app_env in {"development", "test"}:
+            hosts.update({"localhost", "127.0.0.1"})
+        return frozenset(hosts)
 
 
 @lru_cache(maxsize=1)

@@ -116,6 +116,14 @@
   <p class="actions">
     <a class="btn btn-ghost" href="/browse">All articles</a>
     <a class="btn btn-ghost" href="/">Home</a>
+    {% if current_user %}
+    <button
+      type="button"
+      class="report-issue-link"
+      data-report-open
+      data-article-number="{{ article.article_number }}"
+    ><span aria-hidden="true">⚑</span><span class="report-issue-label">Report an issue</span></button>
+    {% endif %}
   </p>
 </section>
 {% endblock %}

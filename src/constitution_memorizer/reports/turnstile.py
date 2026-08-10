@@ -7,6 +7,7 @@ import httpx
 TURNSTILE_SITEVERIFY_URL = (
     "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 )
+TURNSTILE_REPORT_ACTION = "report_issue"
 DEFAULT_TIMEOUT_SECONDS = 10.0
 
 
@@ -34,11 +35,18 @@ class TurnstileVerifier:
         self._transport = transport
         self._verify_url = verify_url
 
-    async def verify(self, token: str) -> None:
+    async def verify(
+        self,
+        token: str,
+        *,
+        expected_action: str | None = TURNSTILE_REPORT_ACTION,
+        allowed_hostnames: frozenset[str] | set[str] | None = None,
+    ) -> None:
         """
         POST secret + response to Siteverify.
 
-        Raises TurnstileRejectedError when success is false.
+        Raises TurnstileRejectedError when success is false or action/hostname
+        do not match expectations.
         Raises TurnstileUnavailableError on network/non-2xx/malformed responses.
         Never includes secret, token, or Cloudflare body in exception messages.
         """
@@ -72,10 +80,19 @@ class TurnstileVerifier:
             )
 
         success = data.get("success")
-        if success is True:
-            return
         if success is False:
             raise TurnstileRejectedError("Turnstile verification failed")
-        raise TurnstileUnavailableError(
-            "Turnstile verification returned unexpected payload"
-        )
+        if success is not True:
+            raise TurnstileUnavailableError(
+                "Turnstile verification returned unexpected payload"
+            )
+
+        if expected_action is not None and data.get("action") != expected_action:
+            raise TurnstileRejectedError("Turnstile verification failed")
+
+        if allowed_hostnames is not None:
+            hostname = data.get("hostname")
+            if not isinstance(hostname, str) or hostname.lower() not in {
+                h.lower() for h in allowed_hostnames
+            }:
+                raise TurnstileRejectedError("Turnstile verification failed")

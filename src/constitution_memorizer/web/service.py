@@ -134,20 +134,16 @@ def earliest_upcoming_revision(
 ) -> date | None:
     """Soonest next_revision strictly after as_of (for Home 'caught up' copy)."""
     today = as_of or date.today()
-    row = engine.repo.conn.execute(
-        """
-        SELECT next_revision FROM learning_unit_progress
-        WHERE status = 'review'
-          AND next_revision IS NOT NULL
-          AND next_revision > ?
-        ORDER BY next_revision ASC
-        LIMIT 1
-        """,
-        (today.isoformat(),),
-    ).fetchone()
-    if row is None or row["next_revision"] is None:
-        return None
-    return date.fromisoformat(str(row["next_revision"]))
+    upcoming: list[date] = []
+    for record in engine.repo.list_all_progress(engine.user_id):
+        if record.status != "review" or record.next_revision is None:
+            continue
+        nxt = record.next_revision
+        if not isinstance(nxt, date):
+            nxt = date.fromisoformat(str(nxt)[:10])
+        if nxt > today:
+            upcoming.append(nxt)
+    return min(upcoming) if upcoming else None
 
 
 def home_lede(*, due_count: int, has_continue: bool) -> str:

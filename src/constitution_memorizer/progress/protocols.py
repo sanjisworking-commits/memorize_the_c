@@ -1,38 +1,146 @@
-"""Repository protocols for user-scoped personal data."""
+"""Repository protocols for Constitution progress (ReminderEngine contract)."""
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Protocol
 from uuid import UUID
 
-from constitution_memorizer.progress.repository import ProgressRecord, ProgressStatus, SplitMode
+from constitution_memorizer.progress.repository import (
+    NotificationFrequency,
+    ProgressRecord,
+    ProgressStatus,
+    SplitMode,
+    ThemePreference,
+)
 
 
-class ProgressRepositoryProtocol(Protocol):
+class ReminderRepositoryProtocol(Protocol):
+    """Constitution-facing persistence contract used by ReminderEngine.
+
+    Both SQLite ProgressRepository and PostgresProgressRepository must satisfy
+    this surface. Memory Log storage is intentionally out of scope.
+    """
+
     def get_progress(
-        self, user_id: UUID, learning_unit_id: str
+        self, user_id: UUID | str, unit_id: str
     ) -> ProgressRecord | None: ...
 
-    def save_progress(self, user_id: UUID, progress: ProgressRecord) -> None: ...
+    def ensure_progress(
+        self, user_id: UUID | str, unit_id: str
+    ) -> ProgressRecord: ...
 
-    def list_due(self, user_id: UUID, as_of: date) -> list[ProgressRecord]: ...
+    def upsert_progress(
+        self,
+        user_id: UUID | str,
+        *,
+        unit_id: str,
+        status: ProgressStatus,
+        times_completed: int,
+        last_completed: date | None,
+        next_revision: date | None,
+        interval_days: int,
+        ease_factor: float = 2.5,
+    ) -> ProgressRecord: ...
+
+    def delete_progress(self, user_id: UUID | str, unit_id: str) -> None: ...
+
+    def delete_all_progress(self, user_id: UUID | str) -> None: ...
+
+    def list_due(
+        self,
+        user_id: UUID | str,
+        as_of: date,
+        *,
+        include_new: bool = False,
+    ) -> list[ProgressRecord]: ...
+
+    def list_all_progress(self, user_id: UUID | str) -> list[ProgressRecord]: ...
+
+    def count_by_status(self, user_id: UUID | str) -> dict[str, int]: ...
 
     def get_split_preference(
-        self, user_id: UUID, parent_clause_id: str
+        self, user_id: UUID | str, parent_clause_id: str
     ) -> SplitMode | None: ...
 
-
-# Alias matching the plan naming.
-class ProgressRepository(ProgressRepositoryProtocol, Protocol):
-    def get_progress(
+    def set_split_preference(
         self,
-        user_id: UUID,
-        learning_unit_id: str,
-    ) -> ProgressRecord | None: ...
-
-    def save_progress(
-        self,
-        user_id: UUID,
-        progress: ProgressRecord,
+        user_id: UUID | str,
+        parent_clause_id: str,
+        mode: SplitMode,
     ) -> None: ...
+
+    def delete_split_preference(
+        self, user_id: UUID | str, parent_clause_id: str
+    ) -> None: ...
+
+    def list_split_preferences(
+        self, user_id: UUID | str
+    ) -> dict[str, SplitMode]: ...
+
+    def get_gloss(
+        self, user_id: UUID | str, article_number: str
+    ) -> str | None: ...
+
+    def upsert_gloss(
+        self, user_id: UUID | str, article_number: str, text: str
+    ) -> None: ...
+
+    def delete_gloss(self, user_id: UUID | str, article_number: str) -> None: ...
+
+    def get_setting(self, user_id: UUID | str, key: str) -> str | None: ...
+
+    def set_setting(self, user_id: UUID | str, key: str, value: str) -> None: ...
+
+    def get_notification_frequency(
+        self, user_id: UUID | str
+    ) -> NotificationFrequency: ...
+
+    def set_notification_frequency(
+        self, user_id: UUID | str, frequency: NotificationFrequency
+    ) -> None: ...
+
+    def get_notification_last_slot(
+        self, user_id: UUID | str
+    ) -> datetime | None: ...
+
+    def set_notification_last_slot(
+        self, user_id: UUID | str, when: datetime
+    ) -> None: ...
+
+    def get_theme(self, user_id: UUID | str) -> ThemePreference: ...
+
+    def set_theme(self, user_id: UUID | str, theme: ThemePreference) -> None: ...
+
+    def get_news_articles_raw(self, user_id: UUID | str) -> str: ...
+
+    def set_news_articles_raw(self, user_id: UUID | str, value: str) -> None: ...
+
+    def mark_mode_seen(
+        self, user_id: UUID | str, unit_id: str, mode: str
+    ) -> set[str]: ...
+
+    def modes_seen(self, user_id: UUID | str, unit_id: str) -> set[str]: ...
+
+    def clear_modes_seen(self, user_id: UUID | str, unit_id: str) -> None: ...
+
+    def clear_all_modes_seen(self, user_id: UUID | str) -> None: ...
+
+    def modes_complete(self, user_id: UUID | str, unit_id: str) -> bool: ...
+
+    def upsert_profile(
+        self,
+        user_id: UUID | str,
+        *,
+        display_name: str | None,
+        avatar_url: str | None,
+    ) -> None: ...
+
+    def get_profile(self, user_id: UUID | str) -> dict[str, str | None] | None: ...
+
+    def needs_welcome(self, user_id: UUID | str) -> bool: ...
+
+
+# Backward-compatible name used in earlier plan wording.
+class ProgressRepositoryProtocol(ReminderRepositoryProtocol, Protocol):
+    """Alias of ReminderRepositoryProtocol (Constitution progress surface)."""

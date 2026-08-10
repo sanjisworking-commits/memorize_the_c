@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from constitution_memorizer.multiuser.settings import MultiUserSettings
 from constitution_memorizer.progress.memory import (
     MEMORY_INTERVAL_LADDER,
     advance_memory_interval,
@@ -18,6 +19,14 @@ from constitution_memorizer.web.laws_data import load_laws
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 
 
+def _enabled_settings() -> MultiUserSettings:
+    return MultiUserSettings(
+        _env_file=None,
+        MEMORY_LOG_ENABLED="true",
+        RELEVANT_LAWS_ENABLED="true",
+    )
+
+
 @pytest.fixture
 def db_path(tmp_path: Path) -> Path:
     return tmp_path / "progress.db"
@@ -25,7 +34,13 @@ def db_path(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def client(db_path: Path) -> TestClient:
-    return TestClient(create_app(units_path=MINI_UNITS, db_path=db_path))
+    return TestClient(
+        create_app(
+            units_path=MINI_UNITS,
+            db_path=db_path,
+            multiuser_settings=_enabled_settings(),
+        )
+    )
 
 
 def test_advance_memory_ladder_stops_at_thirty():
@@ -53,7 +68,7 @@ def test_nav_slim_and_footer_has_tools(client: TestClient):
     assert 'id="theme-toggle"' in html
     assert "Reference &amp; tools" in html
     assert 'href="/memory"' in html
-    assert "styles.css?v=main6" in html
+    assert "styles.css?v=main7" in html
 
 
 def test_constitution_calendar_has_no_memory_chips(client: TestClient):
@@ -148,7 +163,13 @@ def test_memory_create_done_notes_photo(client: TestClient, db_path: Path):
 def test_memory_photo_survives_cwd_change(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Regression: relative media_dir broke image GETs after process cwd changed."""
     db_path = tmp_path / "progress.db"
-    client = TestClient(create_app(units_path=MINI_UNITS, db_path=db_path))
+    client = TestClient(
+        create_app(
+            units_path=MINI_UNITS,
+            db_path=db_path,
+            multiuser_settings=_enabled_settings(),
+        )
+    )
     create = client.post(
         "/memory",
         data={"title": "cwd-safe photo", "acronym": ""},

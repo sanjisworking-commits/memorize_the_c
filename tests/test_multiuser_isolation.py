@@ -30,19 +30,20 @@ def _clear_settings():
     clear_settings_cache()
 
 
-def _settings() -> MultiUserSettings:
-    return MultiUserSettings(
-        _env_file=None,
-        APP_ENV="test",
-        MULTIUSER_ENABLED="true",
-        AUTH_GOOGLE_ENABLED="true",
-        AUTH_PHONE_ENABLED="true",
-        SESSION_SECRET="test-secret",
-        SUPABASE_URL="http://example.invalid",
-        SUPABASE_ANON_KEY="anon",
-        DATABASE_URL="",
-        COOKIE_SECURE="false",
-    )
+def _settings(**overrides) -> MultiUserSettings:
+    base = {
+        "APP_ENV": "test",
+        "MULTIUSER_ENABLED": "true",
+        "AUTH_GOOGLE_ENABLED": "true",
+        "AUTH_PHONE_ENABLED": "true",
+        "SESSION_SECRET": "test-secret",
+        "SUPABASE_URL": "http://example.invalid",
+        "SUPABASE_ANON_KEY": "anon",
+        "DATABASE_URL": "",
+        "COOKIE_SECURE": "false",
+    }
+    base.update({k: str(v) for k, v in overrides.items()})
+    return MultiUserSettings(_env_file=None, **base)
 
 
 def _login(client: TestClient, provider: FakeAuthProvider, email: str) -> None:
@@ -112,7 +113,7 @@ def test_memory_ownership_404(tmp_path: Path):
         units_path=MINI_UNITS,
         db_path=tmp_path / "progress.db",
         multiuser=True,
-        multiuser_settings=_settings(),
+        multiuser_settings=_settings(MEMORY_LOG_ENABLED="true"),
         auth_provider=provider,
         session_store=store,
     )

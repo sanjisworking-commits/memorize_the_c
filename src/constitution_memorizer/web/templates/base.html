@@ -180,7 +180,7 @@
   <script src="/static/app.js?v=main3" defer></script>
   <script src="/static/auth.js?v=main3" defer></script>
   {% if multiuser_enabled|default(false) or (current_user and path.startswith('/browse/article/')) %}
-  {% if report_turnstile_enabled|default(false) %}
+  {% if current_user and report_turnstile_enabled|default(false) %}
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
   {% endif %}
   <script src="/static/report.js?v=report3" defer></script>

@@ -152,6 +152,7 @@ def create_app(
     issue_report_turnstile_verifier=None,
     contact_message_repo=None,
     contact_message_notifier=None,
+    progress_repo=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -211,9 +212,17 @@ def create_app(
 
     resolved_db = Path(resolved_db).expanduser().resolve()
     resolved_units = Path(resolved_units).expanduser().resolve()
-    use_postgres = multiuser_on and (settings.database_url or "").strip().startswith(
-        "postgresql"
-    )
+    database_url = (settings.database_url or "").strip()
+    use_postgres = multiuser_on and database_url.startswith("postgresql")
+    # Hosted multi-user must not silently fall back to SQLite.
+    if multiuser_on and settings.app_env in {"staging", "production"}:
+        if not database_url.startswith("postgresql"):
+            raise AuthConfigError(
+                "MULTIUSER_ENABLED=true in staging/production requires "
+                "DATABASE_URL to be a PostgreSQL URL "
+                "(postgresql://… or postgresql+…://…). "
+                f"Got: {database_url!r}"
+            )
     memory_log_enabled = bool(settings.memory_log_enabled)
     relevant_laws_enabled = bool(settings.relevant_laws_enabled)
 
@@ -224,7 +233,11 @@ def create_app(
 
     units_doc = LearningUnitsDocument.model_validate(read_json(resolved_units))
     catalog = {unit.id: unit for unit in units_doc.units}
-    if use_postgres:
+    if progress_repo is not None:
+        engine = ReminderEngine.from_repository(
+            progress_repo, catalog, user_id=LOCAL_USER_ID
+        )
+    elif use_postgres:
         engine = ReminderEngine.from_repository(
             PostgresProgressRepository(settings.database_url),
             catalog,
@@ -296,10 +309,18 @@ def create_app(
                 "multiuser_enabled": app.state.multiuser_enabled,
                 "memory_log_enabled": memory_log_enabled,
                 "relevant_laws_enabled": relevant_laws_enabled,
-                "report_turnstile_enabled": bool(settings.report_turnstile_enabled),
+                # Guests cannot submit Contact Us / Report Issue — do not expose
+                # Turnstile site key or load the client script for them.
+                "report_turnstile_enabled": bool(
+                    settings.report_turnstile_enabled
+                    and getattr(request.state, "current_user", None) is not None
+                ),
                 "report_turnstile_site_key": (
                     (settings.report_turnstile_site_key or "").strip()
-                    if settings.report_turnstile_enabled
+                    if (
+                        settings.report_turnstile_enabled
+                        and getattr(request.state, "current_user", None) is not None
+                    )
                     else ""
                 ),
                 "csrf_token": (

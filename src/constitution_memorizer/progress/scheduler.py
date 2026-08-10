@@ -66,6 +66,10 @@ class ReminderEngine:
     The shared learning-unit catalog is read-only. Personal data is always
     scoped through ``user_id`` (default LOCAL_USER_ID for single-tenant mode).
     Use ``for_user`` to bind a different authenticated user without cloning the catalog.
+
+    Each engine instance keeps request-scoped lazy caches for progress and split
+    preferences so Dashboard/Browse loops do not issue one remote query per unit.
+    ``for_user`` always returns a fresh empty cache for that request binding.
     """
 
     def __init__(
@@ -78,10 +82,38 @@ class ReminderEngine:
         self.repo = repo
         self.units = dict(units)
         self.user_id = user_id
+        # None = not loaded yet; dict = loaded for this request-bound engine.
+        self._progress_cache: dict[str, ProgressRecord] | None = None
+        self._split_cache: dict[str, SplitMode] | None = None
 
     def for_user(self, user_id: UUID) -> ReminderEngine:
         """Return a lightweight engine bound to ``user_id`` (shared units + repo)."""
         return ReminderEngine(self.repo, self.units, user_id=user_id)
+
+    def _ensure_progress_cache(self) -> dict[str, ProgressRecord]:
+        if self._progress_cache is None:
+            rows = self.repo.list_all_progress(self.user_id)
+            self._progress_cache = {row.learning_unit_id: row for row in rows}
+        return self._progress_cache
+
+    def _ensure_split_cache(self) -> dict[str, SplitMode]:
+        if self._split_cache is None:
+            self._split_cache = dict(self.repo.list_split_preferences(self.user_id))
+        return self._split_cache
+
+    def _store_progress(self, progress: ProgressRecord) -> None:
+        cache = self._ensure_progress_cache()
+        cache[progress.learning_unit_id] = progress
+
+    def _drop_progress(self, unit_id: str) -> None:
+        if self._progress_cache is not None:
+            self._progress_cache.pop(unit_id, None)
+
+    def _invalidate_progress_cache(self) -> None:
+        self._progress_cache = None
+
+    def _invalidate_split_cache(self) -> None:
+        self._split_cache = None
 
     @classmethod
     def from_repository(
@@ -131,10 +163,11 @@ class ReminderEngine:
         return self.units.get(unit_id)
 
     def get_progress(self, unit_id: str) -> ProgressRecord | None:
-        return self.repo.get_progress(self.user_id, unit_id)
+        return self._ensure_progress_cache().get(unit_id)
 
     def list_all_progress(self) -> list[ProgressRecord]:
-        return self.repo.list_all_progress(self.user_id)
+        cache = self._ensure_progress_cache()
+        return list(cache.values())
 
     def get_gloss(self, article_number: str) -> str | None:
         return self.repo.get_gloss(self.user_id, article_number)
@@ -147,19 +180,26 @@ class ReminderEngine:
 
     def delete_progress(self, unit_id: str) -> None:
         self.repo.delete_progress(self.user_id, unit_id)
+        self._drop_progress(unit_id)
 
     def reset_all_personal_data(self) -> None:
         self.repo.delete_all_progress(self.user_id)
         self.repo.clear_all_modes_seen(self.user_id)
+        self._invalidate_progress_cache()
+        self._invalidate_split_cache()
 
     def set_split_preference(self, parent_clause_id: str, mode: SplitMode) -> None:
         self.repo.set_split_preference(self.user_id, parent_clause_id, mode)
+        cache = self._ensure_split_cache()
+        cache[parent_clause_id] = mode
 
     def get_split_preference(self, parent_clause_id: str) -> SplitMode | None:
-        return self.repo.get_split_preference(self.user_id, parent_clause_id)
+        return self._ensure_split_cache().get(parent_clause_id)
 
     def delete_split_preference(self, parent_clause_id: str) -> None:
         self.repo.delete_split_preference(self.user_id, parent_clause_id)
+        if self._split_cache is not None:
+            self._split_cache.pop(parent_clause_id, None)
 
     def get_notification_frequency(self) -> NotificationFrequency:
         return self.repo.get_notification_frequency(self.user_id)
@@ -214,6 +254,7 @@ class ReminderEngine:
 
         today = as_of or date.today()
         current = self.repo.ensure_progress(self.user_id, unit_id)
+        self._store_progress(current)
         if current.status == "mastered":
             progress = current
         else:
@@ -241,6 +282,7 @@ class ReminderEngine:
                     interval_days=nxt,
                     ease_factor=DEFAULT_EASE_FACTOR,
                 )
+            self._store_progress(progress)
 
         self.repo.clear_modes_seen(self.user_id, unit_id)
         return MarkDoneResult(
@@ -261,6 +303,7 @@ class ReminderEngine:
 
         today = as_of or date.today()
         current = self.repo.ensure_progress(self.user_id, unit_id)
+        self._store_progress(current)
         if current.status == "mastered":
             progress = current
         else:
@@ -274,6 +317,7 @@ class ReminderEngine:
                 interval_days=current.interval_days if current.interval_days > 0 else 1,
                 ease_factor=current.ease_factor or DEFAULT_EASE_FACTOR,
             )
+            self._store_progress(progress)
 
         return MarkDoneResult(
             unit_id=unit_id,
@@ -293,7 +337,7 @@ class ReminderEngine:
             return self._apply_entry_preference(parent.next_unit if parent else None)
 
         if unit.allows_letter_split and unit.child_unit_ids:
-            mode = self.repo.get_split_preference(self.user_id, unit.id) or "whole"
+            mode = self.get_split_preference(unit.id) or "whole"
             if mode == "letters":
                 return unit.child_unit_ids[0]
 
@@ -306,7 +350,7 @@ class ReminderEngine:
         if candidate is None:
             return candidate_id
         if candidate.allows_letter_split and candidate.child_unit_ids:
-            mode = self.repo.get_split_preference(self.user_id, candidate.id) or "whole"
+            mode = self.get_split_preference(candidate.id) or "whole"
             if mode == "letters":
                 return candidate.child_unit_ids[0]
         return candidate_id
@@ -338,5 +382,5 @@ class ReminderEngine:
             "review": counts.get("review", 0),
             "mastered": counts.get("mastered", 0),
             "tracked": sum(counts.values()),
-            "split_preferences": len(self.repo.list_split_preferences(self.user_id)),
+            "split_preferences": len(self._ensure_split_cache()),
         }

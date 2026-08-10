@@ -80,7 +80,15 @@ def test_logged_in_browse_article_shows_report_button(tmp_path: Path):
 
 def test_guest_browse_article_hides_report_button_and_dialog(tmp_path: Path):
     provider = FakeAuthProvider()
-    client = TestClient(_app(tmp_path, provider))
+    client = TestClient(
+        _app(
+            tmp_path,
+            provider,
+            REPORT_TURNSTILE_ENABLED="true",
+            REPORT_TURNSTILE_SITE_KEY="1x00000000000000000000AA",
+            REPORT_TURNSTILE_SECRET_KEY="turnstile_secret_must_not_leak",
+        )
+    )
     html = client.get("/browse/article/20").text
     # Article report trigger stays signed-in only.
     assert "data-report-open" not in html
@@ -89,6 +97,11 @@ def test_guest_browse_article_hides_report_button_and_dialog(tmp_path: Path):
     assert "data-report-overlay" in html
     assert "report.js" in html
     assert 'data-contact-mode="gate"' in html
+    # Guests cannot submit — do not load Turnstile client/site key.
+    assert "challenges.cloudflare.com/turnstile" not in html
+    assert "1x00000000000000000000AA" not in html
+    assert "turnstile_secret_must_not_leak" not in html
+    assert 'data-turnstile-enabled="false"' in html
 
 
 def test_turnstile_secret_never_in_html_when_enabled(tmp_path: Path):

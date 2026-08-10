@@ -196,6 +196,10 @@ def _resolve_clauses(article: Article) -> list[ProvisionNode]:
 def _alphabetic_segments_from_body(body: str) -> list[tuple[str, str]]:
     """Return (label, '(a) …' text) for top-level alphabetic markers in body.
 
+    Segment ends at the next kept alphabetic letter marker (not at nested
+    roman ``(i)/(ii)``), so letter cards under ``prefer_article_unit`` keep
+    their full Bare Act sub-structure (e.g. Art 6(b)(i)–(ii)+proviso).
+
     Single-letter ``i``/``v``/``x`` are usually Roman and skipped, but are kept
     when they continue an alphabetic run (e.g. Art 51A ``(h)(i)(j)``).
     """

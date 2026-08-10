@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "source_document": "constitution.reviewed.json",
-  "unit_count": 1700,
+  "unit_count": 1704,
   "units": [
     {
       "id": "part-i-overview",
@@ -778,7 +778,7 @@
       "difficulty": 3,
       "estimated_learning_time": 30,
       "revision_order": 31,
-      "next_unit": "article-5-clause-a",
+      "next_unit": "article-5",
       "previous_unit": "article-4-clause-1",
       "tags": [
         "Part I",
@@ -791,17 +791,17 @@
       "letter_sequence_prev": null
     },
     {
-      "id": "article-5-clause-a",
-      "type": "CLAUSE",
-      "parent_id": "article-5",
+      "id": "article-5",
+      "type": "ARTICLE",
+      "parent_id": "part-ii",
       "article_number": "5",
-      "display_title": "Article 5(a)",
+      "display_title": "Article 5",
       "title": "Citizenship at the commencement of the Constitution",
-      "text": "(a) who was born in the territory of India; or\n(b) either of whose parents was born in the territory of India; or\n(c) who has been ordinarily resident in the territory of India for not less than five years immediately preceding such commencement, shall be a citizen of India.",
-      "difficulty": 4,
+      "text": "At the commencement of this Constitution, every person who has his domicile in the territory of India and—\n(a) who was born in the territory of India; or\n(b) either of whose parents was born in the territory of India; or\n(c) who has been ordinarily resident in the territory of India for not less than five years immediately preceding such commencement,\nshall be a citizen of India.",
+      "difficulty": 2,
       "estimated_learning_time": 30,
       "revision_order": 32,
-      "next_unit": "article-6-clause-a",
+      "next_unit": "article-6",
       "previous_unit": "article-4-clause-2",
       "tags": [
         "Part II",
@@ -809,21 +809,23 @@
       ],
       "allows_letter_split": true,
       "child_unit_ids": [
-        "article-5-clause-a-subclause-b"
+        "article-5-subclause-a",
+        "article-5-subclause-b",
+        "article-5-subclause-c"
       ],
       "parent_clause_id": null,
       "letter_sequence_next": null,
       "letter_sequence_prev": null
     },
     {
-      "id": "article-5-clause-a-subclause-b",
+      "id": "article-5-subclause-a",
       "type": "SUBCLAUSE",
-      "parent_id": "article-5-clause-a",
+      "parent_id": "article-5",
       "article_number": "5",
-      "display_title": "Article 5(a)(b)",
+      "display_title": "Article 5(a)",
       "title": "Citizenship at the commencement of the Constitution",
-      "text": "(b) either of whose parents was born in the territory of India; or\n(c) who has been ordinarily resident in the territory of India for not less than five years immediately preceding such commencement, shall be a citizen of India.",
-      "difficulty": 4,
+      "text": "(a) who was born in the territory of India; or",
+      "difficulty": 3,
       "estimated_learning_time": 30,
       "revision_order": 0,
       "next_unit": null,
@@ -834,32 +836,127 @@
       ],
       "allows_letter_split": false,
       "child_unit_ids": [],
-      "parent_clause_id": "article-5-clause-a",
-      "letter_sequence_next": null,
+      "parent_clause_id": "article-5",
+      "letter_sequence_next": "article-5-subclause-b",
       "letter_sequence_prev": null
     },
     {
-      "id": "article-6-clause-a",
-      "type": "CLAUSE",
-      "parent_id": "article-6",
-      "article_number": "6",
-      "display_title": "Article 6(a)",
-      "title": "Rights of citizenship of certain persons who have migrated to India from Pakistan",
-      "text": "(a) he or either of his parents or any of his grand-parents was born in India as defined in the Government of India Act, 1935 (as originally enacted); and ( b )( i ) in the case where such person has so migrated before the nineteenth day of July, 1948, he has been ordinarily resident in the territory of India since the date of his migration, or ( ii ) in the case where such person has so migrated on or after the nineteenth day of July, 1948, he has been registered as a citizen of India by an officer appointed in that behalf by the Government of the Dominion of India on an application made by him therefor to such officer before the commencement of this Constitution in the form and manner prescribed by that Government:\nProvided that no person shall be so registered unless he has been resident in the territory of India for at least six months immediately preceding the date of his application.",
+      "id": "article-5-subclause-b",
+      "type": "SUBCLAUSE",
+      "parent_id": "article-5",
+      "article_number": "5",
+      "display_title": "Article 5(b)",
+      "title": "Citizenship at the commencement of the Constitution",
+      "text": "(b) either of whose parents was born in the territory of India; or",
       "difficulty": 3,
-      "estimated_learning_time": 120,
-      "revision_order": 33,
-      "next_unit": "article-7",
-      "previous_unit": "article-5-clause-a",
+      "estimated_learning_time": 30,
+      "revision_order": 0,
+      "next_unit": null,
+      "previous_unit": null,
       "tags": [
         "Part II",
         "CITIZENSHIP"
       ],
       "allows_letter_split": false,
       "child_unit_ids": [],
+      "parent_clause_id": "article-5",
+      "letter_sequence_next": "article-5-subclause-c",
+      "letter_sequence_prev": "article-5-subclause-a"
+    },
+    {
+      "id": "article-5-subclause-c",
+      "type": "SUBCLAUSE",
+      "parent_id": "article-5",
+      "article_number": "5",
+      "display_title": "Article 5(c)",
+      "title": "Citizenship at the commencement of the Constitution",
+      "text": "(c) who has been ordinarily resident in the territory of India for not less than five years immediately preceding such commencement,\nshall be a citizen of India.",
+      "difficulty": 3,
+      "estimated_learning_time": 30,
+      "revision_order": 0,
+      "next_unit": null,
+      "previous_unit": null,
+      "tags": [
+        "Part II",
+        "CITIZENSHIP"
+      ],
+      "allows_letter_split": false,
+      "child_unit_ids": [],
+      "parent_clause_id": "article-5",
+      "letter_sequence_next": null,
+      "letter_sequence_prev": "article-5-subclause-b"
+    },
+    {
+      "id": "article-6",
+      "type": "ARTICLE",
+      "parent_id": "part-ii",
+      "article_number": "6",
+      "display_title": "Article 6",
+      "title": "Rights of citizenship of certain persons who have migrated to India from Pakistan",
+      "text": "Notwithstanding anything in article 5, a person who has migrated to the territory of India from the territory now included in Pakistan shall be deemed to be a citizen of India at the commencement of this Constitution if—\n(a) he or either of his parents or any of his grand-parents was born in India as defined in the Government of India Act, 1935 (as originally enacted); and\n(b) (i) in the case where such person has so migrated before the nineteenth day of July, 1948, he has been ordinarily resident in the territory of India since the date of his migration, or\n(ii) in the case where such person has so migrated on or after the nineteenth day of July, 1948, he has been registered as a citizen of India by an officer appointed in that behalf by the Government of the Dominion of India on an application made by him therefor to such officer before the commencement of this Constitution in the form and manner prescribed by that Government:\nProvided that no person shall be so registered unless he has been resident in the territory of India for at least six months immediately preceding the date of his application.",
+      "difficulty": 2,
+      "estimated_learning_time": 120,
+      "revision_order": 33,
+      "next_unit": "article-7",
+      "previous_unit": "article-5",
+      "tags": [
+        "Part II",
+        "CITIZENSHIP"
+      ],
+      "allows_letter_split": true,
+      "child_unit_ids": [
+        "article-6-subclause-a",
+        "article-6-subclause-b"
+      ],
       "parent_clause_id": null,
       "letter_sequence_next": null,
       "letter_sequence_prev": null
+    },
+    {
+      "id": "article-6-subclause-a",
+      "type": "SUBCLAUSE",
+      "parent_id": "article-6",
+      "article_number": "6",
+      "display_title": "Article 6(a)",
+      "title": "Rights of citizenship of certain persons who have migrated to India from Pakistan",
+      "text": "(a) he or either of his parents or any of his grand-parents was born in India as defined in the Government of India Act, 1935 (as originally enacted); and",
+      "difficulty": 3,
+      "estimated_learning_time": 30,
+      "revision_order": 0,
+      "next_unit": null,
+      "previous_unit": null,
+      "tags": [
+        "Part II",
+        "CITIZENSHIP"
+      ],
+      "allows_letter_split": false,
+      "child_unit_ids": [],
+      "parent_clause_id": "article-6",
+      "letter_sequence_next": "article-6-subclause-b",
+      "letter_sequence_prev": null
+    },
+    {
+      "id": "article-6-subclause-b",
+      "type": "SUBCLAUSE",
+      "parent_id": "article-6",
+      "article_number": "6",
+      "display_title": "Article 6(b)",
+      "title": "Rights of citizenship of certain persons who have migrated to India from Pakistan",
+      "text": "(b) (i) in the case where such person has so migrated before the nineteenth day of July, 1948, he has been ordinarily resident in the territory of India since the date of his migration, or\n(ii) in the case where such person has so migrated on or after the nineteenth day of July, 1948, he has been registered as a citizen of India by an officer appointed in that behalf by the Government of the Dominion of India on an application made by him therefor to such officer before the commencement of this Constitution in the form and manner prescribed by that Government:\nProvided that no person shall be so registered unless he has been resident in the territory of India for at least six months immediately preceding the date of his application.",
+      "difficulty": 3,
+      "estimated_learning_time": 60,
+      "revision_order": 0,
+      "next_unit": null,
+      "previous_unit": null,
+      "tags": [
+        "Part II",
+        "CITIZENSHIP"
+      ],
+      "allows_letter_split": false,
+      "child_unit_ids": [],
+      "parent_clause_id": "article-6",
+      "letter_sequence_next": null,
+      "letter_sequence_prev": "article-6-subclause-a"
     },
     {
       "id": "article-7",
@@ -873,7 +970,7 @@
       "estimated_learning_time": 60,
       "revision_order": 34,
       "next_unit": "article-8",
-      "previous_unit": "article-6-clause-a",
+      "previous_unit": "article-6",
       "tags": [
         "Part II",
         "CITIZENSHIP"

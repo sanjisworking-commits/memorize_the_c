@@ -17,11 +17,12 @@ from constitution_memorizer.auth.routes import create_auth_router, install_auth_
 from constitution_memorizer.auth.sessions import InMemorySessionStore, PostgresSessionStore
 from constitution_memorizer.auth.exceptions import AuthConfigError
 from constitution_memorizer.multiuser.settings import MultiUserSettings
+from constitution_memorizer.progress.memory import MemoryEngine
+from constitution_memorizer.reports.notifier import ResendIssueReportNotifier
 from constitution_memorizer.reports.repository import PostgresIssueReportRepository
 from constitution_memorizer.reports.schemas import ReportIssueRequest, ReportIssueResponse
 
 logger = logging.getLogger(__name__)
-from constitution_memorizer.progress.memory import MemoryEngine
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
     VALID_NOTIFICATION_FREQUENCIES,
@@ -129,6 +130,7 @@ def create_app(
     auth_provider=None,
     session_store=None,
     issue_report_repo=None,
+    issue_report_notifier=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -294,6 +296,17 @@ def create_app(
         )
     else:
         app.state.issue_report_repo = None
+
+    if issue_report_notifier is not None:
+        app.state.issue_report_notifier = issue_report_notifier
+    elif settings.issue_report_notify_configured():
+        app.state.issue_report_notifier = ResendIssueReportNotifier(
+            settings.resend_api_key,
+            settings.report_email_from,
+            settings.report_email_to,
+        )
+    else:
+        app.state.issue_report_notifier = None
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     install_auth_middleware(app)
@@ -1001,6 +1014,17 @@ def create_app(
                 status_code=503,
                 detail="Unable to submit report right now.",
             ) from None
+
+        notifier = getattr(app.state, "issue_report_notifier", None)
+        if notifier is not None:
+            try:
+                await notifier.send(report=report, payload=payload)
+            except Exception:
+                logger.exception(
+                    "Failed to send issue report email for report_id=%s",
+                    report.id,
+                )
+
         return ReportIssueResponse(
             success=True,
             report_id=report.id,

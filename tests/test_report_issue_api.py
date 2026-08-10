@@ -66,22 +66,40 @@ class FakeIssueReportRepository:
         )
 
 
+class FakeIssueReportNotifier:
+    """Records send calls; optionally raises."""
+
+    def __init__(self, *, fail: bool = False) -> None:
+        self.calls: list[dict] = []
+        self.fail = fail
+
+    async def send(self, *, report, payload) -> str | None:
+        self.calls.append({"report": report, "payload": payload})
+        if self.fail:
+            raise RuntimeError("simulated Resend failure: API key re_secret_leak")
+        return "email_fake"
+
+
 def _client(
     tmp_path: Path,
     *,
     repo: FakeIssueReportRepository | None | object = ...,
+    notifier: FakeIssueReportNotifier | None | object = ...,
+    settings: MultiUserSettings | None = None,
     multiuser: bool = True,
 ) -> TestClient:
     kwargs: dict = {
         "units_path": MINI_UNITS,
         "db_path": tmp_path / "progress.db",
         "multiuser": multiuser,
-        "multiuser_settings": _settings(),
+        "multiuser_settings": settings or _settings(),
         "auth_provider": FakeAuthProvider(),
         "session_store": InMemorySessionStore(),
     }
     if repo is not ...:
         kwargs["issue_report_repo"] = repo
+    if notifier is not ...:
+        kwargs["issue_report_notifier"] = notifier
     return TestClient(create_app(**kwargs))
 
 
@@ -278,3 +296,97 @@ def test_create_app_leaves_repo_none_without_database_url(tmp_path: Path):
         session_store=InMemorySessionStore(),
     )
     assert app.state.issue_report_repo is None
+
+
+def test_notifier_called_after_successful_insert(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    notifier = FakeIssueReportNotifier()
+    client = _client(tmp_path, repo=repo, notifier=notifier)
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 201
+    assert len(repo.calls) == 1
+    assert len(notifier.calls) == 1
+    assert notifier.calls[0]["report"].id == FIXED_ID
+    assert notifier.calls[0]["payload"].issue_type == "incorrect_fact"
+
+
+def test_notifier_failure_still_returns_201(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    notifier = FakeIssueReportNotifier(fail=True)
+    client = _client(tmp_path, repo=repo, notifier=notifier)
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["success"] is True
+    assert data["report_id"] == str(FIXED_ID)
+    assert len(notifier.calls) == 1
+    body = resp.text
+    assert "re_secret_leak" not in body
+    assert "Resend" not in body
+
+
+def test_no_notifier_still_returns_201(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    client = _client(tmp_path, repo=repo, notifier=None)
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 201
+    assert resp.json()["success"] is True
+
+
+def test_database_failure_does_not_call_notifier(tmp_path: Path):
+    repo = FakeIssueReportRepository(fail=True)
+    notifier = FakeIssueReportNotifier()
+    client = _client(tmp_path, repo=repo, notifier=notifier)
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 503
+    assert notifier.calls == []
+
+
+def test_partial_resend_config_leaves_notifier_disabled(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    settings = _settings(
+        RESEND_API_KEY="re_only_key",
+        REPORT_EMAIL_FROM="",
+        REPORT_EMAIL_TO="",
+    )
+    client = _client(tmp_path, repo=repo, settings=settings)
+    assert client.app.state.issue_report_notifier is None
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 201
+    assert resp.json()["success"] is True
+
+
+def test_two_of_three_resend_settings_leave_notifier_disabled(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    settings = _settings(
+        RESEND_API_KEY="re_key",
+        REPORT_EMAIL_FROM="from@example.com",
+        REPORT_EMAIL_TO="",
+    )
+    client = _client(tmp_path, repo=repo, settings=settings)
+    assert client.app.state.issue_report_notifier is None
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 201
+
+
+def test_create_app_wires_resend_notifier_when_fully_configured(tmp_path: Path):
+    from constitution_memorizer.reports.notifier import ResendIssueReportNotifier
+
+    app = create_app(
+        units_path=MINI_UNITS,
+        db_path=tmp_path / "progress.db",
+        multiuser=False,
+        multiuser_settings=_settings(
+            RESEND_API_KEY="re_live_key",
+            REPORT_EMAIL_FROM="Recall the C <reports@example.com>",
+            REPORT_EMAIL_TO="admin@example.com",
+        ),
+        auth_provider=FakeAuthProvider(),
+        session_store=InMemorySessionStore(),
+        issue_report_repo=FakeIssueReportRepository(),
+    )
+    notifier = app.state.issue_report_notifier
+    assert isinstance(notifier, ResendIssueReportNotifier)
+    assert notifier._api_key == "re_live_key"
+    assert notifier._from == "Recall the C <reports@example.com>"
+    assert notifier._to == "admin@example.com"

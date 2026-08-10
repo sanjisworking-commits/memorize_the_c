@@ -79,6 +79,11 @@ class MultiUserSettings(BaseSettings):
     captcha_enabled: bool = Field(default=False, alias="CAPTCHA_ENABLED")
     captcha_secret: str = Field(default="", alias="CAPTCHA_SECRET")
 
+    # Optional Resend admin email for issue reports (all three required to enable).
+    resend_api_key: str = Field(default="", alias="RESEND_API_KEY")
+    report_email_from: str = Field(default="", alias="REPORT_EMAIL_FROM")
+    report_email_to: str = Field(default="", alias="REPORT_EMAIL_TO")
+
     multiuser_enabled: bool = Field(default=False, alias="MULTIUSER_ENABLED")
 
     @field_validator(
@@ -145,6 +150,14 @@ class MultiUserSettings(BaseSettings):
         if not (self.supabase_anon_key or "").strip():
             missing.append("SUPABASE_ANON_KEY")
         return missing
+
+    def issue_report_notify_configured(self) -> bool:
+        """True only when Resend API key, from, and to are all non-empty."""
+        return bool(
+            (self.resend_api_key or "").strip()
+            and (self.report_email_from or "").strip()
+            and (self.report_email_to or "").strip()
+        )
 
 
 @lru_cache(maxsize=1)

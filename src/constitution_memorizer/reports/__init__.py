@@ -5,6 +5,10 @@ from constitution_memorizer.reports.constants import (
     ISSUE_STATUSES,
     ISSUE_TYPES,
 )
+from constitution_memorizer.reports.notifier import (
+    IssueReportNotifyError,
+    ResendIssueReportNotifier,
+)
 from constitution_memorizer.reports.repository import (
     IssueReport,
     PostgresIssueReportRepository,
@@ -16,7 +20,9 @@ __all__ = [
     "ISSUE_STATUSES",
     "ISSUE_TYPES",
     "IssueReport",
+    "IssueReportNotifyError",
     "PostgresIssueReportRepository",
     "ReportIssueRequest",
     "ReportIssueResponse",
+    "ResendIssueReportNotifier",
 ]

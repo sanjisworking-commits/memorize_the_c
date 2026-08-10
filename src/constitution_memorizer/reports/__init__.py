@@ -14,6 +14,11 @@ from constitution_memorizer.reports.repository import (
     PostgresIssueReportRepository,
 )
 from constitution_memorizer.reports.schemas import ReportIssueRequest, ReportIssueResponse
+from constitution_memorizer.reports.turnstile import (
+    TurnstileRejectedError,
+    TurnstileUnavailableError,
+    TurnstileVerifier,
+)
 
 __all__ = [
     "DEFAULT_ISSUE_STATUS",
@@ -25,4 +30,7 @@ __all__ = [
     "ReportIssueRequest",
     "ReportIssueResponse",
     "ResendIssueReportNotifier",
+    "TurnstileRejectedError",
+    "TurnstileUnavailableError",
+    "TurnstileVerifier",
 ]

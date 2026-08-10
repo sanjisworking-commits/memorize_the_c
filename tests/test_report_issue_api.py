@@ -11,12 +11,18 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 
+from constitution_memorizer.auth.exceptions import AuthConfigError
 from constitution_memorizer.auth.fake_provider import FakeAuthProvider
 from constitution_memorizer.auth.sessions import InMemorySessionStore
 from constitution_memorizer.multiuser.settings import MultiUserSettings, clear_settings_cache
 from constitution_memorizer.reports.repository import (
     IssueReport,
     PostgresIssueReportRepository,
+)
+from constitution_memorizer.reports.turnstile import (
+    TurnstileRejectedError,
+    TurnstileUnavailableError,
+    TurnstileVerifier,
 )
 from constitution_memorizer.web.app import create_app
 
@@ -80,11 +86,37 @@ class FakeIssueReportNotifier:
         return "email_fake"
 
 
+class FakeTurnstileVerifier:
+    """Records verify calls; optionally rejects or is unavailable."""
+
+    def __init__(self, *, outcome: str = "ok") -> None:
+        self.calls: list[str] = []
+        self.outcome = outcome
+
+    async def verify(self, token: str) -> None:
+        self.calls.append(token)
+        if self.outcome == "reject":
+            raise TurnstileRejectedError("Turnstile verification failed")
+        if self.outcome == "unavailable":
+            raise TurnstileUnavailableError("Turnstile verification request failed")
+
+
+def _turnstile_settings(**overrides) -> MultiUserSettings:
+    base = {
+        "REPORT_TURNSTILE_ENABLED": "true",
+        "REPORT_TURNSTILE_SITE_KEY": "test_site_key",
+        "REPORT_TURNSTILE_SECRET_KEY": "test_secret_key_do_not_leak",
+    }
+    base.update(overrides)
+    return _settings(**base)
+
+
 def _client(
     tmp_path: Path,
     *,
     repo: FakeIssueReportRepository | None | object = ...,
     notifier: FakeIssueReportNotifier | None | object = ...,
+    turnstile: FakeTurnstileVerifier | None | object = ...,
     settings: MultiUserSettings | None = None,
     multiuser: bool = True,
 ) -> TestClient:
@@ -100,6 +132,8 @@ def _client(
         kwargs["issue_report_repo"] = repo
     if notifier is not ...:
         kwargs["issue_report_notifier"] = notifier
+    if turnstile is not ...:
+        kwargs["issue_report_turnstile_verifier"] = turnstile
     return TestClient(create_app(**kwargs))
 
 
@@ -390,3 +424,194 @@ def test_create_app_wires_resend_notifier_when_fully_configured(tmp_path: Path):
     assert notifier._api_key == "re_live_key"
     assert notifier._from == "Recall the C <reports@example.com>"
     assert notifier._to == "admin@example.com"
+
+
+def test_turnstile_disabled_no_token_still_201(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    client = _client(tmp_path, repo=repo)
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 201
+    assert "turnstile_token" not in repo.calls[0]
+
+
+def test_turnstile_disabled_injected_verifier_not_called(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    verifier = FakeTurnstileVerifier()
+    client = _client(
+        tmp_path,
+        repo=repo,
+        turnstile=verifier,
+        settings=_settings(REPORT_TURNSTILE_ENABLED="false"),
+    )
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 201
+    assert verifier.calls == []
+    assert len(repo.calls) == 1
+
+
+def test_turnstile_enabled_verifier_absent_returns_503(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    notifier = FakeIssueReportNotifier()
+    app = create_app(
+        units_path=MINI_UNITS,
+        db_path=tmp_path / "progress.db",
+        multiuser=True,
+        multiuser_settings=_turnstile_settings(),
+        auth_provider=FakeAuthProvider(),
+        session_store=InMemorySessionStore(),
+        issue_report_repo=repo,
+        issue_report_notifier=notifier,
+    )
+    # Defense-in-depth: enabled but verifier somehow missing.
+    app.state.issue_report_turnstile_verifier = None
+    client = TestClient(app)
+    resp = client.post(
+        "/api/report-issue",
+        json=_valid_body(turnstile_token="XXXX.DUMMY.TOKEN.XXXX"),
+    )
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == (
+        "Verification temporarily unavailable. Please try again."
+    )
+    assert repo.calls == []
+    assert notifier.calls == []
+
+
+def test_turnstile_enabled_missing_token_returns_400(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    notifier = FakeIssueReportNotifier()
+    verifier = FakeTurnstileVerifier()
+    client = _client(
+        tmp_path,
+        repo=repo,
+        notifier=notifier,
+        turnstile=verifier,
+        settings=_turnstile_settings(),
+    )
+    resp = client.post("/api/report-issue", json=_valid_body())
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Verification required. Please try again."
+    assert verifier.calls == []
+    assert repo.calls == []
+    assert notifier.calls == []
+
+
+def test_turnstile_enabled_valid_token_verifies_then_inserts(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    notifier = FakeIssueReportNotifier()
+    verifier = FakeTurnstileVerifier()
+    token = "XXXX.DUMMY.TOKEN.XXXX"
+    client = _client(
+        tmp_path,
+        repo=repo,
+        notifier=notifier,
+        turnstile=verifier,
+        settings=_turnstile_settings(),
+    )
+    resp = client.post("/api/report-issue", json=_valid_body(turnstile_token=token))
+    assert resp.status_code == 201
+    assert verifier.calls == [token]
+    assert len(repo.calls) == 1
+    assert "turnstile_token" not in repo.calls[0]
+    assert token not in str(repo.calls[0])
+    assert len(notifier.calls) == 1
+    assert token not in resp.text
+    secret = "test_secret_key_do_not_leak"
+    assert secret not in resp.text
+
+
+def test_turnstile_enabled_invalid_token_returns_400(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    notifier = FakeIssueReportNotifier()
+    verifier = FakeTurnstileVerifier(outcome="reject")
+    client = _client(
+        tmp_path,
+        repo=repo,
+        notifier=notifier,
+        turnstile=verifier,
+        settings=_turnstile_settings(),
+    )
+    resp = client.post(
+        "/api/report-issue",
+        json=_valid_body(turnstile_token="bad-token"),
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Verification failed. Please try again."
+    assert verifier.calls == ["bad-token"]
+    assert repo.calls == []
+    assert notifier.calls == []
+    assert "bad-token" not in resp.text
+    assert "test_secret_key_do_not_leak" not in resp.text
+
+
+def test_turnstile_siteverify_unavailable_returns_503(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    notifier = FakeIssueReportNotifier()
+    verifier = FakeTurnstileVerifier(outcome="unavailable")
+    client = _client(
+        tmp_path,
+        repo=repo,
+        notifier=notifier,
+        turnstile=verifier,
+        settings=_turnstile_settings(),
+    )
+    resp = client.post(
+        "/api/report-issue",
+        json=_valid_body(turnstile_token="any-token"),
+    )
+    assert resp.status_code == 503
+    assert resp.json()["detail"] == (
+        "Verification temporarily unavailable. Please try again."
+    )
+    assert repo.calls == []
+    assert notifier.calls == []
+
+
+def test_turnstile_token_too_long_returns_422(tmp_path: Path):
+    repo = FakeIssueReportRepository()
+    verifier = FakeTurnstileVerifier()
+    client = _client(
+        tmp_path,
+        repo=repo,
+        turnstile=verifier,
+        settings=_turnstile_settings(),
+    )
+    resp = client.post(
+        "/api/report-issue",
+        json=_valid_body(turnstile_token="x" * 2049),
+    )
+    assert resp.status_code == 422
+    assert repo.calls == []
+    assert verifier.calls == []
+
+
+def test_create_app_rejects_partial_turnstile_config_without_multiuser(
+    tmp_path: Path,
+):
+    with pytest.raises(AuthConfigError, match="REPORT_TURNSTILE_SECRET_KEY"):
+        create_app(
+            units_path=MINI_UNITS,
+            db_path=tmp_path / "progress.db",
+            multiuser=False,
+            multiuser_settings=_settings(
+                REPORT_TURNSTILE_ENABLED="true",
+                REPORT_TURNSTILE_SITE_KEY="site-only",
+                REPORT_TURNSTILE_SECRET_KEY="",
+            ),
+            auth_provider=FakeAuthProvider(),
+            session_store=InMemorySessionStore(),
+            issue_report_repo=FakeIssueReportRepository(),
+        )
+
+
+def test_create_app_wires_turnstile_verifier_when_configured(tmp_path: Path):
+    app = create_app(
+        units_path=MINI_UNITS,
+        db_path=tmp_path / "progress.db",
+        multiuser=False,
+        multiuser_settings=_turnstile_settings(),
+        auth_provider=FakeAuthProvider(),
+        session_store=InMemorySessionStore(),
+        issue_report_repo=FakeIssueReportRepository(),
+    )
+    assert isinstance(app.state.issue_report_turnstile_verifier, TurnstileVerifier)

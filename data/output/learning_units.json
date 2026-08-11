@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "source_document": "constitution.reviewed.json",
-  "unit_count": 1704,
+  "unit_count": 1705,
   "units": [
     {
       "id": "part-i-overview",
@@ -29466,6 +29466,7 @@
         "article-323b-clause-2-subclause-f",
         "article-323b-clause-2-subclause-g",
         "article-323b-clause-2-subclause-h",
+        "article-323b-clause-2-subclause-i",
         "article-323b-clause-2-subclause-j"
       ],
       "parent_clause_id": null,
@@ -29640,8 +29641,31 @@
       "article_number": "323B",
       "display_title": "Article 323B(2)(h)",
       "title": "Tribunals for other matters",
-      "text": "(h) rent, its regulation and control and tenancy issues including the right, title and interest of landlords and tenants;\n(i) offences against laws with respect to any of the matters specified in sub-clauses (a) to (h) and fees in respect of any of those matters;",
-      "difficulty": 4,
+      "text": "(h) rent, its regulation and control and tenancy issues including the right, title and interest of landlords and tenants;",
+      "difficulty": 3,
+      "estimated_learning_time": 30,
+      "revision_order": 0,
+      "next_unit": null,
+      "previous_unit": null,
+      "tags": [
+        "Part XIVA",
+        "TRIBUNALS"
+      ],
+      "allows_letter_split": false,
+      "child_unit_ids": [],
+      "parent_clause_id": "article-323b-clause-2",
+      "letter_sequence_next": "article-323b-clause-2-subclause-i",
+      "letter_sequence_prev": "article-323b-clause-2-subclause-g"
+    },
+    {
+      "id": "article-323b-clause-2-subclause-i",
+      "type": "SUBCLAUSE",
+      "parent_id": "article-323b-clause-2",
+      "article_number": "323B",
+      "display_title": "Article 323B(2)(i)",
+      "title": "Tribunals for other matters",
+      "text": "(i) offences against laws with respect to any of the matters specified in sub-clauses (a) to (h) and fees in respect of any of those matters;",
+      "difficulty": 3,
       "estimated_learning_time": 30,
       "revision_order": 0,
       "next_unit": null,
@@ -29654,7 +29678,7 @@
       "child_unit_ids": [],
       "parent_clause_id": "article-323b-clause-2",
       "letter_sequence_next": "article-323b-clause-2-subclause-j",
-      "letter_sequence_prev": "article-323b-clause-2-subclause-g"
+      "letter_sequence_prev": "article-323b-clause-2-subclause-h"
     },
     {
       "id": "article-323b-clause-2-subclause-j",
@@ -29677,7 +29701,7 @@
       "child_unit_ids": [],
       "parent_clause_id": "article-323b-clause-2",
       "letter_sequence_next": null,
-      "letter_sequence_prev": "article-323b-clause-2-subclause-h"
+      "letter_sequence_prev": "article-323b-clause-2-subclause-i"
     },
     {
       "id": "article-323b-clause-3",

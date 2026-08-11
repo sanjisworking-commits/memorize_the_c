@@ -26,6 +26,34 @@ def _looks_structured(body: str) -> bool:
     return _MARKER_RE.search(body or "") is not None
 
 
+def _next_latin_letter(label: str) -> str | None:
+    """Return the next Latin letter after a single lowercase a–y, else None."""
+    if len(label) != 1 or not label.islower() or not label.isalpha():
+        return None
+    if label == "z":
+        return None
+    return chr(ord(label) + 1)
+
+
+def _classify_marker_label(label: str, next_label: str | None) -> LabelType:
+    """
+    Classify a provision marker.
+
+    Single letters are alphabetic except i/v/x, which default to Roman so
+    nested (i)(ii) stays under letter parents. When the next marker is the
+    next Latin letter (e.g. (i) then (j) in Art 323B(2)), treat i/v/x as
+    alphabetic instead.
+    """
+    label_type = classify_label(label)
+    if len(label) == 1 and label.isalpha() and label.islower():
+        if label not in {"i", "v", "x"}:
+            return LabelType.ALPHABETIC
+        nxt = _next_latin_letter(label)
+        if nxt is not None and next_label == nxt:
+            return LabelType.ALPHABETIC
+    return label_type
+
+
 def split_flat_article_body(article_number: str, body: str) -> list[ProvisionNode]:
     """
     Parse a flat Article body into a synthetic clause tree.
@@ -50,12 +78,10 @@ def split_flat_article_body(article_number: str, body: str) -> list[ProvisionNod
 
     for index, match in enumerate(matches):
         label = match.group("label")
-        label_type = classify_label(label)
-        # Bare Act letter clauses (a)(b)(c)… — single c/d/l/m are letters, not Roman.
-        # Keep i/v/x as Roman so (i)(ii) nest under alphabetic parents.
-        if len(label) == 1 and label.isalpha() and label.islower():
-            if label not in {"i", "v", "x"}:
-                label_type = LabelType.ALPHABETIC
+        next_label = (
+            matches[index + 1].group("label") if index + 1 < len(matches) else None
+        )
+        label_type = _classify_marker_label(label, next_label)
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
         segment = text[match.end() : end].strip()
 

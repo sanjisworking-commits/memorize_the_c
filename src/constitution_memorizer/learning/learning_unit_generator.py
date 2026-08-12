@@ -194,21 +194,40 @@ def _resolve_clauses(article: Article) -> list[ProvisionNode]:
 
 
 def _alphabetic_segments_from_body(body: str) -> list[tuple[str, str]]:
-    """Return (label, '(a) …' text) for top-level alphabetic markers in body."""
+    """Return (label, '(a) …' text) for top-level alphabetic markers in body.
+
+    Segment ends at the next alphabetic letter marker (not at nested roman
+    ``(i)/(ii)``), so letter cards under ``prefer_article_unit`` keep their
+    full Bare Act sub-structure (e.g. Art 6(b)(i)–(ii)+proviso).
+    """
     from constitution_memorizer.learning.text_fallback_splitter import _MARKER_RE
 
     text = (body or "").strip()
     if not text:
         return []
     matches = list(_MARKER_RE.finditer(text))
+
+    def _is_letter_label(label: str) -> bool:
+        return (
+            len(label) == 1
+            and label.isalpha()
+            and label.islower()
+            and label not in {"i", "v", "x"}
+        )
+
+    letter_indexes = [
+        index
+        for index, match in enumerate(matches)
+        if _is_letter_label(match.group("label"))
+    ]
     out: list[tuple[str, str]] = []
-    for index, match in enumerate(matches):
+    for position, index in enumerate(letter_indexes):
+        match = matches[index]
         label = match.group("label")
-        if not (len(label) == 1 and label.isalpha() and label.islower()):
-            continue
-        if label in {"i", "v", "x"}:
-            continue
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        if position + 1 < len(letter_indexes):
+            end = matches[letter_indexes[position + 1]].start()
+        else:
+            end = len(text)
         segment = text[match.end() : end].strip()
         if not segment:
             continue

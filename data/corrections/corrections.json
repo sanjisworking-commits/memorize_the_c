@@ -134,6 +134,24 @@
       "body_text": "[Omitted.]",
       "manual_review_status": "approved"
     },
+    "article-5": {
+      "title": "Citizenship at the commencement of the Constitution",
+      "part_number": "II",
+      "opening_text": "",
+      "body_text": "At the commencement of this Constitution, every person who has his domicile in the territory of India and—\n(a) who was born in the territory of India; or\n(b) either of whose parents was born in the territory of India; or\n(c) who has been ordinarily resident in the territory of India for not less than five years immediately preceding such commencement,\nshall be a citizen of India.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-6": {
+      "title": "Rights of citizenship of certain persons who have migrated to India from Pakistan",
+      "part_number": "II",
+      "opening_text": "",
+      "body_text": "Notwithstanding anything in article 5, a person who has migrated to the territory of India from the territory now included in Pakistan shall be deemed to be a citizen of India at the commencement of this Constitution if—\n(a) he or either of his parents or any of his grand-parents was born in India as defined in the Government of India Act, 1935 (as originally enacted); and\n(b) (i) in the case where such person has so migrated before the nineteenth day of July, 1948, he has been ordinarily resident in the territory of India since the date of his migration, or\n(ii) in the case where such person has so migrated on or after the nineteenth day of July, 1948, he has been registered as a citizen of India by an officer appointed in that behalf by the Government of the Dominion of India on an application made by him therefor to such officer before the commencement of this Constitution in the form and manner prescribed by that Government:\nProvided that no person shall be so registered unless he has been resident in the territory of India for at least six months immediately preceding the date of his application.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
     "article-7": {
       "title": "Rights of citizenship of certain migrants to Pakistan",
       "part_number": "II",
@@ -700,6 +718,8 @@
     "article-54: diglot split as 54(a) with Explanation glued on; prefer_article_unit single card (stem+(a)+(b)); Explanation moved to States hover annotation.",
     "article-56: Provided that wrongly attached to (2); restored proviso (a)(b)(c) under (1) and clean Speaker-notice (2).",
     "article-67: letter-only article shown as 67(a)/67(a)(b); prefer_article_unit + enable_letter_split → Article 67 with Letters 67(a)/(b)/(c).",
-    "article-55: Explanation (population/2026) omitted from memorized/Browse body; definition lives in nested population tooltip (text_annotations)."
+    "article-55: Explanation (population/2026) omitted from memorized/Browse body; definition lives in nested population tooltip (text_annotations).",
+    "article-5: diglot parse dropped the stem ('At the commencement… and—'); restored Bare Act stem+(a)–(c)+closing; prefer_article_unit + enable_letter_split.",
+    "article-6: diglot parse dropped the stem ('Notwithstanding… if—') and glued (b)(i)/(ii); restored Bare Act stem+(a)+(b)(i)–(ii)+proviso; prefer_article_unit + enable_letter_split."
   ]
 }

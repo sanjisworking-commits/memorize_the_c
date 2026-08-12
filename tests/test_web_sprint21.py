@@ -45,7 +45,7 @@ def test_browse_article_15_shows_timeline(client: TestClient):
     assert "Inserted clause (4)" in html
     assert "3 amendments" in html
     assert "amendment-timeline" in html
-    assert "styles.css?v=main7" in html
+    assert "/static/styles.css?" in html
 
 
 def test_browse_article_14_shows_unamended(client: TestClient):

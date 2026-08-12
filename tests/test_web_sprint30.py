@@ -38,7 +38,7 @@ def test_brand_and_how_to_use(client: TestClient):
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Flip the card and self-grade your recall." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=main9" in html
+    assert "styles.css?v=main10" in html
 
 
 def test_dashboard_surfaces_use_theme_tokens():
@@ -89,6 +89,28 @@ def test_learn_browse_notes_use_theme_tokens():
     type_input = css.split(".learn-type-input {", 1)[1].split("}", 1)[0]
     assert "background: var(--paper)" in type_input
     assert "background: #fff" not in type_input
+
+
+def test_signin_surfaces_use_theme_tokens():
+    """Sign-in rail/inputs must not keep light fills under dark --ink."""
+    css = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "constitution_memorizer"
+        / "web"
+        / "static"
+        / "styles.css"
+    ).read_text(encoding="utf-8")
+    assert "color-scheme: dark" in css.split('html[data-theme="dark"] {', 1)[1].split("}", 1)[0]
+    rail = css.split(".auth-rail {", 1)[1].split("}", 1)[0]
+    assert "background: var(--rail)" in rail
+    assert "background: #f7f7f5" not in rail
+    phone = css.split(".phone-national {", 1)[1].split("}", 1)[0]
+    assert "color: var(--ink)" in phone
+    assert "background: transparent" in phone
+    field = css.split(".field-input {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in field
+    assert "color: var(--ink)" in field
 
 
 def test_learn_marks_read_and_locks_done(client: TestClient):

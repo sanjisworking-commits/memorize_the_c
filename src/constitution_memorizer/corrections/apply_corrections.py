@@ -74,12 +74,61 @@ def _iter_articles(doc: ConstitutionDocument) -> list[Article]:
     return articles
 
 
+# Bare Act part titles for parts the diglot parser sometimes drops entirely.
+_PART_TITLES: dict[str, str] = {
+    "VII": "THE STATES IN PART B OF THE FIRST SCHEDULE",
+    "VIII": "THE UNION TERRITORIES",
+    "IX": "THE PANCHAYATS",
+    "IXA": "THE MUNICIPALITIES",
+    "IXB": "THE CO-OPERATIVE SOCIETIES",
+    "XIVA": "TRIBUNALS",
+}
+
+
 def _find_part(doc: ConstitutionDocument, part_number: str) -> Part | None:
     target = part_number.strip().upper()
     for part in doc.parts:
         if (part.part_number or "").strip().upper() == target:
             return part
     return None
+
+
+def _ensure_part(doc: ConstitutionDocument, part_number: str) -> Part:
+    """Return existing Part or create a stub Part so create-overlays can land."""
+    existing = _find_part(doc, part_number)
+    if existing is not None:
+        return existing
+    number = part_number.strip().upper()
+    title = _PART_TITLES.get(number, f"PART {number}")
+    part = Part(
+        id=f"part-{number.lower()}",
+        part_number=number,
+        title=title,
+        articles=[],
+        chapters=[],
+    )
+    # Insert after the previous roman/alphanumeric part when possible.
+    insert_at = len(doc.parts)
+    order = [
+        "I", "II", "III", "IV", "IVA", "V", "VI", "VII", "VIII",
+        "IX", "IXA", "IXB", "X", "XI", "XII", "XIII", "XIV", "XIVA",
+        "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI", "XXII",
+    ]
+    try:
+        target_idx = order.index(number)
+    except ValueError:
+        target_idx = -1
+    if target_idx >= 0:
+        for index, existing_part in enumerate(doc.parts):
+            existing_num = (existing_part.part_number or "").strip().upper()
+            if existing_num not in order:
+                continue
+            if order.index(existing_num) > target_idx:
+                insert_at = index
+                break
+    doc.parts.insert(insert_at, part)
+    logger.info("Created missing Part %s (%s) for corrections placement", number, title)
+    return part
 
 
 def _detach_article(doc: ConstitutionDocument, article_id: str) -> Article | None:
@@ -133,12 +182,7 @@ def _ensure_article_in_part(
 
     Returns a change note when the article was moved or newly attached.
     """
-    part = _find_part(doc, part_number)
-    if part is None:
-        logger.warning(
-            "Correction part_number %s not found for %s", part_number, article.id
-        )
-        return f"SKIP {article.id}: part {part_number!r} not found for placement"
+    part = _ensure_part(doc, part_number)
 
     target_chapter = (
         _find_chapter(part, article.chapter_number) if article.chapter_number else None
@@ -291,6 +335,28 @@ def apply_corrections(
             if article.clauses:
                 article.clauses = []
                 changes.append(f"{article_id}: clauses cleared for corrected body")
+            # Corrected body is authoritative Bare Act text; drop structured debris
+            # that would otherwise be re-appended by learning-unit full-text assembly.
+            if article.explanations:
+                article.explanations = []
+                changes.append(f"{article_id}: explanations cleared for corrected body")
+            if article.provisos:
+                article.provisos = []
+                changes.append(f"{article_id}: provisos cleared for corrected body")
+        # Even when body_text is unchanged (e.g. already "[Omitted.]"), allow a
+        # correction pass to scrub leftover explanation/proviso glue.
+        elif corr.body_text is not None and (
+            article.explanations or article.provisos or article.clauses
+        ):
+            if article.clauses:
+                article.clauses = []
+                changes.append(f"{article_id}: clauses cleared for corrected body")
+            if article.explanations:
+                article.explanations = []
+                changes.append(f"{article_id}: explanations cleared for corrected body")
+            if article.provisos:
+                article.provisos = []
+                changes.append(f"{article_id}: provisos cleared for corrected body")
         if corr.opening_text is not None and corr.opening_text != article.opening_text:
             changes.append(f"{article_id}: opening_text updated")
             article.opening_text = corr.opening_text

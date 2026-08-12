@@ -51,9 +51,12 @@
     };
   }
 
-  function savePending(payload) {
+  function savePending(article, source) {
+    if (!article) return;
+    var pending = { article: String(article) };
+    if (source) pending.source = String(source);
     try {
-      sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload));
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify(pending));
     } catch (err) { /* private mode / quota */ }
   }
 
@@ -61,7 +64,9 @@
     try {
       var raw = sessionStorage.getItem(PENDING_KEY);
       if (!raw) return null;
-      return JSON.parse(raw);
+      var data = JSON.parse(raw);
+      if (!data || !data.article) return null;
+      return { article: String(data.article), source: data.source || null };
     } catch (err) {
       return null;
     }
@@ -161,7 +166,10 @@
   function requestVisualExplainer(trigger) {
     if (!trigger) return;
     if (isGuest()) {
-      savePending(payloadFromTrigger(trigger));
+      var article = trigger.getAttribute("data-ve-article") || "";
+      var source = "browse";
+      if (document.querySelector(".ve-band")) source = "learn";
+      savePending(article, source);
       if (typeof window.openGuestModal === "function") {
         window.openGuestModal("visualise");
       } else {
@@ -177,9 +185,26 @@
   function resumePending() {
     if (isGuest()) return;
     var pending = readPending();
-    if (!pending || !pending.src) return;
+    if (!pending || !pending.article) return;
     clearPending();
-    openFromPayload(pending, null);
+    var article = pending.article;
+    var trigger = document.querySelector(
+      '[data-ve-open][data-ve-article="' + article.replace(/"/g, "") + '"]'
+    );
+    if (trigger) {
+      open(trigger);
+      return;
+    }
+    // Fallback: build protected URL from article id only (registry is server-side).
+    openFromPayload(
+      {
+        article: article,
+        src: "/api/explainers/" + encodeURIComponent(article),
+        title: "",
+        type: "flowchart",
+      },
+      null
+    );
   }
 
   function close() {
@@ -207,12 +232,10 @@
   }
 
   function wireGuestDismissClear() {
-    // Only clear on explicit "Continue as guest" — do not clear when the user
-    // follows Sign in (dialog may close during navigation and would wipe intent).
-    document.querySelectorAll("[data-guest-modal-dismiss]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        clearPending();
-      });
+    // Reusable dismiss lifecycle from auth.js (Continue as guest).
+    // Do not listen for dialog "close" — Sign in navigation must keep pending.
+    document.addEventListener("rtc:guest-modal-dismiss", function () {
+      clearPending();
     });
   }
 

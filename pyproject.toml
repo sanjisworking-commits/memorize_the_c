@@ -44,6 +44,7 @@ multiuser = [
 constitution_memorizer = [
     "web/templates/**/*",
     "web/static/**/*",
+    "web/explainer_assets/**/*",
 ]
 
 [project.scripts]

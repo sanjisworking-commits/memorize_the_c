@@ -140,6 +140,9 @@
     function closeGuestModal() {
       if (typeof dialog.close === "function") dialog.close();
       else dialog.removeAttribute("open");
+      try {
+        document.dispatchEvent(new CustomEvent("rtc:guest-modal-dismiss"));
+      } catch (_e) { /* ignore */ }
     }
 
     qsa("[data-guest-action]").forEach(function (btn) {

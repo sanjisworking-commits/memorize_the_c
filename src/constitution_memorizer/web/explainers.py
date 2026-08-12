@@ -1,7 +1,7 @@
 """Visual Explainer registry.
 
 Article-specific data lives here and nowhere else. To add an Article: drop
-'static/explainers/article-<n>.svg' in place and add one row to EXPLAINERS.
+'explainer_assets/article-<n>.svg' in place and add one row to EXPLAINERS.
 
 Keys are full constitutional identifiers, letters included: '82', '21A', '31C',
 '239AA', '243G', '243ZG'. Clause references resolve to their parent Article, so
@@ -13,19 +13,18 @@ viewer reads each diagram's intrinsic size from the file itself:
 
     <svg ... width="1415.61" height="3773.68" viewBox="0 0 1415.61 3773.68">
 
-Wiring (one line in web/app.py, just after 'templates = Jinja2Templates(...)'):
-
-    from .explainers import visual_explainer
-    templates.env.globals["visual_explainer"] = visual_explainer
+SVGs are not public static files. They are served only via the auth-gated
+route GET /api/explainers/{article_id}.
 """
 
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 # Article identifier -> explainer metadata.
-#   file       required — sits in static/explainers/
+#   file       required — sits in explainer_assets/
 #   title      Article heading, shown in the modal subtitle
 #   type       flowchart | mind map | decision tree | timeline | process
 #   label      trigger label (default "Visualise")
@@ -42,12 +41,18 @@ EXPLAINERS: Dict[str, Dict[str, str]] = {
     #           "type": "decision tree"},
 }
 
-STATIC_PREFIX = "/static/explainers/"
+# Protected asset URL prefix (handler resolves the registered file).
+API_PREFIX = "/api/explainers/"
+
+ASSETS_DIR = Path(__file__).resolve().parent / "explainer_assets"
 
 # Default Learn-band copy. Generic on purpose: it reads correctly for a
 # flowchart, a timeline or a mind map, for any Article.
 BAND_TITLE = "Prefer to see it?"
-BAND_LEDE = "Open the {type} for Article {article}{title_clause} — your place in this session is kept."
+BAND_LEDE = (
+    "Open the {type} for Article {article}{title_clause} — "
+    "your place in this session is kept."
+)
 
 # "Article 82(1)" -> 82 · "Article 21A" -> 21A · "Article 243ZG(a)" -> 243ZG
 _LABELLED = re.compile(r"[Aa]rt(?:icle)?\.?\s*(\d+)([A-Za-z]*)")
@@ -75,7 +80,7 @@ def _entry(key: str) -> Optional[Dict[str, str]]:
     entry = EXPLAINERS.get(key)
     if entry is not None:
         return entry
-    for raw, value in EXPLAINERS.items():   # tolerate '21a' / ' 21A ' in the registry
+    for raw, value in EXPLAINERS.items():  # tolerate '21a' / ' 21A ' in the registry
         if normalise_ref(raw) == key:
             return value
     return None
@@ -97,7 +102,7 @@ def visual_explainer(article_ref: Any) -> Optional[Dict[str, str]]:
     kind = entry.get("type", "flowchart")
     return {
         "article": key,
-        "src": STATIC_PREFIX + entry["file"],
+        "src": f"{API_PREFIX}{key}",
         "title": title,
         "type": kind,
         "label": entry.get("label", "Visualise"),
@@ -115,3 +120,28 @@ def visual_explainer(article_ref: Any) -> Optional[Dict[str, str]]:
 
 def has_visual_explainer(article_ref: Any) -> bool:
     return visual_explainer(article_ref) is not None
+
+
+def explainer_asset_path(article_ref: Any) -> Optional[Path]:
+    """Return the on-disk SVG path for a registered Article, or None.
+
+    Only returns files that live under ASSETS_DIR and are named by the registry
+    (no path traversal from client input).
+    """
+    key = normalise_ref(article_ref)
+    if key is None:
+        return None
+    entry = _entry(key)
+    if not entry:
+        return None
+    filename = entry.get("file") or ""
+    if not filename or "/" in filename or "\\" in filename or ".." in filename:
+        return None
+    path = (ASSETS_DIR / filename).resolve()
+    try:
+        path.relative_to(ASSETS_DIR.resolve())
+    except ValueError:
+        return None
+    if not path.is_file():
+        return None
+    return path

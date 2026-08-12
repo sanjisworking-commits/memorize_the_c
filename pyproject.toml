@@ -12,7 +12,6 @@ license = { text = "MIT" }
 authors = [{ name = "Constitution Memorizer contributors" }]
 keywords = ["constitution", "india", "pdf", "docling", "legal-text"]
 dependencies = [
-    "docling>=2.0.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "rapidfuzz>=3.0.0",
@@ -31,6 +30,9 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "httpx>=0.27.0",
+]
+pdf = [
+    "docling>=2.0.0",
 ]
 multiuser = [
     "pydantic-settings>=2.0.0",

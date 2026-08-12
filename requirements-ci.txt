@@ -1,6 +1,5 @@
-# Lightweight dependencies for GitHub Actions unit tests (no Docling).
-# Keep in sync with pyproject.toml runtime deps that CI installs via
-# `pip install -e . --no-deps` (so transitive deps are not pulled in).
+# Lightweight dependencies for GitHub Actions unit tests and local UI (no Docling).
+# Docling is the optional [pdf] extra in pyproject.toml.
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 rapidfuzz>=3.0.0

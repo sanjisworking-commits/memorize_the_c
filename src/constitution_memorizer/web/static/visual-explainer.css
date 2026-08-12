@@ -1,0 +1,312 @@
+/* ===========================================================================
+   Visual Explainer — ADDITIVE stylesheet.
+   Loaded AFTER styles.css. Every selector is new (.ve-*). Nothing here
+   overrides an existing rule, so the current Browse and Learn designs are
+   unchanged. Only four new custom properties are introduced, all ve-scoped.
+   =========================================================================== */
+
+:root {
+  --ve-canvas: #e8e7e4;                 /* workspace behind the paper sheet */
+  --ve-overlay: rgba(20, 20, 20, 0.58); /* modal backdrop */
+  --ve-band: #faf9f7;                   /* Learn band fill (sunken paper) */
+  --ve-tint: #eef5f3;                   /* trigger hover tint */
+}
+:root[data-theme="dark"] {
+  --ve-canvas: #0f0f0e;
+  --ve-overlay: rgba(0, 0, 0, 0.7);
+  --ve-band: #242423;
+  --ve-tint: #1f2b28;
+}
+
+/* --- trigger icon -------------------------------------------------------- */
+.ve-ico { display: block; flex: none; }
+
+/* --- trigger A: Browse card footer strip -----------------------------------
+   The card is restructured so the Article link and this trigger are SIBLING
+   interactive elements inside one visual card container (.ve-card-host carries
+   the existing .browse-article-card class, so the card box, border, hover,
+   min-height, due-ribbon anchoring and .has-due padding all still come from
+   styles.css — nothing there is overridden).
+   -------------------------------------------------------------------------- */
+.ve-card-host > .ve-card-link {
+  display: flex;              /* the column layout the card gave its children */
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: inherit;
+}
+.ve-card-cta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 0 0;
+  border: 0;
+  border-top: 1px solid var(--hairline);
+  background: none;
+  color: var(--browse-due);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+/* the host's own 4px gap supplies the rest of the 10px rhythm */
+.ve-card-host > .ve-card-cta { margin-top: 6px; }
+/* To bottom-align the strip so cards of unequal height still line up:
+.ve-card-host > .ve-card-cta { margin-top: auto; }
+*/
+.ve-card-cta:hover { background: var(--ve-tint); }
+.ve-card-cta:focus-visible { outline: 2px solid var(--browse-due); outline-offset: 2px; }
+
+/* --- trigger B: button form (Learn band, Article action row) -------------- */
+.btn.ve-trigger { display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn.ve-trigger:hover { border-color: var(--browse-due); color: var(--browse-due); }
+.btn.ve-trigger:focus-visible { outline: 2px solid var(--browse-due); outline-offset: 2px; }
+
+/* --- Learn band (sits above the mode panels) ----------------------------- */
+.ve-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--hairline);
+  background: var(--ve-band);
+}
+.ve-band-copy { min-width: 15rem; flex: 1; }
+.ve-band-title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ve-band-lede {
+  margin: 0.1rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+/* --- modal shell --------------------------------------------------------- */
+.ve-modal[hidden] { display: none; }
+.ve-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;                      /* above the app's highest layer (50) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  background: var(--ve-overlay);
+  animation: ve-fade 0.16s ease-out;
+}
+.ve-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1180px;
+  height: 100%;
+  max-height: 920px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.3);
+  animation: ve-rise 0.2s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* --- header -------------------------------------------------------------- */
+.ve-header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 15px 18px 14px;
+  border-bottom: 1px solid var(--ink);
+}
+.ve-heading { flex: 1; min-width: 0; }
+.ve-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 3px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--browse-due);
+}
+.ve-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.ve-sub { margin: 2px 0 0; font-size: 0.875rem; color: var(--muted); }
+
+.ve-controls { display: flex; align-items: center; gap: 7px; flex: none; }
+.ve-zoom { display: flex; align-items: center; border: 1px solid var(--sheet-border); }
+.ve-zoom-btn, .ve-pct, .ve-fit, .ve-close {
+  font-family: var(--font-body);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+.ve-zoom-btn {
+  width: 34px; height: 32px;
+  border: 0;
+  border-right: 1px solid var(--sheet-border);
+  font-size: 1.05rem; font-weight: 600; line-height: 1;
+}
+.ve-zoom .ve-zoom-btn:last-child { border-right: 0; }
+.ve-pct {
+  min-width: 64px; height: 32px;
+  border: 0;
+  border-right: 1px solid var(--sheet-border);
+  font-size: 0.78rem; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ve-zoom-btn:hover, .ve-pct:hover { background: var(--ve-band); }
+.ve-zoom-btn[disabled] { opacity: 0.4; cursor: default; }
+.ve-fit {
+  height: 32px; padding: 0 12px;
+  border: 1px solid var(--sheet-border);
+  font-size: 0.78rem; font-weight: 600;
+}
+.ve-divider { width: 1px; height: 24px; margin: 0 3px; background: var(--hairline); }
+.ve-close {
+  width: 34px; height: 32px;
+  border: 1px solid var(--sheet-border);
+  font-size: 1.05rem; line-height: 1;
+}
+.ve-fit:hover, .ve-close:hover { border-color: var(--ink); background: var(--ve-band); }
+
+/* --- canvas + paper sheet ------------------------------------------------ */
+.ve-canvas {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 26px;
+  background: var(--ve-canvas);
+  cursor: grab;
+}
+.ve-canvas.is-panning { cursor: grabbing; }
+.ve-sheet {
+  margin: 0 auto;
+  padding: 14px;
+  background: #ffffff;   /* literal: the diagram is black-on-white in dark mode
+                            too, so this surface is content, not chrome */
+  border: 1px solid var(--sheet-border);
+}
+.ve-img { display: block; width: 100%; height: auto; user-select: none; }
+
+/* --- loading / error ---------------------------------------------------- */
+.ve-loading {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; min-height: 420px;
+  color: var(--muted); font-size: 0.82rem;
+  animation: ve-shimmer 1.1s ease-in-out infinite alternate;
+}
+.ve-loading[hidden] { display: none; }
+.ve-loading-mark {
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--sheet-border);
+  color: var(--faint);
+}
+.ve-error {
+  max-width: 26rem; margin: 60px auto;
+  padding: 20px 22px;
+  border: 1px solid var(--destructive);
+  background: var(--paper);
+}
+.ve-error-title {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 1.125rem; font-weight: 700;
+  color: var(--ink);
+}
+.ve-error-lede { margin: 0 0 14px; font-size: 0.84rem; line-height: 1.55; color: var(--muted); }
+.ve-error-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* --- hint bar ----------------------------------------------------------- */
+.ve-hint {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--hairline);
+  background: var(--ve-band);
+  font-size: 0.72rem;
+  color: var(--faint);
+}
+.ve-file { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.7rem; }
+
+/* --- mobile pill (hidden on desktop) ------------------------------------ */
+.ve-pill { display: none; }
+
+/* --- mobile: full-screen sheet ------------------------------------------ */
+@media (max-width: 720px) {
+  .ve-modal { padding: 0; background: var(--paper); animation: none; }
+  .ve-panel {
+    max-width: none; max-height: none;
+    height: 100dvh;
+    border: 0; box-shadow: none;
+    animation: ve-sheet 0.22s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+  .ve-header { gap: 12px; align-items: center; padding: 10px 12px 10px 14px; }
+  .ve-eyebrow { font-size: 0.6rem; margin-bottom: 1px; }
+  .ve-title { font-size: 1.0625rem; }
+  .ve-sub { font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ve-controls > .ve-zoom,
+  .ve-controls > .ve-fit,
+  .ve-controls > .ve-divider { display: none; }   /* zoom moves to the pill */
+  .ve-close { width: 44px; height: 44px; font-size: 1.2rem; }
+  .ve-canvas { padding: 10px 10px 76px; }
+  .ve-sheet { padding: 8px; }
+  .ve-hint { display: none; }
+  .ve-pill {
+    position: absolute;
+    bottom: 16px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: stretch;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  }
+  .ve-pill > button {
+    height: 44px;
+    border: 0;
+    border-right: 1px solid var(--hairline);
+    background: none;
+    color: var(--ink);
+    font-family: var(--font-body);
+    cursor: pointer;
+  }
+  .ve-pill > button:last-child { border-right: 0; }
+  .ve-pill .ve-zoom-btn { width: 46px; font-size: 1.2rem; }
+  .ve-pill .ve-pct { min-width: 66px; height: 44px; font-size: 0.82rem; }
+  .ve-pill .ve-fit { padding: 0 14px; font-size: 0.82rem; border: 0; }
+  .ve-error { margin: 40px 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ve-modal, .ve-panel, .ve-loading { animation: none; }
+}
+
+@keyframes ve-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ve-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes ve-sheet { from { transform: translateY(18px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes ve-shimmer { from { opacity: 0.45; } to { opacity: 0.85; } }
+
+@media print { .ve-modal { display: none !important; } }

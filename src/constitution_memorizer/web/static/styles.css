@@ -414,7 +414,7 @@ html[data-theme="dark"] .theme-toggle {
 }
 
 .calendar-cell.is-today .calendar-daynum {
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent);
   font-weight: 700;
 }
@@ -845,7 +845,7 @@ html[data-theme="dark"] .how-to-use-row {
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--ink);
   padding: 3px 8px;
 }
@@ -1077,7 +1077,7 @@ html[data-theme="dark"] .how-to-use-row {
 .learn-cloze-density-btn.is-active {
   border-color: var(--ink);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .learn-cloze-text {
@@ -1181,7 +1181,7 @@ html[data-theme="dark"] .how-to-use-row {
   font-size: 16px;
   line-height: 1.6;
   resize: vertical;
-  background: #fff;
+  background: var(--paper);
   color: var(--ink);
   outline: none;
 }
@@ -1257,7 +1257,7 @@ html[data-theme="dark"] .how-to-use-row {
   font: inherit;
   font-size: 13.5px;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent);
   cursor: pointer;
 }
@@ -1268,7 +1268,7 @@ html[data-theme="dark"] .how-to-use-row {
 
 .learn-recite-peek {
   background: none;
-  border: 1px solid #c9c9c7;
+  border: 1px solid var(--control-border, var(--hairline));
   padding: 8px 14px;
   font: inherit;
   font-size: 13.5px;
@@ -1338,14 +1338,14 @@ html[data-theme="dark"] .how-to-use-row {
   font-size: 15px;
   line-height: 1.5;
   resize: vertical;
-  background: #fff;
+  background: var(--paper);
   color: var(--ink);
 }
 
 .learn-recite-check {
   margin-top: 10px;
   background: none;
-  border: 1px solid #c9c9c7;
+  border: 1px solid var(--control-border, var(--hairline));
   padding: 8px 14px;
   font: inherit;
   font-size: 13.5px;
@@ -1417,7 +1417,7 @@ html[data-theme="dark"] .how-to-use-row {
   text-align: center;
   cursor: pointer;
   border: 1px solid var(--ink);
-  background: #fdfdfc;
+  background: var(--paper);
   font: inherit;
   color: inherit;
 }
@@ -1670,7 +1670,7 @@ html[data-theme="dark"] .how-to-use-row {
   width: 56px;
   flex: none;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -1921,9 +1921,9 @@ html[data-theme="dark"] .bare-fn-nested-trigger {
   width: 100%;
   min-height: 88px;
   padding: 14px;
-  border: 1px solid #c9c9c7;
+  border: 1px solid var(--control-border, var(--hairline));
   border-radius: 0;
-  background: #fdfdfc;
+  background: var(--paper);
   color: var(--ink);
   font: inherit;
   font-size: 15px;
@@ -1934,7 +1934,7 @@ html[data-theme="dark"] .bare-fn-nested-trigger {
 }
 
 .explain-back-input::placeholder {
-  color: #b5b5b3;
+  color: var(--faint);
 }
 
 .explain-back-meta {
@@ -2762,7 +2762,7 @@ code {
 
 .tables-tab.is-active {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--ink);
 }
 

@@ -20,8 +20,14 @@
     {% if section.cards %}
     <div class="browse-article-grid">
       {% for card in section.cards %}
+      {% set ve = visual_explainer(card.article_number) %}
+      {% set card_classes = 'browse-article-card'
+         ~ (' is-tracked' if card.tracked else ' is-untracked')
+         ~ (' has-due' if card.due_count else '')
+         ~ (' has-news' if card.in_news else '') %}
+      {% if ve %}<div class="{{ card_classes }} ve-card-host">{% endif %}
       <a
-        class="browse-article-card{% if card.tracked %} is-tracked{% else %} is-untracked{% endif %}{% if card.due_count %} has-due{% endif %}{% if card.in_news %} has-news{% endif %}"
+        class="{{ 've-card-link' if ve else card_classes }}"
         href="{{ card.href }}"
       >
         {% if card.due_count %}
@@ -42,6 +48,10 @@
         <span class="browse-in-news">In news</span>
         {% endif %}
       </a>
+      {% if ve %}
+        {% with ve_variant = 'card' %}{% include "visual_explainer_trigger.html" %}{% endwith %}
+      </div>
+      {% endif %}
       {% endfor %}
     </div>
     {% endif %}

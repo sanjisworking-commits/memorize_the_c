@@ -1,0 +1,74 @@
+{# ---------------------------------------------------------------------------
+   Visual Explainer modal — ONE instance per page, included from base.html.
+   Article-agnostic: every field is filled by static/visual-explainer.js from
+   the data-ve-* attributes of whichever trigger was clicked.
+   --------------------------------------------------------------------------- #}
+<div class="ve-modal" id="ve-modal" role="dialog" aria-modal="true" aria-labelledby="ve-title" hidden>
+  <div class="ve-panel">
+    <p class="visually-hidden" aria-live="polite" data-ve-live></p>
+
+    <div class="ve-header">
+      <div class="ve-heading">
+        <p class="ve-eyebrow">
+          <svg class="ve-ico" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+            <rect x="5.5" y="0.75" width="5" height="3.5"></rect>
+            <rect x="0.75" y="11.75" width="5" height="3.5"></rect>
+            <rect x="10.25" y="11.75" width="5" height="3.5"></rect>
+            <path d="M8 4.25v3.25M3.25 11.75V7.5h9.5v4.25"></path>
+          </svg>
+          <span>Visual explainer &middot; <span data-ve-type>flowchart</span></span>
+        </p>
+        <h2 class="ve-title" id="ve-title" data-ve-article>Article</h2>
+        <p class="ve-sub" data-ve-title></p>
+      </div>
+
+      <div class="ve-controls">
+        <div class="ve-zoom">
+          <button type="button" class="ve-zoom-btn" data-ve-action="out" data-ve-out aria-label="Zoom out" title="Zoom out">&minus;</button>
+          <button type="button" class="ve-pct" data-ve-action="actual" data-ve-pct title="Actual size (100%)">100%</button>
+          <button type="button" class="ve-zoom-btn" data-ve-action="in" data-ve-in aria-label="Zoom in" title="Zoom in">+</button>
+        </div>
+        <button type="button" class="ve-fit" data-ve-action="fit" title="Fit to width">Fit</button>
+        <span class="ve-divider" aria-hidden="true"></span>
+        <button type="button" class="ve-close" data-ve-action="close" data-ve-close aria-label="Close visual explainer" title="Close (Esc)">&times;</button>
+      </div>
+    </div>
+
+    <div class="ve-canvas" data-ve-canvas>
+      <div class="ve-sheet" data-ve-sheet>
+        <img class="ve-img" data-ve-img alt="" draggable="false" hidden>
+        <div class="ve-loading" data-ve-loading>
+          <span class="ve-loading-mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+              <rect x="5.5" y="0.75" width="5" height="3.5"></rect>
+              <rect x="0.75" y="11.75" width="5" height="3.5"></rect>
+              <rect x="10.25" y="11.75" width="5" height="3.5"></rect>
+              <path d="M8 4.25v3.25M3.25 11.75V7.5h9.5v4.25"></path>
+            </svg>
+          </span>
+          <span>Loading diagram&hellip;</span>
+        </div>
+      </div>
+      <div class="ve-error" data-ve-error hidden>
+        <h3 class="ve-error-title">Diagram unavailable</h3>
+        <p class="ve-error-lede">The visual explainer for this Article could not be loaded. The Article text is unaffected.</p>
+        <div class="ve-error-actions">
+          <button type="button" class="btn btn-accent" data-ve-action="retry">Try again</button>
+          <button type="button" class="btn btn-ghost" data-ve-action="close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ve-hint">
+      <span>Scroll to read &middot; &#8984;/Ctrl + scroll to zoom &middot; drag to pan &middot; Esc to close</span>
+      <span class="ve-file" data-ve-file></span>
+    </div>
+
+    <div class="ve-pill">
+      <button type="button" class="ve-zoom-btn" data-ve-action="out" data-ve-out aria-label="Zoom out">&minus;</button>
+      <button type="button" class="ve-pct" data-ve-action="actual" data-ve-pct aria-label="Actual size">100%</button>
+      <button type="button" class="ve-zoom-btn" data-ve-action="in" data-ve-in aria-label="Zoom in">+</button>
+      <button type="button" class="ve-fit" data-ve-action="fit">Fit</button>
+    </div>
+  </div>
+</div>

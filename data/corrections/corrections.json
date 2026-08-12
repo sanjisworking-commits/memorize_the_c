@@ -4,6 +4,9 @@
   "articles": {
     "article-21a": {
       "title": "Right to education",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "The State shall provide free and compulsory education to all children of the age of six to fourteen years in such manner as the State may, by law, determine.",
       "manual_review_status": "approved"
     },
     "article-1": {
@@ -208,7 +211,8 @@
       "chapter_number": "II",
       "opening_text": "",
       "body_text": "Upon the completion of each census, the allocation of seats in the House of the People to the States and the division of each State into territorial constituencies shall be readjusted by such authority and in such manner as Parliament may by law determine:\nProvided that such readjustment shall not affect representation in the House of the People until the dissolution of the then existing House:\nProvided further that such readjustment shall take effect from such date as the President may, by order, specify and until such readjustment takes effect, any election to the House may be held on the basis of the territorial constituencies existing before such readjustment:\nProvided also that until the relevant figures for the first census taken after the year 2026 have been published, it shall not be necessary to readjust—\n(i) the allocation of seats in the House of the People to the States as readjusted on the basis of the 1971 census; and\n(ii) the division of each State into territorial constituencies as may be readjusted on the basis of the 2001 census,\nunder this article.",
-      "manual_review_status": "approved"
+      "manual_review_status": "approved",
+      "prefer_article_unit": true
     },
     "article-197": {
       "title": "Restriction on powers of Legislative Council as to Bills other than Money Bills",
@@ -660,6 +664,383 @@
       "prefer_article_unit": true,
       "enable_letter_split": true,
       "manual_review_status": "approved"
+    },
+    "article-223": {
+      "title": "Appointment of acting Chief Justice",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "opening_text": "",
+      "body_text": "When the office of Chief Justice of a High Court is vacant or when any such Chief Justice is, by reason of absence or otherwise, unable to perform the duties of his office, the duties of the office shall be performed by such one of the other Judges of the Court as the President may appoint for the purpose.",
+      "manual_review_status": "approved"
+    },
+    "article-224": {
+      "create": true,
+      "title": "Appointment of additional and acting Judges",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "opening_text": "",
+      "body_text": "(1) If by reason of any temporary increase in the business of a High Court or by reason of arrears of work therein, it appears to the President that the number of the Judges of that Court should be for the time being increased, the President may appoint duly qualified persons to be additional Judges of the Court for such period not exceeding two years as he may specify.\n(2) When any Judge of a High Court other than the Chief Justice is by reason of absence or for any other reason unable to perform the duties of his office or is appointed to act temporarily as Chief Justice, the President may appoint a duly qualified person to act as a Judge of that Court until the permanent Judge has resumed his duties.\n(3) No person appointed as an additional or acting Judge of a High Court shall hold office after attaining the age of sixty-two years.",
+      "manual_review_status": "approved"
+    },
+    "article-225": {
+      "title": "Jurisdiction of existing High Courts",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "opening_text": "",
+      "body_text": "Subject to the provisions of this Constitution and to the provisions of any law of the appropriate Legislature made by virtue of powers conferred on that Legislature by this Constitution, the jurisdiction of, and the law administered in, any existing High Court, and the respective powers of the Judges thereof in relation to the administration of justice in the Court, including any power to make rules of Court and to regulate the sittings of the Court and of members thereof sitting alone or in Division Courts, shall be the same as immediately before the commencement of this Constitution:\nProvided that any restriction to which the exercise of original jurisdiction by any of the High Courts with respect to any matter concerning the revenue or concerning any act ordered or done in the collection thereof was subject immediately before the commencement of this Constitution shall no longer apply to the exercise of such jurisdiction.",
+      "manual_review_status": "approved"
+    },
+    "article-226": {
+      "create": true,
+      "title": "Power of High Courts to issue certain writs",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "opening_text": "",
+      "body_text": "(1) Notwithstanding anything in article 32, every High Court shall have power, throughout the territories in relation to which it exercises jurisdiction, to issue to any person or authority, including in appropriate cases, any Government, within those territories directions, orders or writs, including writs in the nature of habeas corpus, mandamus, prohibition, quo warranto and certiorari, or any of them, for the enforcement of any of the rights conferred by Part III and for any other purpose.\n(2) The power conferred by clause (1) to issue directions, orders or writs to any Government, authority or person may also be exercised by any High Court exercising jurisdiction in relation to the territories within which the cause of action, wholly or in part, arises for the exercise of such power, notwithstanding that the seat of such Government or authority or the residence of such person is not within those territories.\n(3) Where any party against whom an interim order, whether by way of injunction or stay or in any other manner, is made on, or in any proceedings relating to, a petition under clause (1), without—\n(a) furnishing to such party copies of such petition and all documents in support of the plea for such interim order; and\n(b) giving such party an opportunity of being heard,\nmakes an application to the High Court for the vacation of such order and furnishes a copy of such application to the party in whose favour such order has been made or the counsel of such party, the High Court shall dispose of the application within a period of two weeks from the date on which it is received or from the date on which the copy of such application is so furnished, whichever is later, or where the High Court is closed on the last day of that period, before the expiry of the next day afterwards on which the High Court is open; and if the application is not so disposed of, the interim order shall, on the expiry of that period, or, as the case may be, the expiry of the said next day, stand vacated.\n(4) The power conferred on a High Court by this article shall not be in derogation of the power conferred on the Supreme Court by clause (2) of article 32.",
+      "manual_review_status": "approved"
+    },
+    "article-227": {
+      "title": "Power of superintendence over all courts by the High Court",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "opening_text": "",
+      "body_text": "(1) Every High Court shall have superintendence over all courts and tribunals throughout the territories in relation to which it exercises jurisdiction.\n(2) Without prejudice to the generality of the foregoing provision, the High Court may—\n(a) call for returns from such courts;\n(b) make and issue general rules and prescribe forms for regulating the practice and proceedings of such courts; and\n(c) prescribe forms in which books, entries and accounts shall be kept by the officers of any such courts.\n(3) The High Court may also settle tables of fees to be allowed to the sheriff and all clerks and officers of such courts and to attorneys, advocates and pleaders practising therein:\nProvided that any rules made, forms prescribed or tables settled under clause (2) or clause (3) shall not be inconsistent with the provision of any law for the time being in force, and shall require the previous approval of the Governor.\n(4) Nothing in this article shall be deemed to confer on a High Court powers of superintendence over any court or tribunal constituted by or under any law relating to the Armed Forces.",
+      "manual_review_status": "approved"
+    },
+    "article-228": {
+      "title": "Transfer of certain cases to High Court",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "opening_text": "If the High Court is satisfied that a case pending in a court subordinate to it involves a substantial question of law as to the interpretation of this Constitution the determination of which is necessary for the disposal of the case, it shall withdraw the case and may—",
+      "body_text": "(a) either dispose of the case itself, or\n(b) determine the said question of law and return the case to the court from which the case has been so withdrawn together with a copy of its judgment on such question, and the said court shall on receipt thereof proceed to dispose of the case in conformity with such judgment.",
+      "manual_review_status": "approved",
+      "prefer_article_unit": true
+    },
+    "article-229": {
+      "title": "Officers and servants and the expenses of High Courts",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "opening_text": "",
+      "body_text": "(1) Appointments of officers and servants of a High Court shall be made by the Chief Justice of the Court or such other Judge or officer of the Court as he may direct:\nProvided that the Governor of the State may by rule require that in such cases as may be specified in the rule no person not already attached to the Court shall be appointed to any office connected with the Court save after consultation with the State Public Service Commission.\n(2) Subject to the provisions of any law made by the Legislature of the State, the conditions of service of officers and servants of a High Court shall be such as may be prescribed by rules made by the Chief Justice of the Court or by some other Judge or officer of the Court authorised by the Chief Justice to make rules for the purpose:\nProvided that the rules made under this clause shall, so far as they relate to salaries, allowances, leave or pensions, require the approval of the Governor of the State.\n(3) The administrative expenses of a High Court, including all salaries, allowances and pensions payable to or in respect of the officers and servants of the Court, shall be charged upon the Consolidated Fund of the State, and any fees or other moneys taken by the Court shall form part of that Fund.",
+      "manual_review_status": "approved"
+    },
+    "article-231": {
+      "title": "Establishment of a common High Court for two or more States",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "opening_text": "",
+      "body_text": "(1) Notwithstanding anything contained in the preceding provisions of this Chapter, Parliament may by law establish a common High Court for two or more States or for two or more States and a Union territory.\n(2) In relation to any such High Court,—\n(a) the reference in article 217 to the Governor of the State shall be construed as reference to the Governors of all the States in relation to which the High Court exercises jurisdiction;\n(b) the reference in article 227 to the Governor shall, in relation to any rules, forms or tables for subordinate courts, be construed as a reference to the Governor of the State in which the subordinate courts are situate; and\n(c) the references in articles 219 and 229 to the State shall be construed as a reference to the State in which the High Court has its principal seat:\nProvided that if such principal seat is in a Union territory, the references in articles 219 and 229 to the Governor, Public Service Commission, Legislature and Consolidated Fund of the State shall be construed respectively as references to the President, Union Public Service Commission, Parliament and Consolidated Fund of India.",
+      "manual_review_status": "approved"
+    },
+    "article-232": {
+      "create": true,
+      "title": "Interpretation",
+      "part_number": "VI",
+      "chapter_number": "V",
+      "status": "omitted",
+      "opening_text": "",
+      "body_text": "[Omitted.]",
+      "manual_review_status": "approved"
+    },
+    "article-233": {
+      "title": "Appointment of district judges",
+      "part_number": "VI",
+      "chapter_number": "VI",
+      "opening_text": "",
+      "body_text": "(1) Appointments of persons to be, and the posting and promotion of, district judges in any State shall be made by the Governor of the State in consultation with the High Court exercising jurisdiction in relation to such State.\n(2) A person not already in the service of the Union or of the State shall only be eligible to be appointed a district judge if he has been for not less than seven years an advocate or a pleader and is recommended by the High Court for appointment.",
+      "manual_review_status": "approved"
+    },
+    "article-233a": {
+      "create": true,
+      "title": "Validation of appointments of, and judgments, etc., delivered by, certain district judges",
+      "part_number": "VI",
+      "chapter_number": "VI",
+      "opening_text": "Notwithstanding any judgment, decree or order of any court,—",
+      "body_text": "(a) (i) no appointment of any person already in the judicial service of a State or of any person who has been for not less than seven years an advocate or a pleader, to be a district judge in that State, and\n(ii) no posting, promotion or transfer of any such person as a district judge,\nmade at any time before the commencement of the Constitution (Twentieth Amendment) Act, 1966, otherwise than in accordance with the provisions of article 233 or article 235 shall be deemed to be illegal or void or ever to have become illegal or void by reason only of the fact that such appointment, posting, promotion or transfer was not made in accordance with the said provisions;\n(b) no jurisdiction exercised, no judgment, decree, sentence or order passed or made, and no other act or proceeding done or taken, before the commencement of the Constitution (Twentieth Amendment) Act, 1966 by, or before, any person appointed, posted, promoted or transferred as a district judge in any State otherwise than in accordance with the provisions of article 233 or article 235 shall be deemed to be illegal or invalid or ever to have become illegal or invalid by reason only of the fact that such appointment, posting, promotion or transfer was not made in accordance with the said provisions.",
+      "manual_review_status": "approved"
+    },
+    "article-236": {
+      "title": "Interpretation",
+      "part_number": "VI",
+      "chapter_number": "VI",
+      "opening_text": "In this Chapter—",
+      "body_text": "(a) the expression \"district judge\" includes judge of a city civil court, additional district judge, joint district judge, assistant district judge, chief judge of a small cause court, chief presidency magistrate, additional chief presidency magistrate, sessions judge, additional sessions judge and assistant sessions Judge;\n(b) the expression \"judicial service\" means a service consisting exclusively of persons intended to fill the post of district judge and other civil judicial posts inferior to the post of district judge.",
+      "manual_review_status": "approved"
+    },
+    "article-237": {
+      "title": "Application of the provisions of this Chapter to certain class or classes of magistrates",
+      "part_number": "VI",
+      "chapter_number": "VI",
+      "opening_text": "",
+      "body_text": "The Governor may by public notification direct that the foregoing provisions of this Chapter and any rules made thereunder shall with effect from such date as may be fixed by him in that behalf apply in relation to any class or classes of magistrates in the State as they apply in relation to persons appointed to the judicial service of the State subject to such exceptions and modifications as may be specified in the notification.",
+      "manual_review_status": "approved"
+    },
+    "article-74": {
+      "title": "Council of Ministers to aid and advise President",
+      "part_number": "V",
+      "chapter_number": "I",
+      "opening_text": "",
+      "body_text": "(1) There shall be a Council of Ministers with the Prime Minister at the head to aid and advise the President who shall, in the exercise of his functions, act in accordance with such advice:\nProvided that the President may require the Council of Ministers to reconsider such advice, either generally or otherwise, and the President shall act in accordance with the advice tendered after such reconsideration.\n(2) The question whether any, and if so what, advice was tendered by Ministers to the President shall not be inquired into in any court.",
+      "manual_review_status": "approved"
+    },
+    "article-75": {
+      "title": "Other provisions as to Ministers",
+      "part_number": "V",
+      "chapter_number": "I",
+      "opening_text": "",
+      "body_text": "(1) The Prime Minister shall be appointed by the President and the other Ministers shall be appointed by the President on the advice of the Prime Minister.\n(1A) The total number of Ministers, including the Prime Minister, in the Council of Ministers shall not exceed fifteen per cent. of the total number of members of the House of the People.\n(1B) A member of either House of Parliament belonging to any political party who is disqualified for being a member of that House under paragraph 2 of the Tenth Schedule shall also be disqualified to be appointed as a Minister under clause (1) for duration of the period commencing from the date of his disqualification till the date on which the term of his office as such member would expire or where he contests any election to either House of Parliament before the expiry of such period, till the date on which he is declared elected, whichever is earlier.\n(2) The Ministers shall hold office during the pleasure of the President.\n(3) The Council of Ministers shall be collectively responsible to the House of the People.\n(4) Before a Minister enters upon his office, the President shall administer to him the oaths of office and of secrecy according to the forms set out for the purpose in the Third Schedule.\n(5) A Minister who for any period of six consecutive months is not a member of either House of Parliament shall at the expiration of that period cease to be a Minister.\n(6) The salaries and allowances of Ministers shall be such as Parliament may from time to time by law determine and, until Parliament so determines, shall be as specified in the Second Schedule.",
+      "manual_review_status": "approved"
+    },
+    "article-78": {
+      "title": "Duties of Prime Minister as respects the furnishing of information to the President, etc.",
+      "part_number": "V",
+      "chapter_number": "I",
+      "opening_text": "It shall be the duty of the Prime Minister—",
+      "body_text": "(a) to communicate to the President all decisions of the Council of Ministers relating to the administration of the affairs of the Union and proposals for legislation;\n(b) to furnish such information relating to the administration of the affairs of the Union and proposals for legislation as the President may call for; and\n(c) if the President so requires, to submit for the consideration of the Council of Ministers any matter on which a decision has been taken by a Minister but which has not been considered by the Council.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-80": {
+      "title": "Composition of the Council of States",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) The Council of States shall consist of—\n(a) twelve members to be nominated by the President in accordance with the provisions of clause (3); and\n(b) not more than two hundred and thirty-eight representatives of the States and of the Union territories.\n(2) The allocation of seats in the Council of States to be filled by representatives of the States and of the Union territories shall be in accordance with the provisions in that behalf contained in the Fourth Schedule.\n(3) The members to be nominated by the President under sub-clause (a) of clause (1) shall consist of persons having special knowledge or practical experience in respect of such matters as the following, namely:—\nLiterature, science, art and social service.\n(4) The representatives of each State in the Council of States shall be elected by the elected members of the Legislative Assembly of the State in accordance with the system of proportional representation by means of the single transferable vote.\n(5) The representatives of the Union territories in the Council of States shall be chosen in such manner as Parliament may by law prescribe.",
+      "manual_review_status": "approved"
+    },
+    "article-16": {
+      "title": "Equality of opportunity in matters of public employment",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "(1) There shall be equality of opportunity for all citizens in matters relating to employment or appointment to any office under the State.\n(2) No citizen shall, on grounds only of religion, race, caste, sex, descent, place of birth, residence or any of them, be ineligible for, or discriminated against in respect of, any employment or office under the State.\n(3) Nothing in this article shall prevent Parliament from making any law prescribing, in regard to a class or classes of employment or appointment to an office under the Government of, or any local or other authority within, a State or Union territory, any requirement as to residence within that State or Union territory prior to such employment or appointment.\n(4) Nothing in this article shall prevent the State from making any provision for the reservation of appointments or posts in favour of any backward class of citizens which, in the opinion of the State, is not adequately represented in the services under the State.\n(4A) Nothing in this article shall prevent the State from making any provision for reservation in matters of promotion, with consequential seniority, to any class or classes of posts in the services under the State in favour of the Scheduled Castes and the Scheduled Tribes which, in the opinion of the State, are not adequately represented in the services under the State.\n(4B) Nothing in this article shall prevent the State from considering any unfilled vacancies of a year which are reserved for being filled up in that year in accordance with any provision for reservation made under clause (4) or clause (4A) as a separate class of vacancies to be filled up in any succeeding year or years and such class of vacancies shall not be considered together with the vacancies of the year in which they are being filled up for determining the ceiling of fifty per cent. reservation on total number of vacancies of that year.\n(5) Nothing in this article shall affect the operation of any law which provides that the incumbent of an office in connection with the affairs of any religious or denominational institution or any member of the governing body thereof shall be a person professing a particular religion or belonging to a particular denomination.\n(6) Nothing in this article shall prevent the State from making any provision for the reservation of appointments or posts in favour of any economically weaker sections of citizens other than the classes mentioned in clause (4), in addition to the existing reservation and subject to a maximum of ten per cent. of the posts in each category.",
+      "manual_review_status": "approved"
+    },
+    "article-22": {
+      "title": "Protection against arrest and detention in certain cases",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "(1) No person who is arrested shall be detained in custody without being informed, as soon as may be, of the grounds for such arrest nor shall he be denied the right to consult, and to be defended by, a legal practitioner of his choice.\n(2) Every person who is arrested and detained in custody shall be produced before the nearest magistrate within a period of twenty-four hours of such arrest excluding the time necessary for the journey from the place of arrest to the court of the magistrate and no such person shall be detained in custody beyond the said period without the authority of a magistrate.\n(3) Nothing in clauses (1) and (2) shall apply—\n(a) to any person who for the time being is an enemy alien; or\n(b) to any person who is arrested or detained under any law providing for preventive detention.\n(4) No law providing for preventive detention shall authorise the detention of a person for a longer period than three months unless—\n(a) an Advisory Board consisting of persons who are, or have been, or are qualified to be appointed as, Judges of a High Court has reported before the expiration of the said period of three months that there is in its opinion sufficient cause for such detention:\nProvided that nothing in this sub-clause shall authorise the detention of any person beyond the maximum period prescribed by any law made by Parliament under sub-clause (b) of clause (7); or\n(b) such person is detained in accordance with the provisions of any law made by Parliament under sub-clauses (a) and (b) of clause (7).\n(5) When any person is detained in pursuance of an order made under any law providing for preventive detention, the authority making the order shall, as soon as may be, communicate to such person the grounds on which the order has been made and shall afford him the earliest opportunity of making a representation against the order.\n(6) Nothing in clause (5) shall require the authority making any such order as is referred to in that clause to disclose facts which such authority considers to be against the public interest to disclose.\n(7) Parliament may by law prescribe—\n(a) the circumstances under which, and the class or classes of cases in which, a person may be detained for a period longer than three months under any law providing for preventive detention without obtaining the opinion of an Advisory Board in accordance with the provisions of sub-clause (a) of clause (4);\n(b) the maximum period for which any person may in any class or classes of cases be detained under any law providing for preventive detention; and\n(c) the procedure to be followed by an Advisory Board in an inquiry under sub-clause (a) of clause (4).",
+      "manual_review_status": "approved"
+    },
+    "article-26": {
+      "title": "Freedom to manage religious affairs",
+      "part_number": "III",
+      "opening_text": "Subject to public order, morality and health, every religious denomination or any section thereof shall have the right—",
+      "body_text": "(a) to establish and maintain institutions for religious and charitable purposes;\n(b) to manage its own affairs in matters of religion;\n(c) to own and acquire movable and immovable property; and\n(d) to administer such property in accordance with law.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-30": {
+      "title": "Right of minorities to establish and administer educational institutions",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "(1) All minorities, whether based on religion or language, shall have the right to establish and administer educational institutions of their choice.\n(1A) In making any law providing for the compulsory acquisition of any property of an educational institution established and administered by a minority, referred to in clause (1), the State shall ensure that the amount fixed by or determined under such law for the acquisition of such property is such as would not restrict or abrogate the right guaranteed under that clause.\n(2) The State shall not, in granting aid to educational institutions, discriminate against any educational institution on the ground that it is under the management of a minority, whether based on religion or language.",
+      "manual_review_status": "approved"
+    },
+    "article-31a": {
+      "title": "Saving of laws providing for acquisition of estates, etc",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "(1) Notwithstanding anything contained in article 13, no law providing for—\n(a) the acquisition by the State of any estate or of any rights therein or the extinguishment or modification of any such rights; or\n(b) the taking over of the management of any property by the State for a limited period either in the public interest or in order to secure the proper management of the property; or\n(c) the amalgamation of two or more corporations either in the public interest or in order to secure the proper management of any of the corporations; or\n(d) the extinguishment or modification of any rights of managing agents, secretaries and treasurers, managing directors, directors or managers of corporations, or of any voting rights of shareholders thereof; or\n(e) the extinguishment or modification of any rights accruing by virtue of any agreement, lease or licence for the purpose of searching for, or winning, any mineral or mineral oil, or the premature termination or cancellation of any such agreement, lease or licence,\nshall be deemed to be void on the ground that it is inconsistent with, or takes away or abridges any of the rights conferred by article 14 or article 19:\nProvided that where such law is a law made by the Legislature of a State, the provisions of this article shall not apply thereto unless such law, having been reserved for the consideration of the President, has received his assent:\nProvided further that where any law makes any provision for the acquisition by the State of any estate and where any land comprised therein is held by a person under his personal cultivation, it shall not be lawful for the State to acquire any portion of such land as is within the ceiling limit applicable to him under any law for the time being in force or any building or structure standing thereon or appurtenant thereto, unless the law relating to the acquisition of such land, building or structure, provides for payment of compensation at a rate which shall not be less than the market value thereof.\n(2) In this article,—\n(a) the expression \"estate\" shall, in relation to any local area, have the same meaning as that expression or its local equivalent has in the existing law relating to land tenures in force in that area and shall also include—\n(i) any jagir, inam or muafi or other similar grant and in the States of Tamil Nadu and Kerala, any janmam right;\n(ii) any land held under ryotwari settlement;\n(iii) any land held or let for purposes of agriculture or for purposes ancillary thereto, including waste land, forest land, land for pasture or sites of buildings and other structures occupied by cultivators of land, agricultural labourers and village artisans;\n(b) the expression \"rights\", in relation to an estate, shall include any rights vesting in a proprietor, sub-proprietor, under-proprietor, tenure-holder, raiyat, under-raiyat or other intermediary and any rights or privileges in respect of land revenue.",
+      "prefer_article_unit": true,
+      "manual_review_status": "approved"
+    },
+    "article-31b": {
+      "title": "Validation of certain Acts and Regulations",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "Without prejudice to the generality of the provisions contained in article 31A, none of the Acts and Regulations specified in the Ninth Schedule nor any of the provisions thereof shall be deemed to be void, or ever to have become void, on the ground that such Act, Regulation or provision is inconsistent with, or takes away or abridges any of the rights conferred by, any provisions of this Part, and notwithstanding any judgment, decree or order of any court or Tribunal to the contrary, each of the said Acts and Regulations shall, subject to the power of any competent Legislature to repeal or amend it, continue in force.",
+      "manual_review_status": "approved"
+    },
+    "article-32": {
+      "title": "Remedies for enforcement of rights conferred by this Part",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "(1) The right to move the Supreme Court by appropriate proceedings for the enforcement of the rights conferred by this Part is guaranteed.\n(2) The Supreme Court shall have power to issue directions or orders or writs, including writs in the nature of habeas corpus, mandamus, prohibition, quo warranto and certiorari, whichever may be appropriate, for the enforcement of any of the rights conferred by this Part.\n(3) Without prejudice to the powers conferred on the Supreme Court by clauses (1) and (2), Parliament may by law empower any other court to exercise within the local limits of its jurisdiction all or any of the powers exercisable by the Supreme Court under clause (2).\n(4) The right guaranteed by this article shall not be suspended except as otherwise provided for by this Constitution.",
+      "manual_review_status": "approved"
+    },
+    "article-32a": {
+      "create": true,
+      "title": "Constitutional validity of State laws not to be considered in proceedings under article 32",
+      "part_number": "III",
+      "status": "omitted",
+      "opening_text": "",
+      "body_text": "[Omitted.]",
+      "manual_review_status": "approved"
+    },
+    "article-33": {
+      "title": "Power of Parliament to modify the rights conferred by this Part in their application to Forces, etc",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "Parliament may, by law, determine to what extent any of the rights conferred by this Part shall, in their application to,—\n(a) the members of the Armed Forces; or\n(b) the members of the Forces charged with the maintenance of public order; or\n(c) persons employed in any bureau or other organisation established by the State for purposes of intelligence or counter intelligence; or\n(d) person employed in, or in connection with, the telecommunication systems set up for the purposes of any Force, bureau or organisation referred to in clauses (a) to (c),\nbe restricted or abrogated so as to ensure the proper discharge of their duties and the maintenance of discipline among them.",
+      "prefer_article_unit": true,
+      "manual_review_status": "approved"
+    },
+    "article-34": {
+      "title": "Restriction on rights conferred by this Part while martial law is in force in any area",
+      "part_number": "III",
+      "opening_text": "",
+      "body_text": "Notwithstanding anything in the foregoing provisions of this Part, Parliament may by law indemnify any person in the service of the Union or of a State or any other person in respect of any act done by him in connection with the maintenance or restoration of order in any area within the territory of India where martial law was in force or validate any sentence passed, punishment inflicted, forfeiture ordered or other act done under martial law in such area.",
+      "manual_review_status": "approved"
+    },
+    "article-35": {
+      "title": "Legislation to give effect to the provisions of this Part",
+      "part_number": "III",
+      "opening_text": "Notwithstanding anything in this Constitution,—",
+      "body_text": "(a) Parliament shall have, and the Legislature of a State shall not have, power to make laws—\n(i) with respect to any of the matters which under clause (3) of article 16, clause (3) of article 32, article 33 and article 34 may be provided for by law made by Parliament; and\n(ii) for prescribing punishment for those acts which are declared to be offences under this Part,\nand Parliament shall, as soon as may be after the commencement of this Constitution, make laws for prescribing punishment for the acts referred to in sub-clause (ii);\n(b) any law in force immediately before the commencement of this Constitution in the territory of India with respect to any of the matters referred to in sub-clause (i) of clause (a) or providing for punishment for any act referred to in sub-clause (ii) of that clause shall, subject to the terms thereof and to any adaptations and modifications that may be made therein under article 372, continue in force until altered or repealed or amended by Parliament.\nExplanation.—In this article, the expression \"law in force\" has the same meaning as in article 372.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-38": {
+      "title": "State to secure a social order for the promotion of welfare of the people",
+      "part_number": "IV",
+      "opening_text": "",
+      "body_text": "(1) The State shall strive to promote the welfare of the people by securing and protecting as effectively as it may a social order in which justice, social, economic and political, shall inform all the institutions of the national life.\n(2) The State shall, in particular, strive to minimise the inequalities in income, and endeavour to eliminate inequalities in status, facilities and opportunities, not only amongst individuals but also amongst groups of people residing in different areas or engaged in different vocations.",
+      "manual_review_status": "approved"
+    },
+    "article-39": {
+      "title": "Certain principles of policy to be followed by the State",
+      "part_number": "IV",
+      "opening_text": "The State shall, in particular, direct its policy towards securing—",
+      "body_text": "(a) that the citizens, men and women equally, have the right to an adequate means of livelihood;\n(b) that the ownership and control of the material resources of the community are so distributed as best to subserve the common good;\n(c) that the operation of the economic system does not result in the concentration of wealth and means of production to the common detriment;\n(d) that there is equal pay for equal work for both men and women;\n(e) that the health and strength of workers, men and women, and the tender age of children are not abused and that citizens are not forced by economic necessity to enter avocations unsuited to their age or strength;\n(f) that children are given opportunities and facilities to develop in a healthy manner and in conditions of freedom and dignity and that childhood and youth are protected against exploitation and against moral and material abandonment.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-39a": {
+      "title": "Equal justice and free legal aid",
+      "part_number": "IV",
+      "opening_text": "",
+      "body_text": "The State shall secure that the operation of the legal system promotes justice, on a basis of equal opportunity, and shall, in particular, provide free legal aid, by suitable legislation or schemes or in any other way, to ensure that opportunities for securing justice are not denied to any citizen by reason of economic or other disabilities.",
+      "manual_review_status": "approved"
+    },
+    "article-43": {
+      "title": "Living wage, etc., for workers",
+      "part_number": "IV",
+      "opening_text": "",
+      "body_text": "The State shall endeavour to secure, by suitable legislation or economic organisation or in any other way, to all workers, agricultural, industrial or otherwise, work, a living wage, conditions of work ensuring a decent standard of life and full enjoyment of leisure and social and cultural opportunities and, in particular, the State shall endeavour to promote cottage industries on an individual or co-operative basis in rural areas.",
+      "manual_review_status": "approved"
+    },
+    "article-48": {
+      "title": "Organisation of agriculture and animal husbandry",
+      "part_number": "IV",
+      "opening_text": "",
+      "body_text": "The State shall endeavour to organise agriculture and animal husbandry on modern and scientific lines and shall, in particular, take steps for preserving and improving the breeds, and prohibiting the slaughter, of cows and calves and other milch and draught cattle.",
+      "manual_review_status": "approved"
+    },
+    "article-51a": {
+      "title": "Fundamental duties",
+      "part_number": "IV",
+      "opening_text": "It shall be the duty of every citizen of India—",
+      "body_text": "(a) to abide by the Constitution and respect its ideals and institutions, the National Flag and the National Anthem;\n(b) to cherish and follow the noble ideals which inspired our national struggle for freedom;\n(c) to uphold and protect the sovereignty, unity and integrity of India;\n(d) to defend the country and render national service when called upon to do so;\n(e) to promote harmony and the spirit of common brotherhood amongst all the people of India transcending religious, linguistic and regional or sectional diversities; to renounce practices derogatory to the dignity of women;\n(f) to value and preserve the rich heritage of our composite culture;\n(g) to protect and improve the natural environment including forests, lakes, rivers and wild life, and to have compassion for living creatures;\n(h) to develop the scientific temper, humanism and the spirit of inquiry and reform;\n(i) to safeguard public property and to abjure violence;\n(j) to strive towards excellence in all spheres of individual and collective activity so that the nation constantly rises to higher levels of endeavour and achievement;\n(k) who is a parent or guardian to provide opportunities for education to his child or, as the case may be, ward between the age of six and fourteen years.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-76": {
+      "title": "Attorney-General for India",
+      "part_number": "V",
+      "chapter_number": "I",
+      "opening_text": "",
+      "body_text": "(1) The President shall appoint a person who is qualified to be appointed a Judge of the Supreme Court to be Attorney-General for India.\n(2) It shall be the duty of the Attorney-General to give advice to the Government of India upon such legal matters, and to perform such other duties of a legal character, as may from time to time be referred or assigned to him by the President, and to discharge the functions conferred on him by or under this Constitution or any other law for the time being in force.\n(3) In the performance of his duties the Attorney-General shall have right of audience in all courts in the territory of India.\n(4) The Attorney-General shall hold office during the pleasure of the President, and shall receive such remuneration as the President may determine.",
+      "manual_review_status": "approved"
+    },
+    "article-77": {
+      "title": "Conduct of business of the Government of India",
+      "part_number": "V",
+      "chapter_number": "I",
+      "opening_text": "",
+      "body_text": "(1) All executive action of the Government of India shall be expressed to be taken in the name of the President.\n(2) Orders and other instruments made and executed in the name of the President shall be authenticated in such manner as may be specified in rules to be made by the President, and the validity of an order or instrument which is so authenticated shall not be called in question on the ground that it is not an order or instrument made or executed by the President.\n(3) The President shall make rules for the more convenient transaction of the business of the Government of India, and for the allocation among Ministers of the said business.",
+      "manual_review_status": "approved"
+    },
+    "article-84": {
+      "title": "Qualification for membership of Parliament",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "A person shall not be qualified to be chosen to fill a seat in Parliament unless he—",
+      "body_text": "(a) is a citizen of India, and makes and subscribes before some person authorised in that behalf by the Election Commission an oath or affirmation according to the form set out for the purpose in the Third Schedule;\n(b) is, in the case of a seat in the Council of States, not less than thirty years of age and, in the case of a seat in the House of the People, not less than twenty-five years of age; and\n(c) possesses such other qualifications as may be prescribed in that behalf by or under any law made by Parliament.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-87": {
+      "title": "Special address by the President",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) At the commencement of the first session after each general election to the House of the People and at the commencement of the first session of each year the President shall address both Houses of Parliament assembled together and inform Parliament of the causes of its summons.\n(2) Provision shall be made by the rules regulating the procedure of either House for the allotment of time for discussion of the matters referred to in such address.",
+      "manual_review_status": "approved"
+    },
+    "article-90": {
+      "title": "Vacation and resignation of, and removal from, the office of Deputy Chairman",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "A member holding office as Deputy Chairman of the Council of States—",
+      "body_text": "(a) shall vacate his office if he ceases to be a member of the Council;\n(b) may at any time, by writing under his hand addressed to the Chairman, resign his office; and\n(c) may be removed from his office by a resolution of the Council passed by a majority of all the then members of the Council:\nProvided that no resolution for the purpose of clause (c) shall be moved unless at least fourteen days' notice has been given of the intention to move the resolution.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-94": {
+      "title": "Vacation and resignation of, and removal from, the offices of Speaker and Deputy Speaker",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "A member holding office as Speaker or Deputy Speaker of the House of the People—",
+      "body_text": "(a) shall vacate his office if he ceases to be a member of the House of the People;\n(b) may at any time, by writing under his hand addressed, if such member is the Speaker, to the Deputy Speaker, and if such member is the Deputy Speaker, to the Speaker, resign his office; and\n(c) may be removed from his office by a resolution of the House of the People passed by a majority of all the then members of the House:\nProvided that no resolution for the purpose of clause (c) shall be moved unless at least fourteen days' notice has been given of the intention to move the resolution:\nProvided further that, whenever the House of the People is dissolved, the Speaker shall not vacate his office until immediately before the first meeting of the House of the People after the dissolution.",
+      "prefer_article_unit": true,
+      "enable_letter_split": true,
+      "manual_review_status": "approved"
+    },
+    "article-98": {
+      "title": "Secretariat of Parliament",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) Each House of Parliament shall have a separate secretarial staff:\nProvided that nothing in this clause shall be construed as preventing the creation of posts common to both Houses of Parliament.\n(2) Parliament may by law regulate the recruitment, and the conditions of service of persons appointed, to the secretarial staff of either House of Parliament.\n(3) Until provision is made by Parliament under clause (2), the President may, after consultation with the Speaker of the House of the People or the Chairman of the Council of States, as the case may be, make rules regulating the recruitment, and the conditions of service of persons appointed, to the secretarial staff of the House of the People or the Council of States, and any rules so made shall have effect subject to the provisions of any law made under the said clause.",
+      "manual_review_status": "approved"
+    },
+    "article-100": {
+      "title": "Voting in Houses, power of Houses to act notwithstanding vacancies and quorum",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) Save as otherwise provided in this Constitution, all questions at any sitting of either House or joint sitting of the Houses shall be determined by a majority of votes of the members present and voting, other than the Speaker or person acting as Chairman or Speaker.\nThe Chairman or Speaker, or person acting as such, shall not vote in the first instance, but shall have and exercise a casting vote in the case of an equality of votes.\n(2) Either House of Parliament shall have power to act notwithstanding any vacancy in the membership thereof, and any proceedings in Parliament shall be valid notwithstanding that it is discovered subsequently that some person who was not entitled so to do sat or voted or otherwise took part in the proceedings.\n(3) Until Parliament by law otherwise provides, the quorum to constitute a meeting of either House of Parliament shall be one-tenth of the total number of members of the House.\n(4) If at any time during a meeting of a House there is no quorum, it shall be the duty of the Chairman or Speaker, or person acting as such, either to adjourn the House or to suspend the meeting until there is a quorum.",
+      "manual_review_status": "approved"
+    },
+    "article-101": {
+      "title": "Vacation of seats",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) No person shall be a member of both Houses of Parliament and provision shall be made by Parliament by law for the vacation by a person who is chosen a member of both Houses of his seat in one House or the other.\n(2) No person shall be a member both of Parliament and of a House of the Legislature of a State, and if a person is chosen a member both of Parliament and of a House of the Legislature of a State, then, at the expiration of such period as may be specified in rules made by the President, that person's seat in Parliament shall become vacant, unless he has previously resigned his seat in the Legislature of the State.\n(3) If a member of either House of Parliament—\n(a) becomes subject to any of the disqualifications mentioned in clause (1) or clause (2) of article 102; or\n(b) resigns his seat by writing under his hand addressed to the Chairman or the Speaker, as the case may be, and his resignation is accepted by the Chairman or the Speaker, as the case may be,\nhis seat shall thereupon become vacant:\nProvided that in the case of any resignation referred to in sub-clause (b), if from information received or otherwise and after making such inquiry as he thinks fit, the Chairman or the Speaker, as the case may be, is satisfied that such resignation is not voluntary or genuine, he shall not accept such resignation.\n(4) If for a period of sixty days a member of either House of Parliament is without permission of the House absent from all meetings thereof, the House may declare his seat vacant:\nProvided that in computing the said period of sixty days no account shall be taken of any period during which the House is prorogued or is adjourned for more than four consecutive days.",
+      "manual_review_status": "approved"
+    },
+    "article-102": {
+      "title": "Disqualifications for membership",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) A person shall be disqualified for being chosen as, and for being, a member of either House of Parliament—\n(a) if he holds any office of profit under the Government of India or the Government of any State, other than an office declared by Parliament by law not to disqualify its holder;\n(b) if he is of unsound mind and stands so declared by a competent court;\n(c) if he is an undischarged insolvent;\n(d) if he is not a citizen of India, or has voluntarily acquired the citizenship of a foreign State, or is under any acknowledgment of allegiance or adherence to a foreign State;\n(e) if he is so disqualified by or under any law made by Parliament.\nExplanation.—For the purposes of this clause, a person shall not be deemed to hold an office of profit under the Government of India or the Government of any State by reason only that he is a Minister either for the Union or for such State.\n(2) A person shall be disqualified for being a member of either House of Parliament if he is so disqualified under the Tenth Schedule.",
+      "manual_review_status": "approved"
+    },
+    "article-103": {
+      "title": "Decision on questions as to disqualifications of members",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) If any question arises as to whether a member of either House of Parliament has become subject to any of the disqualifications mentioned in clause (1) of article 102, the question shall be referred for the decision of the President and his decision shall be final.\n(2) Before giving any decision on any such question, the President shall obtain the opinion of the Election Commission and shall act according to such opinion.",
+      "manual_review_status": "approved"
+    },
+    "article-105": {
+      "title": "Powers, privileges, etc., of the Houses of Parliament and of the members and committees thereof",
+      "part_number": "V",
+      "chapter_number": "II",
+      "opening_text": "",
+      "body_text": "(1) Subject to the provisions of this Constitution and to the rules and standing orders regulating the procedure of Parliament, there shall be freedom of speech in Parliament.\n(2) No member of Parliament shall be liable to any proceedings in any court in respect of anything said or any vote given by him in Parliament or any committee thereof, and no person shall be so liable in respect of the publication by or under the authority of either House of Parliament of any report, paper, votes or proceedings.\n(3) In other respects, the powers, privileges and immunities of each House of Parliament, and of the members and the committees of each House, shall be such as may from time to time be defined by Parliament by law, and, until so defined, shall be those of that House and of its members and committees immediately before the coming into force of section 15 of the Constitution (Forty-fourth Amendment) Act, 1978.\n(4) The provisions of clauses (1), (2) and (3) shall apply in relation to persons who by virtue of this Constitution have the right to speak in, and otherwise to take part in, the proceedings of, a House of Parliament or any committee thereof as they apply in relation to members of Parliament.",
+      "manual_review_status": "approved"
     }
   },
   "notes": [
@@ -700,6 +1081,10 @@
     "article-54: diglot split as 54(a) with Explanation glued on; prefer_article_unit single card (stem+(a)+(b)); Explanation moved to States hover annotation.",
     "article-56: Provided that wrongly attached to (2); restored proviso (a)(b)(c) under (1) and clean Speaker-notice (2).",
     "article-67: letter-only article shown as 67(a)/67(a)(b); prefer_article_unit + enable_letter_split → Article 67 with Letters 67(a)/(b)/(c).",
-    "article-55: Explanation (population/2026) omitted from memorized/Browse body; definition lives in nested population tooltip (text_annotations)."
+    "article-55: Explanation (population/2026) omitted from memorized/Browse body; definition lives in nested population tooltip (text_annotations).",
+    "article-223–237: High Court/Subordinate Courts merge/steal from page breaks; restored Bare Act bodies; created 224/226/233A; 232 omitted.",
+    "article-74/75/78/80: restore missing stems; strip diglot 3[(1A)] / 1[2***; clean 75(1A)/(1B); Art 78 opening + prefer_article_unit.",
+    "article-16: diglot bleed in (3)/(4A)/(4B); (4) had swallowed (4A)/(4B); restored Bare Act (1)–(6) with clean (4A)/(4B).",
+    "article-21A–105 diglot: clean Bare Act overlays (21A,22,26,30,31A–35,38,39,39A,43,48,51A,76,77,82 prefer_article_unit,84,87,90,94,98,100–103,105); create omitted 32A; strip diglot markers from Learn bodies; browse-only tips for stripped diglot notes."
   ]
 }

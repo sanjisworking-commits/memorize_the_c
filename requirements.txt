@@ -1,12 +1,4 @@
-# Runtime dependencies for Constitution Memorizer
+# PDF extraction only (Bare Act → constitution.json).
+# Not required for serve, corrections, or generate-units.
+#   pip install -e ".[pdf]"
 docling>=2.0.0
-pydantic>=2.0.0
-rapidfuzz>=3.0.0
-fastapi>=0.110.0
-uvicorn[standard]>=0.27.0
-jinja2>=3.1.0
-python-multipart>=0.0.9
-
-# Development / tests
-pytest>=7.0.0
-httpx>=0.27.0

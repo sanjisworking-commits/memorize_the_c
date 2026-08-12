@@ -1,4 +1,5 @@
-# Lightweight dependencies for GitHub Actions unit tests (no Docling).
+# Lightweight dependencies for GitHub Actions unit tests and local UI (no Docling).
+# Docling is the optional [pdf] extra in pyproject.toml.
 pydantic>=2.0.0
 rapidfuzz>=3.0.0
 fastapi>=0.110.0

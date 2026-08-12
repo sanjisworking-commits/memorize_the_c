@@ -71,7 +71,7 @@ Future ideas: [`docs/FUTURE.md`](docs/FUTURE.md).
 ### Stack
 
 - Python **3.10+** (3.12 preferred)  
-- Corpus: Docling, Pydantic, RapidFuzz  
+- Corpus: Pydantic, RapidFuzz (Docling only for PDF extract: `pip install -e ".[pdf]"`)  
 - App: FastAPI, Uvicorn, Jinja2, SQLite  
 - Tests: Pytest (+ httpx)
 
@@ -115,9 +115,12 @@ src/constitution_memorizer/
 
 ### CLI (corpus)
 
-Needs `data/output/constitution.json` (from a prior pipeline run on a machine that has Docling outputs).
+`correct` and `generate-units` do **not** need Docling. They need `data/output/constitution.json` from a prior extract (or skip regen and use tracked `learning_units.json`).
+
+PDF extract / full pipeline (optional Docling extra):
 
 ```bash
+pip install -e ".[pdf]"
 python -m constitution_memorizer.cli pipeline --pdf data/input/constitution_bare_act.pdf --output-dir data --force
 python -m constitution_memorizer.cli correct --force
 python -m constitution_memorizer.cli generate-units --force
@@ -146,7 +149,7 @@ pip install -r requirements-ci.txt && pip install -e .
 pytest -m "not integration" -q
 ```
 
-Full PDF/Docling integration: `pytest -m integration`.
+Full PDF/Docling integration (needs `pip install -e ".[pdf]"`): `pytest -m integration`.
 
 ---
 

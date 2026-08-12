@@ -38,7 +38,32 @@ def test_brand_and_how_to_use(client: TestClient):
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Flip the card and self-grade your recall." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=main7" in html
+    assert "styles.css?v=main8" in html
+
+
+def test_dashboard_surfaces_use_theme_tokens():
+    """Dark mode broke when dash cards hard-coded #fff under light ink vars."""
+    css = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "constitution_memorizer"
+        / "web"
+        / "static"
+        / "styles.css"
+    ).read_text(encoding="utf-8")
+    assert ".dash-card {" in css
+    card_block = css.split(".dash-card {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in card_block
+    assert "background: #fff" not in card_block
+    strip_block = css.split(".dash-strip {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in strip_block
+    assert 'html[data-theme="dark"]' in css
+    assert "--paper: #1e1e1d" in css
+    assert "--ink: #f2f2f0" in css
+    # Default .btn must carry primary fill so CTAs stay readable on themed cards.
+    btn_block = css.split(".btn {", 1)[1].split("}", 1)[0]
+    assert "background: var(--accent)" in btn_block
+    assert "color: var(--on-accent)" in btn_block
 
 
 def test_learn_marks_read_and_locks_done(client: TestClient):

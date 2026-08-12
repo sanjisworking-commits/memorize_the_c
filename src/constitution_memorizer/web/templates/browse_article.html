@@ -116,6 +116,9 @@
   <p class="actions">
     <a class="btn btn-ghost" href="/browse">All articles</a>
     <a class="btn btn-ghost" href="/">Home</a>
+    {% with ve = visual_explainer(article.article_number) %}
+      {% include "visual_explainer_trigger.html" %}
+    {% endwith %}
     {% if current_user %}
     <button
       type="button"
@@ -126,4 +129,7 @@
     {% endif %}
   </p>
 </section>
+{% if is_guest|default(false) %}
+{% include "partials/guest_modal.html" %}
+{% endif %}
 {% endblock %}

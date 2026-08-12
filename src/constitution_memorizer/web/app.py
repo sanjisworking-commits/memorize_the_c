@@ -58,6 +58,7 @@ from constitution_memorizer.web.browse import (
     list_article_numbers,
     load_reviewed_document,
 )
+from constitution_memorizer.web.explainers import visual_explainer
 from constitution_memorizer.web.calendar_view import build_calendar_month
 from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
 from constitution_memorizer.web.judicial_evolution import (
@@ -330,6 +331,7 @@ def create_app(
             }
         ],
     )
+    templates.env.globals["visual_explainer"] = visual_explainer
 
     app = FastAPI(title="Recall the C", version="0.8.0")
     app.state.engine = engine

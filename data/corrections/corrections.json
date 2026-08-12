@@ -660,6 +660,60 @@
       "prefer_article_unit": true,
       "enable_letter_split": true,
       "manual_review_status": "approved"
+    },
+    "article-360": {
+      "title": "Provisions as to financial emergency",
+      "part_number": "XVIII",
+      "opening_text": "",
+      "body_text": "(1) If the President is satisfied that a situation has arisen whereby the financial stability or credit of India or of any part of the territory thereof is threatened, he may by a Proclamation make a declaration to that effect.\n(2) A Proclamation issued under clause (1)—\n(a) may be revoked or varied by a subsequent Proclamation;\n(b) shall be laid before each House of Parliament;\n(c) shall cease to operate at the expiration of two months, unless before the expiration of that period it has been approved by resolutions of both Houses of Parliament:\nProvided that if any such Proclamation is issued at a time when the House of the People has been dissolved or the dissolution of the House of the People takes place during the period of two months referred to in sub-clause (c), and if a resolution approving the Proclamation has been passed by the Council of States, but no resolution with respect to such Proclamation has been passed by the House of the People before the expiration of that period, the Proclamation shall cease to operate at the expiration of thirty days from the date on which the House of the People first sits after its reconstitution unless before the expiration of the said period of thirty days a resolution approving the Proclamation has been also passed by the House of the People.\n(3) During the period any such Proclamation as is mentioned in clause (1) is in operation, the executive authority of the Union shall extend to the giving of directions to any State to observe such canons of financial propriety as may be specified in the directions, and to the giving of such other directions as the President may deem necessary and adequate for the purpose.\n(4) Notwithstanding anything in this Constitution—\n(a) any such direction may include—\n(i) a provision requiring the reduction of salaries and allowances of all or any class of persons serving in connection with the affairs of a State;\n(ii) a provision requiring all Money Bills or other Bills to which the provisions of article 207 apply to be reserved for the consideration of the President after they are passed by the Legislature of the State;\n(b) it shall be competent for the President during the period any Proclamation issued under this article is in operation to issue directions for the reduction of salaries and allowances of all or any class of persons serving in connection with the affairs of the Union including the Judges of the Supreme Court and the High Courts.",
+      "manual_review_status": "approved"
+    },
+    "article-361": {
+      "title": "Protection of President and Governors and Rajpramukhs",
+      "part_number": "XIX",
+      "opening_text": "",
+      "body_text": "(1) The President, or the Governor or Rajpramukh of a State, shall not be answerable to any court for the exercise and performance of the powers and duties of his office or for any act done or purporting to be done by him in the exercise and performance of those powers and duties:\nProvided that the conduct of the President may be brought under review by any court, tribunal or body appointed or designated by either House of Parliament for the investigation of a charge under article 61:\nProvided further that nothing in this clause shall be construed as restricting the right of any person to bring appropriate proceedings against the Government of India or the Government of a State.\n(2) No criminal proceedings whatsoever shall be instituted or continued against the President, or the Governor of a State, in any court during his term of office.\n(3) No process for the arrest or imprisonment of the President, or the Governor of a State, shall issue from any court during his term of office.\n(4) No civil proceedings in which relief is claimed against the President, or the Governor of a State, shall be instituted during his term of office in any court in respect of any act done or purporting to be done by him in his personal capacity, whether before or after he entered upon his office as President, or as Governor of such State, until the expiration of two months next after notice in writing has been delivered to the President or the Governor, as the case may be, or left at his office stating the nature of the proceedings, the cause of action therefor, the name, description and place of residence of the party by whom such proceedings are to be instituted and the relief which he claims.",
+      "manual_review_status": "approved"
+    },
+    "article-361a": {
+      "title": "Protection of publication of proceedings of Parliament and State Legislatures",
+      "part_number": "XIX",
+      "opening_text": "",
+      "body_text": "(1) No person shall be liable to any proceedings, civil or criminal, in any court in respect of the publication in a newspaper of a substantially true report of any proceedings of either House of Parliament or the Legislative Assembly, or, as the case may be, either House of the Legislature, of a State, unless the publication is proved to have been made with malice:\nProvided that nothing in this clause shall apply to the publication of any report of the proceedings of a secret sitting of either House of Parliament or the Legislative Assembly, or, as the case may be, either House of the Legislature, of a State.\n(2) Clause (1) shall apply in relation to reports or matters broadcast by means of wireless telegraphy as part of any programme or service provided by means of a broadcasting station as it applies in relation to reports or matters published in a newspaper.\nExplanation.—In this article, “newspaper” includes a news agency report containing material for publication in a newspaper.",
+      "manual_review_status": "approved",
+      "create": true
+    },
+    "article-362": {
+      "title": "Rights and privileges of Rulers of Indian States",
+      "part_number": "XIX",
+      "status": "omitted",
+      "opening_text": "",
+      "body_text": "[Omitted.]",
+      "manual_review_status": "approved"
+    },
+    "article-363": {
+      "title": "Bar to interference by courts in disputes arising out of certain treaties, agreements, etc.",
+      "part_number": "XIX",
+      "opening_text": "",
+      "body_text": "(1) Notwithstanding anything in this Constitution but subject to the provisions of article 143, neither the Supreme Court nor any other court shall have jurisdiction in any dispute arising out of any provision of a treaty, agreement, covenant, engagement, sanad or other similar instrument which was entered into or executed before the commencement of this Constitution by any Ruler of an Indian State and to which the Government of the Dominion of India or any of its predecessor Governments was a party and which has or has been continued in operation after such commencement, or in any dispute in respect of any right accruing under or any liability or obligation arising out of any of the provisions of this Constitution relating to any such treaty, agreement, covenant, engagement, sanad or other similar instrument.\n(2) In this article—\n(a) “Indian State” means any territory recognised before the commencement of this Constitution by His Majesty or the Government of the Dominion of India as being such a State; and\n(b) “Ruler” includes the Prince, Chief or other person recognised before such commencement by His Majesty or the Government of the Dominion of India as the Ruler of any Indian State.",
+      "manual_review_status": "approved"
+    },
+    "article-363a": {
+      "title": "Recognition granted to Rulers of Indian States to cease and privy purses to be abolished",
+      "part_number": "XIX",
+      "opening_text": "",
+      "body_text": "Notwithstanding anything in this Constitution or in any law for the time being in force—\n(a) the Prince, Chief or other person who, at any time before the commencement of the Constitution (Twenty-sixth Amendment) Act, 1971, was recognised by the President as the Ruler of an Indian State or any person who, at any time before such commencement, was recognised by the President as the successor of such ruler shall, on and from such commencement, cease to be recognised as such Ruler or the successor of such Ruler;\n(b) on and from the commencement of the Constitution (Twenty-sixth Amendment) Act, 1971, privy purse is abolished and all rights, liabilities and obligations in respect of privy purse are extinguished and accordingly the Ruler or, as the case may be, the successor of such Ruler, referred to in clause (a) or any other person shall not be paid any sum as privy purse.",
+      "manual_review_status": "approved",
+      "create": true,
+      "prefer_article_unit": true,
+      "enable_letter_split": true
+    },
+    "article-364": {
+      "title": "Special provisions as to major ports and aerodromes",
+      "part_number": "XIX",
+      "opening_text": "",
+      "body_text": "(1) Notwithstanding anything in this Constitution, the President may by public notification direct that as from such date as may be specified in the notification—\n(a) any law made by Parliament or by the Legislature of a State shall not apply to any major port or aerodrome or shall apply thereto subject to such exceptions or modifications as may be specified in the notification; or\n(b) any existing law shall cease to have effect in any major port or aerodrome except as respects things done or omitted to be done before the said date, or shall in its application to such port or aerodrome have effect subject to such exceptions or modifications as may be specified in the notification.\n(2) In this article—\n(a) “major port” means a port declared to be a major port by or under any law made by Parliament or any existing law and includes all areas for the time being included within the limits of such port;\n(b) “aerodrome” means aerodrome as defined for the purposes of the enactments relating to airways, aircraft and air navigation.",
+      "manual_review_status": "approved"
     }
   },
   "notes": [
@@ -700,6 +754,7 @@
     "article-54: diglot split as 54(a) with Explanation glued on; prefer_article_unit single card (stem+(a)+(b)); Explanation moved to States hover annotation.",
     "article-56: Provided that wrongly attached to (2); restored proviso (a)(b)(c) under (1) and clean Speaker-notice (2).",
     "article-67: letter-only article shown as 67(a)/67(a)(b); prefer_article_unit + enable_letter_split → Article 67 with Letters 67(a)/(b)/(c).",
-    "article-55: Explanation (population/2026) omitted from memorized/Browse body; definition lives in nested population tooltip (text_annotations)."
+    "article-55: Explanation (population/2026) omitted from memorized/Browse body; definition lives in nested population tooltip (text_annotations).",
+    "article-360/361/361a/362/363/363a/364: diglot Part XVIII/XIX truncations; 360 title+(1)–(4); 361 (1) out of title, strip ***; create 361A; omit 362; 363 title+(1)/(2) and split glued 363A (create); 364 (1) stem out of title."
   ]
 }

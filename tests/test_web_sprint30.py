@@ -38,7 +38,7 @@ def test_brand_and_how_to_use(client: TestClient):
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Flip the card and self-grade your recall." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=main10" in html
+    assert "styles.css?v=main11" in html
 
 
 def test_dashboard_surfaces_use_theme_tokens():
@@ -111,6 +111,31 @@ def test_signin_surfaces_use_theme_tokens():
     field = css.split(".field-input {", 1)[1].split("}", 1)[0]
     assert "background: var(--paper)" in field
     assert "color: var(--ink)" in field
+
+
+def test_calendar_surfaces_use_theme_tokens():
+    """Calendar cells/chips must not keep white fills under dark --ink."""
+    css = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "constitution_memorizer"
+        / "web"
+        / "static"
+        / "styles.css"
+    ).read_text(encoding="utf-8")
+    cell = css.split(".calendar-cell {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in cell
+    assert "background: #fff" not in cell
+    blank = css.split(".calendar-cell.is-blank {", 1)[1].split("}", 1)[0]
+    assert "background: var(--wash)" in blank
+    due = css.split(".calendar-chip.is-due {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in due
+    assert "background: #fff" not in due
+    memorized = css.split(".calendar-chip.is-memorized {", 1)[1].split("}", 1)[0]
+    assert "color: var(--on-accent)" in memorized
+    assert "color: #fff" not in memorized
+    dow = css.split(".calendar-dow {", 1)[1].split("}", 1)[0]
+    assert "background: var(--wash)" in dow
 
 
 def test_learn_marks_read_and_locks_done(client: TestClient):

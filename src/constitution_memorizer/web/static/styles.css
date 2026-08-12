@@ -22,6 +22,8 @@
   --hover: #f7f7f6;
   --track: #e5e5e4;
   --rail: #f7f7f5;
+  --wash: #fafaf9;
+  --mid: #8f8f8d;
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Source Sans 3", "Segoe UI", sans-serif;
 
@@ -57,6 +59,8 @@ html[data-theme="dark"] {
   --hover: #2a2a28;
   --track: #333333;
   --rail: #161615;
+  --wash: #1a1a19;
+  --mid: #8f8f8d;
   --green: var(--accent);
   --green-deep: var(--accent-hover);
   --red: var(--destructive);
@@ -295,7 +299,7 @@ html[data-theme="dark"] .theme-toggle {
   align-items: center;
   justify-content: center;
   background: none;
-  border: 1px solid #c9c9c7;
+  border: 1px solid var(--control-border, var(--hairline));
   color: var(--ink);
   text-decoration: none;
   font-family: inherit;
@@ -356,16 +360,16 @@ html[data-theme="dark"] .theme-toggle {
 }
 
 .calendar-swatch.is-review-done {
-  background: #8f8f8d;
+  background: var(--mid);
 }
 
 .calendar-swatch.is-due {
-  background: #fff;
+  background: var(--paper);
   border: 2px solid var(--accent);
 }
 
 .calendar-swatch.is-scheduled {
-  background: #fff;
+  background: var(--paper);
   border: 1px dashed var(--faint);
 }
 
@@ -385,7 +389,7 @@ html[data-theme="dark"] .theme-toggle {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
-  background: #fafaf9;
+  background: var(--wash);
 }
 
 .calendar-cell {
@@ -393,11 +397,11 @@ html[data-theme="dark"] .theme-toggle {
   padding: 6px 8px;
   border-right: 1px solid var(--hairline);
   border-bottom: 1px solid var(--hairline);
-  background: #fff;
+  background: var(--paper);
 }
 
 .calendar-cell.is-blank {
-  background: #fafaf9;
+  background: var(--wash);
 }
 
 .calendar-cell.is-today {
@@ -444,18 +448,18 @@ html[data-theme="dark"] .theme-toggle {
 
 .calendar-chip.is-memorized {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
 }
 
 .calendar-chip.is-review-done {
-  background: #8f8f8d;
-  color: #fff;
+  background: var(--mid);
+  color: var(--on-accent);
   border: none;
 }
 
 .calendar-chip.is-due {
-  background: #fff;
+  background: var(--paper);
   border: 2px solid var(--accent);
   color: var(--accent);
   font-weight: 700;
@@ -463,14 +467,14 @@ html[data-theme="dark"] .theme-toggle {
 }
 
 .calendar-chip.is-scheduled {
-  background: #fff;
+  background: var(--paper);
   border: 1px dashed var(--faint);
   color: var(--muted);
 }
 
 .calendar-chip.is-memorized:hover,
 .calendar-chip.is-review-done:hover {
-  color: #fff;
+  color: var(--on-accent);
   opacity: 0.92;
 }
 

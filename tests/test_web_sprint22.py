@@ -48,7 +48,7 @@ def test_explain_back_section_on_every_article(client: TestClient):
     assert "explain-back-input" in html
     assert "Memorizing gives you the words" in html
     assert "Saved automatically" in html
-    assert "styles.css?v=main7" in html
+    assert "/static/styles.css?" in html
 
 
 def test_gloss_placeholder_for_seeded_article(client: TestClient):

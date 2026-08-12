@@ -17,7 +17,7 @@ def test_browse_cards_share_ink_chrome(tmp_path: Path):
     ReminderEngine.from_paths(db, MINI_UNITS)
     client = TestClient(create_app(units_path=MINI_UNITS, db_path=db))
     html = client.get("/browse").text
-    assert "styles.css?v=main7" in html
+    assert "/static/styles.css?" in html
     assert "is-untracked" in html or "is-tracked" in html
 
     css = client.get("/static/styles.css?v=main7").text

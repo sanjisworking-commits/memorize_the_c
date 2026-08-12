@@ -62,7 +62,7 @@ def test_progress_page_has_stat_tiles_and_mastery_map(client: TestClient):
     assert (
         'title="Article 20 · due"' in html or 'title="Article 20 · new"' in html
     )
-    assert "styles.css?v=main7" in html
+    assert "/static/styles.css?" in html
 
 
 def test_progress_css_mastery_cell_states(client: TestClient):

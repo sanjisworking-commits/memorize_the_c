@@ -58,6 +58,7 @@ from constitution_memorizer.web.browse import (
     list_article_numbers,
     load_reviewed_document,
 )
+from constitution_memorizer.web.explainers import explainer_asset_path, visual_explainer
 from constitution_memorizer.web.calendar_view import build_calendar_month
 from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
 from constitution_memorizer.web.judicial_evolution import (
@@ -330,6 +331,7 @@ def create_app(
             }
         ],
     )
+    templates.env.globals["visual_explainer"] = visual_explainer
 
     app = FastAPI(title="Recall the C", version="0.8.0")
     app.state.engine = engine
@@ -1102,6 +1104,18 @@ def create_app(
         eng.set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
         eng.set_news_articles_raw(news_articles)
         return RedirectResponse(url="/settings?saved=1", status_code=303)
+
+    @app.get("/api/explainers/{article_id}")
+    async def explainer_svg(request: Request, article_id: str) -> FileResponse:
+        """Serve a registered Visual Explainer SVG (signed-in when multi-user)."""
+        if app.state.multiuser_enabled and getattr(
+            request.state, "current_user", None
+        ) is None:
+            raise HTTPException(status_code=403, detail="Sign in required")
+        asset = explainer_asset_path(article_id)
+        if asset is None:
+            raise HTTPException(status_code=404, detail="Explainer not found")
+        return FileResponse(path=asset, media_type="image/svg+xml")
 
     @app.post("/api/theme")
     async def theme_save(theme: str = Form(...)) -> JSONResponse:

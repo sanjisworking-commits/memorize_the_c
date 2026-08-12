@@ -63,6 +63,18 @@
   <p class="methods-tracker" id="methods-tracker" data-count="{{ seen|length }}">{{ modes_tracker }}</p>
   {% endif %}
 
+  {% with ve = visual_explainer(unit.article_number or unit.display_title) %}
+  {% if ve %}
+  <div class="ve-band">
+    <div class="ve-band-copy">
+      <p class="ve-band-title">{{ ve.band_title }}</p>
+      <p class="ve-band-lede">{{ ve.band_lede }}</p>
+    </div>
+    {% include "visual_explainer_trigger.html" %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
   {% if stem_text %}
   <p class="learn-stem">{{ stem_text }}</p>
   {% endif %}

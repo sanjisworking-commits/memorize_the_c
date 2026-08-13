@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS learning_unit_progress (
@@ -175,12 +178,228 @@ def _rebuild_app_settings(conn: sqlite3.Connection) -> None:
     conn.execute("ALTER TABLE app_settings_new RENAME TO app_settings")
 
 
-def migrate_schema(conn: sqlite3.Connection) -> None:
-    """Upgrade tables created before PRIMARY KEYs existed.
+def _column_names(conn: sqlite3.Connection, table: str) -> list[str]:
+    if not _table_exists(conn, table):
+        return []
+    return [str(row["name"]) for row in conn.execute(f"PRAGMA table_info({table})")]
 
-    ``CREATE TABLE IF NOT EXISTS`` does not alter an older ``unit_modes_seen``
-    or ``app_settings`` table. Learn then 500s on ON CONFLICT upserts.
+
+def _has_column(conn: sqlite3.Connection, table: str, name: str) -> bool:
+    return name in _column_names(conn, table)
+
+
+def _rebuild_learning_unit_progress(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE learning_unit_progress_new (
+            learning_unit_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL DEFAULT 'new',
+            times_completed INTEGER NOT NULL DEFAULT 0,
+            last_completed TEXT,
+            next_revision TEXT,
+            interval_days INTEGER NOT NULL DEFAULT 0,
+            ease_factor REAL NOT NULL DEFAULT 2.5,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO learning_unit_progress_new (
+            learning_unit_id, status, times_completed, last_completed,
+            next_revision, interval_days, ease_factor, created_at, updated_at
+        )
+        SELECT learning_unit_id, status, times_completed, last_completed,
+               next_revision, interval_days, ease_factor, created_at, updated_at
+        FROM learning_unit_progress
+        WHERE rowid IN (
+            SELECT MAX(rowid) FROM learning_unit_progress GROUP BY learning_unit_id
+        )
+        """
+    )
+    conn.execute("DROP TABLE learning_unit_progress")
+    conn.execute(
+        "ALTER TABLE learning_unit_progress_new RENAME TO learning_unit_progress"
+    )
+
+
+def _rebuild_split_preference(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE split_preference_new (
+            parent_clause_id TEXT PRIMARY KEY,
+            mode TEXT NOT NULL CHECK (mode IN ('whole', 'letters')),
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO split_preference_new
+            (parent_clause_id, mode, updated_at)
+        SELECT parent_clause_id, mode, updated_at
+        FROM split_preference
+        WHERE rowid IN (
+            SELECT MAX(rowid) FROM split_preference GROUP BY parent_clause_id
+        )
+        """
+    )
+    conn.execute("DROP TABLE split_preference")
+    conn.execute("ALTER TABLE split_preference_new RENAME TO split_preference")
+
+
+def _rebuild_article_gloss(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE article_gloss_new (
+            article_number TEXT PRIMARY KEY,
+            text TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO article_gloss_new (article_number, text, updated_at)
+        SELECT article_number, text, updated_at
+        FROM article_gloss
+        WHERE rowid IN (
+            SELECT MAX(rowid) FROM article_gloss GROUP BY article_number
+        )
+        """
+    )
+    conn.execute("DROP TABLE article_gloss")
+    conn.execute("ALTER TABLE article_gloss_new RENAME TO article_gloss")
+
+
+def _rebuild_memory_entry(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE memory_entry_new (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            acronym TEXT NOT NULL DEFAULT '',
+            notes TEXT NOT NULL DEFAULT '',
+            logged_date TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'new',
+            interval_days INTEGER NOT NULL DEFAULT 0,
+            last_completed TEXT,
+            next_revision TEXT,
+            times_completed INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO memory_entry_new (
+            id, title, acronym, notes, logged_date, status, interval_days,
+            last_completed, next_revision, times_completed, created_at, updated_at
+        )
+        SELECT id, title, acronym, notes, logged_date, status, interval_days,
+               last_completed, next_revision, times_completed, created_at, updated_at
+        FROM memory_entry
+        """
+    )
+    conn.execute("DROP TABLE memory_entry")
+    conn.execute("ALTER TABLE memory_entry_new RENAME TO memory_entry")
+
+
+def _rebuild_memory_media(conn: sqlite3.Connection) -> None:
+    cols = _column_names(conn, "memory_media")
+    path_sql = "path" if "path" in cols else "storage_key"
+    if "path" in cols and "storage_key" in cols:
+        path_sql = "COALESCE(NULLIF(path, ''), storage_key)"
+    conn.execute(
+        """
+        CREATE TABLE memory_media_new (
+            entry_id TEXT PRIMARY KEY,
+            path TEXT NOT NULL,
+            uploaded_at TEXT NOT NULL,
+            FOREIGN KEY (entry_id) REFERENCES memory_entry(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.execute(
+        f"""
+        INSERT OR REPLACE INTO memory_media_new (entry_id, path, uploaded_at)
+        SELECT entry_id, {path_sql}, uploaded_at
+        FROM memory_media
+        WHERE rowid IN (
+            SELECT MAX(rowid) FROM memory_media GROUP BY entry_id
+        )
+        """
+    )
+    conn.execute("DROP TABLE memory_media")
+    conn.execute("ALTER TABLE memory_media_new RENAME TO memory_media")
+
+
+def _strip_multiuser_user_id(conn: sqlite3.Connection) -> bool:
+    """Rebuild 8001 tables if a multi-user process added ``user_id``.
+
+    ``CREATE TABLE IF NOT EXISTS`` never removes columns. main's Done insert
+    omits ``user_id``, so a migrated local DB 500s with NOT NULL user_id.
+    Rows are kept; duplicate unit keys keep the latest rowid.
     """
+    progress = _table_exists(conn, "learning_unit_progress") and _has_column(
+        conn, "learning_unit_progress", "user_id"
+    )
+    split = _table_exists(conn, "split_preference") and _has_column(
+        conn, "split_preference", "user_id"
+    )
+    gloss = _table_exists(conn, "article_gloss") and _has_column(
+        conn, "article_gloss", "user_id"
+    )
+    settings = _table_exists(conn, "app_settings") and _has_column(
+        conn, "app_settings", "user_id"
+    )
+    modes = _table_exists(conn, "unit_modes_seen") and _has_column(
+        conn, "unit_modes_seen", "user_id"
+    )
+    memory = _table_exists(conn, "memory_entry") and _has_column(
+        conn, "memory_entry", "user_id"
+    )
+    media = _table_exists(conn, "memory_media") and (
+        _has_column(conn, "memory_media", "user_id")
+        or _has_column(conn, "memory_media", "storage_key")
+    )
+    if not any((progress, split, gloss, settings, modes, memory, media)):
+        return False
+
+    conn.execute("PRAGMA foreign_keys = OFF")
+    try:
+        if progress:
+            _rebuild_learning_unit_progress(conn)
+        if split:
+            _rebuild_split_preference(conn)
+        if gloss:
+            _rebuild_article_gloss(conn)
+        if settings:
+            _rebuild_app_settings(conn)
+        if modes:
+            _rebuild_unit_modes_seen(conn)
+        if memory:
+            _rebuild_memory_entry(conn)
+        if media:
+            _rebuild_memory_media(conn)
+    finally:
+        conn.execute("PRAGMA foreign_keys = ON")
+    logger.info("Stripped multi-user user_id columns from local progress.db")
+    return True
+
+
+def migrate_schema(conn: sqlite3.Connection) -> None:
+    """Upgrade older local progress.db files in place.
+
+    ``CREATE TABLE IF NOT EXISTS`` does not alter existing tables. Two cases
+    500 Learn/Done on 8001:
+
+    * ``unit_modes_seen`` / ``app_settings`` created without PRIMARY KEYs
+    * tables opened by multi-user code, which adds a NOT NULL ``user_id``
+    """
+    _strip_multiuser_user_id(conn)
     if _table_exists(conn, "unit_modes_seen") and not _has_unique_on(
         conn, "unit_modes_seen", ["learning_unit_id", "mode"]
     ):
@@ -195,6 +414,7 @@ def init_db(conn: sqlite3.Connection) -> None:
     """Create progress tables if missing and migrate older local DBs."""
     conn.executescript(SCHEMA_SQL)
     migrate_schema(conn)
+    conn.executescript(SCHEMA_SQL)
     conn.commit()
 
 

@@ -1,25 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Browse · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
-<section class="panel browse" data-parts-source="{{ parts_source|default('unknown') }}">
-  <h1 class="display">Browse</h1>
-  <p class="lede">
-    The Constitution, Part by Part. Open an Article, then learn any clause from inside it.
-  </p>
-
-  {% for section in sections %}
-  <section class="browse-part" aria-label="Part {{ section.part_number }}">
-    <div class="browse-part-header">
-      <span class="browse-part-roman">Part {{ section.part_number }}</span>
-      <span class="browse-part-name">{{ section.part_title }}</span>
-      <span class="browse-part-range">Articles {{ section.article_range }}</span>
-    </div>
-    {% if section.note %}
-    <p class="browse-part-note">{{ section.note }}</p>
-    {% endif %}
-    {% if section.cards %}
+{% macro article_grid(cards) -%}
+    {% if cards %}
     <div class="browse-article-grid">
-      {% for card in section.cards %}
+      {% for card in cards %}
       {% set ve = visual_explainer(card.article_number) %}
       {% set card_classes = 'browse-article-card'
          ~ (' is-tracked' if card.tracked else ' is-untracked')
@@ -55,6 +40,34 @@
       {% endfor %}
     </div>
     {% endif %}
+{%- endmacro %}
+<section class="panel browse" data-parts-source="{{ parts_source|default('unknown') }}">
+  <h1 class="display">Browse</h1>
+  <p class="lede">
+    The Constitution, Part by Part. Open an Article, then learn any clause from inside it.
+  </p>
+
+  {% for section in sections %}
+  <section class="browse-part" aria-label="Part {{ section.part_number }}">
+    <div class="browse-part-header">
+      <span class="browse-part-roman">Part {{ section.part_number }}</span>
+      <span class="browse-part-name">{{ section.part_title }}</span>
+      <span class="browse-part-range">Articles {{ section.article_range }}</span>
+    </div>
+    {% if section.note %}
+    <p class="browse-part-note">{{ section.note }}</p>
+    {% endif %}
+    {{ article_grid(section.cards) }}
+    {% for chapter in section.chapters %}
+    <section class="browse-chapter" aria-label="Chapter {{ chapter.chapter_number }}">
+      <div class="browse-chapter-header">
+        <span class="browse-chapter-roman">Chapter {{ chapter.chapter_number }}</span>
+        <span class="browse-chapter-name">{{ chapter.chapter_title }}</span>
+        <span class="browse-chapter-range">Articles {{ chapter.article_range }}</span>
+      </div>
+      {{ article_grid(chapter.cards) }}
+    </section>
+    {% endfor %}
   </section>
   {% else %}
   <p class="empty">No articles available to browse.</p>

@@ -48,7 +48,7 @@ def test_type_mode_query_param_renders_type_active(client: TestClient):
 
 
 def test_type_css_drives_panel_and_diff_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=main3")
+    css = client.get("/static/styles.css?v=main6")
     assert css.status_code == 200
     text = css.text
     assert '.learn[data-mode="type"] .learn-panel-type' in text
@@ -56,7 +56,7 @@ def test_type_css_drives_panel_and_diff_styles(client: TestClient):
     assert ".learn-type-word.is-correct" in text
     assert ".learn-type-word.is-wrong" in text
     assert "text-decoration: line-through" in text
-    assert "#c4c4c2" in text
+    assert "color: var(--faint)" in text
 
 
 def test_type_js_normalizes_and_scores_words(client: TestClient):

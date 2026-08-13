@@ -194,21 +194,43 @@ def _resolve_clauses(article: Article) -> list[ProvisionNode]:
 
 
 def _alphabetic_segments_from_body(body: str) -> list[tuple[str, str]]:
-    """Return (label, '(a) …' text) for top-level alphabetic markers in body."""
+    """Return (label, '(a) …' text) for top-level alphabetic markers in body.
+
+    Segment ends at the next kept alphabetic letter marker (not at nested
+    roman ``(i)/(ii)``), so letter cards under ``prefer_article_unit`` keep
+    their full Bare Act sub-structure (e.g. Art 6(b)(i)–(ii)+proviso).
+
+    Single-letter ``i``/``v``/``x`` are usually Roman and skipped, but are kept
+    when they continue an alphabetic run (e.g. Art 51A ``(h)(i)(j)``).
+    """
     from constitution_memorizer.learning.text_fallback_splitter import _MARKER_RE
 
     text = (body or "").strip()
     if not text:
         return []
     matches = list(_MARKER_RE.finditer(text))
-    out: list[tuple[str, str]] = []
+    candidates: list[tuple[int, object, str]] = []
     for index, match in enumerate(matches):
         label = match.group("label")
-        if not (len(label) == 1 and label.isalpha() and label.islower()):
+        if len(label) == 1 and label.isalpha() and label.islower():
+            candidates.append((index, match, label))
+
+    keep_positions: set[int] = set()
+    for pos, (_index, _match, label) in enumerate(candidates):
+        if label not in {"i", "v", "x"}:
+            keep_positions.add(pos)
             continue
-        if label in {"i", "v", "x"}:
-            continue
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        prev_label = candidates[pos - 1][2] if pos > 0 else None
+        next_label = candidates[pos + 1][2] if pos + 1 < len(candidates) else None
+        if prev_label and ord(prev_label) + 1 == ord(label):
+            keep_positions.add(pos)
+        elif next_label and ord(label) + 1 == ord(next_label):
+            keep_positions.add(pos)
+
+    kept = [candidates[pos] for pos in sorted(keep_positions)]
+    out: list[tuple[str, str]] = []
+    for ki, (_index, match, label) in enumerate(kept):
+        end = kept[ki + 1][1].start() if ki + 1 < len(kept) else len(text)
         segment = text[match.end() : end].strip()
         if not segment:
             continue

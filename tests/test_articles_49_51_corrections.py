@@ -108,5 +108,5 @@ def test_committed_units_and_tip_for_49_51():
     assert "article-51-subclause-d" in units
 
     catalog = load_text_annotations(ANNOTATIONS)
-    tip = annotations_for_unit(catalog, "article-49", surface="learn")
+    tip = annotations_for_unit(catalog, "article-49")
     assert tip and tip[0].target == "declared by or under law made by Parliament"

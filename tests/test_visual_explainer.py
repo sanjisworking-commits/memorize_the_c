@@ -93,7 +93,7 @@ def test_browse_article_82_actions_include_visualise(client: TestClient):
 
 
 def test_learn_article_82_shows_band(client: TestClient):
-    html = client.get("/learn/article-82-clause-i").text
+    html = client.get("/learn/article-82").text
     assert "ve-band" in html
     assert 'data-ve-article="82"' in html
     assert "Prefer to see it?" in html

@@ -42,6 +42,20 @@ def client(db_path: Path) -> TestClient:
     return TestClient(app)
 
 
+def test_progress_page_without_reviewed_uses_part_seed(tmp_path: Path):
+    client = TestClient(
+        create_app(
+            units_path=MINI_UNITS,
+            db_path=tmp_path / "progress.db",
+            reviewed_path=tmp_path / "missing-reviewed.json",
+        )
+    )
+    html = client.get("/progress").text
+    assert "Part III" in html
+    assert "Learning units" not in html
+    assert "mastery-map" in html
+
+
 def test_progress_page_has_stat_tiles_and_mastery_map(client: TestClient):
     response = client.get("/progress")
     assert response.status_code == 200
@@ -144,6 +158,25 @@ def test_all_complete_past_first_rung_is_mastered(engine: ReminderEngine):
     assert (
         article_mastery_state(engine, "21", today=today, continue_id=None) == "mastered"
     )
+
+
+def test_fresh_account_has_no_tracked_article_rows(engine: ReminderEngine):
+    """Unset split choice must not list untouched articles as tracked."""
+    today = date(2026, 7, 20)
+    dash = progress_dashboard(engine, reviewed=None, today=today)
+    assert dash["tracked_rows"] == []
+
+
+def test_mastery_map_uses_seed_parts_when_reviewed_missing(engine: ReminderEngine):
+    today = date(2026, 7, 20)
+    dash = progress_dashboard(engine, reviewed=None, today=today)
+    romans = {row.part_number for row in dash["parts_map"]}
+    # Mini fixture only has Articles 20–21 → Part III from the seed.
+    assert "—" not in romans
+    assert "III" in romans
+    part_iii = next(r for r in dash["parts_map"] if r.part_number == "III")
+    assert part_iii.part_title
+    assert {c.article_number for c in part_iii.cells} >= {"20", "21"}
 
 
 def test_choice_pending_tag(engine: ReminderEngine):

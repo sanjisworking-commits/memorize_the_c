@@ -15,6 +15,7 @@
   {"roman": "XII", "title": "Finance, Property, Contracts and Suits", "from": 264, "to": 300},
   {"roman": "XIII", "title": "Trade, Commerce and Intercourse within the Territory of India", "from": 301, "to": 307},
   {"roman": "XIV", "title": "Services under the Union and the States", "from": 308, "to": 323},
+  {"roman": "XIVA", "title": "Tribunals", "from": 323, "to": 323, "suffix_min": "A", "suffix_max": "B"},
   {"roman": "XV", "title": "Elections", "from": 324, "to": 329},
   {"roman": "XVI", "title": "Special Provisions relating to certain Classes", "from": 330, "to": 342},
   {"roman": "XVII", "title": "Official Language", "from": 343, "to": 351},

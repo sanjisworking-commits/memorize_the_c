@@ -20,6 +20,10 @@ from constitution_memorizer.utils.json_io import read_json
 
 _PACKAGE_PARTS_SEED = Path(__file__).resolve().parent / "browse_parts.seed.json"
 _REPO_PARTS_SEED = Path(__file__).resolve().parents[3] / "data" / "reference" / "browse_parts.seed.json"
+_PACKAGE_CHAPTERS_SEED = Path(__file__).resolve().parent / "browse_chapters.seed.json"
+_REPO_CHAPTERS_SEED = (
+    Path(__file__).resolve().parents[3] / "data" / "reference" / "browse_chapters.seed.json"
+)
 from constitution_memorizer.web.amendments import (
     Amendment,
     ArticleAmendments,
@@ -67,11 +71,20 @@ def parse_news_articles(raw: str | None) -> set[str]:
 
 
 @dataclass(frozen=True)
+class BrowseChapterGroup:
+    chapter_number: str
+    chapter_title: str
+    article_range: str
+    cards: list[BrowseArticleCard] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class BrowsePartSection:
     part_number: str
     part_title: str
     article_range: str
     cards: list[BrowseArticleCard] = field(default_factory=list)
+    chapters: list[BrowseChapterGroup] = field(default_factory=list)
     note: str | None = None
 
 
@@ -221,16 +234,30 @@ def _part_tag_roman(tag: str) -> str | None:
     return match.group(1).upper()
 
 
-def load_browse_parts_seed(path: Path | None = None) -> list[dict]:
-    """Load Part roman/title/article-range rows for Browse without reviewed JSON."""
-    candidates = [path] if path is not None else [_PACKAGE_PARTS_SEED, _REPO_PARTS_SEED]
+def _load_seed_rows(candidates: list[Path | None]) -> list[dict]:
     seed_path = next((p for p in candidates if p is not None and p.exists()), None)
     if seed_path is None:
         return []
     data = read_json(seed_path)
     if not isinstance(data, list):
         return []
-    return [row for row in data if isinstance(row, dict) and row.get("roman")]
+    return [row for row in data if isinstance(row, dict)]
+
+
+def load_browse_parts_seed(path: Path | None = None) -> list[dict]:
+    """Load Part roman/title/article-range rows for Browse without reviewed JSON."""
+    candidates = [path] if path is not None else [_PACKAGE_PARTS_SEED, _REPO_PARTS_SEED]
+    return [row for row in _load_seed_rows(candidates) if row.get("roman")]
+
+
+def load_browse_chapters_seed(path: Path | None = None) -> list[dict]:
+    """Load Chapter roman/title/article-range rows nested under a Part."""
+    candidates = [path] if path is not None else [_PACKAGE_CHAPTERS_SEED, _REPO_CHAPTERS_SEED]
+    return [
+        row
+        for row in _load_seed_rows(candidates)
+        if row.get("part") and row.get("roman")
+    ]
 
 
 def _suffix_in_band(suffix: str, suffix_min: str | None, suffix_max: str | None) -> bool:
@@ -270,6 +297,45 @@ def _roman_from_seed(article_number: str, seed: list[dict]) -> str | None:
     return None
 
 
+def _chapter_row_for_article(
+    article_number: str,
+    part_roman: str,
+    seed: list[dict],
+) -> dict | None:
+    """Return the chapter seed row for an article inside ``part_roman``, if any."""
+    parsed = parse_article_number(article_number)
+    if parsed is None:
+        return None
+    part = part_roman.strip().upper()
+    numeric_hits: list[dict] = []
+    for row in seed:
+        if str(row.get("part") or "").strip().upper() != part:
+            continue
+        start = row.get("from")
+        end = row.get("to")
+        if start is None or end is None:
+            continue
+        if not (int(start) <= parsed.numeric_component <= int(end)):
+            continue
+        numeric_hits.append(row)
+    banded: list[dict] = []
+    unbanded: list[dict] = []
+    for row in numeric_hits:
+        has_band = row.get("suffix_min") is not None or row.get("suffix_max") is not None
+        if has_band:
+            if _suffix_in_band(
+                parsed.suffix, row.get("suffix_min"), row.get("suffix_max")
+            ):
+                banded.append(row)
+        else:
+            unbanded.append(row)
+    if banded:
+        return banded[0]
+    if unbanded:
+        return unbanded[0]
+    return None
+
+
 def _part_titles_from_units(engine: ReminderEngine) -> dict[str, str]:
     """Map Part roman → display title from PART_OVERVIEW unit tags."""
     from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
@@ -295,15 +361,19 @@ def _part_titles_from_units(engine: ReminderEngine) -> dict[str, str]:
 
 
 def _article_labels_from_units(engine: ReminderEngine) -> dict[str, str]:
+    """Bare Act heading per article. Prefer ARTICLE units; else any unit.title."""
     labels: dict[str, str] = {}
     for unit in engine.units.values():
         number = unit.article_number
         if not number:
             continue
-        if number not in labels:
-            labels[number] = ""
+        short = _short_article_title(unit.title or "")
+        if not short:
+            continue
         if unit.type == LearningUnitType.ARTICLE:
-            labels[number] = _short_article_title(unit.title or unit.display_title)
+            labels[number] = short
+        elif number not in labels:
+            labels[number] = short
     return labels
 
 
@@ -328,6 +398,7 @@ def browse_parts_from_units(
     titles.update(_part_titles_from_units(engine))
     labels = _article_labels_from_units(engine)
     seed_order = {str(row["roman"]).upper(): i for i, row in enumerate(seed)}
+    chapter_seed = load_browse_chapters_seed()
 
     # Prefer explicit Part tags; fall back to article-number seed ranges.
     by_part: dict[str, dict[str, str]] = {}
@@ -381,12 +452,16 @@ def browse_parts_from_units(
         if not arts:
             continue
         numbers = sorted(arts.keys(), key=article_sort_key)
+        loose, chapter_groups = _split_cards_by_chapter(
+            roman, arts, _card, chapter_seed
+        )
         sections.append(
             BrowsePartSection(
                 part_number=roman,
                 part_title=titles.get(roman, ""),
                 article_range=_article_range_label(numbers),
-                cards=[_card(n, arts[n]) for n in numbers],
+                cards=loose,
+                chapters=chapter_groups,
             )
         )
 
@@ -406,15 +481,74 @@ def browse_parts_from_units(
             continue
         numbers = sorted(arts.keys(), key=article_sort_key)
         title = "Other articles" if roman == "—" else titles.get(roman, "")
+        loose, chapter_groups = _split_cards_by_chapter(
+            roman, arts, _card, chapter_seed
+        )
         sections.append(
             BrowsePartSection(
                 part_number=roman,
                 part_title=title,
                 article_range=_article_range_label(numbers),
-                cards=[_card(n, arts[n]) for n in numbers],
+                cards=loose,
+                chapters=chapter_groups,
             )
         )
     return sections
+
+
+def _split_cards_by_chapter(
+    part_roman: str,
+    arts: dict[str, str],
+    make_card,
+    chapter_seed: list[dict],
+) -> tuple[list[BrowseArticleCard], list[BrowseChapterGroup]]:
+    """Split a Part's articles into ungrouped cards plus ordered chapter groups."""
+    from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
+        _article_range_label,
+        _display_part_title,
+    )
+
+    ungrouped: dict[str, str] = {}
+    by_chapter: dict[str, dict[str, str]] = {}
+    meta: dict[str, dict] = {}
+    for number, title in arts.items():
+        row = _chapter_row_for_article(number, part_roman, chapter_seed)
+        if row is None:
+            ungrouped[number] = title
+            continue
+        roman = str(row["roman"]).upper()
+        by_chapter.setdefault(roman, {})[number] = title
+        meta.setdefault(roman, row)
+
+    loose = [
+        make_card(n, ungrouped[n])
+        for n in sorted(ungrouped.keys(), key=article_sort_key)
+    ]
+    order = [
+        str(row["roman"]).upper()
+        for row in chapter_seed
+        if str(row.get("part") or "").upper() == part_roman.upper()
+    ]
+    groups: list[BrowseChapterGroup] = []
+    seen: set[str] = set()
+    for roman in order:
+        if roman in seen:
+            continue
+        seen.add(roman)
+        grouped = by_chapter.get(roman)
+        if not grouped:
+            continue
+        numbers = sorted(grouped.keys(), key=article_sort_key)
+        row = meta.get(roman, {})
+        groups.append(
+            BrowseChapterGroup(
+                chapter_number=roman,
+                chapter_title=_display_part_title(str(row.get("title") or "")),
+                article_range=_article_range_label(numbers),
+                cards=[make_card(n, grouped[n]) for n in numbers],
+            )
+        )
+    return loose, groups
 
 
 def browse_parts_sections(
@@ -473,15 +607,33 @@ def browse_parts_sections(
             continue
         if not articles:
             continue
-        cards = [
-            _card(a.article_number, _short_article_title(a.title)) for a in articles
+        loose = [
+            _card(a.article_number, _short_article_title(a.title))
+            for a in part.articles
         ]
+        chapter_groups: list[BrowseChapterGroup] = []
+        for chapter in part.chapters:
+            if not chapter.articles:
+                continue
+            ch_numbers = [a.article_number for a in chapter.articles]
+            chapter_groups.append(
+                BrowseChapterGroup(
+                    chapter_number=str(chapter.chapter_number),
+                    chapter_title=_display_part_title(chapter.title),
+                    article_range=_article_range_label(ch_numbers),
+                    cards=[
+                        _card(a.article_number, _short_article_title(a.title))
+                        for a in chapter.articles
+                    ],
+                )
+            )
         sections.append(
             BrowsePartSection(
                 part_number=str(part.part_number),
                 part_title=title,
                 article_range=_article_range_label(numbers),
-                cards=cards,
+                cards=loose,
+                chapters=chapter_groups,
             )
         )
     return sections

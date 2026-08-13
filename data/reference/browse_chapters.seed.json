@@ -1,0 +1,30 @@
+[
+  {"part": "V", "roman": "I", "title": "The Executive", "from": 52, "to": 78},
+  {"part": "V", "roman": "II", "title": "Parliament", "from": 79, "to": 122},
+  {"part": "V", "roman": "III", "title": "Legislative Powers of the President", "from": 123, "to": 123},
+  {"part": "V", "roman": "IV", "title": "The Union Judiciary", "from": 124, "to": 147},
+  {"part": "V", "roman": "V", "title": "Comptroller and Auditor-General of India", "from": 148, "to": 151},
+
+  {"part": "VI", "roman": "I", "title": "General", "from": 152, "to": 152},
+  {"part": "VI", "roman": "II", "title": "The Executive", "from": 153, "to": 167},
+  {"part": "VI", "roman": "III", "title": "The State Legislature", "from": 168, "to": 212},
+  {"part": "VI", "roman": "IV", "title": "Legislative Power of the Governor", "from": 213, "to": 213},
+  {"part": "VI", "roman": "V", "title": "The High Courts in the States", "from": 214, "to": 232},
+  {"part": "VI", "roman": "VI", "title": "Subordinate Courts", "from": 233, "to": 237},
+
+  {"part": "XI", "roman": "I", "title": "Legislative Relations", "from": 245, "to": 255},
+  {"part": "XI", "roman": "II", "title": "Administrative Relations", "from": 256, "to": 263},
+
+  {"part": "XII", "roman": "I", "title": "Finance", "from": 264, "to": 291},
+  {"part": "XII", "roman": "II", "title": "Borrowing", "from": 292, "to": 293},
+  {"part": "XII", "roman": "III", "title": "Property, Contracts, Rights, Liabilities, Obligations and Suits", "from": 294, "to": 300},
+  {"part": "XII", "roman": "IV", "title": "Right to Property", "from": 300, "to": 300, "suffix_min": "A", "suffix_max": "A"},
+
+  {"part": "XIV", "roman": "I", "title": "Services", "from": 308, "to": 314},
+  {"part": "XIV", "roman": "II", "title": "Public Service Commissions", "from": 315, "to": 323},
+
+  {"part": "XVII", "roman": "I", "title": "Language of the Union", "from": 343, "to": 344},
+  {"part": "XVII", "roman": "II", "title": "Regional Languages", "from": 345, "to": 347},
+  {"part": "XVII", "roman": "III", "title": "Language of the Supreme Court, High Courts, etc.", "from": 348, "to": 349},
+  {"part": "XVII", "roman": "IV", "title": "Special Directives", "from": 350, "to": 351}
+]

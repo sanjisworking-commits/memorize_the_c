@@ -2660,6 +2660,37 @@ code {
   font-size: 13px;
 }
 
+.browse-chapter {
+  margin-top: 16px;
+}
+
+.browse-chapter-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.browse-chapter-roman {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.browse-chapter-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.browse-chapter-range {
+  font-size: 12px;
+  color: var(--faint, #9a9a9a);
+}
+
 .browse-article-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

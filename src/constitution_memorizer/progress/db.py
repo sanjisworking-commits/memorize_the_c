@@ -91,9 +91,110 @@ def connect(db_path: Path | str) -> sqlite3.Connection:
     return conn
 
 
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table,),
+    ).fetchone()
+    return row is not None
+
+
+def _pk_columns(conn: sqlite3.Connection, table: str) -> list[str]:
+    info = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    ranked = [(int(row["pk"]), str(row["name"])) for row in info if row["pk"]]
+    ranked.sort()
+    return [name for _pk, name in ranked]
+
+
+def _has_unique_on(conn: sqlite3.Connection, table: str, columns: list[str]) -> bool:
+    """True when table has a PRIMARY KEY or UNIQUE index on exactly ``columns``."""
+    if _pk_columns(conn, table) == columns:
+        return True
+    for index in conn.execute(f"PRAGMA index_list({table})").fetchall():
+        if not index["unique"]:
+            continue
+        index_cols = [
+            str(row["name"])
+            for row in conn.execute(f"PRAGMA index_info({index['name']})").fetchall()
+        ]
+        if index_cols == columns:
+            return True
+    return False
+
+
+def _rebuild_unit_modes_seen(conn: sqlite3.Connection) -> None:
+    """Add the composite key required by mark_mode_seen upserts."""
+    conn.execute("DROP INDEX IF EXISTS idx_modes_seen_unit")
+    conn.execute(
+        """
+        CREATE TABLE unit_modes_seen_new (
+            learning_unit_id TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            seen_at TEXT NOT NULL,
+            PRIMARY KEY (learning_unit_id, mode)
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO unit_modes_seen_new
+            (learning_unit_id, mode, seen_at)
+        SELECT learning_unit_id, mode, MAX(seen_at)
+        FROM unit_modes_seen
+        GROUP BY learning_unit_id, mode
+        """
+    )
+    conn.execute("DROP TABLE unit_modes_seen")
+    conn.execute("ALTER TABLE unit_modes_seen_new RENAME TO unit_modes_seen")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_modes_seen_unit "
+        "ON unit_modes_seen(learning_unit_id)"
+    )
+
+
+def _rebuild_app_settings(conn: sqlite3.Connection) -> None:
+    """Add the key primary key required by settings upserts."""
+    conn.execute(
+        """
+        CREATE TABLE app_settings_new (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO app_settings_new (key, value, updated_at)
+        SELECT key, value, updated_at
+        FROM app_settings
+        WHERE rowid IN (SELECT MAX(rowid) FROM app_settings GROUP BY key)
+        """
+    )
+    conn.execute("DROP TABLE app_settings")
+    conn.execute("ALTER TABLE app_settings_new RENAME TO app_settings")
+
+
+def migrate_schema(conn: sqlite3.Connection) -> None:
+    """Upgrade tables created before PRIMARY KEYs existed.
+
+    ``CREATE TABLE IF NOT EXISTS`` does not alter an older ``unit_modes_seen``
+    or ``app_settings`` table. Learn then 500s on ON CONFLICT upserts.
+    """
+    if _table_exists(conn, "unit_modes_seen") and not _has_unique_on(
+        conn, "unit_modes_seen", ["learning_unit_id", "mode"]
+    ):
+        _rebuild_unit_modes_seen(conn)
+    if _table_exists(conn, "app_settings") and not _has_unique_on(
+        conn, "app_settings", ["key"]
+    ):
+        _rebuild_app_settings(conn)
+
+
 def init_db(conn: sqlite3.Connection) -> None:
-    """Create progress tables if missing."""
+    """Create progress tables if missing and migrate older local DBs."""
     conn.executescript(SCHEMA_SQL)
+    migrate_schema(conn)
     conn.commit()
 
 

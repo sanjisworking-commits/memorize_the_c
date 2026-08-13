@@ -45,7 +45,7 @@ def test_calendar_page_renders_month_grid(client: TestClient):
     assert "Sun" in html and "Sat" in html
     assert 'href="/calendar?year=2026&amp;month=6"' in html
     assert 'href="/calendar?year=2026&amp;month=8"' in html
-    assert "styles.css?v=main3" in html
+    assert "/static/styles.css?" in html
     assert "app.js?v=main3" in html
 
 

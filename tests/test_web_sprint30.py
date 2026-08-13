@@ -38,7 +38,25 @@ def test_brand_and_how_to_use(client: TestClient):
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Flip the card and self-grade your recall." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=main3" in html
+    assert "styles.css?v=main4" in html
+
+
+def test_calendar_surfaces_use_theme_tokens():
+    css = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "constitution_memorizer"
+        / "web"
+        / "static"
+        / "styles.css"
+    ).read_text(encoding="utf-8")
+    cell = css.split(".calendar-cell {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in cell
+    assert "background: #fff" not in cell
+    due = css.split(".calendar-chip.is-due {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in due
+    notes = css.split(".explain-back-input {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in notes
 
 
 def test_learn_marks_read_and_locks_done(client: TestClient):

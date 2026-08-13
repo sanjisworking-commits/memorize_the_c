@@ -19,6 +19,10 @@
   --on-accent: #ffffff;
   --done-locked-bg: #e5e5e4;
   --done-locked-fg: #9a9a9a;
+  --hover: #f7f7f6;
+  --track: #e5e5e4;
+  --wash: #fafaf9;
+  --mid: #8f8f8d;
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Source Sans 3", "Segoe UI", sans-serif;
 
@@ -32,6 +36,7 @@
 }
 
 html[data-theme="dark"] {
+  color-scheme: dark;
   --ink: #f2f2f0;
   --muted: #9a9a9a;
   --faint: #9a9a9a;
@@ -50,12 +55,20 @@ html[data-theme="dark"] {
   --on-accent: #141414;
   --done-locked-bg: #2a2a28;
   --done-locked-fg: #9a9a9a;
+  --hover: #2a2a28;
+  --track: #333333;
+  --wash: #1a1a19;
+  --mid: #8f8f8d;
   --green: var(--accent);
   --green-deep: var(--accent-hover);
   --red: var(--destructive);
   --red-deep: var(--destructive-deep);
   --bg0: var(--page);
   --bg1: var(--page);
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
 }
 
 * {
@@ -275,7 +288,7 @@ html[data-theme="dark"] .theme-toggle {
   align-items: center;
   justify-content: center;
   background: none;
-  border: 1px solid #c9c9c7;
+  border: 1px solid var(--hairline);
   color: var(--ink);
   text-decoration: none;
   font-family: inherit;
@@ -336,16 +349,16 @@ html[data-theme="dark"] .theme-toggle {
 }
 
 .calendar-swatch.is-review-done {
-  background: #8f8f8d;
+  background: var(--mid);
 }
 
 .calendar-swatch.is-due {
-  background: #fff;
+  background: var(--paper);
   border: 2px solid var(--accent);
 }
 
 .calendar-swatch.is-scheduled {
-  background: #fff;
+  background: var(--paper);
   border: 1px dashed var(--faint);
 }
 
@@ -365,7 +378,7 @@ html[data-theme="dark"] .theme-toggle {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
-  background: #fafaf9;
+  background: var(--wash);
 }
 
 .calendar-cell {
@@ -373,11 +386,11 @@ html[data-theme="dark"] .theme-toggle {
   padding: 6px 8px;
   border-right: 1px solid var(--hairline);
   border-bottom: 1px solid var(--hairline);
-  background: #fff;
+  background: var(--paper);
 }
 
 .calendar-cell.is-blank {
-  background: #fafaf9;
+  background: var(--wash);
 }
 
 .calendar-cell.is-today {
@@ -401,7 +414,7 @@ html[data-theme="dark"] .theme-toggle {
 }
 
 .calendar-cell.is-today .calendar-daynum {
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent);
   font-weight: 700;
 }
@@ -424,18 +437,18 @@ html[data-theme="dark"] .theme-toggle {
 
 .calendar-chip.is-memorized {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
 }
 
 .calendar-chip.is-review-done {
-  background: #8f8f8d;
-  color: #fff;
+  background: var(--mid);
+  color: var(--on-accent);
   border: none;
 }
 
 .calendar-chip.is-due {
-  background: #fff;
+  background: var(--paper);
   border: 2px solid var(--accent);
   color: var(--accent);
   font-weight: 700;
@@ -443,14 +456,14 @@ html[data-theme="dark"] .theme-toggle {
 }
 
 .calendar-chip.is-scheduled {
-  background: #fff;
+  background: var(--paper);
   border: 1px dashed var(--faint);
   color: var(--muted);
 }
 
 .calendar-chip.is-memorized:hover,
 .calendar-chip.is-review-done:hover {
-  color: #fff;
+  color: var(--on-accent);
   opacity: 0.92;
 }
 
@@ -832,7 +845,7 @@ html[data-theme="dark"] .how-to-use-row {
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--ink);
   padding: 3px 8px;
 }
@@ -1168,7 +1181,7 @@ html[data-theme="dark"] .how-to-use-row {
   font-size: 16px;
   line-height: 1.6;
   resize: vertical;
-  background: #fff;
+  background: var(--paper);
   color: var(--ink);
   outline: none;
 }
@@ -1244,7 +1257,7 @@ html[data-theme="dark"] .how-to-use-row {
   font: inherit;
   font-size: 13.5px;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
   background: var(--accent);
   cursor: pointer;
 }
@@ -1325,7 +1338,7 @@ html[data-theme="dark"] .how-to-use-row {
   font-size: 15px;
   line-height: 1.5;
   resize: vertical;
-  background: #fff;
+  background: var(--paper);
   color: var(--ink);
 }
 
@@ -1404,7 +1417,7 @@ html[data-theme="dark"] .how-to-use-row {
   text-align: center;
   cursor: pointer;
   border: 1px solid var(--ink);
-  background: #fdfdfc;
+  background: var(--paper);
   font: inherit;
   color: inherit;
 }
@@ -1657,7 +1670,7 @@ html[data-theme="dark"] .how-to-use-row {
   width: 56px;
   flex: none;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -1908,9 +1921,9 @@ html[data-theme="dark"] .bare-fn-nested-trigger {
   width: 100%;
   min-height: 88px;
   padding: 14px;
-  border: 1px solid #c9c9c7;
+  border: 1px solid var(--hairline);
   border-radius: 0;
-  background: #fdfdfc;
+  background: var(--paper);
   color: var(--ink);
   font: inherit;
   font-size: 15px;
@@ -1921,7 +1934,7 @@ html[data-theme="dark"] .bare-fn-nested-trigger {
 }
 
 .explain-back-input::placeholder {
-  color: #b5b5b3;
+  color: var(--faint);
 }
 
 .explain-back-meta {

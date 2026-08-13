@@ -19,6 +19,8 @@ def test_browse_parts_seed_loads():
     seed = load_browse_parts_seed()
     assert len(seed) >= 10
     assert seed[0]["roman"] == "I"
+    romans = [row["roman"] for row in seed]
+    assert "XIVA" in romans
 
 
 def test_browse_parts_from_mini_units_tags(tmp_path: Path):

@@ -38,7 +38,7 @@ def test_brand_and_how_to_use(client: TestClient):
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Flip the card and self-grade your recall." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=main4" in html
+    assert "styles.css?v=main5" in html
 
 
 def test_calendar_surfaces_use_theme_tokens():
@@ -57,6 +57,17 @@ def test_calendar_surfaces_use_theme_tokens():
     assert "background: var(--paper)" in due
     notes = css.split(".explain-back-input {", 1)[1].split("}", 1)[0]
     assert "background: var(--paper)" in notes
+    assert "--hover: var(--hover)" not in css
+    assert "--hover: #f7f7f6" in css
+    assert "--learning: #4a4a48" in css
+    due_dot = css.split(".due-dot-due {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in due_dot
+    track = css.split(".session-track {", 1)[1].split("}", 1)[0]
+    assert "background: var(--track)" in track
+    tables_tab = css.split(".tables-tab.is-active {", 1)[1].split("}", 1)[0]
+    assert "color: var(--on-accent)" in tables_tab
+    mastery_new = css.split(".mastery-swatch.is-new {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in mastery_new
 
 
 def test_learn_marks_read_and_locks_done(client: TestClient):

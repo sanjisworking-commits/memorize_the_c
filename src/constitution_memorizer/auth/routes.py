@@ -554,6 +554,10 @@ def install_auth_middleware(app) -> None:
 
     @app.middleware("http")
     async def multiuser_auth_gate(request: Request, call_next):
+        path = request.url.path
+        if path == "/health" or path.startswith("/static/"):
+            return await call_next(request)
+
         from constitution_memorizer.web.request_context import bound_engine, bound_memory
 
         if not getattr(request.app.state, "multiuser_enabled", False):
@@ -569,7 +573,6 @@ def install_auth_middleware(app) -> None:
                 bound_engine.reset(token_e)
                 bound_memory.reset(token_m)
 
-        path = request.url.path
         method = request.method
         from constitution_memorizer.auth.dependencies import get_optional_current_user
         from constitution_memorizer.auth.sessions import SESSION_COOKIE_NAME

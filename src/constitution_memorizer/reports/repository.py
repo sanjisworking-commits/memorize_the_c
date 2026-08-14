@@ -7,6 +7,8 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from psycopg.rows import dict_row
+
 
 @dataclass(frozen=True)
 class IssueReport:
@@ -20,16 +22,8 @@ class IssueReport:
 class PostgresIssueReportRepository:
     """Insert issue reports via parameterized SQL (no ORM)."""
 
-    def __init__(self, dsn: str) -> None:
-        import psycopg
-        from psycopg.rows import dict_row
-
-        self._dsn = dsn
-        self._psycopg = psycopg
-        self._dict_row = dict_row
-
-    def _connect(self):
-        return self._psycopg.connect(self._dsn, row_factory=self._dict_row)
+    def __init__(self, pool: Any) -> None:
+        self._pool = pool
 
     def create_report(
         self,
@@ -44,34 +38,36 @@ class PostgresIssueReportRepository:
         reporter_email: str | None,
         page_url: str,
     ) -> IssueReport:
-        with self._connect() as conn:
-            row = conn.execute(
-                """
-                INSERT INTO issue_reports (
-                    article_number,
-                    section,
-                    selected_text,
-                    issue_type,
-                    description,
-                    suggested_correction,
-                    source_url,
-                    reporter_email,
-                    page_url
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id, status, created_at
-                """,
-                (
-                    article_number,
-                    section,
-                    selected_text,
-                    issue_type,
-                    description,
-                    suggested_correction,
-                    source_url,
-                    reporter_email,
-                    page_url,
-                ),
-            ).fetchone()
+        with self._pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO issue_reports (
+                        article_number,
+                        section,
+                        selected_text,
+                        issue_type,
+                        description,
+                        suggested_correction,
+                        source_url,
+                        reporter_email,
+                        page_url
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id, status, created_at
+                    """,
+                    (
+                        article_number,
+                        section,
+                        selected_text,
+                        issue_type,
+                        description,
+                        suggested_correction,
+                        source_url,
+                        reporter_email,
+                        page_url,
+                    ),
+                )
+                row = cur.fetchone()
             conn.commit()
         if row is None:
             raise RuntimeError("issue_reports INSERT returned no row")

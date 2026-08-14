@@ -7,6 +7,8 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from psycopg.rows import dict_row
+
 
 @dataclass(frozen=True)
 class ContactMessage:
@@ -24,16 +26,8 @@ class ContactMessage:
 class PostgresContactMessageRepository:
     """Insert contact messages via parameterized SQL (no ORM)."""
 
-    def __init__(self, dsn: str) -> None:
-        import psycopg
-        from psycopg.rows import dict_row
-
-        self._dsn = dsn
-        self._psycopg = psycopg
-        self._dict_row = dict_row
-
-    def _connect(self):
-        return self._psycopg.connect(self._dsn, row_factory=self._dict_row)
+    def __init__(self, pool: Any) -> None:
+        self._pool = pool
 
     def create_message(
         self,
@@ -43,24 +37,26 @@ class PostgresContactMessageRepository:
         page_url: str | None,
         reporter_email: str | None,
     ) -> ContactMessage:
-        with self._connect() as conn:
-            row = conn.execute(
-                """
-                INSERT INTO contact_messages (
-                    topic,
-                    message,
-                    page_url,
-                    reporter_email
-                ) VALUES (%s, %s, %s, %s)
-                RETURNING id, status, created_at, topic, message, page_url, reporter_email
-                """,
-                (
-                    topic,
-                    message,
-                    page_url,
-                    reporter_email,
-                ),
-            ).fetchone()
+        with self._pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO contact_messages (
+                        topic,
+                        message,
+                        page_url,
+                        reporter_email
+                    ) VALUES (%s, %s, %s, %s)
+                    RETURNING id, status, created_at, topic, message, page_url, reporter_email
+                    """,
+                    (
+                        topic,
+                        message,
+                        page_url,
+                        reporter_email,
+                    ),
+                )
+                row = cur.fetchone()
             conn.commit()
         if row is None:
             raise RuntimeError("contact_messages INSERT returned no row")

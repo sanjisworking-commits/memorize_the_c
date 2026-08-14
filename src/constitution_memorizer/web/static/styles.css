@@ -3447,6 +3447,39 @@ html[data-theme="dark"] .memory-sheet-row:hover {
   color: var(--paper);
 }
 
+.settings-experience-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin: 0 0 18px;
+}
+
+.settings-experience-row .settings-theme {
+  margin: 0;
+}
+
+.settings-experience-label {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.settings-experience-note {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.settings-experience-row.is-os-reduced {
+  opacity: 0.45;
+}
+
+.settings-experience-row.is-os-reduced .settings-theme-btn {
+  pointer-events: none;
+}
+
 @media (max-width: 560px) {
   .site-footer {
     padding: 12px 16px;
@@ -5211,3 +5244,354 @@ html[data-theme="dark"] .rc-banner {
     width: 100%;
   }
 }
+
+/* ------------------------------------------------------------------
+   Restrained interaction layer (motion, affirmation, experience)
+   ------------------------------------------------------------------ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+.rtc-reveal,
+.rtc-fade-in,
+.rtc-stagger-item {
+  opacity: 1;
+  transform: none;
+}
+
+html.rtc-anim .rtc-reveal:not(.rtc-reveal--visible) {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+html.rtc-anim .rtc-reveal {
+  transition: opacity 240ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 240ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+html.rtc-anim .rtc-reveal--visible {
+  opacity: 1;
+  transform: none;
+}
+
+html.rtc-anim .learn-cloze-word.is-blank.is-revealed {
+  animation: rtc-fade-in 160ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+html.rtc-anim .learn-letters-text.is-full,
+html.rtc-anim .learn-recite-text:not(.is-blurred),
+html.rtc-anim .learn-card.is-flipped .learn-card-back {
+  animation: rtc-block-in 220ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+html.rtc-anim .bare-fn-tip,
+html.rtc-anim .bare-fn-nested-tip {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 180ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 180ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+html.rtc-anim .bare-fn.is-open .bare-fn-tip,
+html.rtc-anim .bare-fn.is-pinned .bare-fn-tip,
+html.rtc-anim .bare-fn:hover .bare-fn-tip,
+html.rtc-anim .bare-fn:focus .bare-fn-tip,
+html.rtc-anim .bare-fn:focus-within .bare-fn-tip,
+html.rtc-anim .bare-fn-nested-trigger.is-open + .bare-fn-nested-tip,
+html.rtc-anim .bare-fn-nested-tip.is-open {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes rtc-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes rtc-block-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rtc-hold-deplete {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.btn.is-rtc-saving {
+  opacity: 0.55;
+  transition: opacity 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn.is-rtc-saved {
+  border-color: var(--browse-due);
+  color: var(--browse-due);
+  background: var(--paper);
+  opacity: 1;
+  transition: border-color 140ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 140ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rtc-affirmation {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.rtc-affirmation-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 20, 18, 0.42);
+}
+
+html[data-theme="dark"] .rtc-affirmation-scrim {
+  background: rgba(8, 8, 7, 0.72);
+}
+
+.rtc-affirmation-card {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 100%);
+  margin: 0;
+  padding: 30px 36px 0;
+  border: 1px solid var(--ink);
+  border-top-width: 2px;
+  border-top-color: var(--browse-due);
+  background: var(--paper);
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.rtc-affirmation-eyebrow {
+  margin: 0 0 18px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--browse-due);
+}
+
+.rtc-affirmation-quote {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.28;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.rtc-affirmation-attr {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rtc-affirmation-ledger {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin: 28px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--hairline);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rtc-affirmation-actions {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding-bottom: 14px;
+}
+
+.rtc-affirmation-continue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink);
+}
+
+.rtc-affirmation-esc {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.rtc-affirmation-hold {
+  height: 1px;
+  margin: 0 -36px;
+  background: var(--hairline);
+  transform-origin: left center;
+}
+
+html[data-theme="dark"] .rtc-affirmation-hold {
+  background: #333;
+}
+
+html.rtc-anim .rtc-affirmation.is-open .rtc-affirmation-scrim {
+  animation: rtc-fade-in 200ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+html.rtc-anim .rtc-affirmation.is-open .rtc-affirmation-card {
+  animation: rtc-block-in 240ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+html.rtc-anim .rtc-affirmation.is-open .rtc-affirmation-eyebrow {
+  animation: rtc-block-in 200ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+html.rtc-anim .rtc-affirmation.is-open .rtc-affirmation-quote,
+html.rtc-anim .rtc-affirmation.is-open .rtc-affirmation-attr {
+  animation: rtc-fade-in 320ms cubic-bezier(0.2, 0, 0.2, 1) 70ms both;
+}
+
+html.rtc-anim .rtc-affirmation.is-open .rtc-affirmation-ledger {
+  animation: rtc-block-in 200ms cubic-bezier(0.2, 0, 0.2, 1) 260ms both;
+}
+
+html.rtc-anim .rtc-affirmation.is-holding .rtc-affirmation-hold {
+  animation: rtc-hold-deplete 6000ms linear forwards;
+}
+
+html.rtc-anim .rtc-affirmation.is-exiting .rtc-affirmation-scrim,
+html.rtc-anim .rtc-affirmation.is-exiting .rtc-affirmation-card {
+  animation: rtc-fade-in 200ms cubic-bezier(0.2, 0, 0.2, 1) reverse forwards;
+}
+
+.rtc-not-confirmed {
+  margin: 0 0 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+}
+
+.rtc-not-confirmed-eyebrow {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rtc-not-confirmed p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.rtc-not-confirmed .rtc-not-confirmed-reload {
+  margin: 12px 0 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+html.rtc-anim .rtc-not-confirmed {
+  animation: rtc-fade-in 200ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.caught-up-quote {
+  margin: 18px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-display);
+  font-size: 15.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+}
+
+.caught-up-quote-attr {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--faint);
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .rtc-affirmation {
+    padding: 20px;
+  }
+
+  .rtc-affirmation-card {
+    width: calc(100% - 0px);
+    padding: 22px 20px 0;
+  }
+
+  .rtc-affirmation-quote {
+    font-size: 20px;
+  }
+
+  .rtc-affirmation-attr {
+    font-size: 12px;
+  }
+
+  .rtc-affirmation-ledger {
+    flex-direction: column;
+  }
+
+  .rtc-affirmation-esc {
+    display: none;
+  }
+
+  .rtc-affirmation-actions {
+    padding-bottom: 14px;
+  }
+
+  .rtc-affirmation-hold {
+    margin: 0 -20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .rtc-reveal,
+  .rtc-fade-in,
+  .rtc-completion-enter,
+  .rtc-stagger-item,
+  .rtc-affirmation-scrim,
+  .rtc-affirmation-card,
+  .rtc-affirmation-eyebrow,
+  .rtc-affirmation-quote,
+  .rtc-affirmation-attr,
+  .rtc-affirmation-ledger,
+  .learn-cloze-word.is-revealed,
+  .learn-letters-text,
+  .learn-recite-text,
+  .learn-card-back,
+  .bare-fn-tip,
+  .bare-fn-nested-tip,
+  .rtc-not-confirmed {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+

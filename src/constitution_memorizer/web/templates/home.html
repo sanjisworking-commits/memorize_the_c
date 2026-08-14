@@ -2,6 +2,7 @@
 {% block title %}Home · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
 <section class="panel home">
+  {% include "_completion_banner.html" %}
   <p class="eyebrow">{{ today_label }}</p>
   <h1 class="display home-title">Today</h1>
   <p class="lede">{{ home_lede }}</p>
@@ -19,6 +20,10 @@
   <div class="caught-up-card">
     <p class="caught-up-title">All caught up</p>
     <p class="caught-up-detail">{{ caught_up_detail }}</p>
+    {% if caught_up_quote %}
+    <blockquote class="caught-up-quote">{{ caught_up_quote.text }}</blockquote>
+    <p class="caught-up-quote-attr">— {{ caught_up_quote.author }}</p>
+    {% endif %}
   </div>
   {% endif %}
 

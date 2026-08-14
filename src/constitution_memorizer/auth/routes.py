@@ -29,6 +29,7 @@ from constitution_memorizer.auth.sessions import (
     SESSION_COOKIE_NAME,
     new_csrf_token,
 )
+from constitution_memorizer.web.completion import build_completion, caught_up_quote
 
 logger = logging.getLogger(__name__)
 
@@ -392,6 +393,21 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             ctx = build_dashboard_context(eng, display_label=label)
             ctx["user"] = user
             ctx["dashboard_state"] = "ok"
+            done_id = request.query_params.get("done")
+            ctx["completion"] = build_completion(
+                eng=eng,
+                quotes=getattr(request.app.state, "quotes", []) or [],
+                done_id=done_id,
+                request=request,
+                is_guest=False,
+                continue_href="/dashboard",
+                continue_label=None,
+            )
+            ctx["caught_up_quote"] = (
+                caught_up_quote(getattr(request.app.state, "quotes", []) or [])
+                if ctx.get("due_count") == 0
+                else None
+            )
             return templates.TemplateResponse(request, "dashboard.html", ctx)
         except Exception:
             logger.exception("Dashboard data load failed for user %s", user.id)

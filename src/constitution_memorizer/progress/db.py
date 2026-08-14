@@ -382,10 +382,10 @@ def init_db(conn: sqlite3.Connection) -> None:
     if _legacy_schema(conn):
         _migrate_legacy(conn)
         return
-    conn.executescript(SCHEMA_SQL)
     conn.execute("PRAGMA foreign_keys = OFF")
     try:
         _repair_partial_legacy(conn)
+        conn.executescript(SCHEMA_SQL)
     finally:
         conn.execute("PRAGMA foreign_keys = ON")
     conn.commit()

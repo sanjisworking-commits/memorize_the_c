@@ -29,6 +29,7 @@ from constitution_memorizer.web.amendments import (
     ArticleAmendments,
     get_article_amendments,
 )
+from constitution_memorizer.web.explainers import has_visual_explainer
 from constitution_memorizer.web.progress_stats import path_units_for_article
 from constitution_memorizer.web.service import due_checklist
 
@@ -52,6 +53,43 @@ class ArticleBrowseView:
 
 
 @dataclass(frozen=True)
+class BrowseMarkSpec:
+    """One Browse mark type. Add a key here plus a colour token/class — not a filter branch."""
+
+    key: str
+    legend_label: str
+    aria_label: str
+    title: str
+
+
+BROWSE_MARKS: tuple[BrowseMarkSpec, ...] = (
+    BrowseMarkSpec(
+        key="news",
+        legend_label="In news",
+        aria_label="Show Articles in the news",
+        title="In news",
+    ),
+    BrowseMarkSpec(
+        key="visualise",
+        legend_label="Visualise",
+        aria_label="Show Articles with Visual Explainers",
+        title="Visual Explainer available",
+    ),
+)
+BROWSE_MARKS_BY_KEY: dict[str, BrowseMarkSpec] = {m.key: m for m in BROWSE_MARKS}
+
+
+def marks_for_article(number: str, *, in_news: bool) -> tuple[str, ...]:
+    """Ordered mark keys present on this Article (registry order)."""
+    keys: list[str] = []
+    if in_news:
+        keys.append("news")
+    if has_visual_explainer(number):
+        keys.append("visualise")
+    return tuple(keys)
+
+
+@dataclass(frozen=True)
 class BrowseArticleCard:
     article_number: str
     title: str
@@ -60,6 +98,7 @@ class BrowseArticleCard:
     due_count: int = 0
     due_kind: str | None = None  # "due" | "overdue"
     in_news: bool = False
+    marks: tuple[str, ...] = ()
 
 
 def parse_news_articles(raw: str | None) -> set[str]:
@@ -86,6 +125,18 @@ class BrowsePartSection:
     cards: list[BrowseArticleCard] = field(default_factory=list)
     chapters: list[BrowseChapterGroup] = field(default_factory=list)
     note: str | None = None
+
+
+def present_browse_marks(sections: list[BrowsePartSection]) -> list[BrowseMarkSpec]:
+    """Registry entries that appear on at least one card, in registry order."""
+    seen: set[str] = set()
+    for section in sections:
+        for card in section.cards:
+            seen.update(card.marks)
+        for chapter in section.chapters:
+            for card in chapter.cards:
+                seen.update(card.marks)
+    return [spec for spec in BROWSE_MARKS if spec.key in seen]
 
 
 @dataclass(frozen=True)
@@ -421,6 +472,7 @@ def browse_parts_from_units(
 
     def _card(number: str, title: str) -> BrowseArticleCard:
         summary = dues.get(number)
+        flagged = number in news_articles
         return BrowseArticleCard(
             article_number=number,
             title=title,
@@ -428,7 +480,8 @@ def browse_parts_from_units(
             tracked=_article_is_tracked(engine, number),
             due_count=summary.due_count if summary else 0,
             due_kind=summary.due_kind if summary else None,
-            in_news=number in news_articles,
+            in_news=flagged,
+            marks=marks_for_article(number, in_news=flagged),
         )
 
     sections: list[BrowsePartSection] = []
@@ -571,6 +624,7 @@ def browse_parts_sections(
 
     def _card(number: str, title: str) -> BrowseArticleCard:
         summary = dues.get(number)
+        flagged = number in news_articles
         return BrowseArticleCard(
             article_number=number,
             title=title,
@@ -578,7 +632,8 @@ def browse_parts_sections(
             tracked=_article_is_tracked(engine, number),
             due_count=summary.due_count if summary else 0,
             due_kind=summary.due_kind if summary else None,
-            in_news=number in news_articles,
+            in_news=flagged,
+            marks=marks_for_article(number, in_news=flagged),
         )
 
     sections: list[BrowsePartSection] = []

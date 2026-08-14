@@ -20,8 +20,10 @@ from constitution_memorizer.progress.scheduler import ModesIncompleteError, Remi
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
+    BROWSE_MARKS_BY_KEY,
     browse_due_total,
     browse_parts_sections,
+    present_browse_marks,
     build_article_view,
     list_article_numbers,
     load_reviewed_document,
@@ -189,6 +191,7 @@ def create_app(
         ],
     )
     templates.env.globals["visual_explainer"] = visual_explainer
+    templates.env.globals["browse_mark"] = BROWSE_MARKS_BY_KEY.get
 
     app = FastAPI(title="Recall the C", version="0.7.0")
     app.state.engine = engine
@@ -491,6 +494,7 @@ def create_app(
                 "sections": sections,
                 "has_reviewed": app.state.reviewed is not None,
                 "parts_source": parts_source,
+                "present_marks": present_browse_marks(sections),
             },
         )
 

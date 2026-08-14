@@ -147,3 +147,14 @@ def test_guest_cannot_complete(tmp_path: Path):
     html = client.get("/learn/clause-1").text
     assert 'data-guest-action="mastered"' in html
     assert "learn-action-done" not in html
+
+
+def test_completion_done_sound_asset_is_served(tmp_path: Path):
+    client = _client(tmp_path)
+    resp = client.get("/static/completion-done.mp3")
+    assert resp.status_code == 200
+    assert resp.content[:3] == b"ID3" or resp.content[:2] == b"\xff\xfb" or resp.content[:2] == b"\xff\xf3"
+    js = client.get("/static/app.js").text
+    assert "/static/completion-done.mp3" in js
+    html = client.get("/").text
+    assert "app.js?v=main9" in html

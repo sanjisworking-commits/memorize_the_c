@@ -3,7 +3,8 @@
   const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "recite", "card"]);
   const MOTION_KEY = "cm-motion";
   const SOUND_KEY = "cm-completion-sound";
-  let audioCtx = null;
+  const DONE_SOUND_SRC = "/static/completion-done.mp3";
+  let doneAudio = null;
 
   function prefersReducedMotion() {
     return Boolean(
@@ -1086,57 +1087,61 @@
     });
   }
 
+  function getDoneAudio() {
+    if (!doneAudio) {
+      doneAudio = new Audio(DONE_SOUND_SRC);
+      doneAudio.preload = "auto";
+    }
+    return doneAudio;
+  }
+
   function ensureAudio() {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) {
-      return null;
+    const audio = getDoneAudio();
+    // Unlock playback under the Done click; stay silent until persist confirms.
+    audio.muted = true;
+    const playing = audio.play();
+    if (playing && playing.then) {
+      playing
+        .then(function () {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = false;
+        })
+        .catch(function () {
+          audio.muted = false;
+        });
+    } else {
+      audio.muted = false;
     }
-    if (!audioCtx) {
-      audioCtx = new Ctx();
-    }
-    if (audioCtx.state === "suspended") {
-      audioCtx.resume();
-    }
-    return audioCtx;
+    return audio;
   }
 
   function playCompletionSound() {
     return new Promise(function (resolve) {
-      const ctx = ensureAudio();
-      if (!ctx) {
+      const audio = getDoneAudio();
+      let settled = false;
+      function finish() {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        audio.removeEventListener("ended", finish);
+        audio.removeEventListener("error", finish);
         resolve();
-        return;
       }
-      const now = ctx.currentTime;
-      const click = ctx.createOscillator();
-      const clickGain = ctx.createGain();
-      const clickFilter = ctx.createBiquadFilter();
-      click.type = "triangle";
-      click.frequency.value = 180;
-      clickFilter.type = "lowpass";
-      clickFilter.frequency.value = 420;
-      clickGain.gain.setValueAtTime(0.0001, now);
-      clickGain.gain.exponentialRampToValueAtTime(0.08, now + 0.008);
-      clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
-      click.connect(clickFilter);
-      clickFilter.connect(clickGain);
-      clickGain.connect(ctx.destination);
-      click.start(now);
-      click.stop(now + 0.07);
-
-      const bell = ctx.createOscillator();
-      const bellGain = ctx.createGain();
-      bell.type = "sine";
-      bell.frequency.setValueAtTime(528, now + 0.05);
-      bellGain.gain.setValueAtTime(0.0001, now + 0.05);
-      bellGain.gain.exponentialRampToValueAtTime(0.055, now + 0.09);
-      bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
-      bell.connect(bellGain);
-      bellGain.connect(ctx.destination);
-      bell.start(now + 0.05);
-      bell.stop(now + 0.45);
-
-      window.setTimeout(resolve, 420);
+      audio.muted = false;
+      try {
+        audio.currentTime = 0;
+      } catch (_e) {
+        /* ignore */
+      }
+      audio.addEventListener("ended", finish);
+      audio.addEventListener("error", finish);
+      const playing = audio.play();
+      if (playing && playing.catch) {
+        playing.catch(finish);
+      }
+      window.setTimeout(finish, 2300);
     });
   }
 
@@ -1314,8 +1319,9 @@
         const soundP = soundEnabled() ? playCompletionSound() : Promise.resolve();
         await wait(motionEnabled() ? 120 : 0);
         const modal = buildAffirmationEl(payload);
-        await presentAffirmation(modal, payload.next_url);
+        await presentAffirmation(modal, null);
         await soundP;
+        window.location.assign(cleanDoneParam(payload.next_url));
       } catch (_err) {
         showNotConfirmed(form.closest(".learn"));
         btn.classList.remove("is-rtc-saving");
@@ -1390,6 +1396,7 @@
 
   function bootInteraction() {
     syncRtcAnim();
+    getDoneAudio();
     initHeadingReveal();
     initDoneInterceptor();
     initServerAffirmation();

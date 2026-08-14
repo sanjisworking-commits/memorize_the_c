@@ -17,6 +17,31 @@
     <button type="button" class="settings-theme-btn" data-theme-set="light">Light</button>
   </div>
 
+  <h2 class="section-title">Experience</h2>
+  <p class="settings-note">Motion follows your system's reduced-motion setting first. Sound plays once, only when a review is saved.</p>
+
+  <div class="settings-experience-row" data-experience-row="motion">
+    <div class="settings-experience-copy">
+      <p class="settings-experience-label">Motion</p>
+      <p class="settings-experience-note" data-motion-note>Reveals and smooth scrolling.</p>
+    </div>
+    <div class="settings-theme" role="group" aria-label="Motion">
+      <button type="button" class="settings-theme-btn" data-motion-set="on">On</button>
+      <button type="button" class="settings-theme-btn" data-motion-set="off">Off</button>
+    </div>
+  </div>
+
+  <div class="settings-experience-row" data-experience-row="sound">
+    <div class="settings-experience-copy">
+      <p class="settings-experience-label">Completion sounds</p>
+      <p class="settings-experience-note">One quiet chime when a review is saved.</p>
+    </div>
+    <div class="settings-theme" role="group" aria-label="Completion sounds">
+      <button type="button" class="settings-theme-btn" data-sound-set="on">On</button>
+      <button type="button" class="settings-theme-btn" data-sound-set="off">Off</button>
+    </div>
+  </div>
+
   <form class="settings-form" method="post" action="/settings">
     <h2 class="section-title">Browse — In news</h2>
     <p class="settings-note">

@@ -301,7 +301,7 @@ def test_request_timing_logs_skip_health_and_static(
         multiuser_settings=_settings(DATABASE_URL="", MULTIUSER_ENABLED="false"),
     )
     with TestClient(app) as client:
-        with caplog.at_level(logging.INFO, logger="constitution_memorizer.web.app"):
+        with caplog.at_level(logging.INFO, logger="uvicorn.error"):
             caplog.clear()
             assert client.get("/health").status_code == 200
             assert _timing_messages(caplog) == []
@@ -324,7 +324,24 @@ def test_request_timing_logs_skip_health_and_static(
             assert "error=session" not in message
             assert "ada@" not in message
             assert "token" not in message.lower()
+            assert all(
+                record.name == "uvicorn.error"
+                for record in caplog.records
+                if "duration_ms" in record.getMessage()
+            )
     clear_settings_cache()
+
+
+def test_request_timing_uses_uvicorn_error_logger():
+    """Railway shows Uvicorn's logger; app-module INFO is not in access logs."""
+    from constitution_memorizer.web import app as web_app
+
+    assert web_app.timing_logger.name == "uvicorn.error"
+    source = inspect.getsource(web_app.create_app)
+    assert "timing_logger.info(" in source
+    assert 'logging.getLogger("uvicorn.error")' in Path(
+        web_app.__file__
+    ).read_text(encoding="utf-8")
 
 
 def test_pool_open_timeout_is_fifteen_seconds():

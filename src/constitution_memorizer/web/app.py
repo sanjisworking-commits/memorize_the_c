@@ -47,6 +47,7 @@ from constitution_memorizer.reports.turnstile import (
 from constitution_memorizer.utils.json_io import read_json
 
 logger = logging.getLogger(__name__)
+timing_logger = logging.getLogger("uvicorn.error")
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
     VALID_NOTIFICATION_FREQUENCIES,
@@ -491,7 +492,7 @@ def create_app(
         finally:
             if not skip:
                 duration_ms = (time.perf_counter() - started) * 1000.0
-                logger.info(
+                timing_logger.info(
                     "request method=%s path=%s status=%s duration_ms=%.1f",
                     request.method,
                     path,

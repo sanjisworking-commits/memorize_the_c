@@ -35,7 +35,7 @@ def test_learn_enables_cloze_tab_and_panel_markup(client: TestClient):
     assert 'data-cloze-density="light"' in html
     assert 'data-cloze-density="medium"' in html
     assert 'data-cloze-density="heavy"' in html
-    assert "app.js?v=main9" in html
+    assert "app.js?v=main16" in html
 
 
 def test_cloze_mode_query_param_renders_cloze_active(client: TestClient):
@@ -49,7 +49,7 @@ def test_cloze_mode_query_param_renders_cloze_active(client: TestClient):
 
 
 def test_cloze_css_drives_panel_visibility_and_blank_styles(client: TestClient):
-    css = client.get("/static/styles.css?v=main3")
+    css = client.get("/static/styles.css?v=main7")
     assert css.status_code == 200
     text = css.text
     assert '.learn[data-mode="cloze"] .learn-panel-cloze' in text
@@ -76,7 +76,7 @@ def test_cloze_shows_stem_for_subclause_unlike_card(client: TestClient):
     assert card.status_code == 200
     # Stem still in markup (shared), but CSS hides it for card mode.
     assert "learn-stem" in card.text
-    css = client.get("/static/styles.css?v=main3").text
+    css = client.get("/static/styles.css?v=main7").text
     assert '.learn[data-mode="card"] .learn-stem' in css
     assert "display: none" in css
 

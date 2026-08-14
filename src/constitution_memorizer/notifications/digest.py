@@ -20,7 +20,7 @@ def memory_due_entries(
         return []
     today = as_of or date.today()
     due: list[MemoryEntry] = []
-    for entry in memory.repo.list_all():
+    for entry in memory.list_all():
         if entry.status == "mastered":
             continue
         if entry.next_revision is None:

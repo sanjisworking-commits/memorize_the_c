@@ -10,11 +10,9 @@ from fastapi import Request
 
 from constitution_memorizer.learning.schemas import LearningUnit
 from constitution_memorizer.progress.scheduler import ReminderEngine
+from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
 from constitution_memorizer.web.quotes import get_quote_for
 from constitution_memorizer.web.service import needs_split_choice
-
-# Single-user quote seed (main has no per-request user id).
-LOCAL_QUOTE_USER = "local"
 
 
 def wants_json(request: Request) -> bool:
@@ -52,18 +50,11 @@ def next_learn_url(
 
 def _quote_user_id(request: Request | None) -> str:
     if request is None:
-        return LOCAL_QUOTE_USER
+        return str(LOCAL_USER_ID)
     user = getattr(request.state, "current_user", None)
     if user is not None and getattr(user, "id", None) is not None:
         return str(user.id)
-    return LOCAL_QUOTE_USER
-
-
-def _progress_row(eng: ReminderEngine, unit_id: str):
-    getter = getattr(eng, "get_progress", None)
-    if callable(getter):
-        return getter(unit_id)
-    return eng.repo.get_progress(unit_id)
+    return str(LOCAL_USER_ID)
 
 
 def _format_review_date(value: date) -> str:
@@ -94,7 +85,7 @@ def build_completion(
     unit = eng.get_unit(done_id)
     if unit is None:
         return None
-    progress = _progress_row(eng, done_id)
+    progress = eng.get_progress(done_id)
     if progress is None or progress.last_completed != today or progress.times_completed < 1:
         return None
     uid = _quote_user_id(request)

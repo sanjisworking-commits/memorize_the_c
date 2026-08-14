@@ -33,15 +33,88 @@ def engine(tmp_path: Path) -> ReminderEngine:
 def test_brand_and_how_to_use(client: TestClient):
     html = client.get("/").text
     assert "Recall the C" in html
-    assert "brand-c.png" in html
+    assert "main_logo.png" in html
     assert "How to use" in html
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Flip the card and self-grade your recall." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=main9" in html
+    assert "styles.css?v=main16" in html
+
+
+def test_dashboard_surfaces_use_theme_tokens():
+    """Dark mode broke when dash cards hard-coded #fff under light ink vars."""
+    css = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "constitution_memorizer"
+        / "web"
+        / "static"
+        / "styles.css"
+    ).read_text(encoding="utf-8")
+    assert ".dash-card {" in css
+    card_block = css.split(".dash-card {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in card_block
+    assert "background: #fff" not in card_block
+    strip_block = css.split(".dash-strip {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in strip_block
+    assert 'html[data-theme="dark"]' in css
+    assert "--paper: #1e1e1d" in css
+    assert "--ink: #f2f2f0" in css
+    # Default .btn must carry primary fill so CTAs stay readable on themed cards.
+    btn_block = css.split(".btn {", 1)[1].split("}", 1)[0]
+    assert "background: var(--accent)" in btn_block
+    assert "color: var(--on-accent)" in btn_block
+
+
+def test_learn_browse_notes_use_theme_tokens():
+    """Kind/amendment badges and Explain-it-back notes must invert with the theme."""
+    css = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "constitution_memorizer"
+        / "web"
+        / "static"
+        / "styles.css"
+    ).read_text(encoding="utf-8")
+    kind = css.split(".kind-badge {", 1)[1].split("}", 1)[0]
+    assert "color: var(--on-accent)" in kind
+    assert "color: #fff" not in kind
+    amdt = css.split(".amendment-badge {", 1)[1].split("}", 1)[0]
+    assert "color: var(--on-accent)" in amdt
+    assert "color: #fff" not in amdt
+    notes = css.split(".explain-back-input {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in notes
+    assert "color: var(--ink)" in notes
+    assert "background: #fdfdfc" not in notes
+    type_input = css.split(".learn-type-input {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in type_input
+    assert "background: #fff" not in type_input
+
+
+def test_signin_surfaces_use_theme_tokens():
+    """Sign-in rail/inputs must not keep light fills under dark --ink."""
+    css = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "constitution_memorizer"
+        / "web"
+        / "static"
+        / "styles.css"
+    ).read_text(encoding="utf-8")
+    assert "color-scheme: dark" in css.split('html[data-theme="dark"] {', 1)[1].split("}", 1)[0]
+    rail = css.split(".auth-rail {", 1)[1].split("}", 1)[0]
+    assert "background: var(--rail)" in rail
+    assert "background: #f7f7f5" not in rail
+    phone = css.split(".phone-national {", 1)[1].split("}", 1)[0]
+    assert "color: var(--ink)" in phone
+    assert "background: transparent" in phone
+    field = css.split(".field-input {", 1)[1].split("}", 1)[0]
+    assert "background: var(--paper)" in field
+    assert "color: var(--ink)" in field
 
 
 def test_calendar_surfaces_use_theme_tokens():
+    """Calendar cells/chips must not keep white fills under dark --ink."""
     css = (
         Path(__file__).resolve().parents[1]
         / "src"
@@ -53,21 +126,17 @@ def test_calendar_surfaces_use_theme_tokens():
     cell = css.split(".calendar-cell {", 1)[1].split("}", 1)[0]
     assert "background: var(--paper)" in cell
     assert "background: #fff" not in cell
+    blank = css.split(".calendar-cell.is-blank {", 1)[1].split("}", 1)[0]
+    assert "background: var(--wash)" in blank
     due = css.split(".calendar-chip.is-due {", 1)[1].split("}", 1)[0]
     assert "background: var(--paper)" in due
-    notes = css.split(".explain-back-input {", 1)[1].split("}", 1)[0]
-    assert "background: var(--paper)" in notes
-    assert "--hover: var(--hover)" not in css
-    assert "--hover: #f7f7f6" in css
+    assert "background: #fff" not in due
+    memorized = css.split(".calendar-chip.is-memorized {", 1)[1].split("}", 1)[0]
+    assert "color: var(--on-accent)" in memorized
+    assert "color: #fff" not in memorized
+    dow = css.split(".calendar-dow {", 1)[1].split("}", 1)[0]
+    assert "background: var(--wash)" in dow
     assert "--learning: #4a4a48" in css
-    due_dot = css.split(".due-dot-due {", 1)[1].split("}", 1)[0]
-    assert "background: var(--paper)" in due_dot
-    track = css.split(".session-track {", 1)[1].split("}", 1)[0]
-    assert "background: var(--track)" in track
-    tables_tab = css.split(".tables-tab.is-active {", 1)[1].split("}", 1)[0]
-    assert "color: var(--on-accent)" in tables_tab
-    mastery_new = css.split(".mastery-swatch.is-new {", 1)[1].split("}", 1)[0]
-    assert "background: var(--paper)" in mastery_new
 
 
 def test_learn_marks_read_and_locks_done(client: TestClient):

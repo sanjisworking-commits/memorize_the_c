@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 from pathlib import Path
 
@@ -10,13 +11,44 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from constitution_memorizer.auth.fake_provider import FakeAuthProvider
+from constitution_memorizer.auth.rate_limit import OtpRateLimiter
+from constitution_memorizer.auth.routes import create_auth_router, install_auth_middleware
+from constitution_memorizer.auth.sessions import InMemorySessionStore, PostgresSessionStore
+from constitution_memorizer.auth.exceptions import AuthConfigError
+from constitution_memorizer.multiuser.settings import MultiUserSettings
+from constitution_memorizer.learning.schemas import LearningUnitsDocument
 from constitution_memorizer.progress.memory import MemoryEngine
+from constitution_memorizer.progress.postgres_repository import PostgresProgressRepository
+from constitution_memorizer.reports.contact_notifier import ResendContactMessageNotifier
+from constitution_memorizer.reports.contact_repository import (
+    PostgresContactMessageRepository,
+)
+from constitution_memorizer.reports.contact_schemas import (
+    ContactMessageRequest,
+    ContactMessageResponse,
+)
+from constitution_memorizer.reports.notifier import ResendIssueReportNotifier
+from constitution_memorizer.reports.repository import PostgresIssueReportRepository
+from constitution_memorizer.reports.schemas import ReportIssueRequest, ReportIssueResponse
+from constitution_memorizer.reports.turnstile import (
+    TURNSTILE_CONTACT_ACTION,
+    TURNSTILE_REPORT_ACTION,
+    TurnstileRejectedError,
+    TurnstileUnavailableError,
+    TurnstileVerifier,
+)
+from constitution_memorizer.utils.json_io import read_json
+
+logger = logging.getLogger(__name__)
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
     VALID_NOTIFICATION_FREQUENCIES,
     VALID_THEMES,
 )
 from constitution_memorizer.progress.scheduler import ModesIncompleteError, ReminderEngine
+from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
+from constitution_memorizer.web.request_context import bound_engine, bound_memory
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
@@ -28,6 +60,7 @@ from constitution_memorizer.web.browse import (
     list_article_numbers,
     load_reviewed_document,
 )
+from constitution_memorizer.web.explainers import explainer_asset_path, visual_explainer
 from constitution_memorizer.web.calendar_view import build_calendar_month
 from constitution_memorizer.web.completion import (
     build_completion,
@@ -36,7 +69,6 @@ from constitution_memorizer.web.completion import (
     next_learn_url,
     wants_json,
 )
-from constitution_memorizer.web.explainers import explainer_asset_path, visual_explainer
 from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
 from constitution_memorizer.web.quotes import load_quotes
 from constitution_memorizer.web.judicial_evolution import (
@@ -122,6 +154,16 @@ def create_app(
     gloss_placeholders_path: Path | str | None = None,
     text_annotations_path: Path | str | None = None,
     judicial_evolution_path: Path | str | None = None,
+    multiuser: bool = False,
+    multiuser_settings: MultiUserSettings | None = None,
+    auth_provider=None,
+    session_store=None,
+    issue_report_repo=None,
+    issue_report_notifier=None,
+    issue_report_turnstile_verifier=None,
+    contact_message_repo=None,
+    contact_message_notifier=None,
+    progress_repo=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -159,13 +201,72 @@ def create_app(
             "Run: python -m constitution_memorizer.cli generate-units --force"
         )
 
+    settings = multiuser_settings or MultiUserSettings()
+    # Turnstile config is independent of multi-user auth startup validation.
+    settings.validate_issue_report_turnstile()
+    # Opt-in only via the multiuser= argument (CLI sets this from MULTIUSER_ENABLED).
+    # Do not infer from process env here — that leaks across pytest cases.
+    multiuser_on = bool(multiuser)
+    # Real Supabase credentials are required only when multi-user is on and
+    # the caller did not inject a test/fake auth provider.
+    if multiuser_on and auth_provider is None:
+        settings.validate_for_startup(require_secrets=True)
+        missing = settings.missing_supabase()
+        if missing:
+            raise AuthConfigError(
+                "Missing "
+                + ", ".join(missing)
+                + ". Add them to .env in the repo root, then restart. "
+                "SUPABASE_URL must be https://<project-ref>.supabase.co "
+                "(not https://supabase.com/dashboard/...)."
+            )
+
     resolved_db = Path(resolved_db).expanduser().resolve()
     resolved_units = Path(resolved_units).expanduser().resolve()
-    engine = ReminderEngine.from_paths(resolved_db, resolved_units)
-    memory = MemoryEngine(
-        engine.repo.conn,
-        resolved_db.parent / "memory_media",
-    )
+    database_url = (settings.database_url or "").strip()
+    use_postgres = multiuser_on and database_url.startswith("postgresql")
+    # Hosted multi-user must not silently fall back to SQLite.
+    if multiuser_on and settings.app_env in {"staging", "production"}:
+        if not database_url.startswith("postgresql"):
+            raise AuthConfigError(
+                "MULTIUSER_ENABLED=true in staging/production requires "
+                "DATABASE_URL to be a PostgreSQL URL "
+                "(postgresql://… or postgresql+…://…). "
+                f"Got: {database_url!r}"
+            )
+    memory_log_enabled = bool(settings.memory_log_enabled)
+    relevant_laws_enabled = bool(settings.relevant_laws_enabled)
+
+    if memory_log_enabled and use_postgres:
+        raise AuthConfigError(
+            "MEMORY_LOG_ENABLED=true is not supported with PostgreSQL yet."
+        )
+
+    units_doc = LearningUnitsDocument.model_validate(read_json(resolved_units))
+    catalog = {unit.id: unit for unit in units_doc.units}
+    if progress_repo is not None:
+        engine = ReminderEngine.from_repository(
+            progress_repo, catalog, user_id=LOCAL_USER_ID
+        )
+    elif use_postgres:
+        engine = ReminderEngine.from_repository(
+            PostgresProgressRepository(settings.database_url),
+            catalog,
+            user_id=LOCAL_USER_ID,
+        )
+    else:
+        engine = ReminderEngine.from_paths(
+            resolved_db, resolved_units, user_id=LOCAL_USER_ID
+        )
+
+    if memory_log_enabled:
+        memory = MemoryEngine(
+            engine.repo.conn,  # type: ignore[attr-defined]
+            resolved_db.parent / "memory_media",
+            user_id=LOCAL_USER_ID,
+        )
+    else:
+        memory = None
     reviewed = load_reviewed_document(
         resolved_reviewed if resolved_reviewed.exists() else None
     )
@@ -190,20 +291,62 @@ def create_app(
     )
     resolved_quotes = root / "data" / "reference" / "quotes.json"
     quotes = load_quotes(resolved_quotes if resolved_quotes.exists() else None)
+
+    def _theme_for_request(request: Request) -> str:
+        if getattr(request.state, "is_guest", False) and app.state.multiuser_enabled:
+            return "auto"
+        bound = getattr(request.state, "bound_engine", None) or app.state.engine
+        return bound.get_theme()
+
+    def _due_for_request(request: Request) -> int:
+        if getattr(request.state, "is_guest", False) or getattr(
+            request.state, "current_user", None
+        ) is None:
+            if app.state.multiuser_enabled:
+                return 0
+        bound = getattr(request.state, "bound_engine", None) or app.state.engine
+        return browse_due_total(bound)
+
     templates = Jinja2Templates(
         directory=str(TEMPLATES_DIR),
         context_processors=[
             lambda request: {
                 "app_name": "Recall the C",
-                "theme_preference": app.state.engine.get_theme(),
-                "browse_due_total": browse_due_total(app.state.engine),
+                "theme_preference": _theme_for_request(request),
+                "browse_due_total": _due_for_request(request),
+                "current_user": getattr(request.state, "current_user", None),
+                "is_guest": bool(
+                    app.state.multiuser_enabled
+                    and getattr(request.state, "current_user", None) is None
+                ),
+                "multiuser_enabled": app.state.multiuser_enabled,
+                "memory_log_enabled": memory_log_enabled,
+                "relevant_laws_enabled": relevant_laws_enabled,
+                # Guests cannot submit Contact Us / Report Issue — do not expose
+                # Turnstile site key or load the client script for them.
+                "report_turnstile_enabled": bool(
+                    settings.report_turnstile_enabled
+                    and getattr(request.state, "current_user", None) is not None
+                ),
+                "report_turnstile_site_key": (
+                    (settings.report_turnstile_site_key or "").strip()
+                    if (
+                        settings.report_turnstile_enabled
+                        and getattr(request.state, "current_user", None) is not None
+                    )
+                    else ""
+                ),
+                "csrf_token": (
+                    getattr(getattr(request.state, "auth_session", None), "csrf_token", None)
+                    or request.cookies.get("rtc_csrf")
+                ),
             }
         ],
     )
     templates.env.globals["visual_explainer"] = visual_explainer
     templates.env.globals["browse_mark"] = BROWSE_MARKS_BY_KEY.get
 
-    app = FastAPI(title="Recall the C", version="0.7.0")
+    app = FastAPI(title="Recall the C", version="0.8.0")
     app.state.engine = engine
     app.state.memory = memory
     app.state.reviewed = reviewed
@@ -215,13 +358,114 @@ def create_app(
     app.state.units_path = resolved_units
     app.state.db_path = resolved_db
     app.state.reviewed_path = resolved_reviewed
+    app.state.multiuser_enabled = multiuser_on
+    app.state.multiuser_settings = settings
+    app.state.memory_log_enabled = memory_log_enabled
+    app.state.relevant_laws_enabled = relevant_laws_enabled
+    app.state.use_postgres_progress = use_postgres
+    app.state.oauth_states = {}
+    app.state.otp_limiter = OtpRateLimiter()
+    if auth_provider is not None:
+        app.state.auth_provider = auth_provider
+    elif multiuser_on:
+        from constitution_memorizer.auth.supabase_provider import SupabaseAuthProvider
+
+        app.state.auth_provider = SupabaseAuthProvider(
+            supabase_url=settings.supabase_url.strip(),
+            anon_key=settings.supabase_anon_key.strip(),
+        )
+    else:
+        app.state.auth_provider = FakeAuthProvider()
+    if session_store is not None:
+        app.state.session_store = session_store
+    elif multiuser_on and settings.database_url.startswith("postgresql"):
+        app.state.session_store = PostgresSessionStore(settings.database_url)
+    else:
+        app.state.session_store = InMemorySessionStore()
+
+    if issue_report_repo is not None:
+        app.state.issue_report_repo = issue_report_repo
+    elif settings.database_url.startswith("postgresql"):
+        app.state.issue_report_repo = PostgresIssueReportRepository(
+            settings.database_url
+        )
+    else:
+        app.state.issue_report_repo = None
+
+    if issue_report_notifier is not None:
+        app.state.issue_report_notifier = issue_report_notifier
+    elif settings.issue_report_notify_configured():
+        app.state.issue_report_notifier = ResendIssueReportNotifier(
+            settings.resend_api_key,
+            settings.report_email_from,
+            settings.report_email_to,
+        )
+    else:
+        app.state.issue_report_notifier = None
+
+    # Injection alone does not enable Turnstile; REPORT_TURNSTILE_ENABLED is source of truth.
+    if issue_report_turnstile_verifier is not None:
+        app.state.issue_report_turnstile_verifier = issue_report_turnstile_verifier
+    elif settings.issue_report_turnstile_configured():
+        app.state.issue_report_turnstile_verifier = TurnstileVerifier(
+            settings.report_turnstile_secret_key,
+        )
+    else:
+        app.state.issue_report_turnstile_verifier = None
+
+    if contact_message_repo is not None:
+        app.state.contact_message_repo = contact_message_repo
+    elif settings.database_url.startswith("postgresql"):
+        app.state.contact_message_repo = PostgresContactMessageRepository(
+            settings.database_url
+        )
+    else:
+        app.state.contact_message_repo = None
+
+    if contact_message_notifier is not None:
+        app.state.contact_message_notifier = contact_message_notifier
+    elif settings.issue_report_notify_configured():
+        app.state.contact_message_notifier = ResendContactMessageNotifier(
+            settings.resend_api_key,
+            settings.report_email_from,
+            settings.report_email_to,
+        )
+    else:
+        app.state.contact_message_notifier = None
+
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    install_auth_middleware(app)
+
+    @app.middleware("http")
+    async def feature_flag_gate(request: Request, call_next):
+        """404 disabled Memory/Laws prefixes before auth can redirect guests."""
+        path = request.url.path
+        if not app.state.memory_log_enabled and (
+            path == "/memory" or path.startswith("/memory/")
+        ):
+            return HTMLResponse("Not Found", status_code=404)
+        if not app.state.relevant_laws_enabled and (
+            path == "/laws" or path.startswith("/laws/")
+        ):
+            return HTMLResponse("Not Found", status_code=404)
+        return await call_next(request)
+
+    app.include_router(create_auth_router(templates))
 
     def _engine() -> ReminderEngine:
+        bound = bound_engine.get()
+        if bound is not None:
+            return bound
         return app.state.engine
 
     def _memory() -> MemoryEngine:
-        return app.state.memory
+        bound = bound_memory.get()
+        if bound is not None:
+            return bound
+        memory = app.state.memory
+        if memory is None:
+            raise HTTPException(status_code=404, detail="Not Found")
+        return memory
 
     def _modes_payload(unit_id: str, seen: set[str] | None = None) -> dict[str, object]:
         current = seen if seen is not None else _engine().modes_seen(unit_id)
@@ -234,6 +478,15 @@ def create_app(
         }
     @app.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:
+        if app.state.multiuser_enabled:
+            if getattr(request.state, "current_user", None) is None:
+                return templates.TemplateResponse(
+                    request,
+                    "landing.html",
+                    {},
+                )
+            # Authenticated home is the dashboard.
+            return RedirectResponse(url="/dashboard", status_code=303)
         eng = _engine()
         today = date.today()
         due = due_checklist(eng, as_of=today)
@@ -260,6 +513,25 @@ def create_app(
             ]
             continue_meta = " · ".join(bits)
 
+        is_guest_home = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        done_id = request.query_params.get("done")
+        completion = build_completion(
+            eng=eng,
+            quotes=app.state.quotes,
+            done_id=done_id,
+            request=request,
+            is_guest=is_guest_home,
+            today=today,
+            continue_href="/",
+            continue_label=None,
+        )
+        home_quote = (
+            caught_up_quote(app.state.quotes, today) if all_caught_up else None
+        )
+
         return templates.TemplateResponse(
             request,
             "home.html",
@@ -281,18 +553,8 @@ def create_app(
                 ),
                 "all_caught_up": all_caught_up,
                 "caught_up_detail": caught_up_detail,
-                "caught_up_quote": (
-                    caught_up_quote(app.state.quotes, today) if all_caught_up else None
-                ),
-                "completion": build_completion(
-                    eng=eng,
-                    quotes=app.state.quotes,
-                    done_id=request.query_params.get("done"),
-                    request=request,
-                    today=today,
-                    continue_href="/",
-                    continue_label=None,
-                ),
+                "caught_up_quote": home_quote,
+                "completion": completion,
                 "stat_line": (
                     f"{stats['review']} in review · "
                     f"{stats['mastered']} mastered · "
@@ -301,6 +563,25 @@ def create_app(
                 "unit_type_label": unit_type_label,
             },
         )
+
+    @app.get("/learn", response_class=HTMLResponse)
+    async def learn_index(request: Request) -> RedirectResponse:
+        eng = _engine()
+        today = date.today()
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        if not is_guest:
+            due = eng.due_today(as_of=today)
+            if due:
+                return RedirectResponse(
+                    url=f"/learn/{due[0].learning_unit_id}", status_code=303
+                )
+            cont = continue_unit_id(eng, as_of=today)
+            if cont:
+                return RedirectResponse(url=f"/learn/{cont}", status_code=303)
+        return RedirectResponse(url="/browse", status_code=303)
 
     @app.get("/learn/{unit_id}", response_class=HTMLResponse)
     async def learn(
@@ -314,14 +595,19 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
         learn_mode = mode if mode in {"read", "cloze", "letters", "type", "recite", "card"} else "read"
+        is_guest_early = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
 
-        if needs_split_choice(eng, unit):
+        # Guests skip split preference (no personal data); show the clause as-is.
+        if not is_guest_early and needs_split_choice(eng, unit):
             return RedirectResponse(
                 url=f"/learn/{unit_id}/choose",
                 status_code=303,
             )
 
-        target_id = resolve_learn_target(eng, unit_id)
+        target_id = unit_id if is_guest_early else resolve_learn_target(eng, unit_id)
         if target_id != unit_id:
             suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
             return RedirectResponse(
@@ -333,14 +619,29 @@ def create_app(
         if target is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
-        # Opening a unit marks the active mode (units open in Read by default).
-        seen = eng.mark_mode_seen(target.id, learn_mode)
-        done_state = done_button_state(target, seen)
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        # Guests may try modes without writing progress.
+        if is_guest:
+            seen: set[str] = {learn_mode}
+            progress = None
+            done_count, chain_len = 0, 1
+            pct = 0
+            # Guests can click Done/Again to open the sign-in prompt.
+            done_unlocked = True
+            done_label = "Mark as mastered"
+        else:
+            seen = eng.mark_mode_seen(target.id, learn_mode)
+            progress = eng.get_progress(target.id)
+            done_count, _position, chain_len = session_progress(eng, target)
+            pct = int(round(100 * done_count / chain_len)) if chain_len else 0
+            done_state = done_button_state(target, seen)
+            done_unlocked = done_state["unlocked"]
+            done_label = done_state["label"]
         modes_payload = _modes_payload(target.id, seen)
 
-        progress = eng.repo.get_progress(target.id)
-        done_count, _position, chain_len = session_progress(eng, target)
-        pct = int(round(100 * done_count / chain_len)) if chain_len else 0
         chips = sibling_chips(eng, target)
         stem = subclause_stem_text(eng, target)
         rail_kind = (
@@ -366,6 +667,7 @@ def create_app(
             quotes=app.state.quotes,
             done_id=done_id,
             request=request,
+            is_guest=is_guest,
             continue_href=f"/learn/{target.id}{mode_suffix}",
             continue_label=target.display_title,
         )
@@ -382,9 +684,9 @@ def create_app(
                 "sibling_chips": chips,
                 "rail_kind": rail_kind,
                 "stem_text": stem,
-                "learn_meta": learn_meta_line(target, progress),
-                "done_label": done_state["label"],
-                "done_unlocked": done_state["unlocked"],
+                "learn_meta": learn_meta_line(target, progress) if progress else "Guest try",
+                "done_label": done_label,
+                "done_unlocked": done_unlocked,
                 "modes_seen": seen,
                 "modes_tracker": modes_payload["tracker"],
                 "mode_labels": LEARN_MODE_LABELS,
@@ -393,6 +695,7 @@ def create_app(
                 "amend_note": amend_note,
                 "annotated_text": annotated_text,
                 "has_text_annotations": bool(unit_anns),
+                "is_guest": is_guest,
                 "completion": completion,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
@@ -423,6 +726,14 @@ def create_app(
         unit = eng.get_unit(unit_id)
         if unit is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        if is_guest:
+            if wants_json(request):
+                return JSONResponse({"ok": False, "error": "sign_in_required"}, status_code=401)
+            return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
         try:
             result = eng.mark_done(unit_id, as_of=date.today())
         except ModesIncompleteError:
@@ -440,7 +751,7 @@ def create_app(
                     unit=unit,
                     result=result,
                     request=request,
-                    multiuser=False,
+                    multiuser=app.state.multiuser_enabled,
                 )
             )
         return _redirect_after_learn(
@@ -466,7 +777,7 @@ def create_app(
             eng,
             next_unit_id,
             done_unit_id=done_unit_id,
-            multiuser=False,
+            multiuser=app.state.multiuser_enabled,
         )
         return RedirectResponse(url=url, status_code=303)
 
@@ -483,11 +794,16 @@ def create_app(
             target = eng.next_to_learn_from_clause(clause_id) or clause_id
             return RedirectResponse(url=f"/learn/{target}", status_code=303)
         done_id = request.query_params.get("done")
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
         completion = build_completion(
             eng=eng,
             quotes=app.state.quotes,
             done_id=done_id,
             request=request,
+            is_guest=is_guest,
             continue_href=f"/learn/{clause_id}/choose",
             continue_label=unit.display_title,
         )
@@ -522,11 +838,7 @@ def create_app(
         eng = _engine()
         if eng.get_unit(unit_id) is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
-        eng.repo.conn.execute(
-            "DELETE FROM learning_unit_progress WHERE learning_unit_id = ?",
-            (unit_id,),
-        )
-        eng.repo.conn.commit()
+        eng.delete_progress(unit_id)
         eng.clear_modes_seen(unit_id)
         learn_mode = mode if mode in LEARN_MODES else "read"
         # Re-seed the currently open mode on the next GET; redirect preserves mode.
@@ -535,12 +847,9 @@ def create_app(
 
     @app.post("/reset")
     async def reset_all() -> RedirectResponse:
-        """Clear all progress and preferences (study reset)."""
+        """Clear this user's progress and preferences (study reset)."""
         eng = _engine()
-        eng.repo.conn.execute("DELETE FROM learning_unit_progress")
-        eng.repo.conn.execute("DELETE FROM split_preference")
-        eng.repo.conn.commit()
-        eng.repo.clear_all_modes_seen()
+        eng.reset_all_personal_data()
         return RedirectResponse(url="/", status_code=303)
 
     @app.get("/browse", response_class=HTMLResponse)
@@ -573,7 +882,7 @@ def create_app(
         prev_number, next_number = adjacent_article_numbers(
             eng, app.state.reviewed, view.article_number
         )
-        gloss_text = eng.repo.get_gloss(view.article_number) or ""
+        gloss_text = eng.get_gloss(view.article_number) or ""
         gloss_ph = gloss_placeholder_for(
             app.state.gloss_placeholders, view.article_number
         )
@@ -628,16 +937,16 @@ def create_app(
         text = str(payload.get("text", "")) if isinstance(payload, dict) else ""
         trimmed = text.strip()
         if not trimmed:
-            eng.repo.delete_gloss(article_number)
+            eng.delete_gloss(article_number)
             return JSONResponse({"ok": True, "text": "", "words": 0})
-        eng.repo.upsert_gloss(article_number, text)
+        eng.upsert_gloss(article_number, text)
         words = len(trimmed.split())
         return JSONResponse({"ok": True, "text": text, "words": words})
 
     @app.delete("/browse/article/{article_number}/gloss")
     async def delete_article_gloss(article_number: str) -> JSONResponse:
         eng = _engine()
-        eng.repo.delete_gloss(article_number)
+        eng.delete_gloss(article_number)
         return JSONResponse({"ok": True, "text": "", "words": 0})
 
     @app.get("/search", response_class=HTMLResponse)
@@ -680,6 +989,12 @@ def create_app(
 
     @app.get("/progress", response_class=HTMLResponse)
     async def progress_page(request: Request) -> HTMLResponse:
+        if app.state.multiuser_enabled and getattr(request.state, "current_user", None) is None:
+            return templates.TemplateResponse(
+                request,
+                "guest_gate.html",
+                {"gate_kind": "progress", "reason": "default"},
+            )
         dashboard = progress_dashboard(
             _engine(),
             reviewed=app.state.reviewed,
@@ -753,7 +1068,7 @@ def create_app(
             calendar = build_memory_month(_memory(), year=y, month=m, today=today)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        entries = _memory().repo.list_all()
+        entries = _memory().list_all()
         photo_ids = {
             entry.id for entry in entries if _memory().photo_file(entry.id) is not None
         }
@@ -775,7 +1090,7 @@ def create_app(
         cleaned = title.strip()
         if not cleaned:
             raise HTTPException(status_code=400, detail="Title required")
-        entry = _memory().repo.create(title=cleaned, acronym=acronym.strip())
+        entry = _memory().create(title=cleaned, acronym=acronym.strip())
         return RedirectResponse(url=f"/memory/{entry.id}", status_code=303)
 
     @app.get("/memory/media/{entry_id}")
@@ -788,7 +1103,7 @@ def create_app(
 
     @app.get("/memory/{entry_id}", response_class=HTMLResponse)
     async def memory_detail_page(request: Request, entry_id: str) -> HTMLResponse:
-        entry = _memory().repo.get(entry_id)
+        entry = _memory().get(entry_id)
         if entry is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
         photo_path = _memory().photo_file(entry_id)
@@ -807,16 +1122,16 @@ def create_app(
         entry_id: str,
         notes: str = Form(""),
     ) -> RedirectResponse:
-        if _memory().repo.get(entry_id) is None:
+        if _memory().get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
-        _memory().repo.update_notes(entry_id, notes)
+        _memory().update_notes(entry_id, notes)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.post("/memory/{entry_id}/done")
     async def memory_done(entry_id: str) -> RedirectResponse:
-        if _memory().repo.get(entry_id) is None:
+        if _memory().get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
-        _memory().repo.mark_done(entry_id)
+        _memory().mark_done(entry_id)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.post("/memory/{entry_id}/photo")
@@ -825,7 +1140,7 @@ def create_app(
         photo: UploadFile = File(...),
     ) -> RedirectResponse:
         mem = _memory()
-        if mem.repo.get(entry_id) is None:
+        if mem.get(entry_id) is None:
             raise HTTPException(status_code=404, detail="Memory entry not found")
         content = await photo.read()
         if not content:
@@ -834,16 +1149,20 @@ def create_app(
         suffix, _media_type = _sniff_photo(content, filename)
         if suffix not in _ALLOWED_PHOTO_SUFFIXES:
             raise HTTPException(status_code=400, detail="Unsupported image type")
+        user_dir = mem.user_media_dir()
         # Remove any prior file for this entry (extension may change after sniff).
-        for old in mem.media_dir.glob(f"{entry_id}.*"):
+        for old in user_dir.glob(f"{entry_id}.*"):
             try:
                 old.unlink()
             except OSError:
                 pass
         dest_name = f"{entry_id}{suffix}"
-        dest = mem.media_dir / dest_name
+        dest = user_dir / dest_name
         dest.write_bytes(content)
-        mem.repo.set_photo(entry_id, dest_name)
+        from constitution_memorizer.progress.user_ids import as_user_id
+
+        storage_key = f"{as_user_id(mem.user_id)}/{dest_name}"
+        mem.set_photo(entry_id, storage_key)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
     @app.get("/settings", response_class=HTMLResponse)
@@ -875,8 +1194,12 @@ def create_app(
         return RedirectResponse(url="/settings?saved=1", status_code=303)
 
     @app.get("/api/explainers/{article_id}")
-    async def explainer_svg(article_id: str) -> FileResponse:
-        """Serve a registered Visual Explainer SVG."""
+    async def explainer_svg(request: Request, article_id: str) -> FileResponse:
+        """Serve a registered Visual Explainer SVG (signed-in when multi-user)."""
+        if app.state.multiuser_enabled and getattr(
+            request.state, "current_user", None
+        ) is None:
+            raise HTTPException(status_code=403, detail="Sign in required")
         asset = explainer_asset_path(article_id)
         if asset is None:
             raise HTTPException(status_code=404, detail="Explainer not found")
@@ -888,5 +1211,216 @@ def create_app(
             raise HTTPException(status_code=400, detail="Invalid theme")
         _engine().set_theme(theme)  # type: ignore[arg-type]
         return JSONResponse({"theme": theme})
+
+    @app.post(
+        "/api/report-issue",
+        response_model=ReportIssueResponse,
+        status_code=201,
+    )
+    async def report_issue(
+        request: Request, payload: ReportIssueRequest
+    ) -> ReportIssueResponse:
+        """Accept a signed-in issue report and insert into PostgreSQL."""
+        user = getattr(request.state, "current_user", None)
+        if app.state.multiuser_enabled and user is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Sign in to report an issue.",
+            )
+        # Never trust browser-supplied reporter_email; derive from session.
+        session_email = None
+        if user is not None:
+            session_email = (user.email or "").strip() or None
+        payload = payload.model_copy(update={"reporter_email": session_email})
+
+        # REPORT_TURNSTILE_ENABLED is the source of truth (not verifier presence).
+        if settings.report_turnstile_enabled:
+            verifier = getattr(app.state, "issue_report_turnstile_verifier", None)
+            if verifier is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                )
+            if not payload.turnstile_token:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Verification required. Please try again.",
+                )
+            try:
+                # Staging/production: also enforce action + hostname.
+                # Development/test: require success:true only (dummy keys return action=test).
+                if settings.app_env in {"staging", "production"}:
+                    await verifier.verify(
+                        payload.turnstile_token,
+                        expected_action=TURNSTILE_REPORT_ACTION,
+                        allowed_hostnames=(
+                            settings.issue_report_turnstile_allowed_hostnames()
+                        ),
+                    )
+                else:
+                    await verifier.verify(
+                        payload.turnstile_token,
+                        expected_action=None,
+                        allowed_hostnames=None,
+                    )
+            except TurnstileRejectedError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Verification failed. Please try again.",
+                ) from None
+            except TurnstileUnavailableError:
+                logger.exception("Turnstile Siteverify unavailable")
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                ) from None
+            except Exception:
+                logger.exception("Unexpected Turnstile verification error")
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                ) from None
+
+        repo = getattr(app.state, "issue_report_repo", None)
+        if repo is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to submit report right now.",
+            )
+        try:
+            report = repo.create_report(
+                article_number=payload.article_number,
+                section=payload.section,
+                selected_text=payload.selected_text,
+                issue_type=payload.issue_type,
+                description=payload.description,
+                suggested_correction=payload.suggested_correction,
+                source_url=payload.source_url,
+                reporter_email=payload.reporter_email,
+                page_url=payload.page_url,
+            )
+        except Exception:
+            logger.exception("Failed to insert issue_reports row")
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to submit report right now.",
+            ) from None
+
+        notifier = getattr(app.state, "issue_report_notifier", None)
+        if notifier is not None:
+            try:
+                await notifier.send(report=report, payload=payload)
+            except Exception:
+                logger.exception(
+                    "Failed to send issue report email for report_id=%s",
+                    report.id,
+                )
+
+        return ReportIssueResponse(
+            success=True,
+            report_id=report.id,
+            status=report.status,
+        )
+
+    @app.post(
+        "/api/contact",
+        response_model=ContactMessageResponse,
+        status_code=201,
+    )
+    async def contact_message(
+        request: Request, payload: ContactMessageRequest
+    ) -> ContactMessageResponse:
+        """Accept a signed-in Contact Us message and insert into PostgreSQL."""
+        user = getattr(request.state, "current_user", None)
+        if app.state.multiuser_enabled and user is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Sign in to contact us.",
+            )
+        session_email = None
+        if user is not None:
+            session_email = (user.email or "").strip() or None
+        payload = payload.model_copy(update={"reporter_email": session_email})
+
+        if settings.report_turnstile_enabled:
+            verifier = getattr(app.state, "issue_report_turnstile_verifier", None)
+            if verifier is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                )
+            if not payload.turnstile_token:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Verification required. Please try again.",
+                )
+            try:
+                if settings.app_env in {"staging", "production"}:
+                    await verifier.verify(
+                        payload.turnstile_token,
+                        expected_action=TURNSTILE_CONTACT_ACTION,
+                        allowed_hostnames=(
+                            settings.issue_report_turnstile_allowed_hostnames()
+                        ),
+                    )
+                else:
+                    await verifier.verify(
+                        payload.turnstile_token,
+                        expected_action=None,
+                        allowed_hostnames=None,
+                    )
+            except TurnstileRejectedError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Verification failed. Please try again.",
+                ) from None
+            except TurnstileUnavailableError:
+                logger.exception("Turnstile Siteverify unavailable")
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                ) from None
+            except Exception:
+                logger.exception("Unexpected Turnstile verification error")
+                raise HTTPException(
+                    status_code=503,
+                    detail="Verification temporarily unavailable. Please try again.",
+                ) from None
+
+        repo = getattr(app.state, "contact_message_repo", None)
+        if repo is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to send message right now.",
+            )
+        try:
+            message = repo.create_message(
+                topic=payload.topic,
+                message=payload.message,
+                page_url=payload.page_url,
+                reporter_email=payload.reporter_email,
+            )
+        except Exception:
+            logger.exception("Failed to insert contact_messages row")
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to send message right now.",
+            ) from None
+
+        notifier = getattr(app.state, "contact_message_notifier", None)
+        if notifier is not None:
+            try:
+                await notifier.send(message=message, payload=payload)
+            except Exception:
+                logger.exception(
+                    "Failed to send contact message email for message_id=%s",
+                    message.id,
+                )
+
+        return ContactMessageResponse(
+            success=True,
+            message_id=message.id,
+            status=message.status,
+        )
 
     return app

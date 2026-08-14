@@ -1,0 +1,156 @@
+{# Shared Report Issue / Contact Us dialog chrome. #}
+<div
+  class="rc-overlay"
+  hidden
+  data-report-overlay
+  data-turnstile-enabled="{{ 'true' if report_turnstile_enabled|default(false) else 'false' }}"
+  data-turnstile-sitekey="{{ report_turnstile_site_key|default('') }}"
+>
+  <div class="rc-dialog" role="dialog" aria-modal="true" aria-labelledby="rc-title">
+    <div class="rc-grabber" aria-hidden="true"></div>
+
+    <form class="rc-form" data-report-form novalidate>
+      <div class="rc-head">
+        <div>
+          <h2 class="rc-title" id="rc-title">Report an issue</h2>
+          <p class="rc-lede" data-rc-lede>Found something incorrect, outdated or unclear? Send it for review.</p>
+        </div>
+        <button type="button" class="rc-close" aria-label="Close" data-rc-close>×</button>
+      </div>
+
+      <div class="rc-body" data-rc-body>
+        <div class="rc-banner" hidden data-rc-banner role="alert">
+          <span class="rc-banner-mark" aria-hidden="true">!</span>
+          <span data-rc-banner-text></span>
+        </div>
+
+        <div class="rc-form-view" data-rc-form-view>
+          <div class="rc-chips" data-rc-chips>
+            <span class="rc-chip rc-chip-article" data-rc-chip-article></span>
+            <span class="rc-chip rc-chip-section" hidden data-rc-chip-section>Browse Article</span>
+          </div>
+
+          <div class="rc-field" hidden data-rc-selected-wrap>
+            <label class="rc-label" for="rc-selected-text">Selected text</label>
+            <textarea
+              id="rc-selected-text"
+              class="rc-input rc-selected"
+              name="selected_text"
+              rows="2"
+              maxlength="4000"
+              data-rc-selected
+            ></textarea>
+          </div>
+
+          <div class="rc-field" data-rc-report-fields>
+            <label class="rc-label" for="rc-issue-type">Issue type</label>
+            <select id="rc-issue-type" class="rc-input" name="issue_type" data-rc-issue-type>
+              <option value="">Select an issue type…</option>
+              <option value="incorrect_fact">Incorrect fact</option>
+              <option value="outdated_information">Outdated information</option>
+              <option value="interpretation_issue">Interpretation / explanation issue</option>
+              <option value="typo">Typo</option>
+              <option value="source_issue">Source / link issue</option>
+              <option value="other">Other</option>
+            </select>
+            <p class="rc-field-error" hidden data-rc-error-for="issue_type"></p>
+          </div>
+
+          <div class="rc-field" hidden data-rc-contact-fields>
+            <fieldset class="rc-fieldset">
+              <legend class="rc-label">What would you like to contact us about?</legend>
+              <label class="rc-radio"><input type="radio" name="contact_topic" value="technical_issue" data-rc-topic> Technical issue</label>
+              <label class="rc-radio"><input type="radio" name="contact_topic" value="general_feedback" data-rc-topic> General feedback</label>
+              <label class="rc-radio"><input type="radio" name="contact_topic" value="feature_suggestion" data-rc-topic> Feature suggestion</label>
+              <label class="rc-radio"><input type="radio" name="contact_topic" value="other" data-rc-topic> Other</label>
+            </fieldset>
+            <p class="rc-field-error" hidden data-rc-error-for="topic"></p>
+          </div>
+
+          <div class="rc-field" data-rc-description-field>
+            <label class="rc-label" for="rc-description" data-rc-description-label>What seems wrong?</label>
+            <textarea
+              id="rc-description"
+              class="rc-input"
+              name="description"
+              rows="4"
+              maxlength="8000"
+              placeholder="Explain what appears incorrect or unclear…"
+              data-rc-description
+            ></textarea>
+            <p class="rc-field-error" hidden data-rc-error-for="description"></p>
+            <p class="rc-field-error" hidden data-rc-error-for="message"></p>
+          </div>
+
+          <button
+            type="button"
+            class="rc-disclose"
+            data-rc-disclose
+            aria-expanded="false"
+            aria-controls="rc-extra-fields"
+          ><span data-rc-disclose-caret aria-hidden="true">▸</span> Add correction or supporting source</button>
+
+          <div id="rc-extra-fields" class="rc-extra" hidden data-rc-extra>
+            <div class="rc-field">
+              <label class="rc-label" for="rc-correction">
+                Suggested correction
+                <span class="rc-optional">— optional</span>
+              </label>
+              <textarea
+                id="rc-correction"
+                class="rc-input"
+                name="suggested_correction"
+                rows="3"
+                maxlength="8000"
+                placeholder="How should it read instead?"
+                data-rc-correction
+              ></textarea>
+            </div>
+            <div class="rc-field">
+              <label class="rc-label" for="rc-source">
+                Supporting source
+                <span class="rc-optional">— optional</span>
+              </label>
+              <input
+                id="rc-source"
+                class="rc-input"
+                type="url"
+                name="source_url"
+                maxlength="2000"
+                placeholder="Link to a judgment, gazette or official text"
+                data-rc-source
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="rc-success" hidden data-rc-success>
+          <div class="rc-success-mark" aria-hidden="true">✓</div>
+          <h3 class="rc-success-title" data-rc-success-title>Thank you</h3>
+          <p class="rc-success-lede" data-rc-success-lede>Your report has been submitted for review.</p>
+          <p class="rc-success-id" data-rc-report-id></p>
+        </div>
+      </div>
+
+      <div class="rc-foot" data-rc-foot>
+        {% if report_turnstile_enabled|default(false) %}
+        <div class="rc-turnstile" data-turnstile-slot>
+          <div class="rc-turnstile-chip" data-turnstile-chip>
+            <span class="rc-turnstile-status" data-turnstile-status aria-hidden="true">◌</span>
+            <span class="rc-turnstile-label" data-turnstile-label>Checking you're human…</span>
+            <span class="rc-turnstile-tag">TURNSTILE</span>
+          </div>
+          <div class="rc-turnstile-widget" data-turnstile-widget></div>
+        </div>
+        {% endif %}
+        <div class="rc-actions">
+          <button type="button" class="btn btn-ghost rc-cancel" data-rc-cancel>Cancel</button>
+          <button type="submit" class="btn rc-submit" data-rc-submit>Submit report</button>
+          <button type="button" class="btn rc-done" hidden data-rc-done>Done</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="visually-hidden" aria-live="polite" data-rc-live></div>
+  </div>
+</div>

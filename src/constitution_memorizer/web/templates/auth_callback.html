@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Completing sign-in…</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #ececea; color: #141414; margin: 0; min-height: 100vh; display: grid; place-items: center; }
+    p { margin: 0; color: #6b6b6b; }
+  </style>
+</head>
+<body>
+  <p>Completing sign-in…</p>
+  <script>
+    (function () {
+      var hash = window.location.hash ? window.location.hash.replace(/^#/, "") : "";
+      var query = window.location.search ? window.location.search.replace(/^\?/, "") : "";
+      var params = new URLSearchParams(hash || query);
+      var code = params.get("code");
+      var access = params.get("access_token");
+      var refresh = params.get("refresh_token");
+      var state = params.get("state");
+      var err = params.get("error");
+      if (err) {
+        window.location.replace("/login?error=oauth_failed");
+        return;
+      }
+      var next = new URLSearchParams();
+      if (code) next.set("code", code);
+      if (access) next.set("access_token", access);
+      if (refresh) next.set("refresh_token", refresh);
+      if (state) next.set("state", state);
+      if (!code && !access) {
+        window.location.replace("/login?error=oauth_failed");
+        return;
+      }
+      window.location.replace("/auth/callback?" + next.toString());
+    })();
+  </script>
+  <noscript>
+    <p>Enable JavaScript to finish Google sign-in, or <a href="/login">return to sign in</a>.</p>
+  </noscript>
+</body>
+</html>

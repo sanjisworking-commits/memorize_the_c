@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from constitution_memorizer.multiuser.settings import MultiUserSettings
 from constitution_memorizer.progress.memory import (
     MEMORY_INTERVAL_LADDER,
     advance_memory_interval,
@@ -18,6 +19,14 @@ from constitution_memorizer.web.laws_data import load_laws
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 
 
+def _enabled_settings() -> MultiUserSettings:
+    return MultiUserSettings(
+        _env_file=None,
+        MEMORY_LOG_ENABLED="true",
+        RELEVANT_LAWS_ENABLED="true",
+    )
+
+
 @pytest.fixture
 def db_path(tmp_path: Path) -> Path:
     return tmp_path / "progress.db"
@@ -25,7 +34,13 @@ def db_path(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def client(db_path: Path) -> TestClient:
-    return TestClient(create_app(units_path=MINI_UNITS, db_path=db_path))
+    return TestClient(
+        create_app(
+            units_path=MINI_UNITS,
+            db_path=db_path,
+            multiuser_settings=_enabled_settings(),
+        )
+    )
 
 
 def test_advance_memory_ladder_stops_at_thirty():
@@ -125,7 +140,9 @@ def test_memory_create_done_notes_photo(client: TestClient, db_path: Path):
     assert 'alt="Revision notes photo"' in detail.text
     assert "Replace photo" in detail.text
 
-    media_dir = db_path.parent / "memory_media"
+    from constitution_memorizer.progress.user_ids import LOCAL_USER_ID, as_user_id
+
+    media_dir = db_path.parent / "memory_media" / as_user_id(LOCAL_USER_ID)
     assert media_dir.is_dir()
     assert any(media_dir.glob(f"{entry_id}.*"))
 
@@ -136,7 +153,7 @@ def test_memory_create_done_notes_photo(client: TestClient, db_path: Path):
     from constitution_memorizer.progress.memory import MemoryRepository
 
     repo = MemoryRepository(open_progress_db(db_path))
-    entry = repo.get(entry_id)
+    entry = repo.get(LOCAL_USER_ID, entry_id)
     assert entry is not None
     assert entry.interval_days == 3
     assert entry.times_completed == 1
@@ -146,7 +163,13 @@ def test_memory_create_done_notes_photo(client: TestClient, db_path: Path):
 def test_memory_photo_survives_cwd_change(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Regression: relative media_dir broke image GETs after process cwd changed."""
     db_path = tmp_path / "progress.db"
-    client = TestClient(create_app(units_path=MINI_UNITS, db_path=db_path))
+    client = TestClient(
+        create_app(
+            units_path=MINI_UNITS,
+            db_path=db_path,
+            multiuser_settings=_enabled_settings(),
+        )
+    )
     create = client.post(
         "/memory",
         data={"title": "cwd-safe photo", "acronym": ""},

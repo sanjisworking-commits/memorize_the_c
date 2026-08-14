@@ -196,6 +196,10 @@ Stop: `Ctrl+C`.
 
 Mac: `open scripts/mac/start-ui.command` · `bash scripts/mac/stop-ui.sh`.
 
+Do **not** set `MULTIUSER_ENABLED` on 8001 — that launcher stays local SQLite.
+
+Hosted multi-user (Supabase + Postgres) is **http://127.0.0.1:8010/** via `open scripts/mac/start-multiuser.command`. See [`docs/multiuser-auth.md`](docs/multiuser-auth.md).
+
 ### 4. Optional Mac agents / reminders
 
 ```bash

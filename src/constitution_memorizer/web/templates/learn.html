@@ -1,8 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ unit.display_title }} · Learn · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
-<section class="panel learn" data-unit-id="{{ unit.id }}" data-mode="{{ learn_mode }}" data-done-unlocked="{{ 'true' if done_unlocked else 'false' }}">
+<section class="panel learn" data-unit-id="{{ unit.id }}" data-mode="{{ learn_mode }}" data-done-unlocked="{{ 'true' if done_unlocked else 'false' }}"{% if is_guest|default(false) %} data-guest-learn="true"{% endif %}>
   {% include "_completion_banner.html" %}
+  {% if is_guest|default(false) %}
+  <div class="guest-learn-banner" role="status">
+    <p>You’re learning as a guest. Sign in to save your progress.</p>
+    <a class="link-btn" href="/login?next=/learn/{{ unit.id }}&reason=default">Sign in</a>
+  </div>
+  {% endif %}
   <div class="session-row">
     <span class="session-eyebrow">Session</span>
     <span class="session-count">{{ session_label }}</span>
@@ -203,6 +209,10 @@
 
   <div class="learn-footer">
     <div class="learn-actions">
+      {% if is_guest|default(false) %}
+      <button type="button" class="btn btn-accent" id="learn-done-btn" data-guest-action="mastered">{{ done_label }}</button>
+      <button type="button" class="btn btn-ghost" data-guest-action="again">Again tomorrow</button>
+      {% else %}
       <form class="learn-action-done" method="post" action="/learn/{{ unit.id }}/done">
         <button
           type="submit"
@@ -214,11 +224,17 @@
       <form class="learn-action-again" method="post" action="/learn/{{ unit.id }}/again">
         <button type="submit" class="btn btn-ghost">Again tomorrow</button>
       </form>
+      {% endif %}
     </div>
     <span class="learn-meta">{{ learn_meta }}</span>
+    {% if not is_guest|default(false) %}
     <form class="learn-action-reset" method="post" action="/learn/{{ unit.id }}/reset">
       <button type="submit" class="link-reset">Reset unit</button>
     </form>
+    {% endif %}
   </div>
 </section>
+{% if is_guest|default(false) %}
+{% include "partials/guest_modal.html" %}
+{% endif %}
 {% endblock %}

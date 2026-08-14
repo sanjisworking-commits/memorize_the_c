@@ -21,7 +21,8 @@ Optional overrides: `label` (CTA text), `band_title` / `band_lede` (Learn band c
 4. Browse and Learn read the registry automatically — Visualise appears only where an entry exists.
 5. Change the shared modal/CSS/JS only when updating the **global** Visual Explainer design system.
 
-## Assets
+## Auth and assets
 
-- Diagrams are served via `GET /api/explainers/{article_id}` (not under public `/static/`).
-- Single-user mode has no guest gate; the API serves freely. The multi-user auth gate lives on `feature/multiuser-auth`.
+- Diagrams are served only via auth-gated `GET /api/explainers/{article_id}` (not under public `/static/`).
+- When multi-user mode is on, guests still see the Visualise CTA (discovery), but opening prompts the existing sign-in modal. After successful sign-in, the user returns to the same Browse/Learn URL and the pending Article intent resumes (resolved again against the server registry). Cancelling sign-in clears that pending intent.
+- Single-user mode has no guest gate; the API serves freely.

@@ -1,4 +1,4 @@
-"""Upgrade older local progress.db tables that lack PRIMARY KEYs."""
+"""Upgrade older local progress.db tables onto the user-scoped schema."""
 
 from __future__ import annotations
 
@@ -10,6 +10,9 @@ from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitTy
 from constitution_memorizer.progress.db import open_progress_db
 from constitution_memorizer.progress.repository import ProgressRepository
 from constitution_memorizer.progress.scheduler import ReminderEngine
+from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
+
+UID = str(LOCAL_USER_ID)
 
 
 def _legacy_modes_db(path: Path) -> None:
@@ -47,17 +50,19 @@ def test_open_upgrades_legacy_modes_seen_and_settings(tmp_path: Path):
         "SELECT sql FROM sqlite_master WHERE name = 'unit_modes_seen'"
     ).fetchone()[0]
     assert "PRIMARY KEY" in modes_sql
+    assert "user_id" in modes_sql
     settings_sql = conn.execute(
         "SELECT sql FROM sqlite_master WHERE name = 'app_settings'"
     ).fetchone()[0]
     assert "PRIMARY KEY" in settings_sql
+    assert "user_id" in settings_sql
 
     rows = conn.execute(
-        "SELECT learning_unit_id, mode FROM unit_modes_seen ORDER BY 1, 2"
+        "SELECT user_id, learning_unit_id, mode FROM unit_modes_seen ORDER BY 2, 3"
     ).fetchall()
     assert [tuple(r) for r in rows] == [
-        ("article-138-clause-2", "read"),
-        ("article-38-clause-1", "read"),
+        (UID, "article-138-clause-2", "read"),
+        (UID, "article-38-clause-1", "read"),
     ]
     themes = conn.execute(
         "SELECT COUNT(*) FROM app_settings WHERE key = 'theme'"
@@ -65,28 +70,27 @@ def test_open_upgrades_legacy_modes_seen_and_settings(tmp_path: Path):
     assert themes == 1
 
     repo = ProgressRepository(conn)
-    seen = repo.mark_mode_seen("article-138-clause-2", "read")
+    seen = repo.mark_mode_seen(UID, "article-138-clause-2", "read")
     assert "read" in seen
-    seen = repo.mark_mode_seen("article-138-clause-2", "cloze")
+    seen = repo.mark_mode_seen(UID, "article-138-clause-2", "cloze")
     assert seen == {"read", "cloze"}
-    repo.set_setting("theme", "dark")
-    assert repo.get_setting("theme") == "dark"
+    repo.set_setting(UID, "theme", "dark")
+    assert repo.get_setting(UID, "theme") == "dark"
 
 
 def test_fresh_db_mark_mode_seen_is_idempotent(tmp_path: Path):
     repo = ProgressRepository(open_progress_db(tmp_path / "fresh.db"))
-    assert repo.mark_mode_seen("article-2", "read") == {"read"}
-    assert repo.mark_mode_seen("article-2", "read") == {"read"}
+    assert repo.mark_mode_seen(UID, "article-2", "read") == {"read"}
+    assert repo.mark_mode_seen(UID, "article-2", "read") == {"read"}
 
 
-def _multiuser_progress_db(path: Path) -> None:
-    """Shape produced when feature/multiuser-auth opens a local progress.db."""
+def _legacy_progress_db(path: Path) -> None:
+    """Pre-multiuser 8001 shape: no user_id columns."""
     conn = sqlite3.connect(path)
     conn.executescript(
         """
         CREATE TABLE learning_unit_progress (
-            user_id TEXT NOT NULL,
-            learning_unit_id TEXT NOT NULL,
+            learning_unit_id TEXT PRIMARY KEY,
             status TEXT NOT NULL DEFAULT 'new',
             times_completed INTEGER NOT NULL DEFAULT 0,
             last_completed TEXT,
@@ -94,40 +98,31 @@ def _multiuser_progress_db(path: Path) -> None:
             interval_days INTEGER NOT NULL DEFAULT 0,
             ease_factor REAL NOT NULL DEFAULT 2.5,
             created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            PRIMARY KEY (user_id, learning_unit_id)
+            updated_at TEXT NOT NULL
         );
         CREATE TABLE unit_modes_seen (
-            user_id TEXT NOT NULL,
             learning_unit_id TEXT NOT NULL,
             mode TEXT NOT NULL,
             seen_at TEXT NOT NULL,
-            PRIMARY KEY (user_id, learning_unit_id, mode)
+            PRIMARY KEY (learning_unit_id, mode)
         );
         CREATE TABLE app_settings (
-            user_id TEXT NOT NULL,
-            key TEXT NOT NULL,
+            key TEXT PRIMARY KEY,
             value TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            PRIMARY KEY (user_id, key)
+            updated_at TEXT NOT NULL
         );
         CREATE TABLE split_preference (
-            user_id TEXT NOT NULL,
-            parent_clause_id TEXT NOT NULL,
+            parent_clause_id TEXT PRIMARY KEY,
             mode TEXT NOT NULL CHECK (mode IN ('whole', 'letters')),
-            updated_at TEXT NOT NULL,
-            PRIMARY KEY (user_id, parent_clause_id)
+            updated_at TEXT NOT NULL
         );
         CREATE TABLE article_gloss (
-            user_id TEXT NOT NULL,
-            article_number TEXT NOT NULL,
+            article_number TEXT PRIMARY KEY,
             text TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            PRIMARY KEY (user_id, article_number)
+            updated_at TEXT NOT NULL
         );
         CREATE TABLE memory_entry (
             id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
             title TEXT NOT NULL,
             acronym TEXT NOT NULL DEFAULT '',
             notes TEXT NOT NULL DEFAULT '',
@@ -141,70 +136,51 @@ def _multiuser_progress_db(path: Path) -> None:
             updated_at TEXT NOT NULL
         );
         CREATE TABLE memory_media (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            entry_id TEXT NOT NULL,
-            storage_key TEXT NOT NULL,
+            entry_id TEXT PRIMARY KEY,
+            path TEXT NOT NULL,
             uploaded_at TEXT NOT NULL
         );
         INSERT INTO learning_unit_progress VALUES
-            ('00000000-0000-4000-8000-000000000001', 'article-1-clause-1',
-             'review', 1, '2026-08-08', '2026-08-09', 1, 2.5,
-             '2026-08-08T00:00:00+00:00', '2026-08-08T00:00:00+00:00');
+            ('article-1-clause-1', 'review', 1, '2026-08-08', '2026-08-09',
+             1, 2.5, '2026-08-08T00:00:00+00:00', '2026-08-08T00:00:00+00:00');
         INSERT INTO unit_modes_seen VALUES
-            ('00000000-0000-4000-8000-000000000001', 'article-1-clause-1',
-             'read', '2026-08-08T00:00:00+00:00');
+            ('article-1-clause-1', 'read', '2026-08-08T00:00:00+00:00');
         INSERT INTO app_settings VALUES
-            ('00000000-0000-4000-8000-000000000001', 'theme', 'light',
-             '2026-08-08T00:00:00+00:00');
+            ('theme', 'light', '2026-08-08T00:00:00+00:00');
         INSERT INTO split_preference VALUES
-            ('00000000-0000-4000-8000-000000000001', 'article-19-clause-1',
-             'letters', '2026-08-08T00:00:00+00:00');
+            ('article-19-clause-1', 'letters', '2026-08-08T00:00:00+00:00');
         INSERT INTO article_gloss VALUES
-            ('00000000-0000-4000-8000-000000000001', '1', 'notes',
-             '2026-08-08T00:00:00+00:00');
+            ('1', 'notes', '2026-08-08T00:00:00+00:00');
         INSERT INTO memory_entry VALUES
-            ('mem-abc', '00000000-0000-4000-8000-000000000001',
-             'Preamble', '', '', '2026-08-08', 'review', 1, NULL,
-             '2026-08-09', 0, '2026-08-08T00:00:00+00:00',
-             '2026-08-08T00:00:00+00:00');
+            ('mem-abc', 'Acronym', 'ABC', '', '2026-08-08', 'new', 0,
+             NULL, NULL, 0, '2026-08-08T00:00:00+00:00', '2026-08-08T00:00:00+00:00');
         INSERT INTO memory_media VALUES
-            ('media-1', '00000000-0000-4000-8000-000000000001',
-             'mem-abc', 'memory/mem-abc.jpg', '2026-08-08T00:00:00+00:00');
+            ('mem-abc', 'memory/mem-abc.jpg', '2026-08-08T00:00:00+00:00');
         """
     )
     conn.commit()
     conn.close()
 
 
-def test_open_strips_multiuser_user_id_and_done_inserts(tmp_path: Path):
+def test_open_migrates_legacy_sqlite_to_local_user(tmp_path: Path):
     db = tmp_path / "progress.db"
-    _multiuser_progress_db(db)
+    _legacy_progress_db(db)
 
     conn = open_progress_db(db)
     progress_cols = [
         row["name"]
         for row in conn.execute("PRAGMA table_info(learning_unit_progress)")
     ]
-    assert "user_id" not in progress_cols
-    modes_cols = [
-        row["name"] for row in conn.execute("PRAGMA table_info(unit_modes_seen)")
-    ]
-    assert "user_id" not in modes_cols
-    media_cols = [
-        row["name"] for row in conn.execute("PRAGMA table_info(memory_media)")
-    ]
-    assert "storage_key" not in media_cols
-    assert "path" in media_cols
-
+    assert "user_id" in progress_cols
     kept = conn.execute(
         """
-        SELECT status, times_completed, next_revision
+        SELECT user_id, status, times_completed, next_revision
         FROM learning_unit_progress
         WHERE learning_unit_id = 'article-1-clause-1'
         """
     ).fetchone()
     assert kept is not None
+    assert kept["user_id"] == UID
     assert kept["status"] == "review"
     assert kept["times_completed"] == 1
     assert kept["next_revision"] == "2026-08-09"
@@ -215,20 +191,20 @@ def test_open_strips_multiuser_user_id_and_done_inserts(tmp_path: Path):
         "SELECT text FROM article_gloss WHERE article_number = '1'"
     ).fetchone()[0] == "notes"
     assert conn.execute(
-        "SELECT path FROM memory_media WHERE entry_id = 'mem-abc'"
+        "SELECT storage_key FROM memory_media WHERE entry_id = 'mem-abc'"
     ).fetchone()[0] == "memory/mem-abc.jpg"
 
     repo = ProgressRepository(conn)
-    created = repo.ensure_progress("article-2")
+    created = repo.ensure_progress(UID, "article-2")
     assert created.learning_unit_id == "article-2"
     assert created.status == "new"
-    seen = repo.mark_mode_seen("article-1-clause-1", "cloze")
+    seen = repo.mark_mode_seen(UID, "article-1-clause-1", "cloze")
     assert seen == {"read", "cloze"}
-    repo.set_setting("theme", "dark")
-    assert repo.get_setting("theme") == "dark"
+    repo.set_setting(UID, "theme", "dark")
+    assert repo.get_setting(UID, "theme") == "dark"
 
 
-def test_open_strips_duplicate_user_rows_keeps_one(tmp_path: Path):
+def test_open_keeps_rows_for_distinct_users(tmp_path: Path):
     db = tmp_path / "progress.db"
     conn = sqlite3.connect(db)
     conn.executescript(
@@ -258,15 +234,20 @@ def test_open_strips_duplicate_user_rows_keeps_one(tmp_path: Path):
 
     opened = open_progress_db(db)
     rows = opened.execute(
-        "SELECT times_completed FROM learning_unit_progress WHERE learning_unit_id = 'article-2'"
+        """
+        SELECT user_id, times_completed FROM learning_unit_progress
+        WHERE learning_unit_id = 'article-2' ORDER BY user_id
+        """
     ).fetchall()
-    assert len(rows) == 1
-    assert rows[0]["times_completed"] == 3
+    assert [(r["user_id"], r["times_completed"]) for r in rows] == [
+        ("user-a", 1),
+        ("user-b", 3),
+    ]
 
 
-def test_mark_done_after_multiuser_schema_strip(tmp_path: Path):
+def test_mark_done_after_legacy_sqlite_migrate(tmp_path: Path):
     db = tmp_path / "progress.db"
-    _multiuser_progress_db(db)
+    _legacy_progress_db(db)
     unit = LearningUnit(
         id="article-2",
         type=LearningUnitType.ARTICLE,

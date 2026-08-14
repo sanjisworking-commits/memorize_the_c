@@ -66,7 +66,6 @@
       rtcReveal(el, { delay: 0 });
     });
   }
-
   const DENSITY_THRESH = { light: 8, medium: 6, heavy: 4 };
   const EN_SPACE = "\u2002";
 

@@ -22,6 +22,9 @@ if [[ ! -f data/output/learning_units.json ]]; then
   exit 1
 fi
 
+# Local 8001 is always single-user SQLite. Hosted auth is start-multiuser.command (8010).
+export MULTIUSER_ENABLED=false
+
 echo "Starting Constitution Memorizer on http://127.0.0.1:8001/"
 echo "Stop with Ctrl+C or scripts/mac/stop-ui.sh"
 exec python -m constitution_memorizer.cli serve --host 127.0.0.1 --port 8001

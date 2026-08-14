@@ -159,7 +159,7 @@ def article_due_summaries(
         if not number:
             continue
         counts[number] = counts.get(number, 0) + 1
-        progress = engine.repo.get_progress(unit.id)
+        progress = engine.get_progress(unit.id)
         rev = progress.next_revision if progress is not None else None
         if rev is None:
             continue
@@ -270,7 +270,7 @@ def _article_is_tracked(engine: ReminderEngine, article_number: str) -> bool:
     if pending:
         return True
     for unit in units:
-        progress = engine.repo.get_progress(unit.id)
+        progress = engine.get_progress(unit.id)
         if progress is None:
             continue
         if progress.times_completed > 0 or progress.status in {"review", "mastered"}:
@@ -742,7 +742,7 @@ def learn_units_for_article(
 
 
 def _is_unit_memorized(engine: ReminderEngine, unit_id: str) -> bool:
-    progress = engine.repo.get_progress(unit_id)
+    progress = engine.get_progress(unit_id)
     if progress is None:
         return False
     return progress.times_completed > 0 or progress.status in {"review", "mastered"}

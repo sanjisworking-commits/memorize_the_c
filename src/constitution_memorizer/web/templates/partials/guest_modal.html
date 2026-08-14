@@ -1,0 +1,26 @@
+<dialog
+  class="guest-modal"
+  id="guest-signin-modal"
+  data-guest-modal
+  aria-labelledby="guest-modal-title"
+>
+  <form method="dialog" class="guest-modal-card">
+    <h2 class="guest-modal-title" id="guest-modal-title">Sign in to save your learning</h2>
+    <p class="guest-modal-body" data-guest-modal-body>
+      Create a personal learning record, continue across devices and receive future revisions.
+    </p>
+    <div class="guest-modal-actions">
+      <a class="btn" data-guest-modal-signin href="/login">Sign in</a>
+      <button type="submit" class="btn btn-ghost" data-guest-modal-dismiss>Continue as guest</button>
+    </div>
+  </form>
+</dialog>
+<script type="application/json" id="guest-modal-copy">
+{
+  "default": "Create a personal learning record, continue across devices and receive future revisions.",
+  "mastered": "Sign in to mark this unit mastered and keep it on your revision schedule.",
+  "again": "Sign in to schedule this unit again tomorrow on your personal calendar.",
+  "note": "Sign in to save memory notes against your account.",
+  "visualise": "Sign in to view Visual Explainers."
+}
+</script>

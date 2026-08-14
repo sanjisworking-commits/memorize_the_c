@@ -59,7 +59,10 @@ data/rejected/*
 data/progress/*
 !data/progress/.gitkeep
 
-# Local config overrides
+# Local config overrides / secrets
+.env
+.env.*
+!.env.example
 config.local.json
 *.local.json
 

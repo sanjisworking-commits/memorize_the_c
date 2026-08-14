@@ -119,6 +119,17 @@
     {% with ve = visual_explainer(article.article_number) %}
       {% include "visual_explainer_trigger.html" %}
     {% endwith %}
+    {% if current_user %}
+    <button
+      type="button"
+      class="report-issue-link"
+      data-report-open
+      data-article-number="{{ article.article_number }}"
+    ><span aria-hidden="true">⚑</span><span class="report-issue-label">Report an issue</span></button>
+    {% endif %}
   </p>
 </section>
+{% if is_guest|default(false) %}
+{% include "partials/guest_modal.html" %}
+{% endif %}
 {% endblock %}

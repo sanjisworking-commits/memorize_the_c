@@ -150,7 +150,7 @@ def build_calendar_month(
     review_done_count = 0
     scheduled_count = 0
 
-    for row in engine.repo.list_all_progress():
+    for row in engine.list_all_progress():
         unit = engine.get_unit(row.learning_unit_id)
         if unit is None:
             continue

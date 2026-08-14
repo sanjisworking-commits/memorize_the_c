@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Sign in · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block content %}
+{% set kind = gate_kind|default('dashboard') %}
+<section class="panel guest-gate">
+  <p class="eyebrow">Personal space</p>
+  <h1 class="display">Sign in to save your learning</h1>
+  <p class="lede">
+    Create a personal learning record, continue across devices and receive future revisions.
+  </p>
+  <p class="actions">
+    <a class="btn" href="/login?next=/{% if kind == 'progress' %}progress{% else %}dashboard{% endif %}&reason={{ reason|default('default') }}">Sign in</a>
+    <a class="btn btn-ghost" href="/browse">Continue as guest</a>
+  </p>
+</section>
+{% endblock %}

@@ -27,12 +27,17 @@
       document.documentElement.setAttribute("data-theme", resolved);
       document.documentElement.setAttribute("data-theme-preference", pref);
       document.documentElement.style.colorScheme = resolved;
+      try {
+        var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var motionOn = !reduce && localStorage.getItem("cm-motion") !== "off";
+        if (motionOn) document.documentElement.classList.add("rtc-anim");
+      } catch (e2) {}
     })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=main7">
+  <link rel="stylesheet" href="/static/styles.css?v=main8">
   <link rel="stylesheet" href="/static/visual-explainer.css?v=ve1">
   <link rel="icon" href="/static/brand-c.png" type="image/png">
 </head>
@@ -81,7 +86,7 @@
   </div>
   {% include "visual_explainer.html" %}
   <script src="/static/recall_align.js?v=sprint22" defer></script>
-  <script src="/static/app.js?v=main7" defer></script>
+  <script src="/static/app.js?v=main8" defer></script>
   <script src="/static/visual-explainer.js?v=ve2" defer></script>
 </body>
 </html>

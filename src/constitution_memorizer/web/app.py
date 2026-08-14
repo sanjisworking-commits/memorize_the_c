@@ -29,8 +29,16 @@ from constitution_memorizer.web.browse import (
     load_reviewed_document,
 )
 from constitution_memorizer.web.calendar_view import build_calendar_month
+from constitution_memorizer.web.completion import (
+    build_completion,
+    caught_up_quote,
+    done_json_payload,
+    next_learn_url,
+    wants_json,
+)
 from constitution_memorizer.web.explainers import explainer_asset_path, visual_explainer
 from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
+from constitution_memorizer.web.quotes import load_quotes
 from constitution_memorizer.web.judicial_evolution import (
     get_judicial_evolution,
     load_judicial_evolution,
@@ -180,6 +188,8 @@ def create_app(
     judicial_evolution = load_judicial_evolution(
         resolved_judicial_evolution if resolved_judicial_evolution.exists() else None
     )
+    resolved_quotes = root / "data" / "reference" / "quotes.json"
+    quotes = load_quotes(resolved_quotes if resolved_quotes.exists() else None)
     templates = Jinja2Templates(
         directory=str(TEMPLATES_DIR),
         context_processors=[
@@ -201,6 +211,7 @@ def create_app(
     app.state.gloss_placeholders = gloss_placeholders
     app.state.text_annotations = text_annotations
     app.state.judicial_evolution = judicial_evolution
+    app.state.quotes = quotes
     app.state.units_path = resolved_units
     app.state.db_path = resolved_db
     app.state.reviewed_path = resolved_reviewed
@@ -270,6 +281,18 @@ def create_app(
                 ),
                 "all_caught_up": all_caught_up,
                 "caught_up_detail": caught_up_detail,
+                "caught_up_quote": (
+                    caught_up_quote(app.state.quotes, today) if all_caught_up else None
+                ),
+                "completion": build_completion(
+                    eng=eng,
+                    quotes=app.state.quotes,
+                    done_id=request.query_params.get("done"),
+                    request=request,
+                    today=today,
+                    continue_href="/",
+                    continue_label=None,
+                ),
                 "stat_line": (
                     f"{stats['review']} in review · "
                     f"{stats['mastered']} mastered · "
@@ -336,6 +359,16 @@ def create_app(
             notes=notes,
             unit_id=target.id,
         )
+        done_id = request.query_params.get("done")
+        mode_suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
+        completion = build_completion(
+            eng=eng,
+            quotes=app.state.quotes,
+            done_id=done_id,
+            request=request,
+            continue_href=f"/learn/{target.id}{mode_suffix}",
+            continue_label=target.display_title,
+        )
         return templates.TemplateResponse(
             request,
             "learn.html",
@@ -360,6 +393,7 @@ def create_app(
                 "amend_note": amend_note,
                 "annotated_text": annotated_text,
                 "has_text_annotations": bool(unit_anns),
+                "completion": completion,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),
@@ -384,15 +418,34 @@ def create_app(
         return JSONResponse(payload)
 
     @app.post("/learn/{unit_id}/done")
-    async def learn_done(unit_id: str) -> RedirectResponse:
+    async def learn_done(request: Request, unit_id: str):
         eng = _engine()
-        if eng.get_unit(unit_id) is None:
+        unit = eng.get_unit(unit_id)
+        if unit is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
         try:
             result = eng.mark_done(unit_id, as_of=date.today())
         except ModesIncompleteError:
+            if wants_json(request):
+                return JSONResponse(
+                    {"ok": False, "error": "modes_incomplete"},
+                    status_code=409,
+                )
             return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
-        return _redirect_after_learn(eng, result.next_unit_id)
+        if wants_json(request):
+            return JSONResponse(
+                done_json_payload(
+                    eng=eng,
+                    quotes=app.state.quotes,
+                    unit=unit,
+                    result=result,
+                    request=request,
+                    multiuser=False,
+                )
+            )
+        return _redirect_after_learn(
+            eng, result.next_unit_id, done_unit_id=unit_id
+        )
 
     @app.post("/learn/{unit_id}/again")
     async def learn_again(unit_id: str) -> RedirectResponse:
@@ -406,17 +459,16 @@ def create_app(
     def _redirect_after_learn(
         eng: ReminderEngine,
         next_unit_id: str | None,
+        *,
+        done_unit_id: str | None = None,
     ) -> RedirectResponse:
-        if next_unit_id and eng.get_unit(next_unit_id):
-            nxt = eng.get_unit(next_unit_id)
-            assert nxt is not None
-            if needs_split_choice(eng, nxt):
-                return RedirectResponse(
-                    url=f"/learn/{next_unit_id}/choose",
-                    status_code=303,
-                )
-            return RedirectResponse(url=f"/learn/{next_unit_id}", status_code=303)
-        return RedirectResponse(url="/", status_code=303)
+        url = next_learn_url(
+            eng,
+            next_unit_id,
+            done_unit_id=done_unit_id,
+            multiuser=False,
+        )
+        return RedirectResponse(url=url, status_code=303)
 
     @app.get("/learn/{clause_id}/choose", response_class=HTMLResponse)
     async def choose_get(request: Request, clause_id: str) -> HTMLResponse:
@@ -430,10 +482,19 @@ def create_app(
         if existing is not None:
             target = eng.next_to_learn_from_clause(clause_id) or clause_id
             return RedirectResponse(url=f"/learn/{target}", status_code=303)
+        done_id = request.query_params.get("done")
+        completion = build_completion(
+            eng=eng,
+            quotes=app.state.quotes,
+            done_id=done_id,
+            request=request,
+            continue_href=f"/learn/{clause_id}/choose",
+            continue_label=unit.display_title,
+        )
         return templates.TemplateResponse(
             request,
             "choose.html",
-            {"unit": unit},
+            {"unit": unit, "completion": completion},
         )
 
     @app.post("/learn/{clause_id}/choose")

@@ -1,6 +1,71 @@
 /* Light progressive enhancement for the learning UI. */
 (function () {
   const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "recite", "card"]);
+  const MOTION_KEY = "cm-motion";
+  const SOUND_KEY = "cm-completion-sound";
+  const DONE_SOUND_SRC = "/static/completion-done.mp3";
+  let doneAudio = null;
+
+  function prefersReducedMotion() {
+    return Boolean(
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  function motionEnabled() {
+    try {
+      return !prefersReducedMotion() && localStorage.getItem(MOTION_KEY) !== "off";
+    } catch (_e) {
+      return !prefersReducedMotion();
+    }
+  }
+
+  function soundEnabled() {
+    try {
+      return localStorage.getItem(SOUND_KEY) !== "off";
+    } catch (_e) {
+      return true;
+    }
+  }
+
+  function syncRtcAnim() {
+    document.documentElement.classList.toggle("rtc-anim", motionEnabled());
+  }
+
+  function scrollToElement(el) {
+    if (!el) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    if (rect.top >= 0 && rect.bottom <= (window.innerHeight || 0)) {
+      return;
+    }
+    el.scrollIntoView({
+      behavior: motionEnabled() ? "smooth" : "auto",
+      block: "center",
+    });
+  }
+
+  function rtcReveal(el, opts) {
+    if (!el) {
+      return;
+    }
+    const delay = (opts && opts.delay) || 0;
+    if (!motionEnabled()) {
+      el.classList.add("rtc-reveal--visible");
+      return;
+    }
+    window.setTimeout(function () {
+      el.classList.add("rtc-reveal--visible");
+    }, delay);
+  }
+
+  function initHeadingReveal() {
+    document.querySelectorAll("[data-rtc-reveal]").forEach(function (el) {
+      rtcReveal(el, { delay: 0 });
+    });
+  }
+
   const DENSITY_THRESH = { light: 8, medium: 6, heavy: 4 };
   const EN_SPACE = "\u2002";
 
@@ -188,6 +253,9 @@
       toggle.addEventListener("click", () => {
         full = !full;
         render();
+        if (full) {
+          scrollToElement(display);
+        }
       });
     }
 
@@ -1014,6 +1082,328 @@
     });
   }
 
+  function wait(ms) {
+    return new Promise(function (resolve) {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  function getDoneAudio() {
+    if (!doneAudio) {
+      doneAudio = new Audio(DONE_SOUND_SRC);
+      doneAudio.preload = "auto";
+    }
+    return doneAudio;
+  }
+
+  function ensureAudio() {
+    const audio = getDoneAudio();
+    // Unlock playback under the Done click; stay silent until persist confirms.
+    audio.muted = true;
+    const playing = audio.play();
+    if (playing && playing.then) {
+      playing
+        .then(function () {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = false;
+        })
+        .catch(function () {
+          audio.muted = false;
+        });
+    } else {
+      audio.muted = false;
+    }
+    return audio;
+  }
+
+  function playCompletionSound() {
+    return new Promise(function (resolve) {
+      const audio = getDoneAudio();
+      let settled = false;
+      function finish() {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        audio.removeEventListener("ended", finish);
+        audio.removeEventListener("error", finish);
+        resolve();
+      }
+      audio.muted = false;
+      try {
+        audio.currentTime = 0;
+      } catch (_e) {
+        /* ignore */
+      }
+      audio.addEventListener("ended", finish);
+      audio.addEventListener("error", finish);
+      const playing = audio.play();
+      if (playing && playing.catch) {
+        playing.catch(finish);
+      }
+      window.setTimeout(finish, 2300);
+    });
+  }
+
+  function cleanDoneParam(urlString) {
+    const u = new URL(urlString, window.location.origin);
+    u.searchParams.delete("done");
+    return u.pathname + u.search + u.hash;
+  }
+
+  function showNotConfirmed(root) {
+    const host = root || document.querySelector(".learn") || document.querySelector("main") || document.body;
+    if (host.querySelector(".rtc-not-confirmed")) {
+      return;
+    }
+    const box = document.createElement("div");
+    box.className = "rtc-not-confirmed";
+    box.setAttribute("role", "status");
+    box.setAttribute("aria-live", "polite");
+    box.innerHTML =
+      '<p class="rtc-not-confirmed-eyebrow">Not confirmed</p>' +
+      "<p>Could not confirm whether this review was saved. Reload to check your progress.</p>" +
+      '<button type="button" class="rtc-not-confirmed-reload">Reload</button>';
+    const reload = box.querySelector(".rtc-not-confirmed-reload");
+    reload.addEventListener("click", function () {
+      window.location.reload();
+    });
+    host.insertBefore(box, host.firstChild);
+  }
+
+  function buildAffirmationEl(payload) {
+    const quote = payload.quote || {};
+    const continueLabel = payload.continue_label
+      ? "Continue to " + payload.continue_label
+      : "Continue";
+    const wrap = document.createElement("div");
+    wrap.className = "rtc-affirmation";
+    wrap.setAttribute("data-rtc-completion", "");
+    wrap.setAttribute("role", "dialog");
+    wrap.setAttribute("aria-modal", "true");
+    wrap.setAttribute("aria-live", "polite");
+    wrap.innerHTML =
+      '<div class="rtc-affirmation-scrim" data-rtc-advance tabindex="-1"></div>' +
+      '<div class="rtc-affirmation-card">' +
+      '<p class="rtc-affirmation-eyebrow"></p>' +
+      '<blockquote class="rtc-affirmation-quote" id="rtc-affirmation-quote"></blockquote>' +
+      '<p class="rtc-affirmation-attr"></p>' +
+      '<p class="rtc-affirmation-ledger"><span></span><span></span></p>' +
+      '<div class="rtc-affirmation-actions">' +
+      '<a class="rtc-affirmation-continue" data-rtc-advance href="#"></a>' +
+      '<span class="rtc-affirmation-esc">Esc</span></div>' +
+      '<div class="rtc-affirmation-hold" aria-hidden="true"></div></div>';
+    wrap.querySelector(".rtc-affirmation-eyebrow").textContent = payload.eyebrow || "Review complete";
+    wrap.querySelector(".rtc-affirmation-quote").textContent = quote.text || "";
+    wrap.querySelector(".rtc-affirmation-attr").textContent = quote.author ? "— " + quote.author : "";
+    const ledger = wrap.querySelectorAll(".rtc-affirmation-ledger span");
+    ledger[0].textContent = payload.article_ref || "";
+    ledger[1].textContent = payload.ledger || "";
+    const link = wrap.querySelector(".rtc-affirmation-continue");
+    link.textContent = continueLabel;
+    link.setAttribute("href", cleanDoneParam(payload.next_url || "/"));
+    return wrap;
+  }
+
+  function holdAffirmation(el) {
+    return new Promise(function (resolve) {
+      let settled = false;
+      function finish(event) {
+        if (settled) {
+          return;
+        }
+        if (event && event.type === "click" && event.currentTarget.tagName === "A") {
+          event.preventDefault();
+        }
+        settled = true;
+        window.clearTimeout(timer);
+        document.removeEventListener("keydown", onKey);
+        el.classList.add("is-exiting");
+        el.classList.remove("is-holding");
+        window.setTimeout(resolve, motionEnabled() ? 200 : 0);
+      }
+      function onKey(event) {
+        if (event.key === "Escape") {
+          finish();
+        }
+      }
+      el.querySelectorAll("[data-rtc-advance]").forEach(function (node) {
+        node.addEventListener("click", finish);
+      });
+      document.addEventListener("keydown", onKey);
+      el.classList.add("is-open", "is-holding");
+      const timer = window.setTimeout(finish, 6000);
+    });
+  }
+
+  async function presentAffirmation(el, nextUrl) {
+    if (!el.isConnected) {
+      document.body.appendChild(el);
+    }
+    await holdAffirmation(el);
+    el.remove();
+    if (nextUrl) {
+      window.location.assign(cleanDoneParam(nextUrl));
+    }
+  }
+
+  async function initServerAffirmation() {
+    const el = document.querySelector("[data-rtc-completion]");
+    if (!el) {
+      return;
+    }
+    const u = new URL(window.location.href);
+    u.searchParams.delete("done");
+    window.history.replaceState(null, "", u.pathname + u.search + u.hash);
+    const href = el.querySelector(".rtc-affirmation-continue");
+    const nextUrl = href ? href.getAttribute("href") : u.pathname + u.search + u.hash;
+    await presentAffirmation(el, nextUrl);
+  }
+
+  function initDoneInterceptor() {
+    const form = document.querySelector("form.learn-action-done");
+    if (!form) {
+      return;
+    }
+    const btn = form.querySelector("#learn-done-btn") || form.querySelector("button[type='submit']");
+    let fetchAttempted = false;
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      if (!btn || btn.disabled) {
+        return;
+      }
+      if (fetchAttempted) {
+        return;
+      }
+      fetchAttempted = true;
+      ensureAudio();
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.classList.add("is-rtc-saving");
+      btn.textContent = "Saving…";
+      try {
+        const response = await fetch(form.getAttribute("action"), {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: new FormData(form),
+        });
+        const type = response.headers.get("content-type") || "";
+        if (!type.includes("application/json")) {
+          showNotConfirmed(form.closest(".learn"));
+          btn.classList.remove("is-rtc-saving");
+          btn.textContent = original;
+          btn.disabled = false;
+          return;
+        }
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          const msg = payload && payload.error ? String(payload.error) : "Could not save this review.";
+          showNotConfirmed(form.closest(".learn"));
+          const box = document.querySelector(".rtc-not-confirmed p:not(.rtc-not-confirmed-eyebrow)");
+          if (box && payload && payload.error === "modes_incomplete") {
+            box.textContent = "All six methods need a visit before Done can save.";
+          } else if (box && msg && payload.error !== "sign_in_required") {
+            box.textContent = msg;
+          }
+          btn.classList.remove("is-rtc-saving");
+          btn.textContent = original;
+          btn.disabled = false;
+          return;
+        }
+        btn.classList.remove("is-rtc-saving");
+        btn.classList.add("is-rtc-saved");
+        btn.textContent = "Saved";
+        const soundP = soundEnabled() ? playCompletionSound() : Promise.resolve();
+        await wait(motionEnabled() ? 120 : 0);
+        const modal = buildAffirmationEl(payload);
+        await presentAffirmation(modal, null);
+        await soundP;
+        window.location.assign(cleanDoneParam(payload.next_url));
+      } catch (_err) {
+        showNotConfirmed(form.closest(".learn"));
+        btn.classList.remove("is-rtc-saving");
+        btn.textContent = original;
+        btn.disabled = false;
+      }
+    });
+  }
+
+  function initExperienceControls() {
+    function stored(key, fallback) {
+      try {
+        const value = localStorage.getItem(key);
+        return value === "on" || value === "off" ? value : fallback;
+      } catch (_e) {
+        return fallback;
+      }
+    }
+    function persist(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch (_e) {
+        /* ignore */
+      }
+    }
+
+    const motionPref = stored(MOTION_KEY, "on");
+    const soundPref = stored(SOUND_KEY, "on");
+    document.querySelectorAll("[data-motion-set]").forEach(function (el) {
+      const on = el.getAttribute("data-motion-set") === motionPref;
+      el.classList.toggle("is-active", on);
+      el.setAttribute("aria-pressed", on ? "true" : "false");
+      el.addEventListener("click", function () {
+        if (prefersReducedMotion()) {
+          return;
+        }
+        const next = el.getAttribute("data-motion-set");
+        persist(MOTION_KEY, next);
+        document.querySelectorAll("[data-motion-set]").forEach(function (btn) {
+          const active = btn.getAttribute("data-motion-set") === next;
+          btn.classList.toggle("is-active", active);
+          btn.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+        syncRtcAnim();
+      });
+    });
+    document.querySelectorAll("[data-sound-set]").forEach(function (el) {
+      const on = el.getAttribute("data-sound-set") === soundPref;
+      el.classList.toggle("is-active", on);
+      el.setAttribute("aria-pressed", on ? "true" : "false");
+      el.addEventListener("click", function () {
+        const next = el.getAttribute("data-sound-set");
+        persist(SOUND_KEY, next);
+        document.querySelectorAll("[data-sound-set]").forEach(function (btn) {
+          const active = btn.getAttribute("data-sound-set") === next;
+          btn.classList.toggle("is-active", active);
+          btn.setAttribute("aria-pressed", active ? "true" : "false");
+        });
+      });
+    });
+
+    const motionRow = document.querySelector('[data-experience-row="motion"]');
+    const note = document.querySelector("[data-motion-note]");
+    if (prefersReducedMotion() && motionRow) {
+      motionRow.classList.add("is-os-reduced");
+      if (note) {
+        note.textContent = "Following your system — reduced motion is on.";
+      }
+    }
+    syncRtcAnim();
+  }
+
+  function bootInteraction() {
+    syncRtcAnim();
+    getDoneAudio();
+    initHeadingReveal();
+    initDoneInterceptor();
+    initServerAffirmation();
+    initExperienceControls();
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       initLearn();
@@ -1021,6 +1411,7 @@
       initBrowseIndex();
       initExplainBack();
       initThemeToggle();
+      bootInteraction();
     });
   } else {
     initLearn();
@@ -1028,6 +1419,7 @@
     initBrowseIndex();
     initExplainBack();
     initThemeToggle();
+    bootInteraction();
   }
 
   function wordCount(text) {

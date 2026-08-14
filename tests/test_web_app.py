@@ -81,12 +81,12 @@ def test_choose_letters_and_done_advances(client: TestClient):
     _visit_all_modes(client, "clause-2-a")
     done_a = client.post("/learn/clause-2-a/done", follow_redirects=False)
     assert done_a.status_code == 303
-    assert done_a.headers["location"] == "/learn/clause-2-b"
+    assert done_a.headers["location"] == "/learn/clause-2-b?done=clause-2-a"
 
     _visit_all_modes(client, "clause-2-b")
     done_b = client.post("/learn/clause-2-b/done", follow_redirects=False)
     assert done_b.status_code == 303
-    assert done_b.headers["location"] == "/learn/article-end"
+    assert done_b.headers["location"] == "/learn/article-end?done=clause-2-b"
 
 
 def test_done_on_simple_unit_goes_to_next_or_choose(client: TestClient):
@@ -94,7 +94,7 @@ def test_done_on_simple_unit_goes_to_next_or_choose(client: TestClient):
     _visit_all_modes(client, "clause-1")
     done = client.post("/learn/clause-1/done", follow_redirects=False)
     assert done.status_code == 303
-    assert done.headers["location"] == "/learn/clause-2/choose"
+    assert done.headers["location"] == "/learn/clause-2/choose?done=clause-1"
 
 
 def test_reset_all(client: TestClient):

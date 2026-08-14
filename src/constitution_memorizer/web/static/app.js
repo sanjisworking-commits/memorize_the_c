@@ -969,8 +969,196 @@
       card.setAttribute("aria-pressed", flipped ? "true" : "false");
     }
 
-    // Mode tabs use normal <a href="?mode="> navigation so each visit is
-    // recorded by GET /learn/... and Done unlocks when Card completes the set.
+    const MODE_LABELS = {
+      read: "Read",
+      cloze: "Cloze",
+      letters: "Letters",
+      type: "Type",
+      recite: "Recite",
+      card: "Card",
+    };
+    const isGuest = learn.hasAttribute("data-guest-learn");
+    const unitId = learn.getAttribute("data-unit-id") || "";
+    const tabs = Array.from(learn.querySelectorAll("[data-learn-mode]"));
+    const trackerEl = document.getElementById("methods-tracker");
+
+    function parseModes(raw) {
+      const set = new Set();
+      String(raw || "")
+        .split(",")
+        .forEach((part) => {
+          const value = part.trim();
+          if (LEARN_MODES.has(value)) {
+            set.add(value);
+          }
+        });
+      return set;
+    }
+
+    const confirmedModes = parseModes(learn.getAttribute("data-modes-seen"));
+    const guestVisitedModes = parseModes(learn.getAttribute("data-modes-seen"));
+    const inFlight = new Set();
+    let serverDoneUnlocked = learn.dataset.doneUnlocked === "true";
+
+    function methodsTrackerLine(count) {
+      if (count >= 6) {
+        return "All 6 methods visited — revision complete, mark it Done";
+      }
+      return (
+        count +
+        " of 6 methods visited · revision completes when you've been through all six"
+      );
+    }
+
+    function applyTabMarks(visited) {
+      tabs.forEach((tab) => {
+        const tabMode = tab.getAttribute("data-learn-mode");
+        if (!LEARN_MODES.has(tabMode)) {
+          return;
+        }
+        const label = MODE_LABELS[tabMode] || tabMode;
+        tab.textContent = visited.has(tabMode) ? label + " ✓" : label;
+      });
+    }
+
+    function applyTracker(visited) {
+      if (!trackerEl) {
+        return;
+      }
+      trackerEl.setAttribute("data-count", String(visited.size));
+      trackerEl.textContent = methodsTrackerLine(visited.size);
+    }
+
+    function applyDoneUnlocked(label) {
+      if (isGuest || !doneBtn) {
+        return;
+      }
+      doneBtn.disabled = false;
+      doneBtn.removeAttribute("disabled");
+      doneBtn.setAttribute("aria-disabled", "false");
+      doneBtn.classList.remove("btn-done-locked");
+      doneBtn.classList.add("btn-accent");
+      if (label) {
+        doneBtn.textContent = label;
+      }
+    }
+
+    function resetDestination(nextMode, prevMode) {
+      if (prevMode === "recite" && nextMode !== "recite" && recite) {
+        recite.reset();
+      }
+      if (nextMode === "card") {
+        setFlipped(false);
+      }
+      if (nextMode === "cloze" && cloze) {
+        cloze.reset();
+      }
+      if (nextMode === "letters" && letters) {
+        letters.reset();
+      }
+      if (nextMode === "type" && typeMode) {
+        typeMode.reset();
+      }
+      if (nextMode === "recite" && prevMode !== "recite" && recite) {
+        recite.reset();
+      }
+    }
+
+    function switchModeLocal(nextMode, tab) {
+      const prevMode = learn.dataset.mode || "read";
+      learn.dataset.mode = nextMode;
+      tabs.forEach((item) => {
+        const active = item.getAttribute("data-learn-mode") === nextMode;
+        item.classList.toggle("is-active", active);
+        item.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      const href = tab.getAttribute("href");
+      if (href) {
+        history.replaceState({}, "", href);
+      }
+      resetDestination(nextMode, prevMode);
+    }
+
+    function persistSeen(mode) {
+      if (isGuest || confirmedModes.has(mode) || inFlight.has(mode) || !unitId) {
+        return;
+      }
+      inFlight.add(mode);
+      const body = new FormData();
+      body.append("mode", mode);
+      fetch("/learn/" + encodeURIComponent(unitId) + "/seen", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: body,
+      })
+        .then((response) => {
+          const type = response.headers.get("content-type") || "";
+          if (!response.ok || !type.includes("application/json")) {
+            throw new Error("seen-failed");
+          }
+          return response.json();
+        })
+        .then((payload) => {
+          inFlight.delete(mode);
+          const seen = Array.isArray(payload.seen) ? payload.seen : [];
+          seen.forEach((item) => {
+            if (LEARN_MODES.has(item)) {
+              confirmedModes.add(item);
+            }
+          });
+          applyTabMarks(confirmedModes);
+          applyTracker(confirmedModes);
+          if (payload.done && payload.done.unlocked === true) {
+            serverDoneUnlocked = true;
+            applyDoneUnlocked(payload.done.label);
+          } else if (serverDoneUnlocked) {
+            /* keep unlocked; ignore stale unlocked:false */
+          }
+        })
+        .catch(() => {
+          inFlight.delete(mode);
+        });
+    }
+
+    learn.addEventListener("click", (event) => {
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        event.button !== 0
+      ) {
+        return;
+      }
+      const tab = event.target.closest("[data-learn-mode]");
+      if (!tab || !learn.contains(tab)) {
+        return;
+      }
+      const nextMode = tab.getAttribute("data-learn-mode");
+      if (!LEARN_MODES.has(nextMode)) {
+        return;
+      }
+      event.preventDefault();
+      const current = learn.dataset.mode || "read";
+      if (nextMode === current) {
+        if (!isGuest) {
+          persistSeen(nextMode);
+        }
+        return;
+      }
+      switchModeLocal(nextMode, tab);
+      if (isGuest) {
+        guestVisitedModes.add(nextMode);
+        applyTabMarks(guestVisitedModes);
+        applyTracker(guestVisitedModes);
+        return;
+      }
+      persistSeen(nextMode);
+    });
 
     if (card) {
       card.addEventListener("click", () => {

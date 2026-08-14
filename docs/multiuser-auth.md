@@ -64,11 +64,15 @@ export MULTIUSER_ENABLED=true PORT=8010
 python -m constitution_memorizer.cli serve --host 127.0.0.1 --port 8010
 ```
 
-Hosted:
+Hosted (Railway / Railpack):
 
 ```bash
-python -m constitution_memorizer.cli serve --host 0.0.0.0 --port "$PORT"
+python -m uvicorn constitution_memorizer.web.asgi:app --host 0.0.0.0 --port "$PORT"
 ```
+
+Python is pinned to **3.12.11** in `.python-version` and `railpack.json`. Do not use a floating `3.11` — mise resolves that to a patch with no precompiled binary and the build dies before pip.
+
+`MULTIUSER_ENABLED=true`, Postgres `DATABASE_URL`, and Supabase secrets must be set on the service. Do not set `MULTIUSER_ENABLED` on the local 8001 launcher.
 
 ## Supabase dashboard
 

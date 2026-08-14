@@ -44,8 +44,13 @@ def test_requirements_web_excludes_docling_and_pytest():
     assert any(line.startswith("psycopg") for line in lines)
 
 
-def test_python_version_is_311():
-    assert (ROOT / ".python-version").read_text(encoding="utf-8").strip() == "3.11"
+def test_python_version_is_pinned_for_railpack():
+    """Floating 3.11 resolved to 3.11.16, which mise has no prebuild for."""
+    pinned = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
+    assert pinned == "3.12.11"
+    railpack = (ROOT / "railpack.json").read_text(encoding="utf-8")
+    assert '"python": "3.12.11"' in railpack
+    assert "constitution_memorizer.web.asgi:app" in railpack
 
 
 def test_package_data_includes_nested_templates():

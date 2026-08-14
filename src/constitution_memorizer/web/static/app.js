@@ -4,6 +4,7 @@
   const MOTION_KEY = "cm-motion";
   const SOUND_KEY = "cm-completion-sound";
   const DONE_SOUND_SRC = "/static/completion-done.mp3";
+  const AFFIRMATION_HOLD_MS = 10000;
   let doneAudio = null;
 
   function prefersReducedMotion() {
@@ -1233,7 +1234,7 @@
       });
       document.addEventListener("keydown", onKey);
       el.classList.add("is-open", "is-holding");
-      const timer = window.setTimeout(finish, 6000);
+      const timer = window.setTimeout(finish, AFFIRMATION_HOLD_MS);
     });
   }
 

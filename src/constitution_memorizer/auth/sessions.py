@@ -123,14 +123,8 @@ class InMemorySessionStore:
 class PostgresSessionStore:
     """Persist sessions in PostgreSQL app_session table."""
 
-    def __init__(self, dsn: str) -> None:
-        import psycopg
-
-        self._dsn = dsn
-        self._psycopg = psycopg
-
-    def _connect(self):
-        return self._psycopg.connect(self._dsn)
+    def __init__(self, pool) -> None:
+        self._pool = pool
 
     def create(
         self,
@@ -149,7 +143,7 @@ class PostgresSessionStore:
             expires_at=now + SESSION_TTL,
             created_at=now,
         )
-        with self._connect() as conn:
+        with self._pool.connection() as conn:
             conn.execute(
                 """
                 INSERT INTO app_session (
@@ -177,7 +171,7 @@ class PostgresSessionStore:
         return session
 
     def get(self, session_id: str) -> StoredSession | None:
-        with self._connect() as conn:
+        with self._pool.connection() as conn:
             row = conn.execute(
                 """
                 SELECT session_id, user_id, access_token, refresh_token, csrf_token,
@@ -218,7 +212,7 @@ class PostgresSessionStore:
         )
 
     def delete(self, session_id: str) -> None:
-        with self._connect() as conn:
+        with self._pool.connection() as conn:
             conn.execute("DELETE FROM app_session WHERE session_id = %s", (session_id,))
             conn.commit()
 
@@ -230,7 +224,7 @@ class PostgresSessionStore:
         refresh_token: str,
     ) -> StoredSession | None:
         expires = _now() + SESSION_TTL
-        with self._connect() as conn:
+        with self._pool.connection() as conn:
             conn.execute(
                 """
                 UPDATE app_session

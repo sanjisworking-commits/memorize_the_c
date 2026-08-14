@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import date, datetime, timezone
-from typing import Any
+from typing import Any, Iterator
 from uuid import UUID
 
 from constitution_memorizer.progress.repository import (
@@ -51,26 +52,29 @@ def _row_progress(row: Any) -> ProgressRecord:
 class PostgresProgressRepository:
     """psycopg-backed progress repository. Every query includes user_id."""
 
-    def __init__(self, dsn: str) -> None:
-        import psycopg
+    def __init__(self, pool: Any) -> None:
         from psycopg.rows import dict_row
 
-        self._dsn = dsn
-        self._psycopg = psycopg
+        self._pool = pool
         self._dict_row = dict_row
 
-    def _connect(self):
-        return self._psycopg.connect(self._dsn, row_factory=self._dict_row)
+    @contextmanager
+    def _cursor(self) -> Iterator[tuple[Any, Any]]:
+        """Borrow a pooled connection; dict rows only on this cursor."""
+        with self._pool.connection() as conn:
+            with conn.cursor(row_factory=self._dict_row) as cur:
+                yield conn, cur
 
     def get_progress(self, user_id: UUID | str, unit_id: str) -> ProgressRecord | None:
-        with self._connect() as conn:
-            row = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 """
                 SELECT * FROM learning_unit_progress
                 WHERE user_id = %s AND learning_unit_id = %s
                 """,
                 (as_user_id(user_id), unit_id),
-            ).fetchone()
+            )
+            row = cur.fetchone()
         return _row_progress(row) if row else None
 
     def ensure_progress(self, user_id: UUID | str, unit_id: str) -> ProgressRecord:
@@ -78,8 +82,8 @@ class PostgresProgressRepository:
         if existing is not None:
             return existing
         now = _utc_now()
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 INSERT INTO learning_unit_progress (
                     user_id, learning_unit_id, status, times_completed,
@@ -108,8 +112,8 @@ class PostgresProgressRepository:
         ease_factor: float = 2.5,
     ) -> ProgressRecord:
         now = _utc_now()
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 INSERT INTO learning_unit_progress (
                     user_id, learning_unit_id, status, times_completed,
@@ -150,8 +154,8 @@ class PostgresProgressRepository:
         *,
         include_new: bool = False,
     ) -> list[ProgressRecord]:
-        with self._connect() as conn:
-            rows = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 """
                 SELECT * FROM learning_unit_progress
                 WHERE user_id = %s
@@ -161,35 +165,36 @@ class PostgresProgressRepository:
                 ORDER BY next_revision ASC, learning_unit_id ASC
                 """,
                 (as_user_id(user_id), as_of),
-            ).fetchall()
-            due = [_row_progress(r) for r in rows]
+            )
+            due = [_row_progress(r) for r in cur.fetchall()]
             if include_new:
-                new_rows = conn.execute(
+                cur.execute(
                     """
                     SELECT * FROM learning_unit_progress
                     WHERE user_id = %s AND status = 'new'
                     ORDER BY learning_unit_id ASC
                     """,
                     (as_user_id(user_id),),
-                ).fetchall()
-                due.extend(_row_progress(r) for r in new_rows)
+                )
+                due.extend(_row_progress(r) for r in cur.fetchall())
         return due
 
     def list_all_progress(self, user_id: UUID | str) -> list[ProgressRecord]:
-        with self._connect() as conn:
-            rows = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 """
                 SELECT * FROM learning_unit_progress
                 WHERE user_id = %s
                 ORDER BY learning_unit_id ASC
                 """,
                 (as_user_id(user_id),),
-            ).fetchall()
+            )
+            rows = cur.fetchall()
         return [_row_progress(r) for r in rows]
 
     def count_by_status(self, user_id: UUID | str) -> dict[str, int]:
-        with self._connect() as conn:
-            rows = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 """
                 SELECT status, COUNT(*) AS n
                 FROM learning_unit_progress
@@ -197,27 +202,29 @@ class PostgresProgressRepository:
                 GROUP BY status
                 """,
                 (as_user_id(user_id),),
-            ).fetchall()
+            )
+            rows = cur.fetchall()
         return {str(r["status"]): int(r["n"]) for r in rows}
 
     def get_split_preference(
         self, user_id: UUID | str, parent_clause_id: str
     ) -> SplitMode | None:
-        with self._connect() as conn:
-            row = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 """
                 SELECT mode FROM split_preference
                 WHERE user_id = %s AND parent_clause_id = %s
                 """,
                 (as_user_id(user_id), parent_clause_id),
-            ).fetchone()
+            )
+            row = cur.fetchone()
         return None if row is None else row["mode"]
 
     def set_split_preference(
         self, user_id: UUID | str, parent_clause_id: str, mode: SplitMode
     ) -> None:
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 INSERT INTO split_preference (user_id, parent_clause_id, mode, updated_at)
                 VALUES (%s, %s, %s, %s)
@@ -230,16 +237,17 @@ class PostgresProgressRepository:
             conn.commit()
 
     def list_split_preferences(self, user_id: UUID | str) -> dict[str, SplitMode]:
-        with self._connect() as conn:
-            rows = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 "SELECT parent_clause_id, mode FROM split_preference WHERE user_id = %s",
                 (as_user_id(user_id),),
-            ).fetchall()
+            )
+            rows = cur.fetchall()
         return {str(r["parent_clause_id"]): r["mode"] for r in rows}
 
     def delete_progress(self, user_id: UUID | str, unit_id: str) -> None:
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 DELETE FROM learning_unit_progress
                 WHERE user_id = %s AND learning_unit_id = %s
@@ -250,18 +258,18 @@ class PostgresProgressRepository:
 
     def delete_all_progress(self, user_id: UUID | str) -> None:
         uid = as_user_id(user_id)
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 "DELETE FROM learning_unit_progress WHERE user_id = %s", (uid,)
             )
-            conn.execute("DELETE FROM split_preference WHERE user_id = %s", (uid,))
+            cur.execute("DELETE FROM split_preference WHERE user_id = %s", (uid,))
             conn.commit()
 
     def delete_split_preference(
         self, user_id: UUID | str, parent_clause_id: str
     ) -> None:
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 DELETE FROM split_preference
                 WHERE user_id = %s AND parent_clause_id = %s
@@ -271,21 +279,22 @@ class PostgresProgressRepository:
             conn.commit()
 
     def get_gloss(self, user_id: UUID | str, article_number: str) -> str | None:
-        with self._connect() as conn:
-            row = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 """
                 SELECT text FROM article_gloss
                 WHERE user_id = %s AND article_number = %s
                 """,
                 (as_user_id(user_id), article_number),
-            ).fetchone()
+            )
+            row = cur.fetchone()
         return None if row is None else str(row["text"])
 
     def upsert_gloss(
         self, user_id: UUID | str, article_number: str, text: str
     ) -> None:
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 INSERT INTO article_gloss (user_id, article_number, text, updated_at)
                 VALUES (%s, %s, %s, %s)
@@ -298,8 +307,8 @@ class PostgresProgressRepository:
             conn.commit()
 
     def delete_gloss(self, user_id: UUID | str, article_number: str) -> None:
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 DELETE FROM article_gloss
                 WHERE user_id = %s AND article_number = %s
@@ -309,16 +318,17 @@ class PostgresProgressRepository:
             conn.commit()
 
     def get_setting(self, user_id: UUID | str, key: str) -> str | None:
-        with self._connect() as conn:
-            row = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 "SELECT value FROM app_settings WHERE user_id = %s AND key = %s",
                 (as_user_id(user_id), key),
-            ).fetchone()
+            )
+            row = cur.fetchone()
         return None if row is None else str(row["value"])
 
     def set_setting(self, user_id: UUID | str, key: str, value: str) -> None:
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 INSERT INTO app_settings (user_id, key, value, updated_at)
                 VALUES (%s, %s, %s, %s)
@@ -374,8 +384,8 @@ class PostgresProgressRepository:
         self.set_setting(user_id, NEWS_ARTICLES_KEY, value.strip())
 
     def mark_mode_seen(self, user_id: UUID | str, unit_id: str, mode: str) -> set[str]:
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 INSERT INTO unit_modes_seen (user_id, learning_unit_id, mode, seen_at)
                 VALUES (%s, %s, %s, %s)
@@ -388,27 +398,28 @@ class PostgresProgressRepository:
         return self.modes_seen(user_id, unit_id)
 
     def modes_seen(self, user_id: UUID | str, unit_id: str) -> set[str]:
-        with self._connect() as conn:
-            rows = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 """
                 SELECT mode FROM unit_modes_seen
                 WHERE user_id = %s AND learning_unit_id = %s
                 """,
                 (as_user_id(user_id), unit_id),
-            ).fetchall()
+            )
+            rows = cur.fetchall()
         return {str(r["mode"]) for r in rows}
 
     def clear_modes_seen(self, user_id: UUID | str, unit_id: str) -> None:
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 "DELETE FROM unit_modes_seen WHERE user_id = %s AND learning_unit_id = %s",
                 (as_user_id(user_id), unit_id),
             )
             conn.commit()
 
     def clear_all_modes_seen(self, user_id: UUID | str) -> None:
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 "DELETE FROM unit_modes_seen WHERE user_id = %s",
                 (as_user_id(user_id),),
             )
@@ -425,8 +436,8 @@ class PostgresProgressRepository:
         avatar_url: str | None,
     ) -> None:
         now = _utc_now()
-        with self._connect() as conn:
-            conn.execute(
+        with self._cursor() as (conn, cur):
+            cur.execute(
                 """
                 INSERT INTO user_profile (user_id, display_name, avatar_url, created_at, updated_at)
                 VALUES (%s, %s, %s, %s, %s)
@@ -440,14 +451,15 @@ class PostgresProgressRepository:
             conn.commit()
 
     def get_profile(self, user_id: UUID | str) -> dict[str, str | None] | None:
-        with self._connect() as conn:
-            row = conn.execute(
+        with self._cursor() as (_conn, cur):
+            cur.execute(
                 """
                 SELECT user_id, display_name, avatar_url, created_at, updated_at
                 FROM user_profile WHERE user_id = %s
                 """,
                 (as_user_id(user_id),),
-            ).fetchone()
+            )
+            row = cur.fetchone()
         if row is None:
             return None
         created = row["created_at"]

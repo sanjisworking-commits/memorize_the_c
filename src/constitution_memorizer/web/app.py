@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import time
+from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
 
@@ -19,6 +21,10 @@ from constitution_memorizer.auth.exceptions import AuthConfigError
 from constitution_memorizer.multiuser.settings import MultiUserSettings
 from constitution_memorizer.learning.schemas import LearningUnitsDocument
 from constitution_memorizer.progress.memory import MemoryEngine
+from constitution_memorizer.progress.pg_pool import (
+    POOL_OPEN_TIMEOUT_SECONDS,
+    make_connection_pool,
+)
 from constitution_memorizer.progress.postgres_repository import PostgresProgressRepository
 from constitution_memorizer.reports.contact_notifier import ResendContactMessageNotifier
 from constitution_memorizer.reports.contact_repository import (
@@ -108,6 +114,19 @@ from constitution_memorizer.web.text_annotations import (
 WEB_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = WEB_DIR / "templates"
 STATIC_DIR = WEB_DIR / "static"
+
+
+@asynccontextmanager
+async def _app_lifespan(app: FastAPI):
+    """Open the shared Postgres pool before traffic; close it on shutdown."""
+    pool = getattr(app.state, "db_pool", None)
+    try:
+        if pool is not None:
+            pool.open(wait=True, timeout=POOL_OPEN_TIMEOUT_SECONDS)
+        yield
+    finally:
+        if pool is not None:
+            pool.close()
 _ALLOWED_PHOTO_SUFFIXES = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"}
 _PHOTO_MAGIC: list[tuple[bytes, str, str]] = [
     (b"\x89PNG\r\n\x1a\n", ".png", "image/png"),
@@ -244,13 +263,21 @@ def create_app(
 
     units_doc = LearningUnitsDocument.model_validate(read_json(resolved_units))
     catalog = {unit.id: unit for unit in units_doc.units}
+    db_pool = None
+
+    def _ensure_pool():
+        nonlocal db_pool
+        if db_pool is None:
+            db_pool = make_connection_pool(database_url)
+        return db_pool
+
     if progress_repo is not None:
         engine = ReminderEngine.from_repository(
             progress_repo, catalog, user_id=LOCAL_USER_ID
         )
     elif use_postgres:
         engine = ReminderEngine.from_repository(
-            PostgresProgressRepository(settings.database_url),
+            PostgresProgressRepository(_ensure_pool()),
             catalog,
             user_id=LOCAL_USER_ID,
         )
@@ -346,7 +373,7 @@ def create_app(
     templates.env.globals["visual_explainer"] = visual_explainer
     templates.env.globals["browse_mark"] = BROWSE_MARKS_BY_KEY.get
 
-    app = FastAPI(title="Recall the C", version="0.8.0")
+    app = FastAPI(title="Recall the C", version="0.8.0", lifespan=_app_lifespan)
     app.state.engine = engine
     app.state.memory = memory
     app.state.reviewed = reviewed
@@ -379,16 +406,14 @@ def create_app(
     if session_store is not None:
         app.state.session_store = session_store
     elif multiuser_on and settings.database_url.startswith("postgresql"):
-        app.state.session_store = PostgresSessionStore(settings.database_url)
+        app.state.session_store = PostgresSessionStore(_ensure_pool())
     else:
         app.state.session_store = InMemorySessionStore()
 
     if issue_report_repo is not None:
         app.state.issue_report_repo = issue_report_repo
     elif settings.database_url.startswith("postgresql"):
-        app.state.issue_report_repo = PostgresIssueReportRepository(
-            settings.database_url
-        )
+        app.state.issue_report_repo = PostgresIssueReportRepository(_ensure_pool())
     else:
         app.state.issue_report_repo = None
 
@@ -417,7 +442,7 @@ def create_app(
         app.state.contact_message_repo = contact_message_repo
     elif settings.database_url.startswith("postgresql"):
         app.state.contact_message_repo = PostgresContactMessageRepository(
-            settings.database_url
+            _ensure_pool()
         )
     else:
         app.state.contact_message_repo = None
@@ -432,6 +457,8 @@ def create_app(
         )
     else:
         app.state.contact_message_notifier = None
+
+    app.state.db_pool = db_pool
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     install_auth_middleware(app)
@@ -449,6 +476,28 @@ def create_app(
         ):
             return HTMLResponse("Not Found", status_code=404)
         return await call_next(request)
+
+    @app.middleware("http")
+    async def request_timing(request: Request, call_next):
+        """Log method/path/status/duration_ms; skip health and static assets."""
+        path = request.url.path
+        skip = path == "/health" or path.startswith("/static/")
+        started = time.perf_counter()
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            return response
+        finally:
+            if not skip:
+                duration_ms = (time.perf_counter() - started) * 1000.0
+                logger.info(
+                    "request method=%s path=%s status=%s duration_ms=%.1f",
+                    request.method,
+                    path,
+                    status,
+                    duration_ms,
+                )
 
     app.include_router(create_auth_router(templates))
 

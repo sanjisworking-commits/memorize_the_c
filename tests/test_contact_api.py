@@ -111,6 +111,7 @@ def _client(
     as_guest: bool = False,
     email: str = "a@example.com",
     progress_repo=None,
+    issue_report_repo=...,
 ) -> TestClient:
     provider = FakeAuthProvider()
     kwargs = {
@@ -129,6 +130,8 @@ def _client(
         kwargs["issue_report_turnstile_verifier"] = turnstile
     if progress_repo is not None:
         kwargs["progress_repo"] = progress_repo
+    if issue_report_repo is not ...:
+        kwargs["issue_report_repo"] = issue_report_repo
     client = TestClient(create_app(**kwargs))
     if not as_guest:
         _login(client, provider, email=email)
@@ -256,14 +259,15 @@ def test_production_requires_contact_us_action(tmp_path: Path):
 
     repo = FakeContactRepo()
     turnstile = FakeTurnstileVerifier()
-    # Inject SQLite progress repo so production + postgresql DATABASE_URL does not
-    # require a live Postgres during this Turnstile-action regression.
+    # Inject SQLite progress + dummy issue-report repo so production + postgresql
+    # DATABASE_URL does not open a live Postgres pool during this regression.
     progress = ProgressRepository(open_progress_db(tmp_path / "prod-progress.db"))
     client = _client(
         tmp_path,
         repo=repo,
         turnstile=turnstile,
         progress_repo=progress,
+        issue_report_repo=object(),
         settings=_settings(
             APP_ENV="production",
             DATABASE_URL="postgresql://user:pass@localhost:5432/db",

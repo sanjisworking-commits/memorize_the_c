@@ -57,7 +57,7 @@ def test_all_six_mode_tabs_keep_fallback_hrefs(tmp_path: Path):
         assert f'href="/learn/clause-1?mode={mode}"' in html
         assert 'role="tab"' in html
     assert 'data-modes-seen="' in html
-    assert "app.js?v=main17" in html
+    assert "app.js?v=main18" in html
 
 
 def test_direct_get_mode_query_still_server_renders(tmp_path: Path):
@@ -141,6 +141,49 @@ def test_app_js_merges_seen_and_keeps_done_server_authoritative():
     assert "applyTabMarks" not in switch
     assert "nextMode === current" in learn_src
     assert "persistSeen(nextMode)" in learn_src
+
+
+def _locked_methods_left_label(confirmed_count: int) -> str | None:
+    """Mirror of app.js lockedMethodsLeftLabel — remaining count is monotonic."""
+    remaining = 6 - confirmed_count
+    if remaining <= 0:
+        return None
+    if remaining == 1:
+        return "1 method left"
+    return f"{remaining} methods left"
+
+
+def test_locked_done_label_progresses_and_ignores_stale():
+    source = APP_JS.read_text(encoding="utf-8")
+    learn_src = source.split("function initLearn()", 1)[1].split(
+        "function initBrowseArticle()", 1
+    )[0]
+    assert "function lockedMethodsLeftLabel" in learn_src
+    assert "function applyLockedDoneLabel" in learn_src
+    assert "lockedMethodsLeftLabel(confirmedModes.size)" in learn_src
+    assert "if (isGuest || !doneBtn || serverDoneUnlocked)" in learn_src
+    assert "applyLockedDoneLabel()" in learn_src
+    assert "payload.done.unlocked === true" in learn_src
+    assert "confirmedModes.size >= 6" not in learn_src
+
+    labels = [_locked_methods_left_label(n) for n in range(1, 6)]
+    assert labels == [
+        "5 methods left",
+        "4 methods left",
+        "3 methods left",
+        "2 methods left",
+        "1 method left",
+    ]
+    assert _locked_methods_left_label(6) is None
+    assert _locked_methods_left_label(0) == "6 methods left"
+
+    confirmed = {"read", "cloze", "letters", "type"}
+    stale_seen = {"read", "cloze"}
+    merged = confirmed | stale_seen
+    assert _locked_methods_left_label(len(merged)) == "2 methods left"
+    naive_stale = _locked_methods_left_label(len(stale_seen))
+    assert naive_stale == "4 methods left"
+    assert _locked_methods_left_label(len(merged)) != naive_stale
 
 
 def test_app_js_resets_destination_and_stops_recite():

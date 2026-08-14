@@ -1010,6 +1010,27 @@
       );
     }
 
+    function lockedMethodsLeftLabel(confirmedCount) {
+      const remaining = 6 - confirmedCount;
+      if (remaining <= 0) {
+        return null;
+      }
+      if (remaining === 1) {
+        return "1 method left";
+      }
+      return remaining + " methods left";
+    }
+
+    function applyLockedDoneLabel() {
+      if (isGuest || !doneBtn || serverDoneUnlocked) {
+        return;
+      }
+      const label = lockedMethodsLeftLabel(confirmedModes.size);
+      if (label) {
+        doneBtn.textContent = label;
+      }
+    }
+
     function applyTabMarks(visited) {
       tabs.forEach((tab) => {
         const tabMode = tab.getAttribute("data-learn-mode");
@@ -1117,6 +1138,8 @@
             applyDoneUnlocked(payload.done.label);
           } else if (serverDoneUnlocked) {
             /* keep unlocked; ignore stale unlocked:false */
+          } else {
+            applyLockedDoneLabel();
           }
         })
         .catch(() => {

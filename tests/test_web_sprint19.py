@@ -8,9 +8,13 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from constitution_memorizer.progress.repository import ProgressRecord
 from constitution_memorizer.progress.scheduler import ReminderEngine
 from constitution_memorizer.web.app import create_app
-from constitution_memorizer.web.calendar_view import build_calendar_month
+from constitution_memorizer.web.calendar_view import (
+    build_calendar_month,
+    completed_review_history,
+)
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 
@@ -142,6 +146,43 @@ def test_ladder_after_review_starts_at_next_rung(engine: ReminderEngine):
     assert schedule[0][0] == date(2026, 7, 9)
 
 
+def test_completed_review_history_walks_ladder_backwards():
+    row = ProgressRecord(
+        learning_unit_id="clause-1",
+        status="review",
+        times_completed=3,
+        last_completed=date(2026, 8, 17),
+        next_revision=date(2026, 8, 24),
+        interval_days=7,
+        ease_factor=2.5,
+        created_at="2026-08-13T00:00:00+00:00",
+        updated_at="2026-08-17T00:00:00+00:00",
+    )
+    history = completed_review_history(row)
+    assert history == [
+        (date(2026, 8, 13), "memorized", None),
+        (date(2026, 8, 14), "review_done", 1),
+        (date(2026, 8, 17), "review_done", 3),
+    ]
+
+
+def test_completed_review_history_first_done_only():
+    row = ProgressRecord(
+        learning_unit_id="clause-1",
+        status="review",
+        times_completed=1,
+        last_completed=date(2026, 8, 13),
+        next_revision=date(2026, 8, 14),
+        interval_days=1,
+        ease_factor=2.5,
+        created_at="2026-08-13T00:00:00+00:00",
+        updated_at="2026-08-13T00:00:00+00:00",
+    )
+    assert completed_review_history(row) == [
+        (date(2026, 8, 13), "memorized", None),
+    ]
+
+
 def test_build_calendar_review_done_and_due_chips(engine: ReminderEngine):
     today = date(2026, 7, 20)
     engine.mark_all_modes_seen("clause-1")
@@ -150,11 +191,15 @@ def test_build_calendar_review_done_and_due_chips(engine: ReminderEngine):
     engine.mark_done("clause-1", as_of=date(2026, 7, 11))  # 1-day review done
     view = build_calendar_month(engine, year=2026, month=7, today=today)
 
-    assert view.memorized_count == 0
+    assert view.memorized_count == 1
     assert view.review_done_count == 1
+
+    day10 = next(d for d in view.days if d.day == 10)
+    assert any(c.kind == "memorized" and c.unit_id == "clause-1" for c in day10.chips)
 
     day11 = next(d for d in view.days if d.day == 11)
     assert any(c.kind == "review_done" and "✓" in c.label for c in day11.chips)
+    assert any("1-day review done" in c.title for c in day11.chips)
 
     # After second completion interval is 3 days → due July 14; later rungs past today skipped
     day14 = next(d for d in view.days if d.day == 14)
@@ -163,6 +208,72 @@ def test_build_calendar_review_done_and_due_chips(engine: ReminderEngine):
     assert any(
         c.kind == "scheduled" and "7-day" in c.title for c in day21.chips
     )
+
+
+def test_build_calendar_keeps_first_done_after_next_day_review(engine: ReminderEngine):
+    """First Done on 13 Aug must stay visible after the 1-day review on 14 Aug."""
+    today = date(2026, 8, 14)
+    engine.mark_all_modes_seen("clause-1")
+    engine.mark_done("clause-1", as_of=date(2026, 8, 13))
+    engine.mark_all_modes_seen("clause-1")
+    engine.mark_done("clause-1", as_of=date(2026, 8, 14))
+    view = build_calendar_month(engine, year=2026, month=8, today=today)
+
+    assert view.memorized_count == 1
+    assert view.review_done_count == 1
+
+    day13 = next(d for d in view.days if d.day == 13)
+    assert any(c.kind == "memorized" and c.unit_id == "clause-1" for c in day13.chips)
+
+    day14 = next(d for d in view.days if d.day == 14)
+    assert any(c.kind == "review_done" and c.unit_id == "clause-1" for c in day14.chips)
+
+    day17 = next(d for d in view.days if d.day == 17)
+    assert any(c.kind == "scheduled" and c.unit_id == "clause-1" for c in day17.chips)
+
+
+def test_build_calendar_shows_each_completed_review_in_month(engine: ReminderEngine):
+    today = date(2026, 8, 18)
+    engine.mark_all_modes_seen("clause-1")
+    engine.mark_done("clause-1", as_of=date(2026, 8, 13))
+    engine.mark_all_modes_seen("clause-1")
+    engine.mark_done("clause-1", as_of=date(2026, 8, 14))
+    engine.mark_all_modes_seen("clause-1")
+    engine.mark_done("clause-1", as_of=date(2026, 8, 17))
+    view = build_calendar_month(engine, year=2026, month=8, today=today)
+
+    assert view.memorized_count == 1
+    assert view.review_done_count == 2
+    kinds = {
+        13: "memorized",
+        14: "review_done",
+        17: "review_done",
+    }
+    for day_num, kind in kinds.items():
+        day = next(d for d in view.days if d.day == day_num)
+        assert any(c.kind == kind and c.unit_id == "clause-1" for c in day.chips)
+
+
+def test_build_calendar_first_done_in_prior_month_stays_on_that_month(
+    engine: ReminderEngine,
+):
+    today = date(2026, 8, 1)
+    engine.mark_all_modes_seen("clause-1")
+    engine.mark_done("clause-1", as_of=date(2026, 7, 31))
+    engine.mark_all_modes_seen("clause-1")
+    engine.mark_done("clause-1", as_of=date(2026, 8, 1))
+
+    july = build_calendar_month(engine, year=2026, month=7, today=today)
+    assert july.memorized_count == 1
+    assert july.review_done_count == 0
+    day31 = next(d for d in july.days if d.day == 31)
+    assert any(c.kind == "memorized" and c.unit_id == "clause-1" for c in day31.chips)
+
+    august = build_calendar_month(engine, year=2026, month=8, today=today)
+    assert august.memorized_count == 0
+    assert august.review_done_count == 1
+    day1 = next(d for d in august.days if d.day == 1)
+    assert any(c.kind == "review_done" and c.unit_id == "clause-1" for c in day1.chips)
 
 
 def test_calendar_page_shows_chips_from_progress(client: TestClient, engine: ReminderEngine):

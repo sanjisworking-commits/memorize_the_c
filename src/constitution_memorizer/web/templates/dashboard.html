@@ -4,6 +4,7 @@
 {% set state = dashboard_state|default('ok') %}
 {% set initials = (display_label[:1] if display_label else 'L')|upper %}
 <section class="panel dashboard-panel">
+  {% include "_completion_banner.html" %}
   {% if state == 'loading' %}
   <header class="dash-greeting">
     <span class="dash-avatar dash-skel" aria-hidden="true"></span>
@@ -66,6 +67,10 @@
         {% if due_count == 0 %}
         <p class="dash-due-empty-title">Nothing is due today</p>
         <p class="muted">You're caught up. Browse when you're ready for something new.</p>
+        {% if caught_up_quote %}
+        <blockquote class="caught-up-quote">{{ caught_up_quote.text }}</blockquote>
+        <p class="caught-up-quote-attr">— {{ caught_up_quote.author }}</p>
+        {% endif %}
         <p class="actions">
           <a class="btn btn-ghost dash-btn-outline" href="/browse">Browse the Constitution</a>
         </p>

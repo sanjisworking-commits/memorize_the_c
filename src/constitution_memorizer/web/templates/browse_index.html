@@ -1,20 +1,56 @@
 {% extends "base.html" %}
 {% block title %}Browse the Constitution · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
+{% macro mark_icon(key, size=14) -%}
+  {% if key == 'news' %}
+  <svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+    <rect x="1.25" y="3.25" width="13.5" height="9.5"></rect>
+    <path d="M1.25 6.25h13.5"></path>
+    <rect x="3.25" y="8" width="4" height="3.25"></rect>
+    <path d="M9 8.5h3.75M9 10.75h3.75"></path>
+  </svg>
+  {% elif key == 'visualise' %}
+  <svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+    <rect x="5.5" y="0.75" width="5" height="3.5"></rect>
+    <rect x="0.75" y="11.75" width="5" height="3.5"></rect>
+    <rect x="10.25" y="11.75" width="5" height="3.5"></rect>
+    <path d="M8 4.25v3.25M3.25 11.75V7.5h9.5v4.25"></path>
+  </svg>
+  {% endif %}
+{%- endmacro %}
+{% macro mark_tray(card) -%}
+  {% if card.marks %}
+  <div class="browse-mark-tray">
+    {% for key in card.marks %}
+    {% set spec = browse_mark(key) %}
+    <button type="button"
+            class="browse-mark browse-mark-{{ key }}"
+            data-browse-filter="{{ key }}"
+            aria-label="{{ spec.aria_label }}"
+            title="{{ spec.title }}">
+      {{ mark_icon(key, 14) }}
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+{%- endmacro %}
 {% macro article_grid(cards) -%}
     {% if cards %}
     <div class="browse-article-grid">
       {% for card in cards %}
-      {% set ve = visual_explainer(card.article_number) %}
       {% set card_classes = 'browse-article-card'
          ~ (' is-tracked' if card.tracked else ' is-untracked')
          ~ (' has-due' if card.due_count else '')
-         ~ (' has-news' if card.in_news else '') %}
-      {% if ve %}<div class="{{ card_classes }} ve-card-host">{% endif %}
-      <a
-        class="{{ 've-card-link' if ve else card_classes }}"
-        href="{{ card.href }}"
+         ~ (' has-tray' if card.marks else '') %}
+      {% if card.marks %}
+      <div
+        class="{{ card_classes }}"
+        data-browse-marks="{{ card.marks | join(' ') }}"
       >
+      <a class="browse-card-link" href="{{ card.href }}">
+      {% else %}
+      <a class="{{ card_classes }}" href="{{ card.href }}">
+      {% endif %}
         {% if card.due_count %}
         <span class="browse-due-ribbon is-{{ card.due_kind or 'due' }}">
           {% if card.due_kind == 'overdue' %}Overdue{% else %}Due today{% endif %}
@@ -29,12 +65,9 @@
           {{ card.due_count }} unit{% if card.due_count != 1 %}s{% endif %} due
         </span>
         {% endif %}
-        {% if card.in_news %}
-        <span class="browse-in-news">In news</span>
-        {% endif %}
       </a>
-      {% if ve %}
-        {% with ve_variant = 'card' %}{% include "visual_explainer_trigger.html" %}{% endwith %}
+      {% if card.marks %}
+        {{ mark_tray(card) }}
       </div>
       {% endif %}
       {% endfor %}
@@ -46,6 +79,22 @@
   <p class="lede">
     The Constitution, Part by Part. Open an Article, then learn any clause from inside it.
   </p>
+
+  {% if present_marks %}
+  <div class="browse-legend" role="group" aria-label="Filter Articles by mark">
+    <span class="browse-legend-caption">Marks</span>
+    {% for spec in present_marks %}
+    <button type="button"
+            class="browse-legend-item browse-mark-{{ spec.key }}"
+            data-browse-filter="{{ spec.key }}"
+            aria-pressed="false">
+      {{ mark_icon(spec.key, 15) }}
+      <span>{{ spec.legend_label }}</span>
+      <span class="browse-legend-clear" aria-hidden="true">✕</span>
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   {% for section in sections %}
   <section class="browse-part" aria-label="Part {{ section.part_number }}">

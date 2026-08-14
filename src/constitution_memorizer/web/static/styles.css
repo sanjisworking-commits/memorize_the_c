@@ -3655,7 +3655,7 @@ html.rtc-anim .rtc-affirmation.is-open .rtc-affirmation-ledger {
 }
 
 html.rtc-anim .rtc-affirmation.is-holding .rtc-affirmation-hold {
-  animation: rtc-hold-deplete 6000ms linear forwards;
+  animation: rtc-hold-deplete 10000ms linear forwards;
 }
 
 html.rtc-anim .rtc-affirmation.is-exiting .rtc-affirmation-scrim,

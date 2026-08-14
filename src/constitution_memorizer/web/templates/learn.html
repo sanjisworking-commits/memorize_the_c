@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ unit.display_title }} · Learn · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
-<section class="panel learn" data-unit-id="{{ unit.id }}" data-mode="{{ learn_mode }}" data-done-unlocked="{{ 'true' if done_unlocked else 'false' }}"{% if is_guest|default(false) %} data-guest-learn="true"{% endif %}>
+<section class="panel learn" data-unit-id="{{ unit.id }}" data-mode="{{ learn_mode }}" data-done-unlocked="{{ 'true' if done_unlocked else 'false' }}" data-modes-seen="{% if modes_seen is defined %}{{ modes_seen | join(',') }}{% endif %}"{% if is_guest|default(false) %} data-guest-learn="true"{% endif %}>
   {% include "_completion_banner.html" %}
   {% if is_guest|default(false) %}
   <div class="guest-learn-banner" role="status">

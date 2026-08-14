@@ -954,16 +954,78 @@
     initBareFns(root);
   }
 
+  function cardHasMark(card, key) {
+    const raw = card.getAttribute("data-browse-marks") || "";
+    return raw.split(/\s+/).filter(Boolean).indexOf(key) !== -1;
+  }
+
+  function initBrowseIndex() {
+    const panel = document.querySelector("section.browse");
+    if (!panel) {
+      return;
+    }
+    const cards = Array.from(panel.querySelectorAll(".browse-article-card"));
+    const legendItems = Array.from(panel.querySelectorAll(".browse-legend-item"));
+    let active = null;
+
+    function applyFilter(next) {
+      if (next && next === active) {
+        active = null;
+      } else {
+        active = next || null;
+      }
+      if (active) {
+        panel.setAttribute("data-mark-filter", active);
+      } else {
+        panel.removeAttribute("data-mark-filter");
+      }
+      legendItems.forEach((item) => {
+        item.setAttribute(
+          "aria-pressed",
+          item.getAttribute("data-browse-filter") === active ? "true" : "false"
+        );
+      });
+      cards.forEach((card) => {
+        const hide = Boolean(active) && !cardHasMark(card, active);
+        card.classList.toggle("is-mark-hidden", hide);
+      });
+      panel.querySelectorAll(".browse-chapter").forEach((chapter) => {
+        const visible = chapter.querySelectorAll(
+          ".browse-article-card:not(.is-mark-hidden)"
+        );
+        chapter.classList.toggle("is-filter-empty", Boolean(active) && visible.length === 0);
+      });
+      panel.querySelectorAll(".browse-part").forEach((part) => {
+        const visible = part.querySelectorAll(
+          ".browse-article-card:not(.is-mark-hidden)"
+        );
+        part.classList.toggle("is-filter-empty", Boolean(active) && visible.length === 0);
+      });
+    }
+
+    panel.addEventListener("click", (event) => {
+      const trigger = event.target.closest("[data-browse-filter]");
+      if (!trigger || !panel.contains(trigger)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      applyFilter(trigger.getAttribute("data-browse-filter"));
+    });
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       initLearn();
       initBrowseArticle();
+      initBrowseIndex();
       initExplainBack();
       initThemeToggle();
     });
   } else {
     initLearn();
     initBrowseArticle();
+    initBrowseIndex();
     initExplainBack();
     initThemeToggle();
   }

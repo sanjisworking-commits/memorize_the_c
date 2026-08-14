@@ -98,6 +98,34 @@ def remaining_review_schedule(row: ProgressRecord) -> list[tuple[date, int]]:
     return out
 
 
+def completed_review_history(
+    row: ProgressRecord,
+) -> list[tuple[date, ChipKind, int | None]]:
+    """
+    Infer past completion days by walking ``INTERVAL_LADDER`` backwards from
+    ``last_completed``.
+
+    ``mark_done`` stores only the latest date, so the calendar reconstructs
+    earlier rungs (memorize, then 1 → 3 → 7 → …) assuming on-time reviews.
+    Late reviews shift inferred earlier dates.
+
+    Each tuple is ``(when, kind, rung)`` where ``rung`` is the completed
+    interval in days, or ``None`` for the first memorize.
+    """
+    if row.last_completed is None or row.times_completed < 1:
+        return []
+    n_reviews = min(row.times_completed - 1, len(INTERVAL_LADDER))
+    rungs = INTERVAL_LADDER[:n_reviews]
+    cursor = row.last_completed
+    events: list[tuple[date, ChipKind, int | None]] = []
+    for rung in reversed(rungs):
+        events.append((cursor, "review_done", rung))
+        cursor = cursor - timedelta(days=rung)
+    events.append((cursor, "memorized", None))
+    events.reverse()
+    return events
+
+
 def build_calendar_month(
     engine: ReminderEngine,
     *,
@@ -129,20 +157,26 @@ def build_calendar_month(
         label = _chip_label(unit.display_title)
         full = unit.display_title
 
-        if row.last_completed is not None and month_start <= row.last_completed <= month_end:
-            if row.times_completed <= 1:
-                kind: ChipKind = "memorized"
+        for when, kind, rung in completed_review_history(row):
+            if not (month_start <= when <= month_end):
+                continue
+            if kind == "memorized":
                 memorized_count += 1
                 tip = f"{full} — memorized"
+                chip_label = label
             else:
-                kind = "review_done"
                 review_done_count += 1
-                tip = f"{full} — review done"
-            by_day[row.last_completed.day].append(
+                tip = (
+                    f"{full} — {rung}-day review done"
+                    if rung is not None
+                    else f"{full} — review done"
+                )
+                chip_label = f"{label} ✓"
+            by_day[when.day].append(
                 CalendarChip(
                     kind=kind,
                     unit_id=row.learning_unit_id,
-                    label=label if kind == "memorized" else f"{label} ✓",
+                    label=chip_label,
                     title=tip,
                 )
             )

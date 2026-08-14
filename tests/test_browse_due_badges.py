@@ -19,6 +19,13 @@ from constitution_memorizer.web.browse import (
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 
 
+def _article_card_chunk(html: str, number: str) -> str:
+    needle = f"Article {number}"
+    start = html.find(needle)
+    assert start != -1, f"missing {needle}"
+    return html[start : start + 900]
+
+
 def test_parse_news_articles():
     assert parse_news_articles("19") == {"19"}
     assert parse_news_articles("19, 21") == {"19", "21"}
@@ -53,10 +60,12 @@ def test_browse_parts_sections_attaches_due_and_news(tmp_path: Path):
     assert art20.due_count == 1
     assert art20.due_kind == "due"
     assert art20.in_news is True
+    assert art20.marks == ("news",)
     assert art20.tracked is True
     untouched = [c for c in cards if c.article_number != "20"]
     assert all(c.due_count == 0 and c.due_kind is None for c in untouched)
     assert all(c.in_news is False for c in untouched)
+    assert all(c.marks == () for c in untouched)
 
 
 def test_browse_index_html_ribbon_count_and_nav_badge(tmp_path: Path):
@@ -77,8 +86,13 @@ def test_browse_index_html_ribbon_count_and_nav_badge(tmp_path: Path):
     assert "browse-due-bubble" not in browse.text
     assert "Due today" in browse.text
     assert "1 unit due" in browse.text
+    assert "browse-mark-news" in browse.text
+    assert "browse-legend" in browse.text
     assert "In news" in browse.text
-    assert "browse-in-news" in browse.text
+    assert "browse-in-news" not in browse.text
+    card = _article_card_chunk(browse.text, "20")
+    assert "browse-mark-news" in card
+    assert ">In news<" not in card
     assert "is-tracked" in browse.text
     assert "nav-due-badge" in browse.text
 

@@ -74,20 +74,29 @@ def client(tmp_path: Path) -> TestClient:
     return TestClient(app)
 
 
-def test_browse_index_shows_visualise_only_for_article_82(client: TestClient):
+def test_browse_index_shows_visualise_mark_only_for_article_82(client: TestClient):
     html = client.get("/browse").text
-    assert 'data-ve-article="82"' in html
-    assert 'data-ve-src="/api/explainers/82"' in html
-    assert "ve-card-cta" in html
+    assert "browse-mark-visualise" in html
+    assert 'data-browse-filter="visualise"' in html
+    assert "ve-card-cta" not in html
+    assert "data-ve-open" not in html
     assert "visual-explainer.js" in html
     assert "ve-modal" in html
-    assert 'data-ve-article="1"' not in html
+    assert "browse-legend" in html
+    assert "Visualise" in html
+    card = html[html.find("Article 82") : html.find("Article 82") + 1200]
+    assert "browse-mark-visualise" in card
+    assert ">Visualise<" not in card
+    assert "data-ve-open" not in card
+    assert 'data-browse-marks="' in html
+    assert html.count('data-ve-article="82"') == 0
 
 
 def test_browse_article_82_actions_include_visualise(client: TestClient):
     html = client.get("/browse/article/82").text
     assert "data-ve-open" in html
     assert 'data-ve-article="82"' in html
+    assert "Visualise" in html
     assert "/api/explainers/82" in html
     assert "/static/explainers/" not in html
 

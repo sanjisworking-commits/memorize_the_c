@@ -15,6 +15,7 @@ from constitution_memorizer.progress.protocols import ReminderRepositoryProtocol
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
     LEARN_MODES_SET,
+    CompletionProgress,
     NotificationFrequency,
     ProgressRecord,
     ProgressRepository,
@@ -142,8 +143,9 @@ class ReminderEngine:
         return self._split_cache
 
     def _store_progress(self, progress: ProgressRecord) -> None:
-        cache = self._ensure_progress_cache()
-        cache[progress.learning_unit_id] = progress
+        if self._progress_cache is None:
+            return
+        self._progress_cache[progress.learning_unit_id] = progress
 
     def _drop_progress(self, unit_id: str) -> None:
         if self._progress_cache is not None:
@@ -322,60 +324,61 @@ class ReminderEngine:
         if unit_id not in self.units:
             raise KeyError(f"Unknown learning unit id: {unit_id}")
 
-        if require_all_modes:
-            started = perf_counter()
-            complete = self.repo.modes_complete(self.user_id, unit_id)
-            _record_timing("modes_seen", started)
-            if not complete:
-                started = perf_counter()
-                seen = self.repo.modes_seen(self.user_id, unit_id)
-                _record_timing("modes_seen", started)
-                raise ModesIncompleteError(unit_id, seen)
+        started = perf_counter()
+        state = self.repo.load_completion_state(self.user_id, unit_id)
+        _record_timing("completion_state", started)
+
+        if self._split_cache is None:
+            self._split_cache = dict(state.split_preferences)
+
+        if require_all_modes and state.modes_seen < LEARN_MODES_SET:
+            raise ModesIncompleteError(unit_id, state.modes_seen)
 
         today = as_of or date.today()
-        started = perf_counter()
-        current = self.repo.ensure_progress(self.user_id, unit_id)
-        _record_timing("progress_ensure", started)
-        self._store_progress(current)
-        if current.status == "mastered":
-            progress = current
+        current = state.progress
+        if current is not None and current.status == "mastered":
+            command = CompletionProgress(
+                status=current.status,
+                times_completed=current.times_completed,
+                last_completed=current.last_completed,
+                next_revision=current.next_revision,
+                interval_days=current.interval_days,
+                ease_factor=current.ease_factor,
+            )
         else:
-            nxt = advance_interval(current.interval_days)
-            times = current.times_completed + 1
+            interval = current.interval_days if current is not None else 0
+            times = (current.times_completed if current is not None else 0) + 1
+            ease = (
+                current.ease_factor if current is not None else DEFAULT_EASE_FACTOR
+            )
+            nxt = advance_interval(interval)
             if nxt is None:
-                started = perf_counter()
-                progress = self.repo.upsert_progress(
-                    self.user_id,
-                    unit_id=unit_id,
+                command = CompletionProgress(
                     status="mastered",
                     times_completed=times,
                     last_completed=today,
                     next_revision=None,
                     interval_days=INTERVAL_LADDER[-1],
-                    ease_factor=DEFAULT_EASE_FACTOR,
+                    ease_factor=ease,
                 )
-                _record_timing("progress_update", started)
             else:
-                started = perf_counter()
-                progress = self.repo.upsert_progress(
-                    self.user_id,
-                    unit_id=unit_id,
+                command = CompletionProgress(
                     status="review",
                     times_completed=times,
                     last_completed=today,
                     next_revision=today + timedelta(days=nxt),
                     interval_days=nxt,
-                    ease_factor=DEFAULT_EASE_FACTOR,
+                    ease_factor=ease,
                 )
-                _record_timing("progress_update", started)
-            self._store_progress(progress)
 
-        started_schedule = perf_counter()
         started = perf_counter()
-        self.repo.clear_modes_seen(self.user_id, unit_id)
-        _record_timing("modes_clear_write", started)
+        progress = self.repo.commit_completion(self.user_id, unit_id, command)
+        _record_timing("completion_commit", started)
+        self._store_progress(progress)
+
+        started = perf_counter()
         next_unit_id = self.resolve_next_unit_id(unit_id)
-        _record_timing("done_schedule", started_schedule)
+        _record_timing("done_schedule", started)
         return MarkDoneResult(
             unit_id=unit_id,
             progress=progress,

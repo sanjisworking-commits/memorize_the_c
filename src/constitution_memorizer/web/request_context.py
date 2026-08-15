@@ -36,6 +36,8 @@ TIMING_STAGES: tuple[str, ...] = (
     "progress_ensure",
     "progress_update",
     "modes_clear_write",
+    "completion_state",
+    "completion_commit",
     "done_schedule",
     "gloss_read",
     "theme",

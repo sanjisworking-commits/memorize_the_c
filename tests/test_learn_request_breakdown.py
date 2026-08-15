@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from pathlib import Path
 from uuid import UUID
 
@@ -31,6 +30,8 @@ class CountingProgressRepo:
         self.list_all_progress_calls = 0
         self.list_due_calls = 0
         self.load_request_bootstrap_calls = 0
+        self.load_completion_state_calls = 0
+        self.commit_completion_calls = 0
         self.list_split_preferences_calls = 0
         self.set_split_preference_calls = 0
         self.mark_mode_seen_calls = 0
@@ -62,6 +63,14 @@ class CountingProgressRepo:
         return self.inner.load_request_bootstrap(
             user_id, include_profile=include_profile, include_news=include_news
         )
+
+    def load_completion_state(self, user_id, unit_id: str):
+        self.load_completion_state_calls += 1
+        return self.inner.load_completion_state(user_id, unit_id)
+
+    def commit_completion(self, user_id, unit_id: str, progress):
+        self.commit_completion_calls += 1
+        return self.inner.commit_completion(user_id, unit_id, progress)
 
     def list_split_preferences(self, user_id):
         self.list_split_preferences_calls += 1
@@ -109,6 +118,8 @@ class CountingProgressRepo:
             "list_all_progress": self.list_all_progress_calls,
             "list_due": self.list_due_calls,
             "load_request_bootstrap": self.load_request_bootstrap_calls,
+            "load_completion_state": self.load_completion_state_calls,
+            "commit_completion": self.commit_completion_calls,
             "list_split_preferences": self.list_split_preferences_calls,
             "set_split_preference": self.set_split_preference_calls,
             "mark_mode_seen": self.mark_mode_seen_calls,
@@ -178,13 +189,6 @@ def _breakdown_messages(caplog: logging.LogCaptureFixture) -> list[str]:
         for record in caplog.records
         if record.getMessage().startswith("request_breakdown ")
     ]
-
-
-def _stage_n(line: str, stage: str) -> int | None:
-    match = re.search(rf"{re.escape(stage)}_n=(\d+)", line)
-    if match is None:
-        return None
-    return int(match.group(1))
 
 
 def test_wants_request_breakdown_paths():
@@ -306,11 +310,14 @@ def test_incomplete_done_redirects_and_times_mode_reads(tmp_path: Path, caplog):
     assert len(messages) == 1
     line = messages[0]
     assert "path=/learn/clause-1/done" in line
-    assert "modes_seen_n=" in line
-    assert _stage_n(line, "modes_seen") == repo.modes_complete_calls + 1
-    assert repo.modes_complete_calls == 1
+    assert "completion_state_n=1" in line
+    assert "completion_commit_" not in line
+    assert "modes_seen_" not in line
+    assert "progress_ensure_" not in line
     assert "progress_update_" not in line
     assert "modes_clear_write_" not in line
+    assert repo.load_completion_state_calls == 1
+    assert repo.commit_completion_calls == 0
     assert repo.upsert_progress_calls == 0
     assert repo.clear_modes_seen_calls == 0
     assert repo.ensure_progress_calls == 0
@@ -331,15 +338,20 @@ def test_complete_done_records_schedule_leaves(tmp_path: Path, caplog):
     assert len(messages) == 1
     line = messages[0]
     assert "path=/learn/clause-1/done" in line
-    assert "progress_ensure_n=1" in line
-    assert "progress_update_n=1" in line
-    assert "modes_clear_write_n=1" in line
+    assert "completion_state_n=1" in line
+    assert "completion_commit_n=1" in line
     assert "done_schedule_n=1" in line
-    assert "progress_preload_n=1" in line
-    assert repo.ensure_progress_calls == 1
-    assert repo.upsert_progress_calls == 1
-    assert repo.clear_modes_seen_calls == 1
-    assert repo.list_all_progress_calls == 1
+    assert "progress_ensure_" not in line
+    assert "progress_preload_" not in line
+    assert "progress_update_" not in line
+    assert "modes_clear_write_" not in line
+    assert "modes_seen_" not in line
+    assert repo.load_completion_state_calls == 1
+    assert repo.commit_completion_calls == 1
+    assert repo.ensure_progress_calls == 0
+    assert repo.upsert_progress_calls == 0
+    assert repo.clear_modes_seen_calls == 0
+    assert repo.list_all_progress_calls == 0
     assert repo.load_request_bootstrap_calls == 0
 
 

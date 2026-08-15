@@ -68,6 +68,27 @@ class RequestBootstrap:
     profile: dict[str, str | None] | None = None
 
 
+@dataclass(frozen=True)
+class CompletionState:
+    """Snapshot for one Done: this unit's progress/modes plus the user's split prefs."""
+
+    progress: ProgressRecord | None
+    modes_seen: set[str]
+    split_preferences: dict[str, SplitMode]
+
+
+@dataclass(frozen=True)
+class CompletionProgress:
+    """Engine-owned Done write command. Repository owns created_at / updated_at."""
+
+    status: ProgressStatus
+    times_completed: int
+    last_completed: date | None
+    next_revision: date | None
+    interval_days: int
+    ease_factor: float
+
+
 def _parse_date(value: str | None) -> date | None:
     if not value:
         return None
@@ -524,6 +545,70 @@ class ProgressRepository:
             news_articles_raw=self.get_news_articles_raw(user_id) if include_news else None,
             profile=self.get_profile(user_id) if include_profile else None,
         )
+
+    def load_completion_state(
+        self, user_id: UUID | str, unit_id: str
+    ) -> CompletionState:
+        return CompletionState(
+            progress=self.get_progress(user_id, unit_id),
+            modes_seen=self.modes_seen(user_id, unit_id),
+            split_preferences=self.list_split_preferences(user_id),
+        )
+
+    def commit_completion(
+        self,
+        user_id: UUID | str,
+        unit_id: str,
+        progress: CompletionProgress,
+    ) -> ProgressRecord:
+        now = _utc_now_iso()
+        uid = as_user_id(user_id)
+        try:
+            self._conn.execute(
+                """
+                INSERT INTO learning_unit_progress (
+                    user_id, learning_unit_id, status, times_completed, last_completed,
+                    next_revision, interval_days, ease_factor, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id, learning_unit_id) DO UPDATE SET
+                    status = excluded.status,
+                    times_completed = excluded.times_completed,
+                    last_completed = excluded.last_completed,
+                    next_revision = excluded.next_revision,
+                    interval_days = excluded.interval_days,
+                    ease_factor = excluded.ease_factor,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    uid,
+                    unit_id,
+                    progress.status,
+                    progress.times_completed,
+                    _date_iso(progress.last_completed),
+                    _date_iso(progress.next_revision),
+                    progress.interval_days,
+                    progress.ease_factor,
+                    now,
+                    now,
+                ),
+            )
+            self._conn.execute(
+                "DELETE FROM unit_modes_seen WHERE user_id = ? AND learning_unit_id = ?",
+                (uid, unit_id),
+            )
+            row = self._conn.execute(
+                """
+                SELECT * FROM learning_unit_progress
+                WHERE user_id = ? AND learning_unit_id = ?
+                """,
+                (uid, unit_id),
+            ).fetchone()
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            raise
+        assert row is not None
+        return _row_to_progress(row)
 
 
 # Backward-compatible alias used by docs/plan wording.

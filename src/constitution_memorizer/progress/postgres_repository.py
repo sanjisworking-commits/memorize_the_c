@@ -18,6 +18,8 @@ from constitution_memorizer.progress.repository import (
     THEME_KEY,
     VALID_NOTIFICATION_FREQUENCIES,
     VALID_THEMES,
+    CompletionProgress,
+    CompletionState,
     NotificationFrequency,
     ProgressRecord,
     ProgressStatus,
@@ -97,6 +99,53 @@ _BOOTSTRAP_SETTING_SQL = (
 _BOOTSTRAP_PROFILE_SQL = """
 SELECT user_id, display_name, avatar_url, created_at, updated_at
 FROM user_profile WHERE user_id = %s
+"""
+_COMPLETION_PROGRESS_SQL = """
+SELECT * FROM learning_unit_progress
+WHERE user_id = %s AND learning_unit_id = %s
+"""
+_COMPLETION_MODES_SQL = """
+SELECT mode FROM unit_modes_seen
+WHERE user_id = %s AND learning_unit_id = %s
+"""
+_MARK_MODE_SEEN_SQL = """
+WITH touched AS (
+    INSERT INTO unit_modes_seen (user_id, learning_unit_id, mode, seen_at)
+    VALUES (%s, %s, %s, %s)
+    ON CONFLICT (user_id, learning_unit_id, mode) DO UPDATE SET
+        seen_at = EXCLUDED.seen_at
+    RETURNING mode
+)
+SELECT mode
+FROM unit_modes_seen
+WHERE user_id = %s
+  AND learning_unit_id = %s
+UNION
+SELECT mode
+FROM touched
+"""
+_COMMIT_COMPLETION_SQL = """
+WITH upserted AS (
+    INSERT INTO learning_unit_progress (
+        user_id, learning_unit_id, status, times_completed,
+        last_completed, next_revision, interval_days, ease_factor,
+        created_at, updated_at
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    ON CONFLICT (user_id, learning_unit_id) DO UPDATE SET
+        status = EXCLUDED.status,
+        times_completed = EXCLUDED.times_completed,
+        last_completed = EXCLUDED.last_completed,
+        next_revision = EXCLUDED.next_revision,
+        interval_days = EXCLUDED.interval_days,
+        ease_factor = EXCLUDED.ease_factor,
+        updated_at = EXCLUDED.updated_at
+    RETURNING *
+),
+_cleared AS (
+    DELETE FROM unit_modes_seen
+    WHERE user_id = %s AND learning_unit_id = %s
+)
+SELECT * FROM upserted
 """
 
 
@@ -435,18 +484,15 @@ class PostgresProgressRepository:
         self.set_setting(user_id, NEWS_ARTICLES_KEY, value.strip())
 
     def mark_mode_seen(self, user_id: UUID | str, unit_id: str, mode: str) -> set[str]:
+        uid = as_user_id(user_id)
         with self._cursor() as (conn, cur):
             cur.execute(
-                """
-                INSERT INTO unit_modes_seen (user_id, learning_unit_id, mode, seen_at)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (user_id, learning_unit_id, mode) DO UPDATE SET
-                    seen_at = EXCLUDED.seen_at
-                """,
-                (as_user_id(user_id), unit_id, mode, _utc_now()),
+                _MARK_MODE_SEEN_SQL,
+                (uid, unit_id, mode, _utc_now(), uid, unit_id),
             )
+            rows = cur.fetchall()
             conn.commit()
-        return self.modes_seen(user_id, unit_id)
+        return {str(r["mode"]) for r in rows}
 
     def modes_seen(self, user_id: UUID | str, unit_id: str) -> set[str]:
         with self._cursor() as (_conn, cur):
@@ -584,3 +630,69 @@ class PostgresProgressRepository:
             if include_profile and profile_row is not None
             else None,
         )
+
+    def load_completion_state(
+        self, user_id: UUID | str, unit_id: str
+    ) -> CompletionState:
+        uid = as_user_id(user_id)
+        with self._pool.connection() as conn:
+            with ExitStack() as stack:
+                progress_cur = stack.enter_context(
+                    conn.cursor(row_factory=self._dict_row)
+                )
+                modes_cur = stack.enter_context(conn.cursor(row_factory=self._dict_row))
+                split_cur = stack.enter_context(conn.cursor(row_factory=self._dict_row))
+
+                def _queue() -> None:
+                    progress_cur.execute(_COMPLETION_PROGRESS_SQL, (uid, unit_id))
+                    modes_cur.execute(_COMPLETION_MODES_SQL, (uid, unit_id))
+                    split_cur.execute(_BOOTSTRAP_SPLIT_SQL, (uid,))
+
+                if _pipeline_supported():
+                    with conn.pipeline():
+                        _queue()
+                else:
+                    _queue()
+
+                progress_row = progress_cur.fetchone()
+                mode_rows = modes_cur.fetchall()
+                split_rows = split_cur.fetchall()
+
+        return CompletionState(
+            progress=_row_progress(progress_row) if progress_row is not None else None,
+            modes_seen={str(r["mode"]) for r in mode_rows},
+            split_preferences={
+                str(r["parent_clause_id"]): r["mode"] for r in split_rows
+            },
+        )
+
+    def commit_completion(
+        self,
+        user_id: UUID | str,
+        unit_id: str,
+        progress: CompletionProgress,
+    ) -> ProgressRecord:
+        now = _utc_now()
+        uid = as_user_id(user_id)
+        with self._cursor() as (conn, cur):
+            cur.execute(
+                _COMMIT_COMPLETION_SQL,
+                (
+                    uid,
+                    unit_id,
+                    progress.status,
+                    progress.times_completed,
+                    progress.last_completed,
+                    progress.next_revision,
+                    progress.interval_days,
+                    progress.ease_factor,
+                    now,
+                    now,
+                    uid,
+                    unit_id,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+        assert row is not None
+        return _row_progress(row)

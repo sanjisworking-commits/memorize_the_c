@@ -96,6 +96,10 @@ class ReminderEngine:
             self._progress_cache = {row.learning_unit_id: row for row in rows}
         return self._progress_cache
 
+    def preload_progress(self) -> None:
+        """Load list_all_progress into the request cache if not already loaded."""
+        self._ensure_progress_cache()
+
     def _ensure_split_cache(self) -> dict[str, SplitMode]:
         if self._split_cache is None:
             self._split_cache = dict(self.repo.list_split_preferences(self.user_id))
@@ -365,7 +369,23 @@ class ReminderEngine:
         include_new: bool = False,
     ) -> list[ProgressRecord]:
         today = as_of or date.today()
-        return self.repo.list_due(self.user_id, today, include_new=include_new)
+        if self._progress_cache is None:
+            return self.repo.list_due(self.user_id, today, include_new=include_new)
+        review = [
+            row
+            for row in self._progress_cache.values()
+            if row.status == "review"
+            and row.next_revision is not None
+            and row.next_revision <= today
+        ]
+        review.sort(key=lambda row: (row.next_revision, row.learning_unit_id))
+        if not include_new:
+            return review
+        new_rows = [
+            row for row in self._progress_cache.values() if row.status == "new"
+        ]
+        new_rows.sort(key=lambda row: row.learning_unit_id)
+        return review + new_rows
 
     def due_unit_ids(
         self,
@@ -376,7 +396,12 @@ class ReminderEngine:
         return [r.learning_unit_id for r in self.due_today(as_of, include_new=include_new)]
 
     def stats(self) -> dict[str, int]:
-        counts = self.repo.count_by_status(self.user_id)
+        if self._progress_cache is None:
+            counts = self.repo.count_by_status(self.user_id)
+        else:
+            counts: dict[str, int] = {}
+            for row in self._progress_cache.values():
+                counts[row.status] = counts.get(row.status, 0) + 1
         return {
             "new": counts.get("new", 0),
             "review": counts.get("review", 0),

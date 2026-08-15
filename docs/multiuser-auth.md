@@ -21,7 +21,7 @@ Single-user local mode (`scripts/mac/start-ui.command`, SQLite without
 
 ```
 Guest
-  ├─ /                 marketing landing (CTAs → /login)
+  ├─ /                 marketing landing (Start learning → /login; Explore → /browse)
   ├─ /browse, /search  corpus
   ├─ /learn/{id}       try modes + guest banner / sign-in modal
   ├─ /dashboard        inline guest gate

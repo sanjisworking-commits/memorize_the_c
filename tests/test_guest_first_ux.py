@@ -78,20 +78,32 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     home = client.get("/", follow_redirects=False)
     assert home.status_code == 200
     html = home.text
-    assert "Memorize the C" in html
-    assert "Start remembering" in html
+    assert "Recall the C" in html
+    assert "Memorize the C." in html
+    assert "A memory system for the Bare Act" in html
+    assert "Start learning" in html
+    assert "Start memorizing" in html
     assert 'href="/login"' in html
-    assert "data-landing-demo" in html
-    assert "Check" in html
+    assert 'href="/browse"' in html
+    assert "Explore as guest" in html
+    assert "On the page" in html
+    assert "From memory" in html
+    assert "Article 32(1)" in html
+    assert "data-modes" in html
+    assert "Day 60" in html
+    assert "Day 1" in html
+    assert "Day 3" in html
+    assert "Day 7" in html
+    assert "Day 14" in html
+    assert "Day 30" in html
+    assert "Before you start" in html
+    assert "1, 3, 7, 14, 30, 60" in html
     assert "landing.js" in html
-    assert "family=Fraunces" in html or "@keyframes recallFade" in html
-    assert "@keyframes floatC" in html
+    assert "family=Fraunces" in html
     # Standalone page: no app chrome from base.html
     assert "Learning as guest" not in html
     assert 'class="nav-link">Home' not in html
     assert 'class="nav-link">Browse' not in html
-    assert "Explore the Constitution" not in html
-    assert "Articles" not in html
     assert "{% extends" not in html
 
     browse = client.get("/browse")
@@ -106,6 +118,26 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert learn.status_code == 200
     assert "learning as a guest" in learn.text.lower()
     assert "guest-signin-modal" in learn.text
+
+
+def test_landing_only_when_multiuser_guest(tmp_path: Path):
+    """Marketing landing is served at / only for unsigned multiuser visitors."""
+    from constitution_memorizer.web.app import create_app
+
+    local = TestClient(
+        create_app(units_path=MINI_UNITS, db_path=tmp_path / "local.db", multiuser=False)
+    )
+    local_home = local.get("/", follow_redirects=False)
+    assert local_home.status_code == 200
+    assert "Today" in local_home.text
+    assert "A memory system for the Bare Act" not in local_home.text
+    assert "data-modes" not in local_home.text
+
+    guest = _client(tmp_path)
+    guest_home = guest.get("/", follow_redirects=False)
+    assert guest_home.status_code == 200
+    assert "A memory system for the Bare Act" in guest_home.text
+    assert ">Today<" not in guest_home.text
 
 
 def test_authed_logo_and_root_go_to_dashboard(tmp_path: Path):

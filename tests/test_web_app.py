@@ -35,6 +35,9 @@ def test_home_renders(client: TestClient):
     assert "Today" in response.text
     assert "Due" in response.text
     assert "Continue" in response.text or "All caught up" in response.text
+    # Marketing landing is multiuser-guest only.
+    assert "A memory system for the Bare Act" not in response.text
+    assert "Start memorizing" not in response.text
 
 
 def test_learn_simple_unit(client: TestClient):

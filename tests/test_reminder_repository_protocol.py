@@ -41,6 +41,8 @@ def test_protocol_surface_is_nontrivial():
         "needs_welcome",
         "get_notification_last_slot",
         "set_notification_last_slot",
+        "load_completion_state",
+        "commit_completion",
     }
     assert required <= names
 

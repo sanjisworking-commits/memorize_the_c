@@ -7,6 +7,8 @@ from typing import Protocol
 from uuid import UUID
 
 from constitution_memorizer.progress.repository import (
+    CompletionProgress,
+    CompletionState,
     NotificationFrequency,
     ProgressRecord,
     ProgressStatus,
@@ -148,6 +150,17 @@ class ReminderRepositoryProtocol(Protocol):
         include_profile: bool = False,
         include_news: bool = False,
     ) -> RequestBootstrap: ...
+
+    def load_completion_state(
+        self, user_id: UUID | str, unit_id: str
+    ) -> CompletionState: ...
+
+    def commit_completion(
+        self,
+        user_id: UUID | str,
+        unit_id: str,
+        progress: CompletionProgress,
+    ) -> ProgressRecord: ...
 
 
 # Backward-compatible name used in earlier plan wording.

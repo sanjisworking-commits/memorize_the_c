@@ -55,7 +55,15 @@ from constitution_memorizer.progress.repository import (
 )
 from constitution_memorizer.progress.scheduler import ModesIncompleteError, ReminderEngine
 from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
-from constitution_memorizer.web.request_context import bound_engine, bound_memory
+from constitution_memorizer.web.request_context import (
+    TIMING_STAGES,
+    begin_request_timings,
+    bound_engine,
+    bound_memory,
+    record_request_timing,
+    reset_request_timings,
+    snapshot_request_timings,
+)
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
@@ -333,7 +341,10 @@ def create_app(
             if app.state.multiuser_enabled:
                 return 0
         bound = getattr(request.state, "bound_engine", None) or app.state.engine
-        return browse_due_total(bound)
+        started = time.perf_counter()
+        total = browse_due_total(bound)
+        record_request_timing("nav_due", started)
+        return total
 
     templates = Jinja2Templates(
         directory=str(TEMPLATES_DIR),
@@ -483,6 +494,8 @@ def create_app(
         """Log method/path/status/duration_ms; skip health and static assets."""
         path = request.url.path
         skip = path == "/health" or path.startswith("/static/")
+        breakdown = path in {"/dashboard", "/browse"}
+        token = begin_request_timings() if breakdown else None
         started = time.perf_counter()
         status = 500
         try:
@@ -499,6 +512,20 @@ def create_app(
                     status,
                     duration_ms,
                 )
+                snapshot = snapshot_request_timings()
+                if snapshot:
+                    parts = [
+                        f"request_breakdown method={request.method} path={path}"
+                    ]
+                    for stage in TIMING_STAGES:
+                        if stage not in snapshot:
+                            continue
+                        total_ms, count = snapshot[stage]
+                        parts.append(f"{stage}_ms={total_ms:.1f}")
+                        parts.append(f"{stage}_n={count}")
+                    timing_logger.info(" ".join(parts))
+            if token is not None:
+                reset_request_timings(token)
 
     app.include_router(create_auth_router(templates))
 
@@ -906,10 +933,15 @@ def create_app(
     async def browse_index(request: Request) -> HTMLResponse:
         eng = _engine()
         if not getattr(request.state, "is_guest", False):
+            started = time.perf_counter()
             eng.preload_progress()
+            record_request_timing("progress_preload", started)
+        started = time.perf_counter()
         sections = browse_parts_sections(eng, app.state.reviewed)
+        record_request_timing("browse_build", started)
         parts_source = "reviewed" if app.state.reviewed is not None else "units-seed"
-        return templates.TemplateResponse(
+        started = time.perf_counter()
+        response = templates.TemplateResponse(
             request,
             "browse_index.html",
             {
@@ -919,6 +951,8 @@ def create_app(
                 "present_marks": present_browse_marks(sections),
             },
         )
+        record_request_timing("template", started)
+        return response
 
     @app.get("/browse/article/{article_number}", response_class=HTMLResponse)
     async def browse_article(request: Request, article_number: str) -> HTMLResponse:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import secrets
+import time
 from datetime import date
 from urllib.parse import urlencode
 
@@ -30,6 +31,7 @@ from constitution_memorizer.auth.sessions import (
     new_csrf_token,
 )
 from constitution_memorizer.web.completion import build_completion, caught_up_quote
+from constitution_memorizer.web.request_context import record_request_timing
 
 logger = logging.getLogger(__name__)
 
@@ -381,7 +383,9 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         eng = getattr(request.state, "bound_engine", None) or request.app.state.engine.for_user(
             user.id
         )
+        started = time.perf_counter()
         profile = eng.repo.get_profile(user.id)
+        record_request_timing("profile", started)
         if profile is None or not (profile.get("display_name") or "").strip():
             return RedirectResponse(url="/welcome", status_code=303)
         label = (
@@ -392,11 +396,16 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         try:
             from constitution_memorizer.web.dashboard import build_dashboard_context
 
+            started = time.perf_counter()
             eng.preload_progress()
+            record_request_timing("progress_preload", started)
+            started = time.perf_counter()
             ctx = build_dashboard_context(eng, display_label=label)
+            record_request_timing("dashboard_build", started)
             ctx["user"] = user
             ctx["dashboard_state"] = "ok"
             done_id = request.query_params.get("done")
+            started = time.perf_counter()
             ctx["completion"] = build_completion(
                 eng=eng,
                 quotes=getattr(request.app.state, "quotes", []) or [],
@@ -411,10 +420,15 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
                 if ctx.get("due_count") == 0
                 else None
             )
-            return templates.TemplateResponse(request, "dashboard.html", ctx)
+            record_request_timing("completion", started)
+            started = time.perf_counter()
+            response = templates.TemplateResponse(request, "dashboard.html", ctx)
+            record_request_timing("template", started)
+            return response
         except Exception:
             logger.exception("Dashboard data load failed for user %s", user.id)
-            return templates.TemplateResponse(
+            started = time.perf_counter()
+            response = templates.TemplateResponse(
                 request,
                 "dashboard.html",
                 {
@@ -445,6 +459,8 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
                     "nothing_due": True,
                 },
             )
+            record_request_timing("template", started)
+            return response
 
     @router.get("/profile", response_class=HTMLResponse)
     async def profile_get(request: Request) -> HTMLResponse:
@@ -582,7 +598,9 @@ def install_auth_middleware(app) -> None:
 
         # Stale cookie → session expired page (once), for HTML GETs.
         raw_cookie = request.cookies.get(SESSION_COOKIE_NAME)
+        started = time.perf_counter()
         user = get_optional_current_user(request)
+        record_request_timing("auth_session", started)
         if (
             raw_cookie
             and user is None

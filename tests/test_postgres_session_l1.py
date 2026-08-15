@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from uuid import UUID
 
 from constitution_memorizer.auth.models import AuthenticatedUser
@@ -16,6 +16,8 @@ from constitution_memorizer.auth.sessions import (
 
 USER_ID = UUID("11111111-1111-4111-8111-111111111111")
 NOW = datetime(2026, 8, 15, 12, 0, tzinfo=timezone.utc)
+PAST = datetime(2020, 1, 1, tzinfo=timezone.utc)
+FUTURE = datetime(2099, 1, 1, tzinfo=timezone.utc)
 SID = "session-abc"
 
 
@@ -136,7 +138,7 @@ def _row(
         None,
         None,
         "google",
-        expires_at if expires_at is not None else NOW + timedelta(days=1),
+        expires_at if expires_at is not None else FUTURE,
         created,
     )
 
@@ -166,7 +168,7 @@ def _session(
         access_token=access_token,
         refresh_token="refresh-token",
         csrf_token="csrf-token",
-        expires_at=expires_at if expires_at is not None else NOW + timedelta(days=1),
+        expires_at=expires_at if expires_at is not None else FUTURE,
         created_at=NOW,
     )
 
@@ -210,7 +212,7 @@ def test_l1_ttl_expiry_hits_postgres_again():
 
 def test_expired_db_row_is_deleted_and_not_cached():
     pool = SessionFakePool()
-    pool.seed(_row(expires_at=NOW - timedelta(minutes=1)))
+    pool.seed(_row(expires_at=PAST))
     store = _store(pool)
 
     assert store.get(SID) is None
@@ -311,12 +313,12 @@ def test_unknown_id_is_not_negative_cached():
 
 def test_expired_cached_session_is_not_served():
     pool = SessionFakePool()
-    pool.seed(_row(expires_at=NOW - timedelta(seconds=1)))
+    pool.seed(_row(expires_at=PAST))
     store = _store(pool)
-    store._l1.put(_session(SID, expires_at=NOW + timedelta(days=1)))
+    store._l1.put(_session(SID, expires_at=FUTURE))
     cached = store._l1.lookup_or_epoch(SID)[0]
     assert cached is not None
-    cached.expires_at = NOW - timedelta(seconds=1)
+    cached.expires_at = PAST
 
     assert store.get(SID) is None
     assert store._l1.contains(SID) is False

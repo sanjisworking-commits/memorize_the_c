@@ -905,6 +905,8 @@ def create_app(
     @app.get("/browse", response_class=HTMLResponse)
     async def browse_index(request: Request) -> HTMLResponse:
         eng = _engine()
+        if not getattr(request.state, "is_guest", False):
+            eng.preload_progress()
         sections = browse_parts_sections(eng, app.state.reviewed)
         parts_source = "reviewed" if app.state.reviewed is not None else "units-seed"
         return templates.TemplateResponse(

@@ -18,6 +18,7 @@ from constitution_memorizer.progress.repository import (
     NotificationFrequency,
     ProgressRecord,
     ProgressRepository,
+    RequestBootstrap,
     SplitMode,
     ThemePreference,
 )
@@ -90,9 +91,11 @@ class ReminderEngine:
         self.repo = repo
         self.units = dict(units)
         self.user_id = user_id
-        # None = not loaded yet; dict = loaded for this request-bound engine.
+        # None = not loaded yet; dict/str = loaded for this request-bound engine.
         self._progress_cache: dict[str, ProgressRecord] | None = None
         self._split_cache: dict[str, SplitMode] | None = None
+        self._theme_cache: ThemePreference | None = None
+        self._news_cache: str | None = None
 
     def for_user(self, user_id: UUID) -> ReminderEngine:
         """Return a lightweight engine bound to ``user_id`` (shared units + repo)."""
@@ -107,6 +110,27 @@ class ReminderEngine:
     def preload_progress(self) -> None:
         """Load list_all_progress into the request cache if not already loaded."""
         self._ensure_progress_cache()
+
+    def bootstrap_request(
+        self,
+        *,
+        include_profile: bool = False,
+        include_news: bool = False,
+    ) -> RequestBootstrap:
+        """Load independent request data once and seed request-local caches."""
+        started = perf_counter()
+        bundle = self.repo.load_request_bootstrap(
+            self.user_id,
+            include_profile=include_profile,
+            include_news=include_news,
+        )
+        _record_timing("request_bootstrap", started)
+        self._progress_cache = {row.learning_unit_id: row for row in bundle.progress}
+        self._split_cache = dict(bundle.split_preferences)
+        self._theme_cache = bundle.theme
+        if include_news:
+            self._news_cache = bundle.news_articles_raw if bundle.news_articles_raw is not None else ""
+        return bundle
 
     def _ensure_split_cache(self) -> dict[str, SplitMode]:
         if self._split_cache is None:
@@ -128,6 +152,12 @@ class ReminderEngine:
 
     def _invalidate_split_cache(self) -> None:
         self._split_cache = None
+
+    def _invalidate_theme_cache(self) -> None:
+        self._theme_cache = None
+
+    def _invalidate_news_cache(self) -> None:
+        self._news_cache = None
 
     @classmethod
     def from_repository(
@@ -201,6 +231,8 @@ class ReminderEngine:
         self.repo.clear_all_modes_seen(self.user_id)
         self._invalidate_progress_cache()
         self._invalidate_split_cache()
+        self._invalidate_theme_cache()
+        self._invalidate_news_cache()
 
     def set_split_preference(self, parent_clause_id: str, mode: SplitMode) -> None:
         self.repo.set_split_preference(self.user_id, parent_clause_id, mode)
@@ -222,22 +254,30 @@ class ReminderEngine:
         self.repo.set_notification_frequency(self.user_id, frequency)
 
     def get_theme(self) -> ThemePreference:
+        if self._theme_cache is not None:
+            return self._theme_cache
         started = perf_counter()
         theme = self.repo.get_theme(self.user_id)
         _record_timing("theme", started)
+        self._theme_cache = theme
         return theme
 
     def set_theme(self, theme: ThemePreference) -> None:
         self.repo.set_theme(self.user_id, theme)
+        self._theme_cache = theme
 
     def get_news_articles_raw(self) -> str:
+        if self._news_cache is not None:
+            return self._news_cache
         started = perf_counter()
         value = self.repo.get_news_articles_raw(self.user_id)
         _record_timing("news_setting", started)
+        self._news_cache = value
         return value
 
     def set_news_articles_raw(self, value: str) -> None:
         self.repo.set_news_articles_raw(self.user_id, value)
+        self._news_cache = value.strip()
 
     def mark_mode_seen(self, unit_id: str, mode: str) -> set[str]:
         if unit_id not in self.units:

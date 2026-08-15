@@ -933,9 +933,7 @@ def create_app(
     async def browse_index(request: Request) -> HTMLResponse:
         eng = _engine()
         if not getattr(request.state, "is_guest", False):
-            started = time.perf_counter()
-            eng.preload_progress()
-            record_request_timing("progress_preload", started)
+            eng.bootstrap_request(include_news=True)
         started = time.perf_counter()
         sections = browse_parts_sections(eng, app.state.reviewed)
         record_request_timing("browse_build", started)

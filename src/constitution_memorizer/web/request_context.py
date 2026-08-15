@@ -20,6 +20,7 @@ _request_timings: ContextVar[dict[str, tuple[float, int]] | None] = ContextVar(
 
 TIMING_STAGES: tuple[str, ...] = (
     "auth_session",
+    "request_bootstrap",
     "profile",
     "progress_preload",
     "split_prefs",

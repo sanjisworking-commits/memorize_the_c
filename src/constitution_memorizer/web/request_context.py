@@ -24,17 +24,41 @@ TIMING_STAGES: tuple[str, ...] = (
     "profile",
     "progress_preload",
     "split_prefs",
+    "split_write",
     "news_setting",
     "browse_build",
+    "article_build",
     "dashboard_build",
+    "learn_build",
     "completion",
     "modes_seen",
+    "mode_seen_write",
+    "progress_ensure",
+    "progress_update",
+    "modes_clear_write",
+    "done_schedule",
+    "gloss_read",
     "theme",
     "nav_due",
     "template",
 )
 
 _TIMING_STAGE_SET = frozenset(TIMING_STAGES)
+_LEARN_BREAKDOWN_SUFFIXES = frozenset({"choose", "seen", "done"})
+
+
+def wants_request_breakdown(path: str) -> bool:
+    """True for Dashboard, Browse, Browse Article, and Learn-flow paths."""
+    if path in {"/dashboard", "/browse"}:
+        return True
+    parts = [segment for segment in path.split("/") if segment]
+    if len(parts) == 3 and parts[0] == "browse" and parts[1] == "article":
+        return True
+    if not parts or parts[0] != "learn":
+        return False
+    if len(parts) == 2:
+        return True
+    return len(parts) == 3 and parts[2] in _LEARN_BREAKDOWN_SUFFIXES
 
 
 def begin_request_timings() -> Token:

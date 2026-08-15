@@ -63,6 +63,7 @@ from constitution_memorizer.web.request_context import (
     record_request_timing,
     reset_request_timings,
     snapshot_request_timings,
+    wants_request_breakdown,
 )
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
@@ -494,7 +495,7 @@ def create_app(
         """Log method/path/status/duration_ms; skip health and static assets."""
         path = request.url.path
         skip = path == "/health" or path.startswith("/static/")
-        breakdown = path in {"/dashboard", "/browse"}
+        breakdown = wants_request_breakdown(path)
         token = begin_request_timings() if breakdown else None
         started = time.perf_counter()
         status = 500
@@ -719,6 +720,7 @@ def create_app(
             done_label = done_state["label"]
         modes_payload = _modes_payload(target.id, seen)
 
+        started = time.perf_counter()
         chips = sibling_chips(eng, target)
         stem = subclause_stem_text(eng, target)
         rail_kind = (
@@ -737,8 +739,10 @@ def create_app(
             notes=notes,
             unit_id=target.id,
         )
+        record_request_timing("learn_build", started)
         done_id = request.query_params.get("done")
         mode_suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
+        started = time.perf_counter()
         completion = build_completion(
             eng=eng,
             quotes=app.state.quotes,
@@ -748,7 +752,9 @@ def create_app(
             continue_href=f"/learn/{target.id}{mode_suffix}",
             continue_label=target.display_title,
         )
-        return templates.TemplateResponse(
+        record_request_timing("completion", started)
+        started = time.perf_counter()
+        response = templates.TemplateResponse(
             request,
             "learn.html",
             {
@@ -779,6 +785,8 @@ def create_app(
                 ),
             },
         )
+        record_request_timing("template", started)
+        return response
 
     @app.post("/learn/{unit_id}/seen")
     async def learn_mode_seen(
@@ -875,6 +883,7 @@ def create_app(
             app.state.multiuser_enabled
             and getattr(request.state, "current_user", None) is None
         )
+        started = time.perf_counter()
         completion = build_completion(
             eng=eng,
             quotes=app.state.quotes,
@@ -884,11 +893,15 @@ def create_app(
             continue_href=f"/learn/{clause_id}/choose",
             continue_label=unit.display_title,
         )
-        return templates.TemplateResponse(
+        record_request_timing("completion", started)
+        started = time.perf_counter()
+        response = templates.TemplateResponse(
             request,
             "choose.html",
             {"unit": unit, "completion": completion},
         )
+        record_request_timing("template", started)
+        return response
 
     @app.post("/learn/{clause_id}/choose")
     async def choose_post(
@@ -955,6 +968,7 @@ def create_app(
     @app.get("/browse/article/{article_number}", response_class=HTMLResponse)
     async def browse_article(request: Request, article_number: str) -> HTMLResponse:
         eng = _engine()
+        started = time.perf_counter()
         view = build_article_view(
             eng,
             app.state.reviewed,
@@ -987,7 +1001,9 @@ def create_app(
             notes=notes,
             unit_id=f"browse-article-{view.article_number}",
         )
-        return templates.TemplateResponse(
+        record_request_timing("article_build", started)
+        started = time.perf_counter()
+        response = templates.TemplateResponse(
             request,
             "browse_article.html",
             {
@@ -1001,6 +1017,8 @@ def create_app(
                 "has_text_annotations": bool(browse_anns),
             },
         )
+        record_request_timing("template", started)
+        return response
 
     @app.put("/browse/article/{article_number}/gloss")
     async def put_article_gloss(article_number: str, request: Request) -> JSONResponse:

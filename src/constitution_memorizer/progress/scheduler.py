@@ -103,7 +103,9 @@ class ReminderEngine:
 
     def _ensure_progress_cache(self) -> dict[str, ProgressRecord]:
         if self._progress_cache is None:
+            started = perf_counter()
             rows = self.repo.list_all_progress(self.user_id)
+            _record_timing("progress_preload", started)
             self._progress_cache = {row.learning_unit_id: row for row in rows}
         return self._progress_cache
 
@@ -214,7 +216,10 @@ class ReminderEngine:
         return list(cache.values())
 
     def get_gloss(self, article_number: str) -> str | None:
-        return self.repo.get_gloss(self.user_id, article_number)
+        started = perf_counter()
+        value = self.repo.get_gloss(self.user_id, article_number)
+        _record_timing("gloss_read", started)
+        return value
 
     def upsert_gloss(self, article_number: str, text: str) -> None:
         self.repo.upsert_gloss(self.user_id, article_number, text)
@@ -235,7 +240,9 @@ class ReminderEngine:
         self._invalidate_news_cache()
 
     def set_split_preference(self, parent_clause_id: str, mode: SplitMode) -> None:
+        started = perf_counter()
         self.repo.set_split_preference(self.user_id, parent_clause_id, mode)
+        _record_timing("split_write", started)
         cache = self._ensure_split_cache()
         cache[parent_clause_id] = mode
 
@@ -282,7 +289,10 @@ class ReminderEngine:
     def mark_mode_seen(self, unit_id: str, mode: str) -> set[str]:
         if unit_id not in self.units:
             raise KeyError(f"Unknown learning unit id: {unit_id}")
-        return self.repo.mark_mode_seen(self.user_id, unit_id, mode)
+        started = perf_counter()
+        seen = self.repo.mark_mode_seen(self.user_id, unit_id, mode)
+        _record_timing("mode_seen_write", started)
+        return seen
 
     def modes_seen(self, unit_id: str) -> set[str]:
         started = perf_counter()
@@ -312,11 +322,20 @@ class ReminderEngine:
         if unit_id not in self.units:
             raise KeyError(f"Unknown learning unit id: {unit_id}")
 
-        if require_all_modes and not self.repo.modes_complete(self.user_id, unit_id):
-            raise ModesIncompleteError(unit_id, self.repo.modes_seen(self.user_id, unit_id))
+        if require_all_modes:
+            started = perf_counter()
+            complete = self.repo.modes_complete(self.user_id, unit_id)
+            _record_timing("modes_seen", started)
+            if not complete:
+                started = perf_counter()
+                seen = self.repo.modes_seen(self.user_id, unit_id)
+                _record_timing("modes_seen", started)
+                raise ModesIncompleteError(unit_id, seen)
 
         today = as_of or date.today()
+        started = perf_counter()
         current = self.repo.ensure_progress(self.user_id, unit_id)
+        _record_timing("progress_ensure", started)
         self._store_progress(current)
         if current.status == "mastered":
             progress = current
@@ -324,6 +343,7 @@ class ReminderEngine:
             nxt = advance_interval(current.interval_days)
             times = current.times_completed + 1
             if nxt is None:
+                started = perf_counter()
                 progress = self.repo.upsert_progress(
                     self.user_id,
                     unit_id=unit_id,
@@ -334,7 +354,9 @@ class ReminderEngine:
                     interval_days=INTERVAL_LADDER[-1],
                     ease_factor=DEFAULT_EASE_FACTOR,
                 )
+                _record_timing("progress_update", started)
             else:
+                started = perf_counter()
                 progress = self.repo.upsert_progress(
                     self.user_id,
                     unit_id=unit_id,
@@ -345,13 +367,19 @@ class ReminderEngine:
                     interval_days=nxt,
                     ease_factor=DEFAULT_EASE_FACTOR,
                 )
+                _record_timing("progress_update", started)
             self._store_progress(progress)
 
+        started_schedule = perf_counter()
+        started = perf_counter()
         self.repo.clear_modes_seen(self.user_id, unit_id)
+        _record_timing("modes_clear_write", started)
+        next_unit_id = self.resolve_next_unit_id(unit_id)
+        _record_timing("done_schedule", started_schedule)
         return MarkDoneResult(
             unit_id=unit_id,
             progress=progress,
-            next_unit_id=self.resolve_next_unit_id(unit_id),
+            next_unit_id=next_unit_id,
             modes_complete=True,
         )
 

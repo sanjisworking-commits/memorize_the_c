@@ -22,7 +22,60 @@ from constitution_memorizer.web.request_context import (
     reset_request_timings,
     snapshot_request_timings,
 )
-from tests.test_reminder_engine_request_cache import CountingProgressRepo
+
+
+class CountingProgressRepo:
+    """Wraps a real SQLite repo and counts get_progress / list_all_progress."""
+
+    def __init__(self, inner: ProgressRepository) -> None:
+        self.inner = inner
+        self.get_progress_calls = 0
+        self.list_all_progress_calls = 0
+        self.list_due_calls = 0
+        self.count_by_status_calls = 0
+        self.get_profile_calls = 0
+        self.list_split_preferences_calls = 0
+        self.get_split_preference_calls = 0
+
+    def __getattr__(self, name: str):
+        return getattr(self.inner, name)
+
+    def get_progress(self, user_id, unit_id: str):
+        self.get_progress_calls += 1
+        return self.inner.get_progress(user_id, unit_id)
+
+    def list_all_progress(self, user_id):
+        self.list_all_progress_calls += 1
+        return self.inner.list_all_progress(user_id)
+
+    def list_due(self, user_id, as_of, *, include_new: bool = False):
+        self.list_due_calls += 1
+        return self.inner.list_due(user_id, as_of, include_new=include_new)
+
+    def count_by_status(self, user_id):
+        self.count_by_status_calls += 1
+        return self.inner.count_by_status(user_id)
+
+    def get_profile(self, user_id):
+        self.get_profile_calls += 1
+        return self.inner.get_profile(user_id)
+
+    def list_split_preferences(self, user_id):
+        self.list_split_preferences_calls += 1
+        return self.inner.list_split_preferences(user_id)
+
+    def get_split_preference(self, user_id, parent_clause_id: str):
+        self.get_split_preference_calls += 1
+        return self.inner.get_split_preference(user_id, parent_clause_id)
+
+    def reset_counts(self) -> None:
+        self.get_progress_calls = 0
+        self.list_all_progress_calls = 0
+        self.list_due_calls = 0
+        self.count_by_status_calls = 0
+        self.get_profile_calls = 0
+        self.list_split_preferences_calls = 0
+        self.get_split_preference_calls = 0
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 USER = UUID("11111111-1111-4111-8111-111111111111")

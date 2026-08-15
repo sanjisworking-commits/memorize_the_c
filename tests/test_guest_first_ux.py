@@ -90,6 +90,12 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert "From memory" in html
     assert "Article 32(1)" in html
     assert "data-modes" in html
+    assert 'data-boat-stage="0"' in html
+    assert "data-s=" in html
+    assert 'data-boat-day>Day 1' in html
+    assert "@keyframes floatBoat" not in html
+    assert "@keyframes waveShift" not in html
+    assert "lp-boat-float" not in html
     assert "Day 60" in html
     assert "Day 1" in html
     assert "Day 3" in html

@@ -181,11 +181,17 @@ button, input, textarea { font: inherit; }
   display: grid;
   place-items: center;
 }
-.lp-boat-wrap { width: min(100%, 360px); }
-.lp-boat-svg { width: 100%; height: auto; display: block; }
+.lp-boat-wrap { width: min(100%, 470px); }
+.lp-boat-svg { width: 100%; height: auto; display: block; overflow: visible; }
 .lp-boat-meta {
-  margin: 10px 0 0;
-  text-align: center;
+  margin: 22px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #d6d1c7;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
   font-size: 13.5px;
   color: var(--mut);
 }
@@ -718,19 +724,23 @@ button, input, textarea { font: inherit; }
 }
 .lp-reveal.is-visible { opacity: 1; transform: none; }
 
-@keyframes floatBoat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+[data-boat-stage] [data-s] {
+  opacity: 0;
+  stroke-dashoffset: 1;
+  transition: opacity .42s ease, stroke-dashoffset .58s cubic-bezier(.2,.7,.3,1);
 }
-@keyframes waveShift {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-24px); }
+[data-boat-stage="0"] [data-s="0"],
+[data-boat-stage="1"] [data-s="0"], [data-boat-stage="1"] [data-s="1"],
+[data-boat-stage="2"] [data-s="0"], [data-boat-stage="2"] [data-s="1"], [data-boat-stage="2"] [data-s="2"],
+[data-boat-stage="3"] [data-s="0"], [data-boat-stage="3"] [data-s="1"], [data-boat-stage="3"] [data-s="2"], [data-boat-stage="3"] [data-s="3"],
+[data-boat-stage="4"] [data-s="0"], [data-boat-stage="4"] [data-s="1"], [data-boat-stage="4"] [data-s="2"], [data-boat-stage="4"] [data-s="3"], [data-boat-stage="4"] [data-s="4"],
+[data-boat-stage="5"] [data-s] {
+  opacity: 1;
+  stroke-dashoffset: 0;
 }
-.lp-boat-float { animation: floatBoat 5s ease-in-out infinite; }
-.lp-waves { animation: waveShift 6s linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .lp-boat-float, .lp-waves { animation: none !important; }
+  [data-boat-stage] [data-s] { opacity: 1 !important; stroke-dashoffset: 0 !important; transition: none !important; }
   .lp-reveal { opacity: 1; transform: none; transition: none; }
 }
 
@@ -790,20 +800,29 @@ button, input, textarea { font: inherit; }
         <p class="lp-hint">No account needed to look around.</p>
       </div>
       <div class="lp-hero-visual" aria-hidden="true">
-        <div class="lp-boat-wrap">
-          <svg class="lp-boat-svg lp-boat-float" viewBox="0 0 360 220" fill="none">
-            <g class="lp-waves" stroke="#0b0b0b" stroke-width="1.4" opacity="0.35">
-              <path d="M-10 168c18-10 28-10 46 0s28 10 46 0 28-10 46 0 28 10 46 0 28-10 46 0 28 10 46 0 28-10 46 0"/>
-              <path d="M-10 182c18-8 28-8 46 0s28 8 46 0 28-8 46 0 28 8 46 0 28-8 46 0 28 8 46 0 28-8 46 0"/>
-              <path d="M-10 196c18-7 28-7 46 0s28 7 46 0 28-7 46 0 28 7 46 0 28-7 46 0 28 7 46 0 28-7 46 0"/>
+        <div class="lp-boat-wrap" data-boat-stage="0">
+          <svg class="lp-boat-svg" viewBox="0 0 420 320" preserveAspectRatio="xMidYMid meet"
+               style="width:100%;height:auto;display:block;overflow:visible">
+            <circle data-s="5" pathLength="1" stroke-dasharray="1" cx="286" cy="126" r="74"
+                    fill="#fdf1df" stroke="#E8871A" stroke-width="4"></circle>
+            <g fill="none" stroke="#141414" stroke-width="6" stroke-linecap="round">
+              <path data-s="4" pathLength="1" stroke-dasharray="1" d="M232 236 L232 118"></path>
+              <path data-s="4" pathLength="1" stroke-dasharray="1" fill="#141414" stroke-linejoin="round"
+                    d="M232 118 L306 138 L232 166 Z"></path>
+              <path data-s="3" pathLength="1" stroke-dasharray="1" fill="#F59022" stroke="#F59022" stroke-linejoin="round"
+                    d="M226 178 L226 236 L166 236 Z"></path>
+              <path data-s="4" pathLength="1" stroke-dasharray="1" fill="#141414" stroke-linejoin="round"
+                    d="M132 236 L330 236 C316 268 288 280 232 280 C176 280 148 268 132 236 Z"></path>
+              <path data-s="0" pathLength="1" stroke-dasharray="1" stroke="#F59022"
+                    d="M40 296 c18 -16 36 16 54 0 s36 -16 54 0"></path>
+              <path data-s="1" pathLength="1" stroke-dasharray="1" d="M96 306 c18 -16 36 16 54 0 s36 -16 54 0"></path>
+              <path data-s="2" pathLength="1" stroke-dasharray="1" d="M226 298 c18 -16 36 16 54 0 s36 -16 54 0"></path>
+              <path data-s="5" pathLength="1" stroke-dasharray="1" d="M300 310 c16 -14 32 14 48 0"></path>
             </g>
-            <path d="M86 146h188l-18 28H104l-18-28z" fill="#0b0b0b"/>
-            <path d="M176 38v108" stroke="#0b0b0b" stroke-width="3"/>
-            <path d="M179 44l92 78H179V44z" fill="#c6613f"/>
-            <path d="M173 52l-46 48h46V52z" fill="#0b0b0b"/>
-            <path d="M176 38l22-16 4 10-26 8z" fill="#c6613f"/>
           </svg>
-          <p class="lp-boat-meta"><span class="lp-boat-day" data-boat-day>Day 60</span> · Every review adds to it.</p>
+          <p class="lp-boat-meta">
+            <span class="lp-boat-day" data-boat-day>Day 1</span> · Every review adds to it.
+          </p>
         </div>
       </div>
     </div>
@@ -1160,6 +1179,6 @@ button, input, textarea { font: inherit; }
     </div>
   </footer>
 </div>
-<script src="/static/landing.js?v=rtc1" defer></script>
+<script src="/static/landing.js?v=rtc2" defer></script>
 </body>
 </html>

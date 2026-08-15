@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
+from time import perf_counter
 from typing import Iterable, Mapping
 from uuid import UUID
 
@@ -25,6 +26,13 @@ from constitution_memorizer.utils.json_io import read_json
 
 INTERVAL_LADDER: tuple[int, ...] = (1, 3, 7, 14, 30, 60)
 DEFAULT_EASE_FACTOR = 2.5
+
+
+def _record_timing(stage: str, started: float) -> None:
+    # Lazy import: request_context lives under web, which imports this module.
+    from constitution_memorizer.web.request_context import record_request_timing
+
+    record_request_timing(stage, started)
 
 
 def advance_interval(current_interval_days: int) -> int | None:
@@ -102,7 +110,9 @@ class ReminderEngine:
 
     def _ensure_split_cache(self) -> dict[str, SplitMode]:
         if self._split_cache is None:
+            started = perf_counter()
             self._split_cache = dict(self.repo.list_split_preferences(self.user_id))
+            _record_timing("split_prefs", started)
         return self._split_cache
 
     def _store_progress(self, progress: ProgressRecord) -> None:
@@ -212,13 +222,19 @@ class ReminderEngine:
         self.repo.set_notification_frequency(self.user_id, frequency)
 
     def get_theme(self) -> ThemePreference:
-        return self.repo.get_theme(self.user_id)
+        started = perf_counter()
+        theme = self.repo.get_theme(self.user_id)
+        _record_timing("theme", started)
+        return theme
 
     def set_theme(self, theme: ThemePreference) -> None:
         self.repo.set_theme(self.user_id, theme)
 
     def get_news_articles_raw(self) -> str:
-        return self.repo.get_news_articles_raw(self.user_id)
+        started = perf_counter()
+        value = self.repo.get_news_articles_raw(self.user_id)
+        _record_timing("news_setting", started)
+        return value
 
     def set_news_articles_raw(self, value: str) -> None:
         self.repo.set_news_articles_raw(self.user_id, value)
@@ -229,7 +245,10 @@ class ReminderEngine:
         return self.repo.mark_mode_seen(self.user_id, unit_id, mode)
 
     def modes_seen(self, unit_id: str) -> set[str]:
-        return self.repo.modes_seen(self.user_id, unit_id)
+        started = perf_counter()
+        seen = self.repo.modes_seen(self.user_id, unit_id)
+        _record_timing("modes_seen", started)
+        return seen
 
     def mark_all_modes_seen(self, unit_id: str) -> set[str]:
         seen: set[str] = set()

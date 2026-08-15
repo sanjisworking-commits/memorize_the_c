@@ -10,6 +10,7 @@ from constitution_memorizer.progress.repository import (
     NotificationFrequency,
     ProgressRecord,
     ProgressStatus,
+    RequestBootstrap,
     SplitMode,
     ThemePreference,
 )
@@ -139,6 +140,14 @@ class ReminderRepositoryProtocol(Protocol):
     def get_profile(self, user_id: UUID | str) -> dict[str, str | None] | None: ...
 
     def needs_welcome(self, user_id: UUID | str) -> bool: ...
+
+    def load_request_bootstrap(
+        self,
+        user_id: UUID | str,
+        *,
+        include_profile: bool = False,
+        include_news: bool = False,
+    ) -> RequestBootstrap: ...
 
 
 # Backward-compatible name used in earlier plan wording.

@@ -45,7 +45,6 @@ def _date_iso(value: date | None) -> str | None:
 
 @dataclass(frozen=True)
 class ProgressRecord:
-    """One row from learning_unit_progress."""
 
     learning_unit_id: str
     status: ProgressStatus
@@ -56,6 +55,17 @@ class ProgressRecord:
     ease_factor: float
     created_at: str
     updated_at: str
+
+
+@dataclass(frozen=True)
+class RequestBootstrap:
+    """Bundled request-start reads (progress, prefs, theme, optional news/profile)."""
+
+    progress: list[ProgressRecord]
+    split_preferences: dict[str, SplitMode]
+    theme: ThemePreference
+    news_articles_raw: str | None = None
+    profile: dict[str, str | None] | None = None
 
 
 def _parse_date(value: str | None) -> date | None:
@@ -499,6 +509,21 @@ class ProgressRepository:
             return True
         name = (profile.get("display_name") or "").strip()
         return not name
+
+    def load_request_bootstrap(
+        self,
+        user_id: UUID | str,
+        *,
+        include_profile: bool = False,
+        include_news: bool = False,
+    ) -> RequestBootstrap:
+        return RequestBootstrap(
+            progress=self.list_all_progress(user_id),
+            split_preferences=self.list_split_preferences(user_id),
+            theme=self.get_theme(user_id),
+            news_articles_raw=self.get_news_articles_raw(user_id) if include_news else None,
+            profile=self.get_profile(user_id) if include_profile else None,
+        )
 
 
 # Backward-compatible alias used by docs/plan wording.

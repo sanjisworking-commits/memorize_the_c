@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from datetime import date, datetime, timezone
 from typing import Any, Iterator
 from uuid import UUID
@@ -21,6 +21,7 @@ from constitution_memorizer.progress.repository import (
     NotificationFrequency,
     ProgressRecord,
     ProgressStatus,
+    RequestBootstrap,
     SplitMode,
     ThemePreference,
 )
@@ -47,6 +48,56 @@ def _row_progress(row: Any) -> ProgressRecord:
         if hasattr(row["updated_at"], "isoformat")
         else str(row["updated_at"]),
     )
+
+
+def _row_profile(row: Any) -> dict[str, str | None]:
+    created = row["created_at"]
+    updated = row["updated_at"]
+    return {
+        "user_id": str(row["user_id"]),
+        "display_name": row["display_name"],
+        "avatar_url": row["avatar_url"],
+        "created_at": created.isoformat()
+        if hasattr(created, "isoformat")
+        else str(created) if created is not None else None,
+        "updated_at": updated.isoformat()
+        if hasattr(updated, "isoformat")
+        else str(updated) if updated is not None else None,
+    }
+
+
+def _theme_from_raw(raw: str | None) -> ThemePreference:
+    return raw if raw in VALID_THEMES else DEFAULT_THEME  # type: ignore[return-value]
+
+
+def _news_from_raw(raw: str | None) -> str:
+    return DEFAULT_NEWS_ARTICLES if raw is None else raw
+
+
+def _pipeline_supported() -> bool:
+    from psycopg import Pipeline
+
+    checker = getattr(Pipeline, "has_pipeline", None) or getattr(
+        Pipeline, "is_supported", None
+    )
+    return bool(checker()) if checker is not None else False
+
+
+_BOOTSTRAP_PROGRESS_SQL = """
+SELECT * FROM learning_unit_progress
+WHERE user_id = %s
+ORDER BY learning_unit_id ASC
+"""
+_BOOTSTRAP_SPLIT_SQL = (
+    "SELECT parent_clause_id, mode FROM split_preference WHERE user_id = %s"
+)
+_BOOTSTRAP_SETTING_SQL = (
+    "SELECT value FROM app_settings WHERE user_id = %s AND key = %s"
+)
+_BOOTSTRAP_PROFILE_SQL = """
+SELECT user_id, display_name, avatar_url, created_at, updated_at
+FROM user_profile WHERE user_id = %s
+"""
 
 
 class PostgresProgressRepository:
@@ -462,19 +513,7 @@ class PostgresProgressRepository:
             row = cur.fetchone()
         if row is None:
             return None
-        created = row["created_at"]
-        updated = row["updated_at"]
-        return {
-            "user_id": str(row["user_id"]),
-            "display_name": row["display_name"],
-            "avatar_url": row["avatar_url"],
-            "created_at": created.isoformat()
-            if hasattr(created, "isoformat")
-            else str(created) if created is not None else None,
-            "updated_at": updated.isoformat()
-            if hasattr(updated, "isoformat")
-            else str(updated) if updated is not None else None,
-        }
+        return _row_profile(row)
 
     def needs_welcome(self, user_id: UUID | str) -> bool:
         profile = self.get_profile(user_id)
@@ -482,3 +521,66 @@ class PostgresProgressRepository:
             return True
         name = (profile.get("display_name") or "").strip()
         return not name
+
+    def load_request_bootstrap(
+        self,
+        user_id: UUID | str,
+        *,
+        include_profile: bool = False,
+        include_news: bool = False,
+    ) -> RequestBootstrap:
+        uid = as_user_id(user_id)
+        with self._pool.connection() as conn:
+            with ExitStack() as stack:
+                progress_cur = stack.enter_context(
+                    conn.cursor(row_factory=self._dict_row)
+                )
+                split_cur = stack.enter_context(conn.cursor(row_factory=self._dict_row))
+                theme_cur = stack.enter_context(conn.cursor(row_factory=self._dict_row))
+                news_cur = (
+                    stack.enter_context(conn.cursor(row_factory=self._dict_row))
+                    if include_news
+                    else None
+                )
+                profile_cur = (
+                    stack.enter_context(conn.cursor(row_factory=self._dict_row))
+                    if include_profile
+                    else None
+                )
+
+                def _queue() -> None:
+                    progress_cur.execute(_BOOTSTRAP_PROGRESS_SQL, (uid,))
+                    split_cur.execute(_BOOTSTRAP_SPLIT_SQL, (uid,))
+                    theme_cur.execute(_BOOTSTRAP_SETTING_SQL, (uid, THEME_KEY))
+                    if news_cur is not None:
+                        news_cur.execute(_BOOTSTRAP_SETTING_SQL, (uid, NEWS_ARTICLES_KEY))
+                    if profile_cur is not None:
+                        profile_cur.execute(_BOOTSTRAP_PROFILE_SQL, (uid,))
+
+                if _pipeline_supported():
+                    with conn.pipeline():
+                        _queue()
+                else:
+                    _queue()
+
+                progress_rows = progress_cur.fetchall()
+                split_rows = split_cur.fetchall()
+                theme_row = theme_cur.fetchone()
+                news_row = news_cur.fetchone() if news_cur is not None else None
+                profile_row = (
+                    profile_cur.fetchone() if profile_cur is not None else None
+                )
+
+        theme_raw = None if theme_row is None else str(theme_row["value"])
+        news_raw = None if news_row is None else str(news_row["value"])
+        return RequestBootstrap(
+            progress=[_row_progress(r) for r in progress_rows],
+            split_preferences={
+                str(r["parent_clause_id"]): r["mode"] for r in split_rows
+            },
+            theme=_theme_from_raw(theme_raw),
+            news_articles_raw=_news_from_raw(news_raw) if include_news else None,
+            profile=_row_profile(profile_row)
+            if include_profile and profile_row is not None
+            else None,
+        )

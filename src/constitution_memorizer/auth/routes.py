@@ -383,9 +383,8 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         eng = getattr(request.state, "bound_engine", None) or request.app.state.engine.for_user(
             user.id
         )
-        started = time.perf_counter()
-        profile = eng.repo.get_profile(user.id)
-        record_request_timing("profile", started)
+        bundle = eng.bootstrap_request(include_profile=True)
+        profile = bundle.profile
         if profile is None or not (profile.get("display_name") or "").strip():
             return RedirectResponse(url="/welcome", status_code=303)
         label = (
@@ -396,9 +395,6 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         try:
             from constitution_memorizer.web.dashboard import build_dashboard_context
 
-            started = time.perf_counter()
-            eng.preload_progress()
-            record_request_timing("progress_preload", started)
             started = time.perf_counter()
             ctx = build_dashboard_context(eng, display_label=label)
             record_request_timing("dashboard_build", started)

@@ -35,6 +35,7 @@ class CountingProgressRepo:
         self.get_profile_calls = 0
         self.list_split_preferences_calls = 0
         self.get_split_preference_calls = 0
+        self.load_request_bootstrap_calls = 0
 
     def __getattr__(self, name: str):
         return getattr(self.inner, name)
@@ -67,6 +68,12 @@ class CountingProgressRepo:
         self.get_split_preference_calls += 1
         return self.inner.get_split_preference(user_id, parent_clause_id)
 
+    def load_request_bootstrap(self, user_id, *, include_profile=False, include_news=False):
+        self.load_request_bootstrap_calls += 1
+        return self.inner.load_request_bootstrap(
+            user_id, include_profile=include_profile, include_news=include_news
+        )
+
     def reset_counts(self) -> None:
         self.get_progress_calls = 0
         self.list_all_progress_calls = 0
@@ -75,6 +82,7 @@ class CountingProgressRepo:
         self.get_profile_calls = 0
         self.list_split_preferences_calls = 0
         self.get_split_preference_calls = 0
+        self.load_request_bootstrap_calls = 0
 
 
 def _catalog() -> dict:
@@ -312,8 +320,9 @@ def test_authenticated_dashboard_one_profile_and_one_progress_list(tmp_path: Pat
     client, repo = _counting_client(tmp_path)
     resp = client.get("/dashboard")
     assert resp.status_code == 200
-    assert repo.get_profile_calls == 1
-    assert repo.list_all_progress_calls == 1
+    assert repo.load_request_bootstrap_calls == 1
+    assert repo.get_profile_calls == 0
+    assert repo.list_all_progress_calls == 0
     assert repo.list_due_calls == 0
     assert repo.count_by_status_calls == 0
 
@@ -322,7 +331,8 @@ def test_authenticated_browse_index_one_progress_list_no_list_due(tmp_path: Path
     client, repo = _counting_client(tmp_path)
     resp = client.get("/browse")
     assert resp.status_code == 200
-    assert repo.list_all_progress_calls == 1
+    assert repo.load_request_bootstrap_calls == 1
+    assert repo.list_all_progress_calls == 0
     assert repo.list_due_calls == 0
 
 

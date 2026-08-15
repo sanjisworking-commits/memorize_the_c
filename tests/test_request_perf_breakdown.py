@@ -36,6 +36,7 @@ class CountingProgressRepo:
         self.get_profile_calls = 0
         self.list_split_preferences_calls = 0
         self.get_split_preference_calls = 0
+        self.load_request_bootstrap_calls = 0
 
     def __getattr__(self, name: str):
         return getattr(self.inner, name)
@@ -68,6 +69,12 @@ class CountingProgressRepo:
         self.get_split_preference_calls += 1
         return self.inner.get_split_preference(user_id, parent_clause_id)
 
+    def load_request_bootstrap(self, user_id, *, include_profile=False, include_news=False):
+        self.load_request_bootstrap_calls += 1
+        return self.inner.load_request_bootstrap(
+            user_id, include_profile=include_profile, include_news=include_news
+        )
+
     def reset_counts(self) -> None:
         self.get_progress_calls = 0
         self.list_all_progress_calls = 0
@@ -76,6 +83,7 @@ class CountingProgressRepo:
         self.get_profile_calls = 0
         self.list_split_preferences_calls = 0
         self.get_split_preference_calls = 0
+        self.load_request_bootstrap_calls = 0
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 USER = UUID("11111111-1111-4111-8111-111111111111")
@@ -196,8 +204,9 @@ def test_authenticated_dashboard_keeps_one_profile_and_progress(tmp_path: Path):
     client, repo = _counting_client(tmp_path)
     resp = client.get("/dashboard")
     assert resp.status_code == 200
-    assert repo.get_profile_calls == 1
-    assert repo.list_all_progress_calls == 1
+    assert repo.load_request_bootstrap_calls == 1
+    assert repo.get_profile_calls == 0
+    assert repo.list_all_progress_calls == 0
     assert repo.list_due_calls == 0
     assert repo.count_by_status_calls == 0
 
@@ -206,7 +215,8 @@ def test_authenticated_browse_keeps_one_progress_list(tmp_path: Path):
     client, repo = _counting_client(tmp_path)
     resp = client.get("/browse")
     assert resp.status_code == 200
-    assert repo.list_all_progress_calls == 1
+    assert repo.load_request_bootstrap_calls == 1
+    assert repo.list_all_progress_calls == 0
     assert repo.list_due_calls == 0
 
 
@@ -223,8 +233,11 @@ def test_authenticated_dashboard_breakdown_includes_auth_session(
     line = messages[0]
     assert "path=/dashboard" in line
     assert "auth_session_n=1" in line
-    assert "profile_n=1" in line
-    assert "progress_preload_n=1" in line
+    assert "request_bootstrap_n=1" in line
+    assert "progress_preload_" not in line
+    assert "split_prefs_" not in line
+    assert "news_setting_" not in line
+    assert "theme_" not in line
     assert "dashboard_build_n=" in line
     assert "template_n=" in line
 

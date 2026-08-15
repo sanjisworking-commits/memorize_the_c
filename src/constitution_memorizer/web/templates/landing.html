@@ -3,775 +3,1163 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Memorize the C — Recall the Constitution by heart</title>
-  <meta name="description" content="Memorize the C — learn India’s Constitution by heart with short, memorable units." />
+  <title>Recall the C — Memorize the Bare Act, verbatim</title>
+  <meta name="description" content="Recall the C is a memory system for the Bare Act. Verbatim. In 180 days." />
   <link rel="icon" type="image/png" href="/static/main_logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-
 :root {
+  --bg: #f9f9f7;
+  --fg: #0b0b0b;
+  --mut: #52514e;
+  --faint: #8a8984;
+  --surf: #fff;
+  --brand: #c6613f;
+  --teal: #1f7a72;
+  --line: rgba(11, 11, 11, 0.10);
+  --bord: rgba(11, 11, 11, 0.20);
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Source Sans 3", system-ui, sans-serif;
+  --max: 1120px;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
-  font-family: "Source Sans 3", system-ui, sans-serif;
-  color: #141414;
-  background: #fff;
+  font-family: var(--font-body);
+  color: var(--fg);
+  background: var(--bg);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
 }
 a { color: inherit; }
+button, input, textarea { font: inherit; }
 .visually-hidden {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
 }
-
-/* Marketing landing (standalone) */
-.landing {
-  color: #141414;
-  font-family: "Source Sans 3", system-ui, sans-serif;
-  background: #fff;
-}
-
-.landing-inner {
-  max-width: 1180px;
+.lp-inner {
+  max-width: var(--max);
   margin: 0 auto;
   padding-left: 32px;
   padding-right: 32px;
-  box-sizing: border-box;
 }
 
-.landing-header {
+/* Header */
+.lp-header {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid #ececea;
+  background: rgba(249, 249, 247, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
 }
-
-.landing-header-inner {
+.lp-header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   min-height: 64px;
 }
-
-.landing-brand {
+.lp-brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: #141414;
-}
-
-.landing-brand-mark {
-  width: 30px;
-  height: 30px;
-  display: block;
   flex: 0 0 auto;
 }
-
-.landing-brand-word {
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 19px;
+.lp-brand-mark {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border: 1.4px solid var(--fg);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+.lp-brand-word {
+  font-family: var(--font-display);
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
-
-.landing-nav {
+.lp-nav {
   display: flex;
   align-items: center;
   gap: 18px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
-
-.landing-nav a {
+.lp-nav a {
   text-decoration: none;
-  color: #6b6b6b;
+  color: var(--mut);
+  font-size: 13.5px;
   font-weight: 600;
-  font-size: 14px;
 }
-
-.landing-nav a:hover {
-  color: #141414;
-}
-
-.landing-btn {
+.lp-nav a:hover { color: var(--fg); }
+.lp-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 11px 20px;
-  border: 1px solid #141414;
+  border: 1px solid var(--fg);
   text-decoration: none;
-  font-family: "Source Sans 3", system-ui, sans-serif;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-sizing: border-box;
-}
-
-.landing-btn-ink {
-  background: #141414;
+  background: var(--fg);
   color: #fff;
-  border-color: #141414;
 }
-
-.landing-btn-ink:hover {
-  color: #fff;
-  background: #000;
+.lp-btn:hover { background: #000; color: #fff; }
+.lp-btn-ghost {
+  background: transparent;
+  color: var(--fg);
 }
-
-.landing-btn-ghost {
+.lp-btn-ghost:hover { background: var(--fg); color: #fff; }
+.lp-btn-light {
   background: #fff;
-  color: #141414;
-  border-color: #c9c9c7;
+  color: var(--fg);
+  border-color: #fff;
 }
-
-.landing-btn-ghost:hover {
-  border-color: #141414;
-  color: #141414;
+.lp-btn-light:hover { background: #f3f3f0; color: var(--fg); }
+.lp-btn-outline-light {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255,255,255,0.45);
 }
+.lp-btn-outline-light:hover { border-color: #fff; color: #fff; background: transparent; }
+.lp-nav .lp-btn { margin-left: 4px; }
 
-.landing-nav .landing-btn {
-  margin-left: 4px;
-}
-
-.landing-eyebrow {
-  margin: 0 0 14px;
+/* Shared type */
+.lp-kicker {
+  margin: 0 0 16px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #0e7569;
+  color: var(--faint);
 }
-
-.landing-eyebrow-mint {
-  color: #8fd6c9;
-}
-
-.landing-hero {
-  padding: 76px 0 84px;
-}
-
-.landing-hero-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 56px;
-  align-items: center;
-}
-
-.landing-hero-title {
-  margin: 0 0 20px;
-  font-family: "Fraunces", Georgia, serif;
-  font-size: clamp(30px, 4.4vw, 52px);
+.lp-display {
+  margin: 0 0 22px;
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5.4vw, 68px);
   font-weight: 700;
-  line-height: 1.12;
-  letter-spacing: -0.02em;
-  color: #141414;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
 }
-
-.landing-blank {
-  display: inline;
-  border-bottom: 3px dashed #cdcdca;
-  padding-bottom: 1px;
+.lp-display em {
+  font-style: italic;
+  font-weight: 500;
 }
-
-.landing-fade {
-  display: inline;
-  animation: recallFade 6.6s ease-in-out infinite;
-}
-
-.landing-lede {
+.lp-lede {
   margin: 0 0 28px;
   font-size: 18px;
   line-height: 1.55;
-  color: #4a4a4a;
-  max-width: 440px;
+  color: var(--mut);
+  max-width: 540px;
 }
+.lp-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.lp-hint { margin: 14px 0 0; font-size: 13.5px; color: var(--faint); }
 
-.landing-actions {
+/* Hero */
+.lp-hero { padding: 72px 0 28px; }
+.lp-hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.95fr;
+  gap: 48px;
+  align-items: center;
+}
+.lp-hero-title { margin-bottom: 18px; }
+.lp-hero-visual {
+  position: relative;
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+}
+.lp-boat-wrap { width: min(100%, 360px); }
+.lp-boat-svg { width: 100%; height: auto; display: block; }
+.lp-boat-meta {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--mut);
+}
+.lp-boat-day {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--fg);
+}
+.lp-method-line {
+  margin: 56px 0 0;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--line);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 0;
-}
-
-.landing-hero-c {
-  position: relative;
-  min-height: 320px;
-  display: grid;
-  place-items: center;
-}
-
-.landing-giant-c {
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 320px;
-  font-weight: 700;
-  line-height: 0.8;
-  color: #f0efec;
-  animation: floatC 5s ease-in-out infinite;
-  user-select: none;
-}
-
-.landing-c-words {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-}
-
-.landing-c-word {
-  position: absolute;
-  font-family: "Fraunces", Georgia, serif;
-  font-style: italic;
-  font-size: clamp(28px, 3vw, 40px);
+  gap: 10px 28px;
+  font-family: var(--font-display);
+  font-size: clamp(16px, 2vw, 20px);
   font-weight: 500;
-  color: #141414;
-  animation: cWord 12.5s linear infinite;
+  font-style: italic;
+  color: var(--fg);
 }
-
-.landing-c-word.is-teal {
-  color: #0e7569;
-}
-
-.landing-problem {
-  background: #f4f3f1;
-  padding: 80px 0;
-}
-
-.landing-section-title {
-  margin: 0 0 36px;
-  font-family: "Fraunces", Georgia, serif;
-  font-size: clamp(26px, 3.4vw, 40px);
+.lp-span {
+  margin: 28px 0 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
   font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  max-width: 18ch;
 }
+.lp-span strong { color: var(--fg); font-weight: 700; letter-spacing: 0.06em; }
 
-.landing-gap-cards {
+/* Sections */
+.lp-section { padding: 88px 0; }
+.lp-section-dark {
+  background: var(--fg);
+  color: #fff;
+}
+.lp-section-dark .lp-kicker { color: rgba(255,255,255,0.45); }
+.lp-section-dark .lp-lede { color: rgba(255,255,255,0.72); }
+.lp-h2 {
+  margin: 0 0 18px;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  max-width: 16ch;
+}
+.lp-section-dark .lp-h2 { max-width: 18ch; }
+
+/* Gap */
+.lp-gap-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  max-width: 760px;
+  gap: 16px;
+  margin-top: 36px;
 }
-
-.landing-gap-card {
-  background: #fff;
-  border: 1px solid #dcdcdc;
-  padding: 24px 22px;
+.lp-panel {
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  padding: 28px 26px 24px;
 }
-
-.landing-gap-card.is-strong {
-  border: 1.5px solid #141414;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+.lp-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
 }
-
-.landing-gap-quote {
-  margin: 0 0 10px;
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 22px;
-  font-weight: 600;
+.lp-badge {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1.4px solid #cdcdca;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--faint);
 }
-
-.landing-gap-card p {
-  margin: 0;
-  color: #6b6b6b;
-  font-size: 15px;
+.lp-panel.is-recall { background: #f4f3f0; }
+.lp-panel.is-recall .lp-panel-head { color: var(--teal); }
+.lp-panel.is-recall .lp-badge {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+.lp-clause {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.2vw, 24px);
+  font-weight: 500;
   line-height: 1.5;
 }
-
-.landing-how {
-  padding: 84px 0;
-  background: #fff;
+.lp-blank {
+  display: inline-block;
+  min-width: var(--w, 72px);
+  border-bottom: 2px dashed #b9b9b6;
+  vertical-align: baseline;
+}
+.lp-caption { margin: 0; font-size: 14px; color: var(--faint); }
+.lp-gap-foot {
+  margin: 22px 0 0;
+  max-width: 640px;
+  font-size: 15px;
+  color: var(--mut);
 }
 
-.landing-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* Modes */
+.lp-modes-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: 1px solid #141414;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 20px;
+  margin-top: 36px;
 }
-
-.landing-step {
-  margin: 0;
-  padding: 22px 18px 26px;
-  border-right: 1px solid #ececea;
+.lp-mode-card, .lp-explainer {
+  background: var(--surf);
+  border: 1px solid var(--bord);
 }
-
-.landing-step:last-child {
-  border-right: 0;
+.lp-mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
 }
-
-.landing-step:hover {
+.lp-mode-tabs button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--mut);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.lp-mode-tabs button[aria-selected="true"] {
+  color: var(--fg);
+  border-bottom-color: var(--brand);
+}
+.lp-mode-body { padding: 22px 22px 20px; min-height: 260px; }
+.lp-mode-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.lp-mode-text {
+  margin: 0 0 16px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.lp-letters {
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+.lp-listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+.lp-type-input {
+  width: 100%;
+  min-height: 88px;
+  padding: 10px 12px;
+  border: 1px solid var(--bord);
+  background: #fff;
+  resize: vertical;
+}
+.lp-type-input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.lp-type-row { display: flex; gap: 10px; margin-top: 10px; }
+.lp-status { margin: 12px 0 0; font-size: 14px; color: var(--mut); }
+.lp-status.is-ok { color: var(--teal); font-weight: 600; }
+.lp-card-flip {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--bord);
   background: #faf9f7;
+  padding: 22px 20px;
+  cursor: pointer;
+  min-height: 150px;
 }
-
-.landing-step-num {
-  display: block;
-  font-family: "Fraunces", Georgia, serif;
+.lp-card-flip:hover { border-color: var(--fg); }
+.lp-card-label {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.lp-recite-ui {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 16px;
+}
+.lp-recite-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.lp-blur { filter: blur(5px); user-select: none; }
+.lp-mode-note { margin: 0; font-size: 14px; color: var(--mut); }
+.lp-mode-axis {
+  margin: 0;
+  padding: 12px 22px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.lp-explainer { padding: 22px 22px 20px; }
+.lp-explainer h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 600;
-  color: #0e7569;
-  margin-bottom: 12px;
+}
+.lp-explainer-sub { margin: 0 0 18px; font-size: 14px; color: var(--mut); }
+.lp-art-chip {
+  display: inline-block;
+  margin: 0 0 14px;
+  padding: 4px 8px;
+  border: 1px solid var(--bord);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lp-explainer ol { margin: 0; padding: 0 0 0 18px; color: var(--mut); }
+.lp-explainer li { margin: 0 0 8px; }
+.lp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.lp-tag {
+  padding: 3px 8px;
+  border: 1px solid var(--bord);
+  font-size: 12px;
+  color: var(--fg);
+}
+.lp-explainer-note {
+  margin: 16px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--mut);
 }
 
-.landing-step-title {
+/* Schedule */
+.lp-track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 36px 0 28px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+.lp-track-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--brand), rgba(255,255,255,0.2));
+}
+.lp-rungs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.lp-rung {
+  padding: 14px 10px 16px;
+  border: 1px solid rgba(255,255,255,0.16);
+  text-align: center;
+}
+.lp-rung-day {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 6px;
+}
+.lp-rung-n {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+.lp-dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.9fr;
+  gap: 14px;
+}
+.lp-dark-card {
+  background: #161616;
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 20px 18px;
+}
+.lp-dark-card h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lp-in-sched {
+  display: inline-block;
+  margin-left: 8px;
+  color: #8fd6c9;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.lp-check { margin: 0 0 6px; color: rgba(255,255,255,0.72); font-size: 14px; }
+.lp-next {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lp-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+.lp-cal i {
+  display: block;
+  aspect-ratio: 1;
+  background: rgba(255,255,255,0.08);
+}
+.lp-cal i.is-due { background: var(--brand); }
+.lp-cal-note { margin: 12px 0 0; font-size: 13.5px; color: rgba(255,255,255,0.62); }
+.lp-prog { margin: 0 0 14px; }
+.lp-prog-lab {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: rgba(255,255,255,0.78);
+}
+.lp-bar { height: 4px; background: rgba(255,255,255,0.12); }
+.lp-bar span { display: block; height: 100%; background: #8fd6c9; }
+
+/* Arithmetic */
+.lp-days {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 36px;
+}
+.lp-day {
+  padding: 22px 18px 20px;
+  border: 1px solid var(--bord);
+  background: var(--surf);
+}
+.lp-day-n {
   margin: 0 0 10px;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+.lp-day p { margin: 0; font-size: 14.5px; color: var(--mut); line-height: 1.45; }
+.lp-day.is-end { border-color: var(--fg); }
+.lp-day.is-end .lp-day-n { color: var(--teal); }
+
+/* History + laws */
+.lp-preamble {
+  margin-top: 36px;
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  padding: 26px 24px;
+}
+.lp-preamble-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lp-preamble-head span:last-child { color: var(--brand); }
+.lp-preamble-row { margin: 0 0 12px; }
+.lp-preamble-row dt {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.lp-preamble-row dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.lp-preamble-row.is-now dd { color: var(--teal); }
+.lp-preamble-note { margin: 16px 0 0; font-size: 14.5px; color: var(--mut); }
+.lp-trio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+.lp-trio article {
+  padding: 20px 18px;
+  border: 1px solid var(--bord);
+  background: var(--surf);
+}
+.lp-trio h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+.lp-trio p { margin: 0; font-size: 14.5px; color: var(--mut); }
+.lp-law-kicker {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+.lp-law-act { margin: 0 0 10px; font-weight: 700; }
+.lp-law-art { margin: 12px 0 0; font-size: 13px; color: var(--faint); }
+.lp-soon-note {
+  margin: 18px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--mut);
+}
+
+/* Accuracy */
+.lp-report {
+  margin-top: 36px;
+  max-width: 420px;
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  padding: 22px 20px;
+}
+.lp-report h3 {
+  margin: 0 0 14px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.lp-report label {
+  display: block;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14.5px;
+  color: var(--mut);
+}
+.lp-report-foot { margin: 12px 0 0; font-size: 13.5px; color: var(--faint); }
+.lp-disclaimer { margin: 18px 0 0; max-width: 560px; font-size: 14.5px; color: var(--mut); }
+
+/* FAQ */
+.lp-faq {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px 48px;
+  margin-top: 36px;
+}
+.lp-faq h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
   font-size: 20px;
   font-weight: 600;
 }
+.lp-faq p { margin: 0; color: var(--mut); font-size: 15px; }
 
-.landing-step p {
-  margin: 0;
-  color: #6b6b6b;
-  font-size: 14.5px;
-  line-height: 1.5;
-}
+/* Close */
+.lp-close { padding: 96px 0; text-align: center; }
+.lp-close .lp-inner { max-width: 760px; }
+.lp-close .lp-display { max-width: none; }
+.lp-close .lp-display em { color: #8fd6c9; }
+.lp-close .lp-lede { margin-left: auto; margin-right: auto; color: rgba(255,255,255,0.72); }
+.lp-close .lp-actions { justify-content: center; }
 
-.landing-try {
-  background: #141414;
-  color: #fff;
-  padding: 84px 0;
-}
-
-.landing-try-inner {
-  max-width: 760px;
-  text-align: center;
-}
-
-.landing-try-title {
-  margin: 0 0 28px;
-  font-family: "Fraunces", Georgia, serif;
-  font-size: clamp(26px, 3.4vw, 40px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.landing-demo {
-  background: #fff;
-  color: #141414;
-  padding: 28px 24px 24px;
-  text-align: left;
-}
-
-.landing-demo-prompt {
-  margin: 0 0 18px;
-  font-size: 18px;
-  line-height: 1.55;
-}
-
-.landing-demo-blank {
-  display: inline-block;
-  min-width: 4.5ch;
-  border-bottom: 2px solid #141414;
-  font-weight: 700;
-  text-align: center;
-}
-
-.landing-demo-blank.is-filled {
-  color: #0e7569;
-  border-bottom-color: #0e7569;
-}
-
-.landing-demo-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.landing-demo-input {
-  flex: 1 1 12rem;
-  min-height: 44px;
-  padding: 10px 12px;
-  border: 1px solid #c9c9c7;
-  font: inherit;
-  font-size: 16px;
-  background: #fff;
-  color: #141414;
-}
-
-.landing-demo-input:focus {
-  outline: 2px solid #0e7569;
-  outline-offset: 1px;
-}
-
-.landing-demo-status {
-  margin: 14px 0 0;
-  font-size: 14.5px;
-  line-height: 1.45;
-}
-
-.landing-demo-status.is-ok {
-  color: #0e7569;
-  font-weight: 600;
-  animation: pulseIn 0.45s ease both;
-}
-
-.landing-demo-status.is-bad {
-  color: #6b6b6b;
-}
-
-.landing-demo-check {
-  display: inline-block;
-  margin-right: 6px;
-  font-weight: 700;
-}
-
-.landing-demo-reveal {
-  border: 0;
-  background: none;
-  padding: 0;
-  font: inherit;
-  font-weight: 700;
-  color: #141414;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.landing-try-foot {
-  margin: 18px 0 0;
-  color: #9a9a9a;
-  font-size: 13.5px;
-}
-
-.landing-close {
-  padding: 96px 0;
-  background: #fff;
-}
-
-.landing-close-inner {
-  text-align: center;
-}
-
-.landing-close-title {
-  margin: 0 0 18px;
-  font-family: "Fraunces", Georgia, serif;
-  font-size: clamp(30px, 4.6vw, 56px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
-.landing-close-lede {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.landing-kicker {
-  margin: 22px 0 0;
-  color: #9a9a9a;
-  font-size: 14px;
-}
-
-.landing-footer {
-  border-top: 1px solid #ececea;
+/* Footer */
+.lp-footer {
+  border-top: 1px solid var(--line);
   padding: 22px 0;
-  background: #fff;
 }
-
-.landing-footer-inner {
+.lp-footer-inner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px 24px;
 }
+.lp-footer-tag { margin: 0; color: var(--mut); font-size: 13.5px; }
 
-.landing-footer-tag {
-  margin: 0;
-  color: #6b6b6b;
-  font-size: 13.5px;
-}
-
-.landing-reveal,
-.landing-step {
+/* Reveal */
+.lp-reveal {
   opacity: 0;
   transform: translateY(18px);
   transition: opacity 0.7s ease, transform 0.7s ease;
 }
+.lp-reveal.is-visible { opacity: 1; transform: none; }
 
-.landing-reveal.is-visible,
-.landing-step.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-@keyframes recallFade {
-  0%, 12% { opacity: 1; }
-  38%, 58% { opacity: 0.06; }
-  84%, 100% { opacity: 1; }
-}
-
-@keyframes cWord {
-  0% { opacity: 0; transform: translateY(6px); }
-  3% { opacity: 1; transform: translateY(0); }
-  17% { opacity: 1; transform: translateY(0); }
-  20% { opacity: 0; transform: translateY(-6px); }
-  100% { opacity: 0; }
-}
-
-@keyframes floatC {
+@keyframes floatBoat {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
 }
-
-@keyframes pulseIn {
-  0% { opacity: 0; transform: scale(0.7); }
-  60% { transform: scale(1.12); }
-  100% { opacity: 1; transform: scale(1); }
+@keyframes waveShift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-24px); }
 }
+.lp-boat-float { animation: floatBoat 5s ease-in-out infinite; }
+.lp-waves { animation: waveShift 6s linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-fade,
-  .landing-giant-c,
-  .landing-c-word,
-  .landing-demo-status.is-ok {
-    animation: none !important;
-  }
-
-  .landing-reveal,
-  .landing-step {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
+  .lp-boat-float, .lp-waves { animation: none !important; }
+  .lp-reveal { opacity: 1; transform: none; transition: none; }
 }
 
-@media (max-width: 900px) {
-  .landing-hero-grid {
-    grid-template-columns: 1fr;
-    gap: 36px;
-  }
-
-  .landing-giant-c {
-    font-size: 220px;
-  }
-
-  .landing-steps {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .landing-step:nth-child(2) {
-    border-right: 0;
-  }
-
-  .landing-step:nth-child(1),
-  .landing-step:nth-child(2) {
-    border-bottom: 1px solid #ececea;
-  }
+@media (max-width: 960px) {
+  .lp-hero-grid,
+  .lp-gap-grid,
+  .lp-modes-grid,
+  .lp-dash-grid,
+  .lp-days,
+  .lp-trio,
+  .lp-faq { grid-template-columns: 1fr; }
+  .lp-rungs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lp-h2, .lp-display { max-width: none; }
 }
-
-@media (max-width: 640px) {
-  .landing-inner {
-    padding-left: 18px;
-    padding-right: 18px;
-  }
-
-  .landing-header-inner {
-    flex-wrap: wrap;
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-
-  .landing-nav a:not(.landing-btn) {
-    display: none;
-  }
-
-  .landing-gap-cards,
-  .landing-steps {
-    grid-template-columns: 1fr;
-  }
-
-  .landing-step {
-    border-right: 0;
-    border-bottom: 1px solid #ececea;
-  }
-
-  .landing-step:last-child {
-    border-bottom: 0;
-  }
-
-  .landing-hero {
-    padding: 48px 0 56px;
-  }
-
-  .landing-problem,
-  .landing-how,
-  .landing-try {
-    padding: 56px 0;
-  }
-
-  .landing-close {
-    padding: 64px 0;
-  }
+@media (max-width: 720px) {
+  .lp-inner { padding-left: 18px; padding-right: 18px; }
+  .lp-nav a:not(.lp-btn) { display: none; }
+  .lp-section, .lp-hero { padding-top: 56px; padding-bottom: 56px; }
+  .lp-close { padding: 64px 0; }
+  .lp-rungs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
   </style>
 </head>
 <body class="landing-page">
-
-<div class="landing" id="top">
-  <header class="landing-header">
-    <div class="landing-inner landing-header-inner">
-      <a class="landing-brand" href="#top">
-        <img class="landing-brand-mark" src="/static/main_logo.png" width="30" height="30" alt="">
-        <span class="landing-brand-word">Memorize the C</span>
+<div class="lp" id="top">
+  <header class="lp-header">
+    <div class="lp-inner lp-header-inner">
+      <a class="lp-brand" href="#top">
+        <span class="lp-brand-mark" aria-hidden="true">C</span>
+        <span class="lp-brand-word">Recall the C</span>
       </a>
-      <nav class="landing-nav" aria-label="Landing">
-        <a href="#how">How it works</a>
-        <a href="#try">Try it</a>
-        <a class="landing-btn landing-btn-ink" href="/login">Sign in</a>
+      <nav class="lp-nav" aria-label="Landing">
+        <a href="#method">The method</a>
+        <a href="#modes">Learn modes</a>
+        <a href="#revision">Revision</a>
+        <a href="#faq">FAQ</a>
+        <a href="/browse">Explore as guest</a>
+        <a class="lp-btn" href="/login">Start learning</a>
       </nav>
     </div>
   </header>
 
-  <section class="landing-hero landing-reveal" data-reveal>
-    <div class="landing-inner landing-hero-grid">
-      <div class="landing-hero-copy">
-        <p class="landing-eyebrow">Memorize the C</p>
-        <h1 class="landing-hero-title">
-          You don't truly
-          <span class="landing-blank"><span class="landing-fade" style="animation-delay:0s">know</span></span>
-          something until you can
-          <span class="landing-blank"><span class="landing-fade" style="animation-delay:1.1s">recall</span></span>
-          it without
-          <span class="landing-blank"><span class="landing-fade" style="animation-delay:2.2s">seeing</span></span>
-          it.
+  <section class="lp-hero">
+    <div class="lp-inner lp-hero-grid">
+      <div>
+        <p class="lp-kicker">A memory system for the Bare Act</p>
+        <h1 class="lp-display lp-hero-title">
+          Memorize the C.<br>
+          <em>Verbatim.</em><br>
+          In 180 days.
         </h1>
-        <p class="landing-lede">Turn dense material into small, repeatable units — and return to each one at the moment your memory needs it.</p>
-        <p class="landing-actions">
-          <a class="landing-btn landing-btn-ink" href="/login">Start remembering</a>
-          <a class="landing-btn landing-btn-ghost" href="#how">See how it works</a>
+        <p class="lp-lede">Not another Constitution reader. Recall the C is a memory system, built so the exact wording of the Bare Act stays where you need it — in your head.</p>
+        <p class="lp-actions">
+          <a class="lp-btn" href="/login">Start learning</a>
+          <a class="lp-btn lp-btn-ghost" href="/browse">Explore the Constitution →</a>
         </p>
+        <p class="lp-hint">No account needed to look around.</p>
       </div>
-      <div class="landing-hero-c" aria-hidden="true">
-        <span class="landing-giant-c">C</span>
-        <span class="landing-c-words">
-          <span class="landing-c-word landing-word">Complex</span>
-          <span class="landing-c-word landing-word is-teal" style="opacity:0;animation-delay:2.5s">Critical</span>
-          <span class="landing-c-word landing-word" style="opacity:0;animation-delay:5s">Core</span>
-          <span class="landing-c-word landing-word" style="opacity:0;animation-delay:7.5s">Concepts</span>
-          <span class="landing-c-word landing-word is-teal" style="opacity:0;animation-delay:10s">Clauses</span>
-        </span>
-      </div>
-    </div>
-  </section>
-
-  <section class="landing-problem landing-reveal" data-reveal>
-    <div class="landing-inner">
-      <p class="landing-eyebrow">The gap</p>
-      <h2 class="landing-section-title">Recognition feels like knowledge. Recall proves it.</h2>
-      <div class="landing-gap-cards">
-        <article class="landing-gap-card">
-          <h3 class="landing-gap-quote">“I recognise this.”</h3>
-          <p>Familiar on the page — and gone the moment you look away.</p>
-        </article>
-        <article class="landing-gap-card is-strong">
-          <h3 class="landing-gap-quote">“I can reproduce this.”</h3>
-          <p>Retrieved from memory, in your own words, without the text in front of you.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="landing-how landing-reveal" id="how" data-reveal>
-    <div class="landing-inner">
-      <p class="landing-eyebrow">The method</p>
-      <h2 class="landing-section-title">Four steps that turn the C into lasting memory.</h2>
-      <ol class="landing-steps">
-        <li class="landing-step" style="transition-delay:0s">
-          <span class="landing-step-num">01</span>
-          <h3 class="landing-step-title">Capture the C</h3>
-          <p>Pin down the exact unit worth learning — a clause, a definition, a precise line.</p>
-        </li>
-        <li class="landing-step" style="transition-delay:0.1s">
-          <span class="landing-step-num">02</span>
-          <h3 class="landing-step-title">Clarify the C</h3>
-          <p>Break dense wording into pieces small enough to hold in your head at once.</p>
-        </li>
-        <li class="landing-step" style="transition-delay:0.2s">
-          <span class="landing-step-num">03</span>
-          <h3 class="landing-step-title">Recall the C</h3>
-          <p>Reproduce it without looking — typing, cloze blanks, first letters, or aloud.</p>
-        </li>
-        <li class="landing-step" style="transition-delay:0.3s">
-          <span class="landing-step-num">04</span>
-          <h3 class="landing-step-title">Continue the C</h3>
-          <p>Return right before it fades — each review stretches how long it stays.</p>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="landing-try landing-reveal" id="try" data-reveal>
-    <div class="landing-inner landing-try-inner">
-      <p class="landing-eyebrow landing-eyebrow-mint">Try one now</p>
-      <h2 class="landing-try-title">Fill the blank from memory.</h2>
-      <div class="landing-demo" data-landing-demo>
-        <p class="landing-demo-prompt">
-          Difficult material becomes memorable when it is broken into meaningful
-          <span class="landing-demo-blank" data-demo-blank>____</span>.
-        </p>
-        <div class="landing-demo-row">
-          <label class="visually-hidden" for="landing-demo-input">Your answer</label>
-          <input
-            id="landing-demo-input"
-            class="landing-demo-input"
-            type="text"
-            autocomplete="off"
-            spellcheck="false"
-            data-demo-input
-            placeholder="Type your recall"
-          >
-          <button type="button" class="landing-btn landing-btn-ink" data-demo-check>Check</button>
+      <div class="lp-hero-visual" aria-hidden="true">
+        <div class="lp-boat-wrap">
+          <svg class="lp-boat-svg lp-boat-float" viewBox="0 0 360 220" fill="none">
+            <g class="lp-waves" stroke="#0b0b0b" stroke-width="1.4" opacity="0.35">
+              <path d="M-10 168c18-10 28-10 46 0s28 10 46 0 28-10 46 0 28 10 46 0 28-10 46 0 28 10 46 0 28-10 46 0"/>
+              <path d="M-10 182c18-8 28-8 46 0s28 8 46 0 28-8 46 0 28 8 46 0 28-8 46 0 28 8 46 0 28-8 46 0"/>
+              <path d="M-10 196c18-7 28-7 46 0s28 7 46 0 28-7 46 0 28 7 46 0 28-7 46 0 28 7 46 0 28-7 46 0"/>
+            </g>
+            <path d="M86 146h188l-18 28H104l-18-28z" fill="#0b0b0b"/>
+            <path d="M176 38v108" stroke="#0b0b0b" stroke-width="3"/>
+            <path d="M179 44l92 78H179V44z" fill="#c6613f"/>
+            <path d="M173 52l-46 48h46V52z" fill="#0b0b0b"/>
+            <path d="M176 38l22-16 4 10-26 8z" fill="#c6613f"/>
+          </svg>
+          <p class="lp-boat-meta"><span class="lp-boat-day" data-boat-day>Day 60</span> · Every review adds to it.</p>
         </div>
-        <p class="landing-demo-status" data-demo-status hidden></p>
       </div>
-      <p class="landing-try-foot">Recognition would have let you nod along. Recall made you produce it.</p>
     </div>
-  </section>
-
-  <section class="landing-close landing-reveal" data-reveal>
-    <div class="landing-inner landing-close-inner">
-      <h2 class="landing-close-title">You found the C.<br>Now make it stay.</h2>
-      <p class="landing-lede landing-close-lede">Read with purpose. Recall without looking. Return before it fades.</p>
-      <p class="landing-actions">
-        <a class="landing-btn landing-btn-ink" href="/login">Start remembering</a>
+    <div class="lp-inner">
+      <p class="lp-method-line">
+        <span>Read it.</span><span>See it.</span><span>Recall it.</span><span>Revisit it.</span><span>Remember it.</span>
       </p>
-      <p class="landing-kicker">Whatever the C is — make it stay.</p>
+      <p class="lp-span">
+        <span>Day 001 — Day 180</span>
+        <span><strong>One document.</strong> One hundred and eighty days.</span>
+      </p>
     </div>
   </section>
 
-  <footer class="landing-footer">
-    <div class="landing-inner landing-footer-inner">
-      <a class="landing-brand" href="#top">
-        <img class="landing-brand-mark" src="/static/main_logo.png" width="30" height="30" alt="">
-        <span class="landing-brand-word">Memorize the C</span>
+  <section class="lp-section lp-reveal" id="method" data-reveal>
+    <div class="lp-inner">
+      <p class="lp-kicker">§ 01</p>
+      <h2 class="lp-h2">Rereading is recognition. Recall is knowledge.</h2>
+      <p class="lp-lede">You read a clause, it feels familiar, and familiarity feels like knowing. But the test is not whether you recognise the words on the page. It is whether you can produce them once the page is gone.</p>
+      <div class="lp-gap-grid">
+        <article class="lp-panel">
+          <p class="lp-panel-head"><span class="lp-badge">1</span> On the page</p>
+          <p class="lp-clause">No person shall be deprived of his life or personal liberty except according to procedure established by law.</p>
+          <p class="lp-caption">Every word is right there. Of course you know it.</p>
+        </article>
+        <article class="lp-panel is-recall">
+          <p class="lp-panel-head"><span class="lp-badge">2</span> From memory</p>
+          <p class="lp-clause">
+            No person shall be <span class="lp-blank" style="--w:96px"></span> of his
+            <span class="lp-blank" style="--w:74px"></span> or personal
+            <span class="lp-blank" style="--w:82px"></span> except according to
+            <span class="lp-blank" style="--w:96px"></span> established by
+            <span class="lp-blank" style="--w:52px"></span>.
+          </p>
+          <p class="lp-caption">Same line, five words gone. This is the only test that counts.</p>
+        </article>
+      </div>
+      <p class="lp-gap-foot">Recall the C lives entirely in the second panel.</p>
+    </div>
+  </section>
+
+  <section class="lp-section lp-reveal" id="modes" data-reveal>
+    <div class="lp-inner">
+      <p class="lp-kicker">§ 02</p>
+      <h2 class="lp-h2">Understand the structure. Memorize the wording.</h2>
+      <p class="lp-lede">One provision, six modes, each removing a little more of the text. What you read on Monday, you retrieve on Friday.</p>
+      <div class="lp-modes-grid">
+        <div class="lp-mode-card" data-modes>
+          <div class="lp-mode-tabs" role="tablist" aria-label="Learn modes">
+            <button type="button" role="tab" id="tab-read" aria-selected="true" aria-controls="panel-read" data-mode="read">Read</button>
+            <button type="button" role="tab" id="tab-cloze" aria-selected="false" aria-controls="panel-cloze" data-mode="cloze">Cloze</button>
+            <button type="button" role="tab" id="tab-letters" aria-selected="false" aria-controls="panel-letters" data-mode="letters">Letters</button>
+            <button type="button" role="tab" id="tab-type" aria-selected="false" aria-controls="panel-type" data-mode="type">Type</button>
+            <button type="button" role="tab" id="tab-recite" aria-selected="false" aria-controls="panel-recite" data-mode="recite">Recite</button>
+            <button type="button" role="tab" id="tab-card" aria-selected="false" aria-controls="panel-card" data-mode="card">Card</button>
+          </div>
+          <div class="lp-mode-body">
+            <div id="panel-read" role="tabpanel" data-mode-panel="read">
+              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Remedies for enforcement of rights</span></p>
+              <p class="lp-listen">Listening</p>
+              <p class="lp-mode-text">The right to move the Supreme Court by appropriate proceedings for the enforcement of the rights conferred by this Part is guaranteed.</p>
+              <p class="lp-mode-note">The exact Bare Act wording, unedited. Read it once, deliberately, then never read it the same way again.</p>
+            </div>
+            <div id="panel-cloze" role="tabpanel" hidden data-mode-panel="cloze">
+              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Cloze</span></p>
+              <p class="lp-mode-text">The right to move the <span class="lp-blank" style="--w:92px"></span> <span class="lp-blank" style="--w:72px"></span> by appropriate <span class="lp-blank" style="--w:110px"></span> for the <span class="lp-blank" style="--w:110px"></span> of the rights conferred by this Part is <span class="lp-blank" style="--w:110px"></span>.</p>
+              <p class="lp-mode-note">Load-bearing words come out. The sentence has to hold without them on the page.</p>
+            </div>
+            <div id="panel-letters" role="tabpanel" hidden data-mode-panel="letters">
+              <p class="lp-mode-meta"><span>Article 32(1)</span><span>First letters</span></p>
+              <p class="lp-mode-text lp-letters">T r t m t S C b a p f t e o t r c b t P i g.</p>
+              <p class="lp-mode-note">Only the first letter of each word remains. The rest has to come from memory.</p>
+            </div>
+            <div id="panel-type" role="tabpanel" hidden data-mode-panel="type">
+              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Type it from memory</span></p>
+              <label class="visually-hidden" for="lp-type-input">Type the provision</label>
+              <textarea id="lp-type-input" class="lp-type-input" data-type-input placeholder="Type the provision from memory" autocomplete="off" spellcheck="false"></textarea>
+              <div class="lp-type-row">
+                <button type="button" class="lp-btn" data-type-check>Check</button>
+              </div>
+              <p class="lp-status" data-type-status hidden></p>
+            </div>
+            <div id="panel-recite" role="tabpanel" hidden data-mode-panel="recite">
+              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Recite</span></p>
+              <div class="lp-recite-ui"><span class="lp-recite-dot" aria-hidden="true"></span><span>Hold to peek · speak the line</span></div>
+              <p class="lp-mode-text lp-blur">The right to move the Supreme Court by appropriate proceedings for the enforcement of the rights conferred by this Part is guaranteed.</p>
+              <p class="lp-mode-note">The text stays out of sight until you ask. Spoken recall is checked against the Bare Act.</p>
+            </div>
+            <div id="panel-card" role="tabpanel" hidden data-mode-panel="card">
+              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Card</span></p>
+              <button type="button" class="lp-card-flip" data-card-flip>
+                <div data-card-front>
+                  <p class="lp-card-label">Prompt</p>
+                  <p class="lp-mode-text">Article 32(1)<br>Recall the provision in full, then tap to check.</p>
+                </div>
+                <div data-card-back hidden>
+                  <p class="lp-card-label">Answer</p>
+                  <p class="lp-mode-text">The right to move the Supreme Court by appropriate proceedings for the enforcement of the rights conferred by this Part is guaranteed.</p>
+                </div>
+              </button>
+              <p class="lp-mode-note">The last mode, and the one that returns: cards are what the revision schedule sends back to you.</p>
+            </div>
+          </div>
+          <p class="lp-mode-axis">Read → Recall</p>
+        </div>
+        <aside class="lp-explainer">
+          <h3>Visual Explainer</h3>
+          <p class="lp-explainer-sub">The same Article, seen whole. Structure first, wording after.</p>
+          <p class="lp-art-chip">Article 32 · Right to constitutional remedies</p>
+          <ol>
+            <li>(1) Right to move the Supreme Court — guaranteed</li>
+            <li>
+              (2) Supreme Court may issue directions, orders or writs
+              <span class="lp-tags">
+                <span class="lp-tag">Habeas corpus</span>
+                <span class="lp-tag">Mandamus</span>
+                <span class="lp-tag">Prohibition</span>
+                <span class="lp-tag">Quo warranto</span>
+                <span class="lp-tag">Certiorari</span>
+              </span>
+            </li>
+            <li>(3) Parliament may empower other courts</li>
+            <li>(4) Not suspended except as otherwise provided</li>
+          </ol>
+          <p class="lp-explainer-note">Some provisions are easier to see before they are easier to remember.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section lp-section-dark lp-reveal" id="revision" data-reveal>
+    <div class="lp-inner">
+      <p class="lp-kicker">§ 03</p>
+      <h2 class="lp-h2">You should not have to decide what to revise.</h2>
+      <p class="lp-lede">Everything you learn enters one widening schedule. Recall the C brings a provision back on the day before it would have slipped — then pushes it further out each time you hold it.</p>
+      <div class="lp-track"><span>Learn</span><span class="lp-track-line"></span><span>Mastered</span></div>
+      <div class="lp-rungs">
+        {% for d in landing_review_days|default([1, 3, 7, 14, 30, 60]) %}
+        <div class="lp-rung">
+          <span class="lp-rung-day">Day {{ d }}</span>
+          <span class="lp-rung-n">+{{ d }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="lp-dash-grid">
+        <article class="lp-dark-card">
+          <h3>Article 32 <span class="lp-in-sched">In schedule</span></h3>
+          <p class="lp-check">✓ Day 1 — recalled</p>
+          <p class="lp-check">✓ Day 3 — recalled</p>
+          <p class="lp-check">✓ Day 7 — recalled</p>
+          <p class="lp-next">Next review — Day 14</p>
+        </article>
+        <article class="lp-dark-card">
+          <h3>Revision calendar</h3>
+          <div class="lp-cal" aria-hidden="true">
+            <i></i><i class="is-due"></i><i></i><i></i><i class="is-due"></i><i></i><i></i>
+            <i class="is-due"></i><i></i><i></i><i class="is-due"></i><i></i><i class="is-due"></i><i></i>
+            <i></i><i class="is-due"></i><i></i><i></i><i></i><i class="is-due"></i><i></i>
+            <i></i><i></i><i class="is-due"></i><i></i><i class="is-due"></i><i></i><i></i>
+            <i class="is-due"></i><i></i><i></i><i></i><i class="is-due"></i><i></i><i></i>
+          </div>
+          <p class="lp-cal-note">Eleven provisions due this week. The queue is built for you.</p>
+        </article>
+        <article class="lp-dark-card">
+          <h3>Progress</h3>
+          <div class="lp-prog">
+            <div class="lp-prog-lab"><span>Part III — Fundamental Rights</span><span>82%</span></div>
+            <div class="lp-bar"><span style="width:82%"></span></div>
+          </div>
+          <div class="lp-prog">
+            <div class="lp-prog-lab"><span>Part IV — Directive Principles</span><span>46%</span></div>
+            <div class="lp-bar"><span style="width:46%"></span></div>
+          </div>
+          <div class="lp-prog">
+            <div class="lp-prog-lab"><span>Part V — The Union</span><span>21%</span></div>
+            <div class="lp-bar"><span style="width:21%"></span></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section lp-reveal" data-reveal>
+    <div class="lp-inner">
+      <p class="lp-kicker">§ 04</p>
+      <h2 class="lp-h2">Three Articles a day is not ambitious. Six months of them is.</h2>
+      <p class="lp-lede">Nothing here depends on a heroic week. It depends on the schedule holding while ordinary days go by.</p>
+      <div class="lp-days">
+        <article class="lp-day">
+          <p class="lp-day-n">Day 001</p>
+          <p>One provision, read properly and recalled once. The schedule starts counting.</p>
+        </article>
+        <article class="lp-day">
+          <p class="lp-day-n">Day 030</p>
+          <p>Part II behind you, and the first Day 30 reviews arriving for what you learned in week one.</p>
+        </article>
+        <article class="lp-day">
+          <p class="lp-day-n">Day 090</p>
+          <p>Halfway. New material still takes most of the session; nothing learned so far has been lost.</p>
+        </article>
+        <article class="lp-day is-end">
+          <p class="lp-day-n">Day 180</p>
+          <p>The document, verbatim — and a revision queue short enough to keep it that way.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section lp-reveal" data-reveal>
+    <div class="lp-inner">
+      <p class="lp-kicker">§ 05</p>
+      <h2 class="lp-h2">The Constitution you memorize has a history.</h2>
+      <p class="lp-lede">Wording that looks arbitrary usually is not. Amendment context sits in the margin of the text you are learning, so a clause arrives with the reason it reads the way it does.</p>
+      <div class="lp-preamble">
+        <p class="lp-preamble-head"><span>The Preamble</span><span>42nd Amendment — 1976</span></p>
+        <dl>
+          <div class="lp-preamble-row">
+            <dt>As enacted, 1949</dt>
+            <dd>…to constitute India into a SOVEREIGN DEMOCRATIC REPUBLIC…</dd>
+          </div>
+          <div class="lp-preamble-row is-now">
+            <dt>Present text</dt>
+            <dd>…to constitute India into a SOVEREIGN SOCIALIST SECULAR DEMOCRATIC REPUBLIC…</dd>
+          </div>
+        </dl>
+        <p class="lp-preamble-note">Two words inserted in 1976 — and the reason the line you have to reproduce is longer than the one Ambedkar read out.</p>
+      </div>
+      <div class="lp-trio">
+        <article>
+          <h3>Browse</h3>
+          <p>Parts, Chapters and Articles, in the order the document uses.</p>
+        </article>
+        <article>
+          <h3>Search</h3>
+          <p>Find a phrase you half-remember and land on the exact clause.</p>
+        </article>
+        <article>
+          <h3>Tables</h3>
+          <p>Quick reference for the lists, schedules and numbers worth holding.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section lp-reveal" data-reveal>
+    <div class="lp-inner">
+      <p class="lp-kicker">Coming soon · Relevant laws</p>
+      <h2 class="lp-h2">The Constitution does not operate alone.</h2>
+      <p class="lp-lede">The statutes that carry the Constitution into practice are next — each linked to the Articles it answers to, and learnable in the same six modes.</p>
+      <div class="lp-trio">
+        <article>
+          <p class="lp-law-kicker">Evidence</p>
+          <p class="lp-law-act">Indian Evidence Act</p>
+          <p>Proof, presumption, admission and the limits of compelled testimony.</p>
+          <p class="lp-law-art">Article 20(3) — protection against self-incrimination</p>
+        </article>
+        <article>
+          <p class="lp-law-kicker">Elections</p>
+          <p class="lp-law-act">Representation of the People Act</p>
+          <p>Who may stand, who may vote, and how a result is challenged.</p>
+          <p class="lp-law-art">Articles 324–329 — elections</p>
+        </article>
+        <article>
+          <p class="lp-law-kicker">Environment</p>
+          <p class="lp-law-act">Environment Protection Act</p>
+          <p>The statutory frame behind the protection the courts read into the right to life.</p>
+          <p class="lp-law-art">Articles 21 &amp; 48A — life, environment</p>
+        </article>
+      </div>
+      <p class="lp-soon-note">Not yet available. The Constitution comes first.</p>
+    </div>
+  </section>
+
+  <section class="lp-section lp-reveal" data-reveal>
+    <div class="lp-inner">
+      <p class="lp-kicker">§ 06</p>
+      <h2 class="lp-h2">The text matters. So accuracy matters.</h2>
+      <p class="lp-lede">You are memorizing wording, which makes a single wrong character a real problem. Every screen carries a way to report one, and reports are checked against the official text.</p>
+      <div class="lp-report">
+        <h3>Report an issue</h3>
+        <label>Text or transcription error</label>
+        <label>Annotation problem</label>
+        <label>Incorrect reference</label>
+        <label>Something else</label>
+        <p class="lp-report-foot">Two taps from any Article.</p>
+      </div>
+      <p class="lp-disclaimer">Recall the C is a study aid, not an official legal source. Verify against an authoritative publication where it counts.</p>
+    </div>
+  </section>
+
+  <section class="lp-section lp-reveal" id="faq" data-reveal>
+    <div class="lp-inner">
+      <p class="lp-kicker">§ 07</p>
+      <h2 class="lp-h2">Before you start</h2>
+      <div class="lp-faq">
+        <article>
+          <h3>Is the Constitution text paraphrased?</h3>
+          <p>No. Everything you learn is Bare Act wording. Simplification would defeat the point.</p>
+        </article>
+        <article>
+          <h3>What are Visual Explainers?</h3>
+          <p>Diagrams of the relationships inside a difficult provision — branches, conditions, sequences — for the Articles that are easier to see than to read.</p>
+        </article>
+        <article>
+          <h3>Do I need an account to explore it?</h3>
+          <p>No. Browse the Constitution and try the Learn modes as a guest. An account is only needed to save progress and hold your revision schedule.</p>
+        </article>
+        <article>
+          <h3>Are Relevant Laws available?</h3>
+          <p>Not yet. Statutes connected to the Articles around them are upcoming.</p>
+        </article>
+        <article>
+          <h3>Why six Learn modes?</h3>
+          <p>Rereading builds familiarity. Retrieval builds memory — and each mode removes a different kind of support, so the provision is never recalled the same way twice.</p>
+        </article>
+        <article>
+          <h3>Is this a substitute for an official legal source?</h3>
+          <p>No. It is a study and memory aid. Where it matters, verify against official legal publications.</p>
+        </article>
+        <article>
+          <h3>What happens after I learn something?</h3>
+          <p>It enters the revision schedule — 1, 3, 7, 14, 30, 60 — and comes back to you on its own.</p>
+        </article>
+        <article>
+          <h3>What if I miss a few days?</h3>
+          <p>The queue waits. Overdue provisions come back first, and the schedule re-spaces itself around what you actually remember.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section-dark lp-close lp-reveal" data-reveal>
+    <div class="lp-inner">
+      <p class="lp-kicker">Day 001</p>
+      <h2 class="lp-display">
+        180 days from now<br>will arrive anyway.<br>
+        <em>Know the Constitution when it does.</em>
+      </h2>
+      <p class="lp-lede">Start with one Article. The schedule takes care of the other 179 days.</p>
+      <p class="lp-actions">
+        <a class="lp-btn lp-btn-light" href="/login">Start memorizing</a>
+        <a class="lp-btn lp-btn-outline-light" href="/browse">Explore as a guest</a>
+      </p>
+    </div>
+  </section>
+
+  <footer class="lp-footer">
+    <div class="lp-inner lp-footer-inner">
+      <a class="lp-brand" href="#top">
+        <span class="lp-brand-mark" aria-hidden="true">C</span>
+        <span class="lp-brand-word">Recall the C</span>
       </a>
-      <p class="landing-footer-tag">Complex ideas. Critical details. Core knowledge. Built for recall.</p>
+      <p class="lp-footer-tag">Read it. See it. Recall it. Revisit it. Remember it.</p>
     </div>
   </footer>
 </div>
-<script src="/static/landing.js" defer></script>
-
+<script src="/static/landing.js?v=rtc1" defer></script>
 </body>
 </html>

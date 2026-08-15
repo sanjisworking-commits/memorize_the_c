@@ -1,71 +1,125 @@
 (function () {
   "use strict";
 
+  var ART32 =
+    "the right to move the supreme court by appropriate proceedings for the enforcement of the rights conferred by this part is guaranteed.";
+
   function qs(sel, root) {
     return (root || document).querySelector(sel);
   }
 
-  function initDemo() {
-    var root = qs("[data-landing-demo]");
+  function qsa(sel, root) {
+    return Array.prototype.slice.call((root || document).querySelectorAll(sel));
+  }
+
+  function initModes() {
+    var root = qs("[data-modes]");
     if (!root) return;
-    var input = qs("[data-demo-input]", root);
-    var blank = qs("[data-demo-blank]", root);
-    var status = qs("[data-demo-status]", root);
-    var checkBtn = qs("[data-demo-check]", root);
-    if (!input || !blank || !status || !checkBtn) return;
+    var tabs = qsa("[data-mode]", root);
+    var panels = qsa("[data-mode-panel]", root);
+    if (!tabs.length || !panels.length) return;
 
-    function setCorrect() {
-      blank.textContent = "units";
-      blank.classList.add("is-filled");
-      status.hidden = false;
-      status.className = "landing-demo-status is-ok";
-      status.innerHTML =
-        '<span class="landing-demo-check" aria-hidden="true">✓</span> You recalled the C. That\'s the whole method.';
-      input.value = "units";
+    function show(name) {
+      tabs.forEach(function (tab) {
+        var on = tab.getAttribute("data-mode") === name;
+        tab.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      panels.forEach(function (panel) {
+        var on = panel.getAttribute("data-mode-panel") === name;
+        panel.hidden = !on;
+      });
     }
 
-    function setWrong() {
-      status.hidden = false;
-      status.className = "landing-demo-status is-bad";
-      status.innerHTML =
-        "Not quite. Try 'units' — or <button type=\"button\" class=\"landing-demo-reveal\" data-demo-reveal>reveal the answer</button>";
-      var reveal = qs("[data-demo-reveal]", status);
-      if (reveal) {
-        reveal.addEventListener("click", function () {
-          setCorrect();
-        });
-      }
-    }
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        show(tab.getAttribute("data-mode"));
+      });
+    });
+  }
 
-    function clearStatus() {
-      if (blank.classList.contains("is-filled")) return;
-      status.hidden = true;
-      status.textContent = "";
-      status.className = "landing-demo-status";
+  function initType() {
+    var input = qs("[data-type-input]");
+    var btn = qs("[data-type-check]");
+    var status = qs("[data-type-status]");
+    if (!input || !btn || !status) return;
+
+    function normalize(s) {
+      return (s || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+        .replace(/\s+/g, " ")
+        .replace(/[.,;:]+$/g, "");
     }
 
     function submit() {
-      var raw = (input.value || "").trim().toLowerCase();
+      var raw = normalize(input.value);
       if (!raw) return;
-      if (raw === "units" || raw === "unit") {
-        setCorrect();
+      status.hidden = false;
+      if (raw === ART32 || raw === ART32.replace(/\.$/, "")) {
+        status.className = "lp-status is-ok";
+        status.textContent = "You recalled the provision. That is the method.";
       } else {
-        setWrong();
+        status.className = "lp-status";
+        status.textContent = "Not yet. Try again from memory — wording has to match.";
       }
     }
 
-    checkBtn.addEventListener("click", submit);
+    btn.addEventListener("click", submit);
     input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         submit();
       }
     });
-    input.addEventListener("input", clearStatus);
+    input.addEventListener("input", function () {
+      status.hidden = true;
+      status.textContent = "";
+    });
+  }
+
+  function initCard() {
+    var btn = qs("[data-card-flip]");
+    if (!btn) return;
+    var front = qs("[data-card-front]", btn);
+    var back = qs("[data-card-back]", btn);
+    if (!front || !back) return;
+    btn.addEventListener("click", function () {
+      var showingBack = !back.hidden;
+      front.hidden = !showingBack;
+      back.hidden = showingBack;
+    });
+  }
+
+  function initBoat() {
+    var el = qs("[data-boat-day]");
+    if (!el) return;
+    var reduced =
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      el.textContent = "Day 60";
+      return;
+    }
+    var from = 5;
+    var to = 60;
+    var started = null;
+    var duration = 2200;
+
+    function frame(ts) {
+      if (started == null) started = ts;
+      var t = Math.min(1, (ts - started) / duration);
+      var eased = 1 - Math.pow(1 - t, 3);
+      var n = Math.round(from + (to - from) * eased);
+      el.textContent = "Day " + n;
+      if (t < 1) window.requestAnimationFrame(frame);
+    }
+    window.requestAnimationFrame(frame);
   }
 
   function initReveal() {
-    var nodes = document.querySelectorAll("[data-reveal], .landing-reveal, .landing-step");
+    var nodes = qsa("[data-reveal], .lp-reveal");
     if (!nodes.length) return;
 
     function showAll() {
@@ -95,7 +149,7 @@
           obs.unobserve(entry.target);
         });
       },
-      { threshold: 0.14 }
+      { threshold: 0.12 }
     );
     nodes.forEach(function (el) {
       obs.observe(el);
@@ -103,7 +157,10 @@
   }
 
   function boot() {
-    initDemo();
+    initModes();
+    initType();
+    initCard();
+    initBoat();
     initReveal();
   }
 

@@ -331,7 +331,7 @@ class ReminderEngine:
         if self._split_cache is None:
             self._split_cache = dict(state.split_preferences)
 
-        if require_all_modes and state.modes_seen < LEARN_MODES_SET:
+        if require_all_modes and not LEARN_MODES_SET.issubset(state.modes_seen):
             raise ModesIncompleteError(unit_id, state.modes_seen)
 
         today = as_of or date.today()
@@ -348,9 +348,6 @@ class ReminderEngine:
         else:
             interval = current.interval_days if current is not None else 0
             times = (current.times_completed if current is not None else 0) + 1
-            ease = (
-                current.ease_factor if current is not None else DEFAULT_EASE_FACTOR
-            )
             nxt = advance_interval(interval)
             if nxt is None:
                 command = CompletionProgress(
@@ -359,7 +356,7 @@ class ReminderEngine:
                     last_completed=today,
                     next_revision=None,
                     interval_days=INTERVAL_LADDER[-1],
-                    ease_factor=ease,
+                    ease_factor=DEFAULT_EASE_FACTOR,
                 )
             else:
                 command = CompletionProgress(
@@ -368,7 +365,7 @@ class ReminderEngine:
                     last_completed=today,
                     next_revision=today + timedelta(days=nxt),
                     interval_days=nxt,
-                    ease_factor=ease,
+                    ease_factor=DEFAULT_EASE_FACTOR,
                 )
 
         started = perf_counter()

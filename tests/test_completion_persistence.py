@@ -22,7 +22,11 @@ from constitution_memorizer.progress.repository import (
     CompletionProgress,
     ProgressRepository,
 )
-from constitution_memorizer.progress.scheduler import ModesIncompleteError, ReminderEngine
+from constitution_memorizer.progress.scheduler import (
+    DEFAULT_EASE_FACTOR,
+    ModesIncompleteError,
+    ReminderEngine,
+)
 from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
 from constitution_memorizer.utils.json_io import read_json
 from constitution_memorizer.web.app import create_app
@@ -128,6 +132,44 @@ def test_incomplete_done_loads_once_and_does_not_commit(tmp_path: Path):
     assert repo.load_completion_state_calls == 1
     assert repo.commit_completion_calls == 0
     assert repo.modes_seen_calls == 0
+
+
+def test_incomplete_done_rejects_incomparable_extra_mode(tmp_path: Path):
+    repo, engine = _engine(tmp_path)
+    uid = str(LOCAL_USER_ID)
+    for mode in ("read", "unexpected-mode"):
+        repo.inner.conn.execute(
+            """
+            INSERT INTO unit_modes_seen (user_id, learning_unit_id, mode, seen_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (uid, "clause-1", mode, "2026-08-15T00:00:00+00:00"),
+        )
+    repo.inner.conn.commit()
+    with pytest.raises(ModesIncompleteError) as exc:
+        engine.mark_done("clause-1", as_of=date(2026, 8, 15))
+    assert exc.value.seen == frozenset({"read", "unexpected-mode"})
+    assert repo.commit_completion_calls == 0
+
+
+def test_non_mastered_done_resets_ease_factor_to_default(tmp_path: Path):
+    repo, engine = _engine(tmp_path)
+    repo.inner.upsert_progress(
+        LOCAL_USER_ID,
+        unit_id="clause-1",
+        status="review",
+        times_completed=1,
+        last_completed=date(2026, 8, 1),
+        next_revision=date(2026, 8, 15),
+        interval_days=1,
+        ease_factor=1.8,
+    )
+    _see_all(engine, "clause-1")
+    result = engine.mark_done("clause-1", as_of=date(2026, 8, 15))
+    assert result.progress.ease_factor == DEFAULT_EASE_FACTOR
+    stored = repo.inner.get_progress(LOCAL_USER_ID, "clause-1")
+    assert stored is not None
+    assert stored.ease_factor == DEFAULT_EASE_FACTOR
 
 
 def test_incomplete_done_http_redirect_unchanged(tmp_path: Path):

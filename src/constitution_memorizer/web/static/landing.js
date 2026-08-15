@@ -93,29 +93,28 @@
   }
 
   function initBoat() {
-    var el = qs("[data-boat-day]");
-    if (!el) return;
+    var wrap = qs("[data-boat-stage]");
+    var day = qs("[data-boat-day]");
+    if (!wrap || !day) return;
+
+    var LADDER = ["Day 1", "Day 3", "Day 7", "Day 14", "Day 30", "Day 60"];
     var reduced =
       window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     if (reduced) {
-      el.textContent = "Day 60";
+      wrap.setAttribute("data-boat-stage", "5");
+      day.textContent = "Day 60";
       return;
     }
-    var from = 5;
-    var to = 60;
-    var started = null;
-    var duration = 2200;
 
-    function frame(ts) {
-      if (started == null) started = ts;
-      var t = Math.min(1, (ts - started) / duration);
-      var eased = 1 - Math.pow(1 - t, 3);
-      var n = Math.round(from + (to - from) * eased);
-      el.textContent = "Day " + n;
-      if (t < 1) window.requestAnimationFrame(frame);
-    }
-    window.requestAnimationFrame(frame);
+    var n = 0;
+    setInterval(function () {
+      n = (n + 1) % 9;
+      var stage = Math.min(n, 5);
+      wrap.setAttribute("data-boat-stage", String(stage));
+      day.textContent = LADDER[stage];
+    }, 1300);
   }
 
   function initReveal() {

@@ -133,7 +133,7 @@ def test_make_connection_pool_starts_closed_with_tuple_defaults():
 
 def test_progress_dict_cursor_does_not_leak_into_session_store():
     """Progress uses dict_row on the cursor only; SessionStore still gets tuples."""
-    now = datetime(2026, 8, 14, 12, 0, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
     dict_row = {
         "learning_unit_id": "unit-1",
         "status": "new",

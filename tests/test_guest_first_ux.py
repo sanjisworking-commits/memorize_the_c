@@ -88,24 +88,20 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert "Explore as guest" in html
     assert "On the page" in html
     assert "From memory" in html
-    assert "Article 32(1)" in html
-    assert "data-modes" in html
-    assert 'data-boat-stage="0"' in html
-    assert "data-s=" in html
-    assert 'data-boat-day>Day 1' in html
-    assert "@keyframes floatBoat" not in html
-    assert "@keyframes waveShift" not in html
-    assert "lp-boat-float" not in html
-    assert "Day 60" in html
+    # Signature of the brain-canvas landing: the letter-field canvas + data file
+    assert "data-brain" in html
+    assert "brain-path.js" in html
+    # Section markers of the brain-canvas landing
+    assert "Six modes" in html
+    assert "The schedule" in html
+    # Revision ladder (Article 32 card shows the early stops verbatim)
     assert "Day 1" in html
     assert "Day 3" in html
     assert "Day 7" in html
     assert "Day 14" in html
-    assert "Day 30" in html
-    assert "Before you start" in html
-    assert "1, 3, 7, 14, 30, 60" in html
     assert "landing.js" in html
     assert "family=Fraunces" in html
+    assert "@keyframes hintDrift" in html
     # Standalone page: no app chrome from base.html
     assert "Learning as guest" not in html
     assert 'class="nav-link">Home' not in html

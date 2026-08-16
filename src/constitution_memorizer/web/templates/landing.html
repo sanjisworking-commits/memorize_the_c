@@ -1,1184 +1,338 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Recall the C — Memorize the Bare Act, verbatim</title>
-  <meta name="description" content="Recall the C is a memory system for the Bare Act. Verbatim. In 180 days." />
-  <link rel="icon" type="image/png" href="/static/main_logo.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-:root {
-  --bg: #f9f9f7;
-  --fg: #0b0b0b;
-  --mut: #52514e;
-  --faint: #8a8984;
-  --surf: #fff;
-  --brand: #c6613f;
-  --teal: #1f7a72;
-  --line: rgba(11, 11, 11, 0.10);
-  --bord: rgba(11, 11, 11, 0.20);
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Source Sans 3", system-ui, sans-serif;
-  --max: 1120px;
-}
-*, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  font-family: var(--font-body);
-  color: var(--fg);
-  background: var(--bg);
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-}
-a { color: inherit; }
-button, input, textarea { font: inherit; }
-.visually-hidden {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0,0,0,0);
-  white-space: nowrap; border: 0;
-}
-.lp-inner {
-  max-width: var(--max);
-  margin: 0 auto;
-  padding-left: 32px;
-  padding-right: 32px;
-}
-
-/* Header */
-.lp-header {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  background: rgba(249, 249, 247, 0.92);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line);
-}
-.lp-header-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-height: 64px;
-}
-.lp-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  flex: 0 0 auto;
-}
-.lp-brand-mark {
-  width: 28px; height: 28px;
-  display: grid; place-items: center;
-  border: 1.4px solid var(--fg);
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1;
-}
-.lp-brand-word {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.lp-nav {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.lp-nav a {
-  text-decoration: none;
-  color: var(--mut);
-  font-size: 13.5px;
-  font-weight: 600;
-}
-.lp-nav a:hover { color: var(--fg); }
-.lp-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 11px 20px;
-  border: 1px solid var(--fg);
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--fg);
-  color: #fff;
-}
-.lp-btn:hover { background: #000; color: #fff; }
-.lp-btn-ghost {
-  background: transparent;
-  color: var(--fg);
-}
-.lp-btn-ghost:hover { background: var(--fg); color: #fff; }
-.lp-btn-light {
-  background: #fff;
-  color: var(--fg);
-  border-color: #fff;
-}
-.lp-btn-light:hover { background: #f3f3f0; color: var(--fg); }
-.lp-btn-outline-light {
-  background: transparent;
-  color: #fff;
-  border-color: rgba(255,255,255,0.45);
-}
-.lp-btn-outline-light:hover { border-color: #fff; color: #fff; background: transparent; }
-.lp-nav .lp-btn { margin-left: 4px; }
-
-/* Shared type */
-.lp-kicker {
-  margin: 0 0 16px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.lp-display {
-  margin: 0 0 22px;
-  font-family: var(--font-display);
-  font-size: clamp(36px, 5.4vw, 68px);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-}
-.lp-display em {
-  font-style: italic;
-  font-weight: 500;
-}
-.lp-lede {
-  margin: 0 0 28px;
-  font-size: 18px;
-  line-height: 1.55;
-  color: var(--mut);
-  max-width: 540px;
-}
-.lp-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.lp-hint { margin: 14px 0 0; font-size: 13.5px; color: var(--faint); }
-
-/* Hero */
-.lp-hero { padding: 72px 0 28px; }
-.lp-hero-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 0.95fr;
-  gap: 48px;
-  align-items: center;
-}
-.lp-hero-title { margin-bottom: 18px; }
-.lp-hero-visual {
-  position: relative;
-  min-height: 280px;
-  display: grid;
-  place-items: center;
-}
-.lp-boat-wrap { width: min(100%, 470px); }
-.lp-boat-svg { width: 100%; height: auto; display: block; overflow: visible; }
-.lp-boat-meta {
-  margin: 22px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid #d6d1c7;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  text-align: left;
-  font-size: 13.5px;
-  color: var(--mut);
-}
-.lp-boat-day {
-  font-family: var(--font-display);
-  font-weight: 700;
-  color: var(--fg);
-}
-.lp-method-line {
-  margin: 56px 0 0;
-  padding: 18px 0 0;
-  border-top: 1px solid var(--line);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 28px;
-  font-family: var(--font-display);
-  font-size: clamp(16px, 2vw, 20px);
-  font-weight: 500;
-  font-style: italic;
-  color: var(--fg);
-}
-.lp-span {
-  margin: 28px 0 0;
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  font-size: 12.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--faint);
-  font-weight: 700;
-}
-.lp-span strong { color: var(--fg); font-weight: 700; letter-spacing: 0.06em; }
-
-/* Sections */
-.lp-section { padding: 88px 0; }
-.lp-section-dark {
-  background: var(--fg);
-  color: #fff;
-}
-.lp-section-dark .lp-kicker { color: rgba(255,255,255,0.45); }
-.lp-section-dark .lp-lede { color: rgba(255,255,255,0.72); }
-.lp-h2 {
-  margin: 0 0 18px;
-  font-family: var(--font-display);
-  font-size: clamp(30px, 4vw, 48px);
-  font-weight: 700;
-  line-height: 1.12;
-  letter-spacing: -0.025em;
-  max-width: 16ch;
-}
-.lp-section-dark .lp-h2 { max-width: 18ch; }
-
-/* Gap */
-.lp-gap-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 36px;
-}
-.lp-panel {
-  background: var(--surf);
-  border: 1px solid var(--bord);
-  padding: 28px 26px 24px;
-}
-.lp-panel-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 16px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.lp-badge {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  display: grid; place-items: center;
-  border: 1.4px solid #cdcdca;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--faint);
-}
-.lp-panel.is-recall { background: #f4f3f0; }
-.lp-panel.is-recall .lp-panel-head { color: var(--teal); }
-.lp-panel.is-recall .lp-badge {
-  background: var(--teal);
-  border-color: var(--teal);
-  color: #fff;
-}
-.lp-clause {
-  margin: 0 0 14px;
-  font-family: var(--font-display);
-  font-size: clamp(18px, 2.2vw, 24px);
-  font-weight: 500;
-  line-height: 1.5;
-}
-.lp-blank {
-  display: inline-block;
-  min-width: var(--w, 72px);
-  border-bottom: 2px dashed #b9b9b6;
-  vertical-align: baseline;
-}
-.lp-caption { margin: 0; font-size: 14px; color: var(--faint); }
-.lp-gap-foot {
-  margin: 22px 0 0;
-  max-width: 640px;
-  font-size: 15px;
-  color: var(--mut);
-}
-
-/* Modes */
-.lp-modes-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 20px;
-  margin-top: 36px;
-}
-.lp-mode-card, .lp-explainer {
-  background: var(--surf);
-  border: 1px solid var(--bord);
-}
-.lp-mode-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--line);
-}
-.lp-mode-tabs button {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 12px 14px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--mut);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-.lp-mode-tabs button[aria-selected="true"] {
-  color: var(--fg);
-  border-bottom-color: var(--brand);
-}
-.lp-mode-body { padding: 22px 22px 20px; min-height: 260px; }
-.lp-mode-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 14px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.lp-mode-text {
-  margin: 0 0 16px;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 500;
-  line-height: 1.45;
-}
-.lp-letters {
-  letter-spacing: 0.08em;
-  font-variant-numeric: tabular-nums;
-}
-.lp-listen {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 12px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--teal);
-}
-.lp-type-input {
-  width: 100%;
-  min-height: 88px;
-  padding: 10px 12px;
-  border: 1px solid var(--bord);
-  background: #fff;
-  resize: vertical;
-}
-.lp-type-input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
-.lp-type-row { display: flex; gap: 10px; margin-top: 10px; }
-.lp-status { margin: 12px 0 0; font-size: 14px; color: var(--mut); }
-.lp-status.is-ok { color: var(--teal); font-weight: 600; }
-.lp-card-flip {
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--bord);
-  background: #faf9f7;
-  padding: 22px 20px;
-  cursor: pointer;
-  min-height: 150px;
-}
-.lp-card-flip:hover { border-color: var(--fg); }
-.lp-card-label {
-  margin: 0 0 8px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.lp-recite-ui {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 8px 0 16px;
-}
-.lp-recite-dot {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: var(--brand);
-}
-.lp-blur { filter: blur(5px); user-select: none; }
-.lp-mode-note { margin: 0; font-size: 14px; color: var(--mut); }
-.lp-mode-axis {
-  margin: 0;
-  padding: 12px 22px;
-  border-top: 1px solid var(--line);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.lp-explainer { padding: 22px 22px 20px; }
-.lp-explainer h3 {
-  margin: 0 0 6px;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-}
-.lp-explainer-sub { margin: 0 0 18px; font-size: 14px; color: var(--mut); }
-.lp-art-chip {
-  display: inline-block;
-  margin: 0 0 14px;
-  padding: 4px 8px;
-  border: 1px solid var(--bord);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.lp-explainer ol { margin: 0; padding: 0 0 0 18px; color: var(--mut); }
-.lp-explainer li { margin: 0 0 8px; }
-.lp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
-.lp-tag {
-  padding: 3px 8px;
-  border: 1px solid var(--bord);
-  font-size: 12px;
-  color: var(--fg);
-}
-.lp-explainer-note {
-  margin: 16px 0 0;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 15px;
-  color: var(--mut);
-}
-
-/* Schedule */
-.lp-track {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 36px 0 28px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.45);
-}
-.lp-track-line {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, var(--brand), rgba(255,255,255,0.2));
-}
-.lp-rungs {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 28px;
-}
-.lp-rung {
-  padding: 14px 10px 16px;
-  border: 1px solid rgba(255,255,255,0.16);
-  text-align: center;
-}
-.lp-rung-day {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--brand);
-  margin-bottom: 6px;
-}
-.lp-rung-n {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
-}
-.lp-dash-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 0.9fr;
-  gap: 14px;
-}
-.lp-dark-card {
-  background: #161616;
-  border: 1px solid rgba(255,255,255,0.12);
-  padding: 20px 18px;
-}
-.lp-dark-card h3 {
-  margin: 0 0 12px;
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.lp-in-sched {
-  display: inline-block;
-  margin-left: 8px;
-  color: #8fd6c9;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-}
-.lp-check { margin: 0 0 6px; color: rgba(255,255,255,0.72); font-size: 14px; }
-.lp-next {
-  margin: 14px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,0.12);
-  color: var(--brand);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.lp-cal {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
-}
-.lp-cal i {
-  display: block;
-  aspect-ratio: 1;
-  background: rgba(255,255,255,0.08);
-}
-.lp-cal i.is-due { background: var(--brand); }
-.lp-cal-note { margin: 12px 0 0; font-size: 13.5px; color: rgba(255,255,255,0.62); }
-.lp-prog { margin: 0 0 14px; }
-.lp-prog-lab {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  margin-bottom: 6px;
-  color: rgba(255,255,255,0.78);
-}
-.lp-bar { height: 4px; background: rgba(255,255,255,0.12); }
-.lp-bar span { display: block; height: 100%; background: #8fd6c9; }
-
-/* Arithmetic */
-.lp-days {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 36px;
-}
-.lp-day {
-  padding: 22px 18px 20px;
-  border: 1px solid var(--bord);
-  background: var(--surf);
-}
-.lp-day-n {
-  margin: 0 0 10px;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
-}
-.lp-day p { margin: 0; font-size: 14.5px; color: var(--mut); line-height: 1.45; }
-.lp-day.is-end { border-color: var(--fg); }
-.lp-day.is-end .lp-day-n { color: var(--teal); }
-
-/* History + laws */
-.lp-preamble {
-  margin-top: 36px;
-  background: var(--surf);
-  border: 1px solid var(--bord);
-  padding: 26px 24px;
-}
-.lp-preamble-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.lp-preamble-head span:last-child { color: var(--brand); }
-.lp-preamble-row { margin: 0 0 12px; }
-.lp-preamble-row dt {
-  margin: 0 0 4px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.lp-preamble-row dd {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-.lp-preamble-row.is-now dd { color: var(--teal); }
-.lp-preamble-note { margin: 16px 0 0; font-size: 14.5px; color: var(--mut); }
-.lp-trio {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 22px;
-}
-.lp-trio article {
-  padding: 20px 18px;
-  border: 1px solid var(--bord);
-  background: var(--surf);
-}
-.lp-trio h3 {
-  margin: 0 0 8px;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-}
-.lp-trio p { margin: 0; font-size: 14.5px; color: var(--mut); }
-.lp-law-kicker {
-  margin: 0 0 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--brand);
-}
-.lp-law-act { margin: 0 0 10px; font-weight: 700; }
-.lp-law-art { margin: 12px 0 0; font-size: 13px; color: var(--faint); }
-.lp-soon-note {
-  margin: 18px 0 0;
-  font-family: var(--font-display);
-  font-style: italic;
-  color: var(--mut);
-}
-
-/* Accuracy */
-.lp-report {
-  margin-top: 36px;
-  max-width: 420px;
-  background: var(--surf);
-  border: 1px solid var(--bord);
-  padding: 22px 20px;
-}
-.lp-report h3 {
-  margin: 0 0 14px;
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.lp-report label {
-  display: block;
-  padding: 8px 0;
-  border-top: 1px solid var(--line);
-  font-size: 14.5px;
-  color: var(--mut);
-}
-.lp-report-foot { margin: 12px 0 0; font-size: 13.5px; color: var(--faint); }
-.lp-disclaimer { margin: 18px 0 0; max-width: 560px; font-size: 14.5px; color: var(--mut); }
-
-/* FAQ */
-.lp-faq {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px 48px;
-  margin-top: 36px;
-}
-.lp-faq h3 {
-  margin: 0 0 8px;
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
-}
-.lp-faq p { margin: 0; color: var(--mut); font-size: 15px; }
-
-/* Close */
-.lp-close { padding: 96px 0; text-align: center; }
-.lp-close .lp-inner { max-width: 760px; }
-.lp-close .lp-display { max-width: none; }
-.lp-close .lp-display em { color: #8fd6c9; }
-.lp-close .lp-lede { margin-left: auto; margin-right: auto; color: rgba(255,255,255,0.72); }
-.lp-close .lp-actions { justify-content: center; }
-
-/* Footer */
-.lp-footer {
-  border-top: 1px solid var(--line);
-  padding: 22px 0;
-}
-.lp-footer-inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 24px;
-}
-.lp-footer-tag { margin: 0; color: var(--mut); font-size: 13.5px; }
-
-/* Reveal */
-.lp-reveal {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
-}
-.lp-reveal.is-visible { opacity: 1; transform: none; }
-
-[data-boat-stage] [data-s] {
-  opacity: 0;
-  stroke-dashoffset: 1;
-  transition: opacity .42s ease, stroke-dashoffset .58s cubic-bezier(.2,.7,.3,1);
-}
-[data-boat-stage="0"] [data-s="0"],
-[data-boat-stage="1"] [data-s="0"], [data-boat-stage="1"] [data-s="1"],
-[data-boat-stage="2"] [data-s="0"], [data-boat-stage="2"] [data-s="1"], [data-boat-stage="2"] [data-s="2"],
-[data-boat-stage="3"] [data-s="0"], [data-boat-stage="3"] [data-s="1"], [data-boat-stage="3"] [data-s="2"], [data-boat-stage="3"] [data-s="3"],
-[data-boat-stage="4"] [data-s="0"], [data-boat-stage="4"] [data-s="1"], [data-boat-stage="4"] [data-s="2"], [data-boat-stage="4"] [data-s="3"], [data-boat-stage="4"] [data-s="4"],
-[data-boat-stage="5"] [data-s] {
-  opacity: 1;
-  stroke-dashoffset: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-boat-stage] [data-s] { opacity: 1 !important; stroke-dashoffset: 0 !important; transition: none !important; }
-  .lp-reveal { opacity: 1; transform: none; transition: none; }
-}
-
-@media (max-width: 960px) {
-  .lp-hero-grid,
-  .lp-gap-grid,
-  .lp-modes-grid,
-  .lp-dash-grid,
-  .lp-days,
-  .lp-trio,
-  .lp-faq { grid-template-columns: 1fr; }
-  .lp-rungs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .lp-h2, .lp-display { max-width: none; }
-}
-@media (max-width: 720px) {
-  .lp-inner { padding-left: 18px; padding-right: 18px; }
-  .lp-nav a:not(.lp-btn) { display: none; }
-  .lp-section, .lp-hero { padding-top: 56px; padding-bottom: 56px; }
-  .lp-close { padding: 64px 0; }
-  .lp-rungs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recall the C — Memorize the Constitution, verbatim</title>
+<meta name="description" content="Recall the C is a memory system for the Bare Act of the Constitution of India — the exact wording, kept in your head, in 180 days.">
+<link rel="icon" type="image/png" href="/static/main_logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="/static/brain-path.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,500&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#0b0b0b;color:#f4f1ea;font-family:"Source Sans 3",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  *,*::before,*::after{box-sizing:border-box}
+  a{color:inherit;text-decoration:none}
+  a:hover{color:#8fd6c9}
+  .j-ink:hover{background:#8fd6c9;border-color:#8fd6c9;color:#0b0b0b}
+  .j-ghost:hover{border-color:#f4f1ea;color:#f4f1ea}
+  @keyframes caretBlink{0%,100%{opacity:1}50%{opacity:0}}
+  @keyframes hintDrift{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(7px);opacity:1}}
+  @media (max-width:820px){
+    /* Two rows of three. Overlap is set from JS on both layouts, so no
+       !important margins here — inline styles must be able to win. */
+    [data-circles]{display:grid !important;grid-template-columns:repeat(3,1fr)}
+  }
+  @media (max-width:620px){
+    [data-daycards]{display:none !important}
+    [data-onpage]{display:none !important}
+    [data-actmeta]{display:none !important}
+    [data-actgrid]{grid-template-columns:repeat(3,1fr) !important;gap:8px !important}
+    [data-actcard]{padding:14px 12px !important;background:rgba(19,19,19,0.72) !important}
+    [data-actcard] p{font-size:10px !important;letter-spacing:0.12em !important}
+    [data-actcard] p+p{margin:0 !important;font-size:12px !important;line-height:1.2 !important;letter-spacing:normal !important;overflow-wrap:anywhere;hyphens:auto}
+  }
+  [data-reveal][data-shown="1"]{opacity:1 !important;transform:none !important}
+  [data-l]{transition:color .55s ease}
+  @media (max-width:1180px),(max-height:740px){
+    [data-marker]{display:none !important}
+  }
+  @media (max-width:900px){
+    [data-navlinks]{display:none !important}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important}
+  }
+</style>
 </head>
-<body class="landing-page">
-<div class="lp" id="top">
-  <header class="lp-header">
-    <div class="lp-inner lp-header-inner">
-      <a class="lp-brand" href="#top">
-        <span class="lp-brand-mark" aria-hidden="true">C</span>
-        <span class="lp-brand-word">Recall the C</span>
-      </a>
-      <nav class="lp-nav" aria-label="Landing">
-        <a href="#method">The method</a>
-        <a href="#modes">Learn modes</a>
-        <a href="#revision">Revision</a>
-        <a href="#faq">FAQ</a>
-        <a href="/browse">Explore as guest</a>
-        <a class="lp-btn" href="/login">Start learning</a>
-      </nav>
-    </div>
-  </header>
+<body>
 
-  <section class="lp-hero">
-    <div class="lp-inner lp-hero-grid">
-      <div>
-        <p class="lp-kicker">A memory system for the Bare Act</p>
-        <h1 class="lp-display lp-hero-title">
-          Memorize the C.<br>
-          <em>Verbatim.</em><br>
-          In 180 days.
-        </h1>
-        <p class="lp-lede">Not another Constitution reader. Recall the C is a memory system, built so the exact wording of the Bare Act stays where you need it — in your head.</p>
-        <p class="lp-actions">
-          <a class="lp-btn" href="/login">Start learning</a>
-          <a class="lp-btn lp-btn-ghost" href="/browse">Explore the Constitution →</a>
-        </p>
-        <p class="lp-hint">No account needed to look around.</p>
-      </div>
-      <div class="lp-hero-visual" aria-hidden="true">
-        <div class="lp-boat-wrap" data-boat-stage="0">
-          <svg class="lp-boat-svg" viewBox="0 0 420 320" preserveAspectRatio="xMidYMid meet"
-               style="width:100%;height:auto;display:block;overflow:visible">
-            <circle data-s="5" pathLength="1" stroke-dasharray="1" cx="286" cy="126" r="74"
-                    fill="#fdf1df" stroke="#E8871A" stroke-width="4"></circle>
-            <g fill="none" stroke="#141414" stroke-width="6" stroke-linecap="round">
-              <path data-s="4" pathLength="1" stroke-dasharray="1" d="M232 236 L232 118"></path>
-              <path data-s="4" pathLength="1" stroke-dasharray="1" fill="#141414" stroke-linejoin="round"
-                    d="M232 118 L306 138 L232 166 Z"></path>
-              <path data-s="3" pathLength="1" stroke-dasharray="1" fill="#F59022" stroke="#F59022" stroke-linejoin="round"
-                    d="M226 178 L226 236 L166 236 Z"></path>
-              <path data-s="4" pathLength="1" stroke-dasharray="1" fill="#141414" stroke-linejoin="round"
-                    d="M132 236 L330 236 C316 268 288 280 232 280 C176 280 148 268 132 236 Z"></path>
-              <path data-s="0" pathLength="1" stroke-dasharray="1" stroke="#F59022"
-                    d="M40 296 c18 -16 36 16 54 0 s36 -16 54 0"></path>
-              <path data-s="1" pathLength="1" stroke-dasharray="1" d="M96 306 c18 -16 36 16 54 0 s36 -16 54 0"></path>
-              <path data-s="2" pathLength="1" stroke-dasharray="1" d="M226 298 c18 -16 36 16 54 0 s36 -16 54 0"></path>
-              <path data-s="5" pathLength="1" stroke-dasharray="1" d="M300 310 c16 -14 32 14 48 0"></path>
-            </g>
-          </svg>
-          <p class="lp-boat-meta">
-            <span class="lp-boat-day" data-boat-day>Day 1</span> · Every review adds to it.
-          </p>
-        </div>
-      </div>
-    </div>
-    <div class="lp-inner">
-      <p class="lp-method-line">
-        <span>Read it.</span><span>See it.</span><span>Recall it.</span><span>Revisit it.</span><span>Remember it.</span>
-      </p>
-      <p class="lp-span">
-        <span>Day 001 — Day 180</span>
-        <span><strong>One document.</strong> One hundred and eighty days.</span>
-      </p>
-    </div>
-  </section>
+<div style="width:100%;overflow-x:clip;background:#0b0b0b;position:relative">
 
-  <section class="lp-section lp-reveal" id="method" data-reveal>
-    <div class="lp-inner">
-      <p class="lp-kicker">§ 01</p>
-      <h2 class="lp-h2">Rereading is recognition. Recall is knowledge.</h2>
-      <p class="lp-lede">You read a clause, it feels familiar, and familiarity feels like knowing. But the test is not whether you recognise the words on the page. It is whether you can produce them once the page is gone.</p>
-      <div class="lp-gap-grid">
-        <article class="lp-panel">
-          <p class="lp-panel-head"><span class="lp-badge">1</span> On the page</p>
-          <p class="lp-clause">No person shall be deprived of his life or personal liberty except according to procedure established by law.</p>
-          <p class="lp-caption">Every word is right there. Of course you know it.</p>
-        </article>
-        <article class="lp-panel is-recall">
-          <p class="lp-panel-head"><span class="lp-badge">2</span> From memory</p>
-          <p class="lp-clause">
-            No person shall be <span class="lp-blank" style="--w:96px"></span> of his
-            <span class="lp-blank" style="--w:74px"></span> or personal
-            <span class="lp-blank" style="--w:82px"></span> except according to
-            <span class="lp-blank" style="--w:96px"></span> established by
-            <span class="lp-blank" style="--w:52px"></span>.
-          </p>
-          <p class="lp-caption">Same line, five words gone. This is the only test that counts.</p>
-        </article>
-      </div>
-      <p class="lp-gap-foot">Recall the C lives entirely in the second panel.</p>
-    </div>
-  </section>
-
-  <section class="lp-section lp-reveal" id="modes" data-reveal>
-    <div class="lp-inner">
-      <p class="lp-kicker">§ 02</p>
-      <h2 class="lp-h2">Understand the structure. Memorize the wording.</h2>
-      <p class="lp-lede">One provision, six modes, each removing a little more of the text. What you read on Monday, you retrieve on Friday.</p>
-      <div class="lp-modes-grid">
-        <div class="lp-mode-card" data-modes>
-          <div class="lp-mode-tabs" role="tablist" aria-label="Learn modes">
-            <button type="button" role="tab" id="tab-read" aria-selected="true" aria-controls="panel-read" data-mode="read">Read</button>
-            <button type="button" role="tab" id="tab-cloze" aria-selected="false" aria-controls="panel-cloze" data-mode="cloze">Cloze</button>
-            <button type="button" role="tab" id="tab-letters" aria-selected="false" aria-controls="panel-letters" data-mode="letters">Letters</button>
-            <button type="button" role="tab" id="tab-type" aria-selected="false" aria-controls="panel-type" data-mode="type">Type</button>
-            <button type="button" role="tab" id="tab-recite" aria-selected="false" aria-controls="panel-recite" data-mode="recite">Recite</button>
-            <button type="button" role="tab" id="tab-card" aria-selected="false" aria-controls="panel-card" data-mode="card">Card</button>
-          </div>
-          <div class="lp-mode-body">
-            <div id="panel-read" role="tabpanel" data-mode-panel="read">
-              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Remedies for enforcement of rights</span></p>
-              <p class="lp-listen">Listening</p>
-              <p class="lp-mode-text">The right to move the Supreme Court by appropriate proceedings for the enforcement of the rights conferred by this Part is guaranteed.</p>
-              <p class="lp-mode-note">The exact Bare Act wording, unedited. Read it once, deliberately, then never read it the same way again.</p>
-            </div>
-            <div id="panel-cloze" role="tabpanel" hidden data-mode-panel="cloze">
-              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Cloze</span></p>
-              <p class="lp-mode-text">The right to move the <span class="lp-blank" style="--w:92px"></span> <span class="lp-blank" style="--w:72px"></span> by appropriate <span class="lp-blank" style="--w:110px"></span> for the <span class="lp-blank" style="--w:110px"></span> of the rights conferred by this Part is <span class="lp-blank" style="--w:110px"></span>.</p>
-              <p class="lp-mode-note">Load-bearing words come out. The sentence has to hold without them on the page.</p>
-            </div>
-            <div id="panel-letters" role="tabpanel" hidden data-mode-panel="letters">
-              <p class="lp-mode-meta"><span>Article 32(1)</span><span>First letters</span></p>
-              <p class="lp-mode-text lp-letters">T r t m t S C b a p f t e o t r c b t P i g.</p>
-              <p class="lp-mode-note">Only the first letter of each word remains. The rest has to come from memory.</p>
-            </div>
-            <div id="panel-type" role="tabpanel" hidden data-mode-panel="type">
-              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Type it from memory</span></p>
-              <label class="visually-hidden" for="lp-type-input">Type the provision</label>
-              <textarea id="lp-type-input" class="lp-type-input" data-type-input placeholder="Type the provision from memory" autocomplete="off" spellcheck="false"></textarea>
-              <div class="lp-type-row">
-                <button type="button" class="lp-btn" data-type-check>Check</button>
-              </div>
-              <p class="lp-status" data-type-status hidden></p>
-            </div>
-            <div id="panel-recite" role="tabpanel" hidden data-mode-panel="recite">
-              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Recite</span></p>
-              <div class="lp-recite-ui"><span class="lp-recite-dot" aria-hidden="true"></span><span>Hold to peek · speak the line</span></div>
-              <p class="lp-mode-text lp-blur">The right to move the Supreme Court by appropriate proceedings for the enforcement of the rights conferred by this Part is guaranteed.</p>
-              <p class="lp-mode-note">The text stays out of sight until you ask. Spoken recall is checked against the Bare Act.</p>
-            </div>
-            <div id="panel-card" role="tabpanel" hidden data-mode-panel="card">
-              <p class="lp-mode-meta"><span>Article 32(1)</span><span>Card</span></p>
-              <button type="button" class="lp-card-flip" data-card-flip>
-                <div data-card-front>
-                  <p class="lp-card-label">Prompt</p>
-                  <p class="lp-mode-text">Article 32(1)<br>Recall the provision in full, then tap to check.</p>
-                </div>
-                <div data-card-back hidden>
-                  <p class="lp-card-label">Answer</p>
-                  <p class="lp-mode-text">The right to move the Supreme Court by appropriate proceedings for the enforcement of the rights conferred by this Part is guaranteed.</p>
-                </div>
-              </button>
-              <p class="lp-mode-note">The last mode, and the one that returns: cards are what the revision schedule sends back to you.</p>
-            </div>
-          </div>
-          <p class="lp-mode-axis">Read → Recall</p>
-        </div>
-        <aside class="lp-explainer">
-          <h3>Visual Explainer</h3>
-          <p class="lp-explainer-sub">The same Article, seen whole. Structure first, wording after.</p>
-          <p class="lp-art-chip">Article 32 · Right to constitutional remedies</p>
-          <ol>
-            <li>(1) Right to move the Supreme Court — guaranteed</li>
-            <li>
-              (2) Supreme Court may issue directions, orders or writs
-              <span class="lp-tags">
-                <span class="lp-tag">Habeas corpus</span>
-                <span class="lp-tag">Mandamus</span>
-                <span class="lp-tag">Prohibition</span>
-                <span class="lp-tag">Quo warranto</span>
-                <span class="lp-tag">Certiorari</span>
-              </span>
-            </li>
-            <li>(3) Parliament may empower other courts</li>
-            <li>(4) Not suspended except as otherwise provided</li>
-          </ol>
-          <p class="lp-explainer-note">Some provisions are easier to see before they are easier to remember.</p>
-        </aside>
-      </div>
-    </div>
-  </section>
-
-  <section class="lp-section lp-section-dark lp-reveal" id="revision" data-reveal>
-    <div class="lp-inner">
-      <p class="lp-kicker">§ 03</p>
-      <h2 class="lp-h2">You should not have to decide what to revise.</h2>
-      <p class="lp-lede">Everything you learn enters one widening schedule. Recall the C brings a provision back on the day before it would have slipped — then pushes it further out each time you hold it.</p>
-      <div class="lp-track"><span>Learn</span><span class="lp-track-line"></span><span>Mastered</span></div>
-      <div class="lp-rungs">
-        {% for d in landing_review_days|default([1, 3, 7, 14, 30, 60]) %}
-        <div class="lp-rung">
-          <span class="lp-rung-day">Day {{ d }}</span>
-          <span class="lp-rung-n">+{{ d }}</span>
-        </div>
-        {% endfor %}
-      </div>
-      <div class="lp-dash-grid">
-        <article class="lp-dark-card">
-          <h3>Article 32 <span class="lp-in-sched">In schedule</span></h3>
-          <p class="lp-check">✓ Day 1 — recalled</p>
-          <p class="lp-check">✓ Day 3 — recalled</p>
-          <p class="lp-check">✓ Day 7 — recalled</p>
-          <p class="lp-next">Next review — Day 14</p>
-        </article>
-        <article class="lp-dark-card">
-          <h3>Revision calendar</h3>
-          <div class="lp-cal" aria-hidden="true">
-            <i></i><i class="is-due"></i><i></i><i></i><i class="is-due"></i><i></i><i></i>
-            <i class="is-due"></i><i></i><i></i><i class="is-due"></i><i></i><i class="is-due"></i><i></i>
-            <i></i><i class="is-due"></i><i></i><i></i><i></i><i class="is-due"></i><i></i>
-            <i></i><i></i><i class="is-due"></i><i></i><i class="is-due"></i><i></i><i></i>
-            <i class="is-due"></i><i></i><i></i><i></i><i class="is-due"></i><i></i><i></i>
-          </div>
-          <p class="lp-cal-note">Eleven provisions due this week. The queue is built for you.</p>
-        </article>
-        <article class="lp-dark-card">
-          <h3>Progress</h3>
-          <div class="lp-prog">
-            <div class="lp-prog-lab"><span>Part III — Fundamental Rights</span><span>82%</span></div>
-            <div class="lp-bar"><span style="width:82%"></span></div>
-          </div>
-          <div class="lp-prog">
-            <div class="lp-prog-lab"><span>Part IV — Directive Principles</span><span>46%</span></div>
-            <div class="lp-bar"><span style="width:46%"></span></div>
-          </div>
-          <div class="lp-prog">
-            <div class="lp-prog-lab"><span>Part V — The Union</span><span>21%</span></div>
-            <div class="lp-bar"><span style="width:21%"></span></div>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="lp-section lp-reveal" data-reveal>
-    <div class="lp-inner">
-      <p class="lp-kicker">§ 04</p>
-      <h2 class="lp-h2">Three Articles a day is not ambitious. Six months of them is.</h2>
-      <p class="lp-lede">Nothing here depends on a heroic week. It depends on the schedule holding while ordinary days go by.</p>
-      <div class="lp-days">
-        <article class="lp-day">
-          <p class="lp-day-n">Day 001</p>
-          <p>One provision, read properly and recalled once. The schedule starts counting.</p>
-        </article>
-        <article class="lp-day">
-          <p class="lp-day-n">Day 030</p>
-          <p>Part II behind you, and the first Day 30 reviews arriving for what you learned in week one.</p>
-        </article>
-        <article class="lp-day">
-          <p class="lp-day-n">Day 090</p>
-          <p>Halfway. New material still takes most of the session; nothing learned so far has been lost.</p>
-        </article>
-        <article class="lp-day is-end">
-          <p class="lp-day-n">Day 180</p>
-          <p>The document, verbatim — and a revision queue short enough to keep it that way.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="lp-section lp-reveal" data-reveal>
-    <div class="lp-inner">
-      <p class="lp-kicker">§ 05</p>
-      <h2 class="lp-h2">The Constitution you memorize has a history.</h2>
-      <p class="lp-lede">Wording that looks arbitrary usually is not. Amendment context sits in the margin of the text you are learning, so a clause arrives with the reason it reads the way it does.</p>
-      <div class="lp-preamble">
-        <p class="lp-preamble-head"><span>The Preamble</span><span>42nd Amendment — 1976</span></p>
-        <dl>
-          <div class="lp-preamble-row">
-            <dt>As enacted, 1949</dt>
-            <dd>…to constitute India into a SOVEREIGN DEMOCRATIC REPUBLIC…</dd>
-          </div>
-          <div class="lp-preamble-row is-now">
-            <dt>Present text</dt>
-            <dd>…to constitute India into a SOVEREIGN SOCIALIST SECULAR DEMOCRATIC REPUBLIC…</dd>
-          </div>
-        </dl>
-        <p class="lp-preamble-note">Two words inserted in 1976 — and the reason the line you have to reproduce is longer than the one Ambedkar read out.</p>
-      </div>
-      <div class="lp-trio">
-        <article>
-          <h3>Browse</h3>
-          <p>Parts, Chapters and Articles, in the order the document uses.</p>
-        </article>
-        <article>
-          <h3>Search</h3>
-          <p>Find a phrase you half-remember and land on the exact clause.</p>
-        </article>
-        <article>
-          <h3>Tables</h3>
-          <p>Quick reference for the lists, schedules and numbers worth holding.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="lp-section lp-reveal" data-reveal>
-    <div class="lp-inner">
-      <p class="lp-kicker">Coming soon · Relevant laws</p>
-      <h2 class="lp-h2">The Constitution does not operate alone.</h2>
-      <p class="lp-lede">The statutes that carry the Constitution into practice are next — each linked to the Articles it answers to, and learnable in the same six modes.</p>
-      <div class="lp-trio">
-        <article>
-          <p class="lp-law-kicker">Evidence</p>
-          <p class="lp-law-act">Indian Evidence Act</p>
-          <p>Proof, presumption, admission and the limits of compelled testimony.</p>
-          <p class="lp-law-art">Article 20(3) — protection against self-incrimination</p>
-        </article>
-        <article>
-          <p class="lp-law-kicker">Elections</p>
-          <p class="lp-law-act">Representation of the People Act</p>
-          <p>Who may stand, who may vote, and how a result is challenged.</p>
-          <p class="lp-law-art">Articles 324–329 — elections</p>
-        </article>
-        <article>
-          <p class="lp-law-kicker">Environment</p>
-          <p class="lp-law-act">Environment Protection Act</p>
-          <p>The statutory frame behind the protection the courts read into the right to life.</p>
-          <p class="lp-law-art">Articles 21 &amp; 48A — life, environment</p>
-        </article>
-      </div>
-      <p class="lp-soon-note">Not yet available. The Constitution comes first.</p>
-    </div>
-  </section>
-
-  <section class="lp-section lp-reveal" data-reveal>
-    <div class="lp-inner">
-      <p class="lp-kicker">§ 06</p>
-      <h2 class="lp-h2">The text matters. So accuracy matters.</h2>
-      <p class="lp-lede">You are memorizing wording, which makes a single wrong character a real problem. Every screen carries a way to report one, and reports are checked against the official text.</p>
-      <div class="lp-report">
-        <h3>Report an issue</h3>
-        <label>Text or transcription error</label>
-        <label>Annotation problem</label>
-        <label>Incorrect reference</label>
-        <label>Something else</label>
-        <p class="lp-report-foot">Two taps from any Article.</p>
-      </div>
-      <p class="lp-disclaimer">Recall the C is a study aid, not an official legal source. Verify against an authoritative publication where it counts.</p>
-    </div>
-  </section>
-
-  <section class="lp-section lp-reveal" id="faq" data-reveal>
-    <div class="lp-inner">
-      <p class="lp-kicker">§ 07</p>
-      <h2 class="lp-h2">Before you start</h2>
-      <div class="lp-faq">
-        <article>
-          <h3>Is the Constitution text paraphrased?</h3>
-          <p>No. Everything you learn is Bare Act wording. Simplification would defeat the point.</p>
-        </article>
-        <article>
-          <h3>What are Visual Explainers?</h3>
-          <p>Diagrams of the relationships inside a difficult provision — branches, conditions, sequences — for the Articles that are easier to see than to read.</p>
-        </article>
-        <article>
-          <h3>Do I need an account to explore it?</h3>
-          <p>No. Browse the Constitution and try the Learn modes as a guest. An account is only needed to save progress and hold your revision schedule.</p>
-        </article>
-        <article>
-          <h3>Are Relevant Laws available?</h3>
-          <p>Not yet. Statutes connected to the Articles around them are upcoming.</p>
-        </article>
-        <article>
-          <h3>Why six Learn modes?</h3>
-          <p>Rereading builds familiarity. Retrieval builds memory — and each mode removes a different kind of support, so the provision is never recalled the same way twice.</p>
-        </article>
-        <article>
-          <h3>Is this a substitute for an official legal source?</h3>
-          <p>No. It is a study and memory aid. Where it matters, verify against official legal publications.</p>
-        </article>
-        <article>
-          <h3>What happens after I learn something?</h3>
-          <p>It enters the revision schedule — 1, 3, 7, 14, 30, 60 — and comes back to you on its own.</p>
-        </article>
-        <article>
-          <h3>What if I miss a few days?</h3>
-          <p>The queue waits. Overdue provisions come back first, and the schedule re-spaces itself around what you actually remember.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="lp-section-dark lp-close lp-reveal" data-reveal>
-    <div class="lp-inner">
-      <p class="lp-kicker">Day 001</p>
-      <h2 class="lp-display">
-        180 days from now<br>will arrive anyway.<br>
-        <em>Know the Constitution when it does.</em>
-      </h2>
-      <p class="lp-lede">Start with one Article. The schedule takes care of the other 179 days.</p>
-      <p class="lp-actions">
-        <a class="lp-btn lp-btn-light" href="/login">Start memorizing</a>
-        <a class="lp-btn lp-btn-outline-light" href="/browse">Explore as a guest</a>
-      </p>
-    </div>
-  </section>
-
-  <footer class="lp-footer">
-    <div class="lp-inner lp-footer-inner">
-      <a class="lp-brand" href="#top">
-        <span class="lp-brand-mark" aria-hidden="true">C</span>
-        <span class="lp-brand-word">Recall the C</span>
-      </a>
-      <p class="lp-footer-tag">Read it. See it. Recall it. Revisit it. Remember it.</p>
-    </div>
-  </footer>
+<div data-progress-track="1" style="position:fixed;top:0;left:0;right:0;height:2px;background:rgba(244,241,234,0.1);z-index:80">
+  <div data-progress-bar="1" style="height:2px;width:0;background:#8fd6c9"></div>
 </div>
-<script src="/static/landing.js?v=rtc2" defer></script>
+
+<div aria-hidden="true" style="position:fixed;inset:0;z-index:0;pointer-events:none">
+  <canvas data-brain="1" data-v="2" style="width:100%;height:100%;display:block"></canvas>
+</div>
+
+<div data-marker="1" style="position:fixed;right:clamp(20px,3vw,44px);bottom:26px;z-index:40;display:flex;align-items:baseline;justify-content:flex-end;gap:14px;pointer-events:none;max-width:min(38ch,32vw);text-align:right;background:#0b0b0b;border:1px solid rgba(244,241,234,0.14);padding:10px 16px">
+  <span style="font-family:Fraunces,Georgia,serif;font-size:12px;font-weight:600;letter-spacing:0.14em;color:#8fd6c9;white-space:nowrap">01 / 06</span>
+  <span style="font-family:Fraunces,Georgia,serif;font-size:15px;font-style:italic;line-height:1.45;color:rgba(244,241,234,0.62);text-wrap:pretty">It begins with one line, held on purpose.</span>
+</div>
+
+<header style="position:sticky;top:0;z-index:60;background:rgba(11,11,11,0.82);backdrop-filter:saturate(1.2) blur(12px);border-bottom:1px solid rgba(244,241,234,0.12)">
+  <div style="max-width:1500px;margin:0 auto;padding:14px clamp(20px,3vw,44px);display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="#top" style="display:inline-flex;align-items:center;gap:11px">
+      <span style="width:31px;height:31px;display:grid;place-items:center;border:1.5px solid #f4f1ea;font-family:Fraunces,Georgia,serif;font-weight:700;font-size:17px;line-height:1">C</span>
+      <span style="font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:700;letter-spacing:-0.02em">Recall the C</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:8px">
+      <nav data-navlinks="1" style="display:flex;align-items:center;gap:2px;margin-right:10px">
+        <a href="#arithmetic" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Arithmetic</a>
+        <a href="#method" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Recall</a>
+        <a href="#learn" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Modes</a>
+        <a href="#revision" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Schedule</a>
+      </nav>
+      <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:9px 16px;font-size:14px;font-weight:600" class="j-ghost">Explore as guest</a>
+      <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:10px 18px;font-size:14px;font-weight:700" class="j-ink">Start learning</a>
+    </div>
+  </div>
+</header>
+
+<main style="position:relative;z-index:10">
+
+<!-- ══ HERO ══ -->
+<section id="top" data-stage="0" style="position:relative;min-height:calc(100vh - 60px);display:flex;flex-direction:column;justify-content:center;padding:clamp(60px,8vh,110px) clamp(20px,4vw,80px) clamp(70px,9vh,120px);max-width:1500px;margin:0 auto">
+  <div aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:0;pointer-events:none;background:radial-gradient(ellipse 78% 74% at 50% 50%,rgba(11,11,11,0.92) 0%,rgba(11,11,11,0.86) 46%,rgba(11,11,11,0.4) 74%,rgba(11,11,11,0) 100%)"></div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center">
+  <p style="margin:0 0 clamp(24px,3vh,40px);display:flex;align-items:center;justify-content:center;gap:13px;text-transform:uppercase;letter-spacing:0.22em;font-size:11.5px;font-weight:700;color:#8fd6c9">
+    <span style="width:30px;height:1px;background:#8fd6c9;display:inline-block"></span>A memory system for the Bare Act
+  </p>
+  <h1 style="font-family:Fraunces,Georgia,serif;font-size:clamp(46px,9.6vw,152px);line-height:0.92;letter-spacing:-0.045em;font-weight:700;margin:0 0 clamp(26px,3.4vh,44px);text-wrap:balance">Memorize the C.<br><span style="font-style:italic;font-weight:300;color:#8fd6c9">Verbatim.</span></h1>
+  <p style="margin:0 0 clamp(20px,2.4vh,30px);font-size:clamp(17px,1.5vw,21px);line-height:1.55;color:rgba(244,241,234,0.66);max-width:36ch;text-wrap:pretty">The exact wording of the Constitution, kept where you actually need it &mdash; in your head.</p>
+  <p style="margin:0 0 clamp(28px,3.6vh,44px);display:inline-flex;align-items:baseline;gap:14px;align-self:center;padding:10px 22px 12px;border:1px solid rgba(245,144,34,0.5);font-family:Fraunces,Georgia,serif">
+    <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;font-family:'Source Sans 3',system-ui,sans-serif;color:rgba(244,241,234,0.55)">In</span>
+    <span style="font-size:clamp(30px,3.4vw,48px);line-height:1;font-weight:700;letter-spacing:-0.03em;color:#F59022">180</span>
+    <span style="font-size:clamp(17px,1.6vw,23px);line-height:1;font-style:italic;font-weight:300;color:#f4f1ea">days</span>
+  </p>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center">
+    <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:16px 32px;font-size:16px;font-weight:700" class="j-ink">Start learning</a>
+    <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:16px 28px;font-size:15px;font-weight:600" class="j-ghost">Explore the Constitution &rarr;</a>
+  </div>
+  <p style="margin:clamp(44px,7vh,90px) 0 0;display:flex;align-items:center;justify-content:center;gap:11px;font-size:11.5px;text-transform:uppercase;letter-spacing:0.2em;font-weight:700;color:rgba(244,241,234,0.42)">
+    <span style="display:inline-block;animation:hintDrift 2.4s ease-in-out infinite">&darr;</span>Scroll
+  </p>
+  </div>
+</section>
+
+<!-- ══ § 01 THE ARITHMETIC ══ -->
+<section id="arithmetic" data-stage="1" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+  <div data-scrim="1" aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:-1;pointer-events:none;opacity:0;background:linear-gradient(180deg,rgba(11,11,11,0) 0,rgba(11,11,11,0.93) 96px,rgba(11,11,11,0.93) calc(100% - 96px),rgba(11,11,11,0) 100%)"></div>
+  <div data-reveal="1" style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;border-bottom:1px solid rgba(244,241,234,0.24);margin-bottom:clamp(30px,4vh,52px);opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease">
+    <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700">The arithmetic</span>
+    <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;01</span>
+  </div>
+  <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 auto clamp(22px,2.6vh,34px);max-width:15ch;text-align:center;text-wrap:balance">Three Articles a day.<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">Six months of them.</span></h2>
+    <p style="margin:0 auto clamp(40px,6vh,72px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:38ch;text-align:center;text-wrap:pretty">Nothing here asks for a heroic week. It asks for ordinary days, in a row.</p>
+
+    <div style="margin-bottom:clamp(34px,4.5vh,54px)">
+      <div style="position:relative;height:34px;border-bottom:1px solid rgba(244,241,234,0.4)">
+        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(90deg,rgba(244,241,234,0.18) 0 1px,transparent 1px 1.6666%),repeating-linear-gradient(90deg,rgba(244,241,234,0.5) 0 1px,transparent 1px 16.666%);background-position:bottom;background-size:100% 10px,100% 22px;background-repeat:repeat-x"></div>
+        <div data-ruler="1" style="position:absolute;left:0;bottom:0;width:0;height:22px;background:#8fd6c9;opacity:0.22"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:9px;font-family:Fraunces,Georgia,serif;font-size:12.5px;font-weight:600;color:rgba(244,241,234,0.42)">
+        <span>000</span><span>030</span><span>060</span><span>090</span><span>120</span><span>150</span><span>180</span>
+      </div>
+    </div>
+
+    <div data-daycards="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:rgba(244,241,234,0.14);border:1px solid rgba(244,241,234,0.14)">
+      <div style="background:#0b0b0b;padding:26px 22px">
+        <p style="margin:0 0 10px;font-family:Fraunces,Georgia,serif;font-size:26px;font-weight:700">Day 001</p>
+        <p style="margin:0;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.58)">One provision, read properly and recalled once.</p>
+      </div>
+      <div style="background:#0b0b0b;padding:26px 22px">
+        <p style="margin:0 0 10px;font-family:Fraunces,Georgia,serif;font-size:26px;font-weight:700">Day 030</p>
+        <p style="margin:0;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.58)">Part II behind you, and week one already coming back.</p>
+      </div>
+      <div style="background:#0b0b0b;padding:26px 22px">
+        <p style="margin:0 0 10px;font-family:Fraunces,Georgia,serif;font-size:26px;font-weight:700">Day 090</p>
+        <p style="margin:0;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.58)">Halfway, and nothing so far has been lost.</p>
+      </div>
+      <div style="background:#131313;padding:26px 22px;box-shadow:inset 0 0 0 1px #8fd6c9">
+        <p style="margin:0 0 10px;font-family:Fraunces,Georgia,serif;font-size:26px;font-weight:700;color:#8fd6c9">Day 180</p>
+        <p style="margin:0;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.78)">The document, verbatim.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ § 02 RECALL ══ -->
+<section id="method" data-stage="2" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+  <div data-scrim="1" aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:-1;pointer-events:none;opacity:0;background:linear-gradient(90deg,rgba(11,11,11,0.93) 0,rgba(11,11,11,0.93) 46%,rgba(11,11,11,0.42) 72%,rgba(11,11,11,0.3) 100%);mask-image:linear-gradient(180deg,transparent 0,#000 96px,#000 calc(100% - 96px),transparent 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 96px,#000 calc(100% - 96px),transparent 100%)"></div>
+  <div data-reveal="1" style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;border-bottom:1px solid rgba(244,241,234,0.24);margin-bottom:clamp(30px,4vh,52px);opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease">
+    <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700">Why rereading fails</span>
+    <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;02</span>
+  </div>
+  <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:16ch;text-wrap:balance">Rereading is recognition.<br><span style="font-style:italic;font-weight:300;color:#8fd6c9">Recall is knowledge.</span></h2>
+    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:40ch;text-wrap:pretty">Familiarity feels like knowing. The real question is whether the words are still there once the page is gone.</p>
+
+    <div style="display:flex;flex-wrap:wrap;gap:1px;background:rgba(244,241,234,0.14);border:1px solid rgba(244,241,234,0.14)">
+      <div data-onpage="1" style="flex:1 1 300px;min-width:0;padding:30px 30px;background:#0b0b0b">
+        <p style="margin:0 0 18px;display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:700;color:rgba(244,241,234,0.45);text-transform:uppercase;letter-spacing:0.16em"><span style="width:21px;height:21px;display:grid;place-items:center;border:1px solid rgba(244,241,234,0.3);border-radius:50%;font-family:Fraunces,Georgia,serif;font-size:11px">1</span>On the page</p>
+        <p style="margin:0;font-family:Fraunces,Georgia,serif;font-size:clamp(19px,1.8vw,25px);line-height:1.5;font-weight:500;color:rgba(244,241,234,0.72)">No person shall be deprived of his life or personal liberty except according to procedure established by law.</p>
+        <p style="margin:18px 0 0;font-size:13.5px;color:rgba(244,241,234,0.42)">Every word is right there.</p>
+      </div>
+      <div style="flex:1 1 300px;min-width:0;padding:30px 30px;background:#131313">
+        <p style="margin:0 0 18px;display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:700;color:#8fd6c9;text-transform:uppercase;letter-spacing:0.16em"><span style="width:21px;height:21px;display:grid;place-items:center;background:#8fd6c9;color:#0b0b0b;border-radius:50%;font-family:Fraunces,Georgia,serif;font-size:11px">2</span>From memory</p>
+        <p style="margin:0;font-family:Fraunces,Georgia,serif;font-size:clamp(19px,1.8vw,25px);line-height:1.6;font-weight:500">No person shall be <span style="display:inline-block;min-width:88px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span> of his <span style="display:inline-block;min-width:56px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span> or personal <span style="display:inline-block;min-width:70px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span> except according to <span style="display:inline-block;min-width:92px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span> established by <span style="display:inline-block;min-width:48px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span>.</p>
+        <p style="margin:18px 0 0;font-size:13.5px;font-weight:600;color:#8fd6c9">Five words gone. The only test that counts.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ § 03 SIX MODES ══ -->
+<section id="learn" data-stage="3" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+  <div data-scrim="1" data-v="3" aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:0;pointer-events:none;opacity:0;background:linear-gradient(180deg,rgba(11,11,11,0) 0,rgba(11,11,11,0.93) 96px,rgba(11,11,11,0.93) calc(100% - 96px),rgba(11,11,11,0) 100%)"></div>
+  <div style="position:relative;z-index:1">
+  <div data-reveal="1" style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;border-bottom:1px solid rgba(244,241,234,0.24);margin-bottom:clamp(30px,4vh,52px);opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease">
+    <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700">Six modes, one provision</span>
+    <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;03</span>
+  </div>
+  <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:15ch;text-wrap:balance">Each mode takes<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">a little more away.</span></h2>
+    <p style="margin:0 0 clamp(32px,4vh,48px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:36ch;text-wrap:pretty">Understand the structure first. Then memorize the wording.</p>
+
+    <div data-circles="1" style="display:flex;align-items:center;justify-content:center;margin:0 auto;max-width:1100px">
+      <div data-circ="0" style="position:relative;flex:1 1 0;min-width:0;aspect-ratio:1;border:1px solid rgba(244,241,234,0.14);border-radius:50%;display:grid;place-items:center;color:rgba(244,241,234,0.62);transition:color .6s ease,border-color .6s ease;font-family:Fraunces,Georgia,serif;font-size:clamp(13px,1.5vw,21px);text-align:center">
+        <span>Read</span>
+      </div>
+      <div data-circ="1" style="position:relative;flex:1 1 0;min-width:0;aspect-ratio:1;margin-left:-24%;border:1px solid rgba(244,241,234,0.14);border-radius:50%;display:grid;place-items:center;color:rgba(244,241,234,0.62);transition:color .6s ease,border-color .6s ease;font-family:Fraunces,Georgia,serif;font-size:clamp(13px,1.5vw,21px);text-align:center">
+        <span style="border-bottom:1.5px solid currentColor;padding-bottom:3px">Cloze</span>
+      </div>
+      <div data-circ="2" style="position:relative;flex:1 1 0;min-width:0;aspect-ratio:1;margin-left:-24%;border:1px solid rgba(244,241,234,0.14);border-radius:50%;display:grid;place-items:center;color:rgba(244,241,234,0.62);transition:color .6s ease,border-color .6s ease;font-family:Fraunces,Georgia,serif;font-size:clamp(13px,1.5vw,21px);text-align:center">
+        <span style="letter-spacing:0.26em;padding-left:0.26em">Letters</span>
+      </div>
+      <div data-circ="3" style="position:relative;flex:1 1 0;min-width:0;aspect-ratio:1;margin-left:-24%;border:1px solid rgba(244,241,234,0.14);border-radius:50%;display:grid;place-items:center;color:rgba(244,241,234,0.62);transition:color .6s ease,border-color .6s ease;font-family:Fraunces,Georgia,serif;font-size:clamp(13px,1.5vw,21px);text-align:center">
+        <span>Type<span style="display:inline-block;width:2px;height:0.95em;background:currentColor;vertical-align:-2px;margin-left:3px;animation:caretBlink 1s step-end infinite"></span></span>
+      </div>
+      <div data-circ="4" style="position:relative;flex:1 1 0;min-width:0;aspect-ratio:1;margin-left:-24%;border:1px solid rgba(244,241,234,0.14);border-radius:50%;display:grid;place-items:center;color:rgba(244,241,234,0.62);transition:color .6s ease,border-color .6s ease;font-family:Fraunces,Georgia,serif;font-size:clamp(13px,1.5vw,21px);text-align:center">
+        <span style="font-style:italic;text-decoration:underline wavy currentColor;text-underline-offset:6px;text-decoration-thickness:1px">Recite</span>
+      </div>
+      <div data-circ="5" style="position:relative;flex:1 1 0;min-width:0;aspect-ratio:1;margin-left:-24%;border:1px solid rgba(244,241,234,0.14);border-radius:50%;display:grid;place-items:center;color:rgba(244,241,234,0.62);transition:color .6s ease,border-color .6s ease;font-family:Fraunces,Georgia,serif;font-size:clamp(13px,1.5vw,21px);text-align:center">
+        <span style="font-weight:700">Card</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;margin-top:clamp(18px,2.4vh,32px)">
+      <span style="width:9px;height:9px;border-radius:50%;background:#F59022;display:block"></span>
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- ══ § 04 THE SCHEDULE ══ -->
+<section id="revision" data-stage="4" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+  <div data-scrim="1" aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:-1;pointer-events:none;opacity:0;background:linear-gradient(180deg,rgba(11,11,11,0) 0,rgba(11,11,11,0.93) 96px,rgba(11,11,11,0.93) calc(100% - 96px),rgba(11,11,11,0) 100%)"></div>
+  <div data-reveal="1" style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;border-bottom:1px solid rgba(244,241,234,0.24);margin-bottom:clamp(30px,4vh,52px);opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease">
+    <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700">The schedule</span>
+    <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;04</span>
+  </div>
+  <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:15ch;text-wrap:balance">You never decide<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">what to revise.</span></h2>
+    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:40ch;text-wrap:pretty">Everything you learn joins one widening schedule, and comes back the day before it would have slipped.</p>
+
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+      <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.16em;font-weight:700;color:rgba(244,241,234,0.42)">Learn</span>
+      <span style="flex:1;height:1px;background:linear-gradient(90deg,#F59022,rgba(244,241,234,0.16))"></span>
+      <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.16em;font-weight:700;color:rgba(244,241,234,0.42)">Held</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;margin-bottom:32px">
+      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">1</span></div>
+      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">3</span></div>
+      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">7</span></div>
+      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">14</span></div>
+      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">30</span></div>
+      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">60</span></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px">
+      <article style="flex:1 1 260px;min-width:0;background:#131313;border:1px solid rgba(244,241,234,0.14);padding:24px 22px">
+        <h3 style="margin:0 0 14px;font-size:12.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700">Article 32 <span style="color:#8fd6c9;font-size:11px;margin-left:6px">In schedule</span></h3>
+        <p style="margin:0 0 6px;font-size:14px;color:rgba(244,241,234,0.6)">&#10003; Day 1 &mdash; recalled</p>
+        <p style="margin:0 0 6px;font-size:14px;color:rgba(244,241,234,0.6)">&#10003; Day 3 &mdash; recalled</p>
+        <p style="margin:0 0 6px;font-size:14px;color:rgba(244,241,234,0.6)">&#10003; Day 7 &mdash; recalled</p>
+        <p style="margin:16px 0 0;padding-top:14px;border-top:1px solid rgba(244,241,234,0.14);font-size:11.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#F59022">Next &mdash; Day 14</p>
+      </article>
+      <article style="flex:1 1 260px;min-width:0;background:#131313;border:1px solid rgba(244,241,234,0.14);padding:24px 22px">
+        <h3 style="margin:0 0 16px;font-size:12.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700">This week</h3>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
+          <i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i>
+          <i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i>
+          <i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i>
+        </div>
+        <p style="margin:16px 0 0;font-size:13.5px;color:rgba(244,241,234,0.5)">Eleven provisions due. The queue is already built.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══ § 05 RELEVANT LAWS ══ -->
+<section data-stage="5" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+  <div data-scrim="1" aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:-1;pointer-events:none;opacity:0;background:linear-gradient(90deg,rgba(11,11,11,0.93) 0,rgba(11,11,11,0.93) 46%,rgba(11,11,11,0.42) 72%,rgba(11,11,11,0.3) 100%);mask-image:linear-gradient(180deg,transparent 0,#000 96px,#000 calc(100% - 96px),transparent 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 96px,#000 calc(100% - 96px),transparent 100%)"></div>
+  <div data-reveal="1" style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;border-bottom:1px solid rgba(244,241,234,0.24);margin-bottom:clamp(30px,4vh,52px);opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease">
+    <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;color:#F59022">Coming soon &middot; Relevant laws</span>
+    <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;05</span>
+  </div>
+  <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
+    <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:16ch;text-wrap:balance">The Constitution<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">does not act alone.</span></h2>
+    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:40ch;text-wrap:pretty">The statutes that carry it into practice are next, each tied to the Articles it answers to.</p>
+    <div data-actgrid="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+      <article data-actcard="1" style="border:1px solid rgba(244,241,234,0.14);background:#131313;padding:24px 22px">
+        <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#F59022">Evidence</p>
+        <p style="margin:0 0 12px;font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:700">Indian Evidence Act</p>
+        <p data-actmeta="1" style="margin:0 0 14px;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.55)">Proof, presumption, and the limits of compelled testimony.</p>
+        <p data-actmeta="1" style="margin:0;padding-top:13px;border-top:1px solid rgba(244,241,234,0.14);font-size:13px;color:rgba(244,241,234,0.42)">Article 20(3)</p>
+      </article>
+      <article data-actcard="1" style="border:1px solid rgba(244,241,234,0.14);background:#131313;padding:24px 22px">
+        <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#F59022">Elections</p>
+        <p style="margin:0 0 12px;font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:700">Representation of the People Act</p>
+        <p data-actmeta="1" style="margin:0 0 14px;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.55)">Who may stand, who may vote, how a result is challenged.</p>
+        <p data-actmeta="1" style="margin:0;padding-top:13px;border-top:1px solid rgba(244,241,234,0.14);font-size:13px;color:rgba(244,241,234,0.42)">Articles 324&ndash;329</p>
+      </article>
+      <article data-actcard="1" style="border:1px solid rgba(244,241,234,0.14);background:#131313;padding:24px 22px">
+        <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#F59022">Environment</p>
+        <p style="margin:0 0 12px;font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:700">Environment Protection Act</p>
+        <p data-actmeta="1" style="margin:0 0 14px;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.55)">The statutory frame behind what the courts read into the right to life.</p>
+        <p data-actmeta="1" style="margin:0;padding-top:13px;border-top:1px solid rgba(244,241,234,0.14);font-size:13px;color:rgba(244,241,234,0.42)">Articles 21 &amp; 48A</p>
+      </article>
+    </div>
+    <p style="margin:24px 0 0;font-family:Fraunces,Georgia,serif;font-style:italic;font-size:17px;color:rgba(244,241,234,0.5)">Not yet available. The Constitution comes first.</p>
+  </div>
+</section>
+
+<!-- ══ CLOSE — scrubbed statement ══ -->
+<div data-lit-src="1" data-v="3" style="height:200vh;position:relative;border-top:1px solid rgba(244,241,234,0.12)">
+  <div data-lit="0" style="position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:0 clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+    <div data-closescrim="1" aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:-1;pointer-events:none;opacity:0;background:linear-gradient(90deg,rgba(11,11,11,0.94) 0%,rgba(11,11,11,0.9) 46%,rgba(11,11,11,0.34) 78%,rgba(11,11,11,0) 100%)"></div>
+    <p style="margin:0 0 clamp(24px,3.4vh,44px);font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;color:rgba(244,241,234,0.42)">Day 001</p>
+    <p style="margin:0;font-family:Fraunces,Georgia,serif;font-size:clamp(32px,6.2vw,98px);line-height:1.04;letter-spacing:-0.04em;font-weight:700;text-wrap:balance">
+      <span data-l="0" style="display:block">Don&rsquo;t just learn it.</span>
+      <span data-l="1" style="display:block">Make it impossible to forget.</span>
+      <span data-l="2" style="display:block;font-style:italic;font-weight:300">Only knowledge can set you free.</span>
+    </p>
+  </div>
+</div>
+
+<section style="border-top:1px solid rgba(244,241,234,0.12);padding:clamp(60px,9vh,120px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+  <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(28px,3.6vw,52px);line-height:1.06;letter-spacing:-0.035em;font-weight:700;margin:0 0 24px;max-width:18ch;text-wrap:balance">Start with one Article.</h2>
+  <p style="margin:0 0 34px;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:36ch;text-wrap:pretty">The schedule takes care of the other 179 days.</p>
+  <div style="display:flex;flex-wrap:wrap;gap:12px">
+    <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:16px 32px;font-size:16px;font-weight:700" class="j-ink">Start memorizing</a>
+    <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:16px 28px;font-size:15px;font-weight:600" class="j-ghost">Explore as a guest</a>
+  </div>
+</section>
+
+</main>
+
+<footer style="position:relative;z-index:10;border-top:1px solid rgba(244,241,234,0.12);background:#0b0b0b">
+  <div style="max-width:1500px;margin:0 auto;padding:26px clamp(20px,4vw,80px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 30px">
+    <a href="#top" style="display:inline-flex;align-items:center;gap:11px">
+      <span style="width:28px;height:28px;display:grid;place-items:center;border:1.4px solid #f4f1ea;font-family:Fraunces,Georgia,serif;font-weight:700;font-size:15px;line-height:1">C</span>
+      <span style="font-family:Fraunces,Georgia,serif;font-size:17px;font-weight:700;letter-spacing:-0.02em">Recall the C</span>
+    </a>
+    <p style="margin:0;font-family:Fraunces,Georgia,serif;font-style:italic;font-size:14.5px;color:rgba(244,241,234,0.5)">Read it. See it. Recall it. Revisit it. Remember it.</p>
+    <p style="margin:0;font-size:13px;color:rgba(244,241,234,0.38);max-width:420px">A study aid, not an official legal source. Verify against an authoritative publication where it counts.</p>
+  </div>
+</footer>
+
+</div>
+
+
+<script src="/static/landing.js" defer></script>
 </body>
 </html>

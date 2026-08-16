@@ -362,6 +362,35 @@ class ProgressRepository:
         )
         self._conn.commit()
 
+    # ------------------------------------------------------------------ #
+    # Free-Article entitlement slots (parent Article level)               #
+    # ------------------------------------------------------------------ #
+    def claimed_articles(self, user_id: UUID | str) -> set[str]:
+        rows = self._conn.execute(
+            "SELECT article_number FROM user_free_articles WHERE user_id = ?",
+            (as_user_id(user_id),),
+        ).fetchall()
+        return {str(r["article_number"]) for r in rows}
+
+    def is_article_claimed(self, user_id: UUID | str, article_number: str) -> bool:
+        row = self._conn.execute(
+            "SELECT 1 FROM user_free_articles WHERE user_id = ? AND article_number = ?",
+            (as_user_id(user_id), str(article_number)),
+        ).fetchone()
+        return row is not None
+
+    def claim_article(self, user_id: UUID | str, article_number: str) -> None:
+        """Idempotently claim a parent Article as one of the user's Free Articles."""
+        self._conn.execute(
+            """
+            INSERT INTO user_free_articles (user_id, article_number, claimed_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id, article_number) DO NOTHING
+            """,
+            (as_user_id(user_id), str(article_number), _utc_now_iso()),
+        )
+        self._conn.commit()
+
     def get_setting(self, user_id: UUID | str, key: str) -> str | None:
         row = self._conn.execute(
             "SELECT value FROM app_settings WHERE user_id = ? AND key = ?",
@@ -560,10 +589,26 @@ class ProgressRepository:
         user_id: UUID | str,
         unit_id: str,
         progress: CompletionProgress,
+        *,
+        claim_article: str | None = None,
     ) -> ProgressRecord:
+        """Persist Done atomically; optionally claim a Free Article with it.
+
+        The claim rides in the same transaction so either the Article claim,
+        the progress row, and the modes reset all land — or none do.
+        """
         now = _utc_now_iso()
         uid = as_user_id(user_id)
         try:
+            if claim_article:
+                self._conn.execute(
+                    """
+                    INSERT INTO user_free_articles (user_id, article_number, claimed_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(user_id, article_number) DO NOTHING
+                    """,
+                    (uid, str(claim_article), now),
+                )
             self._conn.execute(
                 """
                 INSERT INTO learning_unit_progress (

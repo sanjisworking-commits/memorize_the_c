@@ -301,6 +301,10 @@ def test_seen_post_is_json_write(tmp_path: Path, caplog):
 
 def test_incomplete_done_redirects_and_times_mode_reads(tmp_path: Path, caplog):
     client, repo = _counting_client(tmp_path)
+    # Claim Article 20 up front (marker set) so Done follows the claimed-Article
+    # path: no claim prompt and no grandfather backfill in the measured request.
+    repo.claim_article(USER, "20")
+    repo.set_setting(USER, "free_articles_backfilled", "1")
     with caplog.at_level(logging.INFO, logger="uvicorn.error"):
         caplog.clear()
         resp = client.post("/learn/clause-1/done", follow_redirects=False)
@@ -325,6 +329,9 @@ def test_incomplete_done_redirects_and_times_mode_reads(tmp_path: Path, caplog):
 
 def test_complete_done_records_schedule_leaves(tmp_path: Path, caplog):
     client, repo = _counting_client(tmp_path)
+    # Claimed Article + backfill marker: Done persists without a claim prompt.
+    repo.claim_article(USER, "20")
+    repo.set_setting(USER, "free_articles_backfilled", "1")
     for mode in LEARN_MODES:
         seen = client.post("/learn/clause-1/seen", data={"mode": mode})
         assert seen.status_code == 200

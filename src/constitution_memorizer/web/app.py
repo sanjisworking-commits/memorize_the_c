@@ -89,7 +89,21 @@ from constitution_memorizer.web.completion import (
     next_learn_url,
     wants_json,
 )
+from constitution_memorizer.web.entitlements import (
+    access_summary,
+    article_key,
+    resolve_learn_access,
+)
 from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
+from constitution_memorizer.web.pricing import (
+    DEFAULT_DAYS,
+    MORE_DAYS,
+    PRIMARY_DAYS,
+    billing_line,
+    get_plan,
+    per_day,
+    plans_json,
+)
 from constitution_memorizer.web.quotes import load_quotes
 from constitution_memorizer.web.judicial_evolution import (
     get_judicial_evolution,
@@ -366,6 +380,7 @@ def create_app(
                 "multiuser_enabled": app.state.multiuser_enabled,
                 "memory_log_enabled": memory_log_enabled,
                 "relevant_laws_enabled": relevant_laws_enabled,
+                "pricing_enabled": bool(settings.pricing_enabled),
                 # Guests cannot submit Contact Us / Report Issue — do not expose
                 # Turnstile site key or load the client script for them.
                 "report_turnstile_enabled": bool(
@@ -406,6 +421,8 @@ def create_app(
     app.state.multiuser_settings = settings
     app.state.memory_log_enabled = memory_log_enabled
     app.state.relevant_laws_enabled = relevant_laws_enabled
+    app.state.article_entitlements_enabled = bool(settings.article_entitlements_enabled)
+    app.state.pricing_enabled = bool(settings.pricing_enabled)
     app.state.use_postgres_progress = use_postgres
     app.state.oauth_states = {}
     app.state.otp_limiter = OtpRateLimiter()
@@ -549,14 +566,18 @@ def create_app(
             raise HTTPException(status_code=404, detail="Not Found")
         return memory
 
-    def _modes_payload(unit_id: str, seen: set[str] | None = None) -> dict[str, object]:
+    def _modes_payload(
+        unit_id: str,
+        seen: set[str] | None = None,
+        required_count: int = 6,
+    ) -> dict[str, object]:
         current = seen if seen is not None else _engine().modes_seen(unit_id)
         return {
             "seen": sorted(current),
             "count": len(current),
-            "remaining": max(0, 6 - len(current)),
-            "complete": len(current) >= 6,
-            "tracker": methods_tracker_line(len(current)),
+            "remaining": max(0, required_count - len(current)),
+            "complete": len(current) >= required_count,
+            "tracker": methods_tracker_line(len(current), required_count),
         }
     @app.get("/", response_class=HTMLResponse)
     async def home(request: Request) -> HTMLResponse:
@@ -707,9 +728,13 @@ def create_app(
             app.state.multiuser_enabled
             and getattr(request.state, "current_user", None) is None
         )
+        # Article-aware mode locks (guest / free-cap-reached lock Type & Recite).
+        learn_lock = resolve_learn_access(request, eng, target.article_number)
+        locked_modes = learn_lock.locked_modes
+        mode_locked = learn_mode in locked_modes
         # Guests may try modes without writing progress.
         if is_guest:
-            seen: set[str] = {learn_mode}
+            seen: set[str] = set() if mode_locked else {learn_mode}
             progress = None
             done_count, chain_len = 0, 1
             pct = 0
@@ -717,14 +742,23 @@ def create_app(
             done_unlocked = True
             done_label = "Mark as mastered"
         else:
-            seen = eng.mark_mode_seen(target.id, learn_mode)
+            # Locked modes are never recorded as seen; unclaimed Articles keep
+            # mode visits provisional (client-tracked) until claimed on Done.
+            if mode_locked or not learn_lock.can_persist_modes_seen:
+                seen = eng.modes_seen(target.id)
+            else:
+                seen = eng.mark_mode_seen(target.id, learn_mode)
             progress = eng.get_progress(target.id)
             done_count, _position, chain_len = session_progress(eng, target)
             pct = int(round(100 * done_count / chain_len)) if chain_len else 0
-            done_state = done_button_state(target, seen)
+            done_state = done_button_state(
+                target, seen, required=set(learn_lock.required_modes)
+            )
             done_unlocked = done_state["unlocked"]
             done_label = done_state["label"]
-        modes_payload = _modes_payload(target.id, seen)
+        modes_payload = _modes_payload(
+            target.id, seen, required_count=len(learn_lock.required_modes)
+        )
 
         started = time.perf_counter()
         chips = sibling_chips(eng, target)
@@ -746,6 +780,26 @@ def create_app(
             unit_id=target.id,
         )
         record_request_timing("learn_build", started)
+
+        # Server-validated Free-Article claim prompt / subscription gate panels.
+        claim_prompt = None
+        subscription_gate = False
+        target_key = article_key(target.article_number)
+        if not is_guest and target_key is not None:
+            wants_claim = request.query_params.get("claim") == "1"
+            wants_gate = request.query_params.get("gate") == "subscription"
+            if wants_claim or wants_gate:
+                learn_gate_access = resolve_learn_access(
+                    request, eng, target.article_number
+                )
+                if wants_claim and learn_gate_access.should_prompt_claim:
+                    claim_prompt = {
+                        "article_number": target_key,
+                        "slots_remaining": learn_gate_access.free_slots_remaining,
+                    }
+                if wants_gate and learn_gate_access.cap_reached:
+                    subscription_gate = True
+
         done_id = request.query_params.get("done")
         mode_suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
         started = time.perf_counter()
@@ -786,6 +840,16 @@ def create_app(
                 "has_text_annotations": bool(unit_anns),
                 "is_guest": is_guest,
                 "completion": completion,
+                "claim_prompt": claim_prompt,
+                "subscription_gate": subscription_gate,
+                "locked_modes": locked_modes,
+                "lock_reason": (
+                    "guest" if is_guest else ("cap" if learn_lock.cap_reached else None)
+                ),
+                "seen_provisional": (
+                    not is_guest and not learn_lock.can_persist_modes_seen
+                ),
+                "required_modes": learn_lock.required_modes,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),
@@ -796,19 +860,36 @@ def create_app(
 
     @app.post("/learn/{unit_id}/seen")
     async def learn_mode_seen(
+        request: Request,
         unit_id: str,
         mode: str = Form(...),
     ) -> JSONResponse:
         eng = _engine()
-        if eng.get_unit(unit_id) is None:
+        unit = eng.get_unit(unit_id)
+        if unit is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
         if mode not in LEARN_MODES:
             raise HTTPException(status_code=400, detail="Invalid learn mode")
+        # Locked modes must never be recorded as seen (UI lock is not trusted).
+        access = resolve_learn_access(request, eng, unit.article_number)
+        if access.is_locked(mode):
+            return JSONResponse(
+                {"ok": False, "error": "mode_locked", "mode": mode},
+                status_code=403,
+            )
+        if not access.can_persist_modes_seen:
+            # Claimable/cap-reached Articles: mode visits stay provisional
+            # (client-tracked) until the Article is claimed on Done — they
+            # never quietly become permanent account progress.
+            return JSONResponse({"ok": True, "persisted": False, "mode": mode})
         seen = eng.mark_mode_seen(unit_id, mode)
-        unit = eng.get_unit(unit_id)
-        assert unit is not None
-        payload = _modes_payload(unit_id, seen)
-        payload["done"] = done_button_state(unit, seen)
+        payload = _modes_payload(
+            unit_id, seen, required_count=len(access.required_modes)
+        )
+        payload["done"] = done_button_state(
+            unit, seen, required=set(access.required_modes)
+        )
+        payload["persisted"] = True
         return JSONResponse(payload)
 
     @app.post("/learn/{unit_id}/done")
@@ -825,6 +906,88 @@ def create_app(
             if wants_json(request):
                 return JSONResponse({"ok": False, "error": "sign_in_required"}, status_code=401)
             return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
+
+        # Free-account Article claiming / cap gate (parent-Article level).
+        # Units without an article_number (overviews) are never claim-gated.
+        claim_key = article_key(unit.article_number)
+        if claim_key is not None:
+            access = resolve_learn_access(request, eng, unit.article_number)
+            if access.cap_reached:
+                # 3/3 Free Articles in use — Done on a new Article persists nothing.
+                if wants_json(request):
+                    return JSONResponse(
+                        {
+                            "ok": False,
+                            "error": "subscription_required",
+                            "article_number": claim_key,
+                        },
+                        status_code=402,
+                    )
+                return RedirectResponse(
+                    url=f"/learn/{unit_id}?gate=subscription", status_code=303
+                )
+            if access.should_prompt_claim:
+                # Unclaimed Articles keep mode visits provisional (nothing is
+                # persisted server-side), so the Done POST carries the client's
+                # provisional mode list. Claiming rides on Done: only prompt
+                # once Done would succeed.
+                form = await request.form()
+                provisional_modes = {
+                    m.strip()
+                    for m in str(form.get("modes") or "").split(",")
+                    if m.strip() in LEARN_MODES
+                }
+                modes_ok = (
+                    set(access.required_modes) <= provisional_modes
+                    or eng.modes_complete(unit_id)
+                )
+                if not modes_ok:
+                    if wants_json(request):
+                        return JSONResponse(
+                            {"ok": False, "error": "modes_incomplete"},
+                            status_code=409,
+                        )
+                    return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
+                if form.get("claim_article") != "1":
+                    if wants_json(request):
+                        return JSONResponse(
+                            {
+                                "ok": False,
+                                "error": "claim_required",
+                                "article_number": claim_key,
+                                "slots_remaining": access.free_slots_remaining,
+                            },
+                            status_code=409,
+                        )
+                    return RedirectResponse(
+                        url=f"/learn/{unit_id}?claim=1", status_code=303
+                    )
+                # Confirmed: claim + Done + schedule land in ONE transaction —
+                # the claim insert rides inside commit_completion, so either
+                # everything persists or nothing does.
+                try:
+                    result = eng.mark_done(
+                        unit_id,
+                        as_of=date.today(),
+                        require_all_modes=False,
+                        claim_article=claim_key,
+                    )
+                except ModesIncompleteError:
+                    return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
+                if wants_json(request):
+                    return JSONResponse(
+                        done_json_payload(
+                            eng=eng,
+                            quotes=app.state.quotes,
+                            unit=unit,
+                            result=result,
+                            request=request,
+                            multiuser=app.state.multiuser_enabled,
+                        )
+                    )
+                return _redirect_after_learn(
+                    eng, result.next_unit_id, done_unit_id=unit_id
+                )
         try:
             result = eng.mark_done(unit_id, as_of=date.today())
         except ModesIncompleteError:
@@ -1273,6 +1436,33 @@ def create_app(
         mem.set_photo(entry_id, storage_key)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
 
+    @app.get("/pricing", response_class=HTMLResponse)
+    async def pricing_page(
+        request: Request,
+        d: str | None = Query(default=None),
+    ) -> HTMLResponse:
+        """Duration-selector pricing page. 404 while PRICING_ENABLED is off."""
+        if not app.state.pricing_enabled:
+            raise HTTPException(status_code=404, detail="Not found")
+        selected = get_plan(d if d is not None else DEFAULT_DAYS)
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        return templates.TemplateResponse(
+            request,
+            "pricing.html",
+            {
+                "primary_plans": [get_plan(days) for days in PRIMARY_DAYS],
+                "more_plans": [get_plan(days) for days in MORE_DAYS],
+                "selected": selected,
+                "selected_per_day": f"{per_day(selected):.2f}",
+                "selected_billing": billing_line(selected),
+                "pricing_data": plans_json(),
+                "free_href": "/login" if is_guest else "/browse",
+            },
+        )
+
     @app.get("/settings", response_class=HTMLResponse)
     async def settings_page(
         request: Request,
@@ -1286,6 +1476,7 @@ def create_app(
                 "frequency": eng.get_notification_frequency(),
                 "news_articles": eng.get_news_articles_raw(),
                 "saved": bool(saved),
+                "access": access_summary(request, eng),
             },
         )
 

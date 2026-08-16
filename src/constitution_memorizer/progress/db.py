@@ -57,6 +57,13 @@ CREATE TABLE IF NOT EXISTS unit_modes_seen (
     PRIMARY KEY (user_id, learning_unit_id, mode)
 );
 
+CREATE TABLE IF NOT EXISTS user_free_articles (
+    user_id TEXT NOT NULL,
+    article_number TEXT NOT NULL,
+    claimed_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, article_number)
+);
+
 CREATE TABLE IF NOT EXISTS user_profile (
     user_id TEXT PRIMARY KEY,
     display_name TEXT,

@@ -34,7 +34,7 @@ def test_learn_enables_card_tab_and_flashcard_markup(client: TestClient):
     assert "Tap to flip back" in html
     assert "learn-panel-card" in html
     assert 'data-mode="read"' in html
-    assert "app.js?v=main18" in html
+    assert "app.js?v=main19" in html
 
 
 def test_card_mode_query_param_renders_card_active(client: TestClient):

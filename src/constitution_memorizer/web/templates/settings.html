@@ -9,6 +9,13 @@
   <p class="settings-saved" role="status">Settings saved.</p>
   {% endif %}
 
+  {% if access and access.enabled and access.is_free %}
+  <p class="settings-access-line">
+    Recall access · {{ access.status_line }}
+    · <a href="/profile">Manage in Profile</a>
+  </p>
+  {% endif %}
+
   <h2 class="section-title">Appearance</h2>
   <p class="settings-note">Same control as the footer theme chip — Auto follows your system.</p>
   <div class="settings-theme" role="group" aria-label="Theme">

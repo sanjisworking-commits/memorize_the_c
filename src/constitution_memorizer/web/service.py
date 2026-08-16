@@ -379,19 +379,36 @@ LEARN_MODE_LABELS: dict[str, str] = {
 }
 
 
-def methods_tracker_line(seen_count: int) -> str:
-    """Copy under the Learn mode tab bar (METHODS-THEME-HANDOFF)."""
-    if seen_count >= len(LEARN_MODES_SET):
-        return "All 6 methods visited — revision complete, mark it Done"
+def methods_tracker_line(seen_count: int, required_count: int = 6) -> str:
+    """Copy under the Learn mode tab bar (METHODS-THEME-HANDOFF).
+
+    ``required_count`` reflects the entitlement-aware required set — six for
+    claimed/claimable/subscribed Articles, four open methods for guests and
+    cap-reached Articles.
+    """
+    if seen_count >= required_count:
+        return (
+            f"All {required_count} methods visited — revision complete, mark it Done"
+        )
+    word = "six" if required_count == 6 else str(required_count)
     return (
-        f"{seen_count} of 6 methods visited · revision completes "
-        "when you've been through all six"
+        f"{seen_count} of {required_count} methods visited · revision completes "
+        f"when you've been through all {word}"
     )
 
 
-def done_button_state(unit: LearningUnit, seen: set[str]) -> dict[str, object]:
-    """Locked Done until all six modes visited; unlocks on the last (Card if in order)."""
-    missing = LEARN_MODES_SET - set(seen)
+def done_button_state(
+    unit: LearningUnit,
+    seen: set[str],
+    required: set[str] | None = None,
+) -> dict[str, object]:
+    """Locked Done until the required modes are visited (entitlement-aware).
+
+    Defaults to all six; guests / cap-reached Articles require only the four
+    open modes to reach the Done affordance (which then gates server-side).
+    """
+    required_set = LEARN_MODES_SET if required is None else set(required)
+    missing = required_set - set(seen)
     remaining = len(missing)
     if remaining > 0:
         label = f"{remaining} method{'s' if remaining != 1 else ''} left"

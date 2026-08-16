@@ -53,6 +53,14 @@
       <h1 class="display dash-hello">{{ greeting }}</h1>
       <p class="dash-subtext">{{ subtext }}</p>
     </div>
+    {% if access and access.enabled and access.is_free %}
+    <span class="dash-access-chip" title="Your first three Articles stay yours permanently">
+      {% if access.legacy_over_cap %}Free · {{ access.claimed_count }} saved Articles{% else %}Free · {{ access.claimed_count }}/3 Articles{% endif %}
+      {% if access.cap_reached and pricing_enabled|default(false) %}
+      · <a href="/pricing">Unlock every Article →</a>
+      {% endif %}
+    </span>
+    {% endif %}
   </header>
 
   <div class="dash-top">

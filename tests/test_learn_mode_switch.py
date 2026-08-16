@@ -57,7 +57,7 @@ def test_all_six_mode_tabs_keep_fallback_hrefs(tmp_path: Path):
         assert f'href="/learn/clause-1?mode={mode}"' in html
         assert 'role="tab"' in html
     assert 'data-modes-seen="' in html
-    assert "app.js?v=main18" in html
+    assert "app.js?v=main19" in html
 
 
 def test_direct_get_mode_query_still_server_renders(tmp_path: Path):
@@ -134,7 +134,10 @@ def test_app_js_merges_seen_and_keeps_done_server_authoritative():
     assert "guestVisitedModes" in learn_src
     assert "ignore stale unlocked:false" in learn_src
     assert "inFlight.delete(mode)" in learn_src
-    assert "applyTabMarks(confirmedModes)" in learn_src
+    # Tab marks render the union of server-confirmed and provisional visits
+    # (provisional = unclaimed-Article mode visits, R2 persistence matrix).
+    assert "applyTabMarks(visitedUnion())" in learn_src
+    assert "provisionalModes" in learn_src
     switch = learn_src.split("function switchModeLocal", 1)[1].split(
         "function persistSeen", 1
     )[0]
@@ -160,7 +163,9 @@ def test_locked_done_label_progresses_and_ignores_stale():
     )[0]
     assert "function lockedMethodsLeftLabel" in learn_src
     assert "function applyLockedDoneLabel" in learn_src
-    assert "lockedMethodsLeftLabel(confirmedModes.size)" in learn_src
+    # Label counts required visits across confirmed + provisional marks
+    # (entitlement-aware required set; unclaimed Articles track provisionally).
+    assert "lockedMethodsLeftLabel(requiredVisitedCount(visitedUnion()))" in learn_src
     assert "if (isGuest || !doneBtn || serverDoneUnlocked)" in learn_src
     assert "applyLockedDoneLabel()" in learn_src
     assert "payload.done.unlocked === true" in learn_src

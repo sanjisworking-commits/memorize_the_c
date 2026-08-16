@@ -997,21 +997,71 @@
 
     const confirmedModes = parseModes(learn.getAttribute("data-modes-seen"));
     const guestVisitedModes = parseModes(learn.getAttribute("data-modes-seen"));
+    const lockedModes = parseModes(learn.getAttribute("data-locked-modes"));
+    // Entitlement-aware required set: six normally; the four open modes for
+    // guests / cap-reached Articles (Type/Recite locked).
+    const requiredModesRaw = parseModes(learn.getAttribute("data-required-modes"));
+    const requiredModes = requiredModesRaw.size > 0 ? requiredModesRaw : new Set(LEARN_MODES);
+    // Unclaimed Articles keep mode visits provisional until claimed on Done —
+    // tracked in sessionStorage so a reload keeps the marks without any server
+    // persistence (R2: three saved Articles, not unlimited half-saved ones).
+    const seenProvisional = learn.getAttribute("data-seen-provisional") === "true";
+    const provisionalKey = "cm-provisional:" + unitId;
+    const provisionalModes = (function () {
+      if (!seenProvisional) {
+        return new Set();
+      }
+      try {
+        return parseModes(sessionStorage.getItem(provisionalKey));
+      } catch (_e) {
+        return new Set();
+      }
+    })();
+    function saveProvisional() {
+      if (!seenProvisional) {
+        return;
+      }
+      try {
+        sessionStorage.setItem(provisionalKey, Array.from(provisionalModes).join(","));
+      } catch (_e) {
+        /* ignore */
+      }
+    }
+    function visitedUnion() {
+      const union = new Set(confirmedModes);
+      provisionalModes.forEach(function (mode) {
+        union.add(mode);
+      });
+      return union;
+    }
     const inFlight = new Set();
     let serverDoneUnlocked = learn.dataset.doneUnlocked === "true";
 
+    function requiredVisitedCount(visited) {
+      let count = 0;
+      requiredModes.forEach(function (mode) {
+        if (visited.has(mode)) {
+          count += 1;
+        }
+      });
+      return count;
+    }
+
     function methodsTrackerLine(count) {
-      if (count >= 6) {
-        return "All 6 methods visited — revision complete, mark it Done";
+      const total = requiredModes.size;
+      if (count >= total) {
+        return "All " + total + " methods visited — revision complete, mark it Done";
       }
+      const word = total === 6 ? "six" : String(total);
       return (
         count +
-        " of 6 methods visited · revision completes when you've been through all six"
+        " of " + total + " methods visited · revision completes when you've been through all " +
+        word
       );
     }
 
     function lockedMethodsLeftLabel(confirmedCount) {
-      const remaining = 6 - confirmedCount;
+      const remaining = requiredModes.size - confirmedCount;
       if (remaining <= 0) {
         return null;
       }
@@ -1025,9 +1075,23 @@
       if (isGuest || !doneBtn || serverDoneUnlocked) {
         return;
       }
-      const label = lockedMethodsLeftLabel(confirmedModes.size);
+      const label = lockedMethodsLeftLabel(requiredVisitedCount(visitedUnion()));
       if (label) {
         doneBtn.textContent = label;
+      }
+    }
+
+    function maybeUnlockProvisionalDone() {
+      // Unclaimed Articles persist nothing server-side, so the Done affordance
+      // unlocks from the provisional union; the server re-validates on POST.
+      if (!seenProvisional || isGuest || serverDoneUnlocked || !doneBtn) {
+        return;
+      }
+      if (requiredVisitedCount(visitedUnion()) >= requiredModes.size) {
+        serverDoneUnlocked = true;
+        applyDoneUnlocked("Mark it Done");
+      } else {
+        applyLockedDoneLabel();
       }
     }
 
@@ -1038,6 +1102,11 @@
           return;
         }
         const label = MODE_LABELS[tabMode] || tabMode;
+        if (lockedModes.has(tabMode)) {
+          // Locked modes never earn a ✓ — keep the restrained lock mark.
+          tab.textContent = label + " 🔒";
+          return;
+        }
         tab.textContent = visited.has(tabMode) ? label + " ✓" : label;
       });
     }
@@ -1046,8 +1115,9 @@
       if (!trackerEl) {
         return;
       }
-      trackerEl.setAttribute("data-count", String(visited.size));
-      trackerEl.textContent = methodsTrackerLine(visited.size);
+      const count = requiredVisitedCount(visited);
+      trackerEl.setAttribute("data-count", String(count));
+      trackerEl.textContent = methodsTrackerLine(count);
     }
 
     function applyDoneUnlocked(label) {
@@ -1101,7 +1171,14 @@
     }
 
     function persistSeen(mode) {
-      if (isGuest || confirmedModes.has(mode) || inFlight.has(mode) || !unitId) {
+      if (
+        isGuest ||
+        lockedModes.has(mode) ||
+        confirmedModes.has(mode) ||
+        provisionalModes.has(mode) ||
+        inFlight.has(mode) ||
+        !unitId
+      ) {
         return;
       }
       inFlight.add(mode);
@@ -1125,14 +1202,23 @@
         })
         .then((payload) => {
           inFlight.delete(mode);
+          if (payload && payload.persisted === false) {
+            // Provisional visit — track locally until the Article is claimed.
+            provisionalModes.add(mode);
+            saveProvisional();
+            applyTabMarks(visitedUnion());
+            applyTracker(visitedUnion());
+            maybeUnlockProvisionalDone();
+            return;
+          }
           const seen = Array.isArray(payload.seen) ? payload.seen : [];
           seen.forEach((item) => {
             if (LEARN_MODES.has(item)) {
               confirmedModes.add(item);
             }
           });
-          applyTabMarks(confirmedModes);
-          applyTracker(confirmedModes);
+          applyTabMarks(visitedUnion());
+          applyTracker(visitedUnion());
           if (payload.done && payload.done.unlocked === true) {
             serverDoneUnlocked = true;
             applyDoneUnlocked(payload.done.label);
@@ -1175,13 +1261,41 @@
       }
       switchModeLocal(nextMode, tab);
       if (isGuest) {
-        guestVisitedModes.add(nextMode);
+        if (!lockedModes.has(nextMode)) {
+          guestVisitedModes.add(nextMode);
+        }
         applyTabMarks(guestVisitedModes);
         applyTracker(guestVisitedModes);
         return;
       }
+      if (seenProvisional && !lockedModes.has(nextMode)) {
+        provisionalModes.add(nextMode);
+        saveProvisional();
+        applyTabMarks(visitedUnion());
+        applyTracker(visitedUnion());
+        maybeUnlockProvisionalDone();
+        return;
+      }
       persistSeen(nextMode);
     });
+
+    // Provisional boot: the server records nothing for unclaimed Articles, so
+    // count the currently open mode locally and restore prior session marks.
+    if (seenProvisional) {
+      const bootMode = learn.dataset.mode || "read";
+      if (!lockedModes.has(bootMode)) {
+        provisionalModes.add(bootMode);
+        saveProvisional();
+      }
+      applyTabMarks(visitedUnion());
+      applyTracker(visitedUnion());
+      maybeUnlockProvisionalDone();
+      // The server-rendered claim panel re-validates the mode gate on POST.
+      const claimModes = document.querySelector("[data-claim-modes]");
+      if (claimModes) {
+        claimModes.value = Array.from(provisionalModes).join(",");
+      }
+    }
 
     if (card) {
       card.addEventListener("click", () => {
@@ -1472,6 +1586,68 @@
     await presentAffirmation(el, nextUrl);
   }
 
+  function buildClaimDialog(payload) {
+    const article = String(payload.article_number || "");
+    const slots = Number(payload.slots_remaining || 0);
+    const dialog = document.createElement("dialog");
+    dialog.className = "guest-modal claim-modal";
+    dialog.setAttribute("aria-labelledby", "claim-modal-title");
+    dialog.innerHTML =
+      '<div class="guest-modal-card">' +
+      '<h2 class="guest-modal-title" id="claim-modal-title"></h2>' +
+      '<p class="guest-modal-body"></p>' +
+      '<div class="guest-modal-actions">' +
+      '<button type="button" class="btn" data-claim-confirm></button>' +
+      '<button type="button" class="btn btn-ghost" data-claim-dismiss>Not now</button>' +
+      "</div>" +
+      '<p class="claim-modal-note"></p>' +
+      "</div>";
+    dialog.querySelector(".guest-modal-title").textContent =
+      "Add Article " + article + " to your Free Articles?";
+    dialog.querySelector(".guest-modal-body").textContent =
+      "Article " + article + " and all its clauses will count as 1 of your 3 permanent " +
+      "Free Articles. You’ll keep its progress and scheduled revisions.";
+    dialog.querySelector("[data-claim-confirm]").textContent = "Add Article " + article;
+    dialog.querySelector(".claim-modal-note").textContent =
+      slots + " of 3 Free Article slot" + (slots === 1 ? "" : "s") + " remaining.";
+    return dialog;
+  }
+
+  function confirmClaim(payload) {
+    return new Promise(function (resolve) {
+      const dialog = buildClaimDialog(payload);
+      document.body.appendChild(dialog);
+      let settled = false;
+      function finish(confirmed) {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        try {
+          dialog.close();
+        } catch (_e) {
+          /* ignore */
+        }
+        dialog.remove();
+        resolve(confirmed);
+      }
+      dialog.querySelector("[data-claim-confirm]").addEventListener("click", function () {
+        finish(true);
+      });
+      dialog.querySelector("[data-claim-dismiss]").addEventListener("click", function () {
+        finish(false);
+      });
+      dialog.addEventListener("cancel", function () {
+        finish(false);
+      });
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+    });
+  }
+
   function initDoneInterceptor() {
     const form = document.querySelector("form.learn-action-done");
     if (!form) {
@@ -1479,6 +1655,76 @@
     }
     const btn = form.querySelector("#learn-done-btn") || form.querySelector("button[type='submit']");
     let fetchAttempted = false;
+
+    function restoreButton(original) {
+      btn.classList.remove("is-rtc-saving");
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+
+    async function postDone(extraFields) {
+      const body = new FormData(form);
+      // Unclaimed Articles track mode visits provisionally (sessionStorage);
+      // the Done POST carries that list so the server can validate the gate.
+      const learnEl = form.closest(".learn");
+      if (learnEl && learnEl.getAttribute("data-seen-provisional") === "true") {
+        const unit = learnEl.getAttribute("data-unit-id") || "";
+        let provisional = "";
+        try {
+          provisional = sessionStorage.getItem("cm-provisional:" + unit) || "";
+        } catch (_e) {
+          /* ignore */
+        }
+        if (provisional) {
+          body.set("modes", provisional);
+        }
+      }
+      if (extraFields) {
+        Object.keys(extraFields).forEach(function (key) {
+          body.set(key, extraFields[key]);
+        });
+      }
+      const response = await fetch(form.getAttribute("action"), {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: body,
+      });
+      const type = response.headers.get("content-type") || "";
+      if (!type.includes("application/json")) {
+        return null;
+      }
+      return response.json();
+    }
+
+    async function celebrate(payload) {
+      btn.classList.remove("is-rtc-saving");
+      btn.classList.add("is-rtc-saved");
+      btn.textContent = "Saved";
+      const soundP = soundEnabled() ? playCompletionSound() : Promise.resolve();
+      await wait(motionEnabled() ? 120 : 0);
+      const modal = buildAffirmationEl(payload);
+      await presentAffirmation(modal, null);
+      await soundP;
+      window.location.assign(cleanDoneParam(payload.next_url));
+    }
+
+    function surfaceError(payload, original) {
+      showNotConfirmed(form.closest(".learn"));
+      const box = document.querySelector(".rtc-not-confirmed p:not(.rtc-not-confirmed-eyebrow)");
+      if (box && payload && payload.error === "modes_incomplete") {
+        box.textContent = "All six methods need a visit before Done can save.";
+      } else if (box && payload && payload.error === "subscription_required") {
+        box.textContent =
+          "Your 3 Free Articles are in use, so this review can’t be saved on the Free plan.";
+      } else if (box && payload && payload.error && payload.error !== "sign_in_required") {
+        box.textContent = String(payload.error);
+      }
+      restoreButton(original);
+    }
+
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
       if (!btn || btn.disabled) {
@@ -1494,51 +1740,36 @@
       btn.classList.add("is-rtc-saving");
       btn.textContent = "Saving…";
       try {
-        const response = await fetch(form.getAttribute("action"), {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "X-Requested-With": "XMLHttpRequest",
-          },
-          body: new FormData(form),
-        });
-        const type = response.headers.get("content-type") || "";
-        if (!type.includes("application/json")) {
+        let payload = await postDone(null);
+        if (!payload) {
           showNotConfirmed(form.closest(".learn"));
-          btn.classList.remove("is-rtc-saving");
-          btn.textContent = original;
-          btn.disabled = false;
+          restoreButton(original);
           return;
         }
-        const payload = await response.json();
-        if (!response.ok || !payload.ok) {
-          const msg = payload && payload.error ? String(payload.error) : "Could not save this review.";
-          showNotConfirmed(form.closest(".learn"));
-          const box = document.querySelector(".rtc-not-confirmed p:not(.rtc-not-confirmed-eyebrow)");
-          if (box && payload && payload.error === "modes_incomplete") {
-            box.textContent = "All six methods need a visit before Done can save.";
-          } else if (box && msg && payload.error !== "sign_in_required") {
-            box.textContent = msg;
+        if (!payload.ok && payload.error === "claim_required") {
+          const confirmed = await confirmClaim(payload);
+          if (!confirmed) {
+            // "Not now" — nothing persisted; the learner may press Done again.
+            restoreButton(original);
+            fetchAttempted = false;
+            return;
           }
-          btn.classList.remove("is-rtc-saving");
-          btn.textContent = original;
-          btn.disabled = false;
+          // User-confirmed second action (not an auto-retry).
+          payload = await postDone({ claim_article: "1" });
+          if (!payload) {
+            showNotConfirmed(form.closest(".learn"));
+            restoreButton(original);
+            return;
+          }
+        }
+        if (!payload.ok) {
+          surfaceError(payload, original);
           return;
         }
-        btn.classList.remove("is-rtc-saving");
-        btn.classList.add("is-rtc-saved");
-        btn.textContent = "Saved";
-        const soundP = soundEnabled() ? playCompletionSound() : Promise.resolve();
-        await wait(motionEnabled() ? 120 : 0);
-        const modal = buildAffirmationEl(payload);
-        await presentAffirmation(modal, null);
-        await soundP;
-        window.location.assign(cleanDoneParam(payload.next_url));
+        await celebrate(payload);
       } catch (_err) {
         showNotConfirmed(form.closest(".learn"));
-        btn.classList.remove("is-rtc-saving");
-        btn.textContent = original;
-        btn.disabled = false;
+        restoreButton(original);
       }
     });
   }
@@ -1606,6 +1837,134 @@
     syncRtcAnim();
   }
 
+  function initPricing() {
+    const root = document.querySelector("[data-pricing]");
+    if (!root) {
+      return;
+    }
+    let plans = [];
+    try {
+      const data = document.getElementById("pricing-data");
+      plans = data ? JSON.parse(data.textContent || "[]") : [];
+    } catch (_e) {
+      return; // fall back to full-page navigation via the pill links
+    }
+    const byDays = {};
+    plans.forEach(function (plan) {
+      byDays[String(plan.days)] = plan;
+    });
+    const pills = Array.from(root.querySelectorAll("[data-pricing-days]"));
+    const els = {
+      title: root.querySelector("[data-pricing-title]"),
+      price: root.querySelector("[data-pricing-price]"),
+      perday: root.querySelector("[data-pricing-perday]"),
+      tagline: root.querySelector("[data-pricing-tagline]"),
+      annotation: root.querySelector("[data-pricing-annotation]"),
+      journey: root.querySelector("[data-pricing-journey]"),
+      cta: root.querySelector("[data-pricing-cta]"),
+      ctaNote: root.querySelector("[data-pricing-cta-note]"),
+      billing: root.querySelector("[data-pricing-billing]"),
+    };
+
+    function select(days) {
+      const plan = byDays[String(days)];
+      if (!plan) {
+        return;
+      }
+      root.setAttribute("data-selected-days", String(plan.days));
+      pills.forEach(function (pill) {
+        const active = pill.getAttribute("data-pricing-days") === String(plan.days);
+        pill.classList.toggle("is-selected", active);
+        pill.setAttribute("aria-checked", active ? "true" : "false");
+      });
+      if (els.title) {
+        els.title.textContent = plan.days + "-Day Recall";
+      }
+      if (els.price) {
+        els.price.textContent = "₹" + plan.price_inr;
+      }
+      if (els.perday) {
+        els.perday.textContent = "₹" + plan.per_day.toFixed(2) + " / day";
+      }
+      if (els.tagline) {
+        els.tagline.textContent = plan.tagline;
+      }
+      if (els.annotation) {
+        els.annotation.textContent = plan.annotation || "";
+        els.annotation.hidden = !plan.annotation;
+      }
+      if (els.journey) {
+        els.journey.hidden = plan.days !== 180;
+      }
+      if (els.cta) {
+        els.cta.textContent = "Start my " + plan.days + " days →";
+      }
+      if (els.ctaNote) {
+        els.ctaNote.hidden = true;
+      }
+      if (els.billing) {
+        els.billing.textContent = plan.billing_line;
+      }
+      // Update only the d param — preserve any other query params and hash.
+      const u = new URL(window.location.href);
+      u.searchParams.set("d", String(plan.days));
+      history.replaceState(null, "", u.pathname + u.search + u.hash);
+    }
+
+    pills.forEach(function (pill, index) {
+      pill.addEventListener("click", function (event) {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+        event.preventDefault();
+        select(pill.getAttribute("data-pricing-days"));
+        pill.focus();
+      });
+      pill.addEventListener("keydown", function (event) {
+        let target = null;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+          target = pills[(index + 1) % pills.length];
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+          target = pills[(index - 1 + pills.length) % pills.length];
+        } else if (event.key === "Home") {
+          target = pills[0];
+        } else if (event.key === "End") {
+          target = pills[pills.length - 1];
+        } else {
+          return;
+        }
+        event.preventDefault();
+        const more = root.querySelector("[data-pricing-more]");
+        if (more && more.hidden && more.contains(target)) {
+          more.hidden = false;
+          const toggle = root.querySelector("[data-pricing-more-toggle]");
+          if (toggle) {
+            toggle.setAttribute("aria-expanded", "true");
+          }
+        }
+        select(target.getAttribute("data-pricing-days"));
+        target.focus();
+      });
+    });
+
+    const moreToggle = root.querySelector("[data-pricing-more-toggle]");
+    const moreRail = root.querySelector("[data-pricing-more]");
+    if (moreToggle && moreRail) {
+      moreToggle.addEventListener("click", function () {
+        const open = moreRail.hidden;
+        moreRail.hidden = !open;
+        moreToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    if (els.cta && els.ctaNote) {
+      els.cta.addEventListener("click", function () {
+        // No purchase flow yet — quiet inline note, never a dead-end page.
+        els.ctaNote.hidden = false;
+      });
+    }
+  }
+
   function bootInteraction() {
     syncRtcAnim();
     getDoneAudio();
@@ -1613,6 +1972,7 @@
     initDoneInterceptor();
     initServerAffirmation();
     initExperienceControls();
+    initPricing();
   }
 
   if (document.readyState === "loading") {

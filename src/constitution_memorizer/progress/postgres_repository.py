@@ -417,6 +417,40 @@ class PostgresProgressRepository:
             )
             conn.commit()
 
+    # ------------------------------------------------------------------ #
+    # Free-Article entitlement slots (parent Article level)               #
+    # ------------------------------------------------------------------ #
+    def claimed_articles(self, user_id: UUID | str) -> set[str]:
+        with self._cursor() as (_conn, cur):
+            cur.execute(
+                "SELECT article_number FROM user_free_articles WHERE user_id = %s",
+                (as_user_id(user_id),),
+            )
+            rows = cur.fetchall()
+        return {str(row["article_number"]) for row in rows}
+
+    def is_article_claimed(self, user_id: UUID | str, article_number: str) -> bool:
+        with self._cursor() as (_conn, cur):
+            cur.execute(
+                "SELECT 1 FROM user_free_articles WHERE user_id = %s AND article_number = %s",
+                (as_user_id(user_id), str(article_number)),
+            )
+            row = cur.fetchone()
+        return row is not None
+
+    def claim_article(self, user_id: UUID | str, article_number: str) -> None:
+        """Idempotently claim a parent Article as one of the user's Free Articles."""
+        with self._cursor() as (conn, cur):
+            cur.execute(
+                """
+                INSERT INTO user_free_articles (user_id, article_number, claimed_at)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (user_id, article_number) DO NOTHING
+                """,
+                (as_user_id(user_id), str(article_number), _utc_now()),
+            )
+            conn.commit()
+
     def get_setting(self, user_id: UUID | str, key: str) -> str | None:
         with self._cursor() as (_conn, cur):
             cur.execute(
@@ -671,10 +705,26 @@ class PostgresProgressRepository:
         user_id: UUID | str,
         unit_id: str,
         progress: CompletionProgress,
+        *,
+        claim_article: str | None = None,
     ) -> ProgressRecord:
+        """Persist Done atomically; optionally claim a Free Article with it.
+
+        The claim insert shares the transaction with the progress upsert and
+        modes reset — one commit, all-or-nothing.
+        """
         now = _utc_now()
         uid = as_user_id(user_id)
         with self._cursor() as (conn, cur):
+            if claim_article:
+                cur.execute(
+                    """
+                    INSERT INTO user_free_articles (user_id, article_number, claimed_at)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (user_id, article_number) DO NOTHING
+                    """,
+                    (uid, str(claim_article), now),
+                )
             cur.execute(
                 _COMMIT_COMPLETION_SQL,
                 (

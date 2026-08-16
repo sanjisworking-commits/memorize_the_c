@@ -5577,3 +5577,340 @@ html.rtc-anim .rtc-not-confirmed {
   }
 }
 
+
+/* ============================================================ */
+/* Access / entitlement status (read-only surfaces)              */
+/* ============================================================ */
+
+.dash-access-chip {
+  margin-left: auto;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.settings-access-line {
+  margin: 0 0 18px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.settings-access-line a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.access-block {
+  border-top: 1px solid var(--hairline);
+  padding-top: 12px;
+  margin-bottom: 24px;
+}
+
+.access-status {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.access-claimed-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.access-claimed-list li a {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid var(--hairline);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.access-claimed-list li a:hover {
+  border-color: var(--browse-due);
+  color: var(--browse-due);
+}
+
+.access-note {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* ============================================================ */
+/* Free-Article claim prompt / subscription gate                 */
+/* ============================================================ */
+
+.claim-panel {
+  border: 1px solid var(--hairline);
+  border-left: 2px solid var(--browse-due);
+  padding: 16px 18px;
+  margin: 0 0 20px;
+  background: var(--wash);
+}
+
+.claim-panel.is-gate {
+  border-left-color: var(--hairline);
+}
+
+.claim-panel-title {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.claim-panel-body {
+  margin: 0 0 12px;
+  max-width: 56ch;
+}
+
+.claim-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.claim-panel-actions form {
+  margin: 0;
+}
+
+.claim-panel-note {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+}
+
+.claim-modal-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* ============================================================ */
+/* Locked Learn modes (subscriber-only Type/Recite)              */
+/* ============================================================ */
+
+.mode-tab.is-locked {
+  color: var(--faint);
+}
+
+.mode-tab.is-locked:hover {
+  color: var(--muted);
+}
+
+.locked-mode {
+  border: 1px solid var(--hairline);
+  padding: 20px;
+  background: var(--wash);
+  max-width: 60ch;
+}
+
+.locked-mode-title {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.locked-mode-body {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
+
+.locked-mode-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.access-legacy-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  vertical-align: middle;
+}
+
+/* ============================================================ */
+/* Pricing — duration selector + single purchase panel           */
+/* ============================================================ */
+
+.pricing-title {
+  margin-bottom: 6px;
+}
+
+.pricing-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 28px 0 24px;
+}
+
+.pricing-pill {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--hairline);
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.pricing-pill:hover {
+  color: var(--ink);
+  border-color: var(--mid);
+}
+
+.pricing-pill.is-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.pricing-more-toggle {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 6px 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pricing-rail-more {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.pricing-panel {
+  border: 1px solid var(--hairline);
+  padding: 32px 28px;
+  margin: 0 0 32px;
+  text-align: center;
+  background: var(--paper);
+}
+
+.pricing-panel-days {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.pricing-panel-price {
+  margin: 8px 0 2px;
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pricing-panel-perday {
+  margin: 0 0 14px;
+  color: var(--muted);
+}
+
+.pricing-panel-tagline {
+  margin: 0 auto 6px;
+  max-width: 46ch;
+}
+
+.pricing-panel-annotation {
+  margin: 0 0 8px;
+  color: var(--browse-due);
+  font-size: 0.9rem;
+}
+
+.pricing-journey {
+  margin: 18px auto 6px;
+  max-width: 420px;
+}
+
+.pricing-journey-ends {
+  display: flex;
+  justify-content: space-between;
+  color: var(--faint);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pricing-journey-line {
+  height: 1px;
+  background: var(--hairline);
+  margin: 6px 0;
+}
+
+.pricing-journey-steps {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.pricing-panel-cta {
+  margin: 18px 0 6px;
+}
+
+.pricing-cta-note {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.pricing-panel-billing {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.pricing-features {
+  margin: 0 0 4px;
+}
+
+.pricing-features-note {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+}
+
+.pricing-free {
+  border-top: 1px solid var(--hairline);
+  margin-top: 32px;
+  padding-top: 20px;
+}
+
+.pricing-free-title {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.pricing-free-body {
+  margin: 0 0 12px;
+  max-width: 56ch;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.rtc-anim .pricing-panel {
+    transition: opacity 160ms ease;
+  }
+}
+
+.pricing-rail-more[hidden] {
+  display: none;
+}

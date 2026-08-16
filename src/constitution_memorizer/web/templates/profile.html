@@ -72,6 +72,30 @@
     </div>
   </form>
 
+  {% if access and access.enabled and access.is_free %}
+  <h2 class="section-title">Recall access</h2>
+  <div class="access-block">
+    {% if access.legacy_over_cap %}
+    <p class="access-status">Free · {{ access.claimed_count }} saved Articles <span class="access-legacy-tag">Legacy access</span></p>
+    {% else %}
+    <p class="access-status">Free · {{ access.claimed_count }} of 3 Free Articles</p>
+    {% endif %}
+    {% if access.claimed_articles %}
+    <ul class="access-claimed-list">
+      {% for a in access.claimed_articles %}
+      <li><a href="/browse/article/{{ a }}">Article {{ a }}</a></li>
+      {% endfor %}
+    </ul>
+    <p class="muted access-note">These Articles, their clauses, progress and scheduled revisions stay yours permanently.</p>
+    {% else %}
+    <p class="muted access-note">Your first three Articles stay yours permanently — progress, clauses and scheduled revisions included.</p>
+    {% endif %}
+    {% if pricing_enabled|default(false) %}
+    <p class="access-upgrade"><a href="/pricing">Unlock every Article →</a></p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <p class="profile-settings-link">
     <a href="/settings">Learning preferences → Settings</a>
   </p>

@@ -104,6 +104,18 @@ class MultiUserSettings(BaseSettings):
         default=False, alias="RELEVANT_LAWS_ENABLED"
     )
 
+    # 3-Free-Article entitlement boundary (claim prompts, Type/Recite locks,
+    # cap gate, access-status surfaces). Stays dormant everywhere until the
+    # full Article-aware Learn/Done flow has landed and been tested.
+    article_entitlements_enabled: bool = Field(
+        default=False, alias="ARTICLE_ENTITLEMENTS_ENABLED"
+    )
+
+    # Pricing page (/pricing). Default false everywhere; set true explicitly in
+    # the environment where it should be visible. Public launch waits for a
+    # working purchase flow.
+    pricing_enabled: bool = Field(default=False, alias="PRICING_ENABLED")
+
     @field_validator(
         "auth_google_enabled",
         "auth_phone_enabled",
@@ -113,6 +125,8 @@ class MultiUserSettings(BaseSettings):
         "multiuser_enabled",
         "memory_log_enabled",
         "relevant_laws_enabled",
+        "article_entitlements_enabled",
+        "pricing_enabled",
         mode="before",
     )
     @classmethod

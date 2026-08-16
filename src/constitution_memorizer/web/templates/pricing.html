@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Pricing · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block content %}
+<section class="panel pricing" data-pricing data-selected-days="{{ selected.days }}">
+  <p class="eyebrow">Pricing</p>
+  <h1 class="display pricing-title">Everything in Recall. Choose your duration.</h1>
+  <p class="lede">Every Recall plan unlocks the complete experience. Only the duration changes.</p>
+
+  <div class="pricing-rail" role="radiogroup" aria-label="Access period">
+    {% for plan in primary_plans %}
+    <a
+      class="pricing-pill{% if plan.days == selected.days %} is-selected{% endif %}"
+      role="radio"
+      aria-checked="{{ 'true' if plan.days == selected.days else 'false' }}"
+      data-pricing-days="{{ plan.days }}"
+      href="/pricing?d={{ plan.days }}"
+    >{{ plan.days }}D</a>
+    {% endfor %}
+    <button
+      type="button"
+      class="pricing-more-toggle"
+      data-pricing-more-toggle
+      aria-expanded="{{ 'true' if selected.days in [3, 15, 60] else 'false' }}"
+    >More options ▾</button>
+    <span
+      class="pricing-rail-more"
+      data-pricing-more
+      {% if selected.days not in [3, 15, 60] %}hidden{% endif %}
+    >
+      {% for plan in more_plans %}
+      <a
+        class="pricing-pill{% if plan.days == selected.days %} is-selected{% endif %}"
+        role="radio"
+        aria-checked="{{ 'true' if plan.days == selected.days else 'false' }}"
+        data-pricing-days="{{ plan.days }}"
+        href="/pricing?d={{ plan.days }}"
+      >{{ plan.days }}D</a>
+      {% endfor %}
+    </span>
+  </div>
+
+  <div class="pricing-panel" aria-live="polite">
+    <p class="pricing-panel-days" data-pricing-title>{{ selected.days }}-Day Recall</p>
+    <p class="pricing-panel-price"><span data-pricing-price>₹{{ selected.price_inr }}</span></p>
+    <p class="pricing-panel-perday" data-pricing-perday>₹{{ selected_per_day }} / day</p>
+    <p class="pricing-panel-tagline" data-pricing-tagline>{{ selected.tagline }}</p>
+    <p class="pricing-panel-annotation" data-pricing-annotation{% if not selected.annotation %} hidden{% endif %}>{{ selected.annotation or '' }}</p>
+    <div class="pricing-journey" data-pricing-journey{% if selected.days != 180 %} hidden{% endif %} aria-hidden="true">
+      <div class="pricing-journey-ends"><span>Day 1</span><span>Day 180</span></div>
+      <div class="pricing-journey-line"></div>
+      <p class="pricing-journey-steps">Learn → Recall → Review → Strengthen → Master</p>
+    </div>
+    <p class="pricing-panel-cta">
+      <button type="button" class="btn btn-accent pricing-cta" data-pricing-cta>Start my {{ selected.days }} days →</button>
+    </p>
+    <p class="pricing-cta-note" data-pricing-cta-note hidden aria-live="polite">
+      Purchasing opens soon — you’ll start your Recall plan here.
+    </p>
+    <p class="pricing-panel-billing" data-pricing-billing>{{ selected_billing }}</p>
+  </div>
+
+  <h2 class="section-title">Everything included</h2>
+  <p class="pricing-features">
+    All 6 Recall modes · Type &amp; Recite · Scheduled revision · Due Today ·
+    Revision calendar · Saved progress · Visual explainers where available · Amendments
+  </p>
+  <p class="pricing-features-note muted">
+    Learning features released during your plan join automatically — one product, no tiers.
+  </p>
+
+  <h2 class="section-title">How Recall works</h2>
+  <p class="pricing-how">Learn → Recall → spaced review → mastery. Six recall methods per unit, revisions on the 1 → 3 → 7 → 14 → 30 → 60 ladder.</p>
+
+  <h2 class="section-title">Billing</h2>
+  <p class="pricing-billing-terms">
+    3, 7 and 15-day passes are one-time — access simply ends at expiry, nothing renews.
+    30 days and longer renew automatically until you cancel. Your saved progress is never deleted.
+  </p>
+
+  <div class="pricing-free">
+    <p class="pricing-free-title">Explore for free.</p>
+    <p class="pricing-free-body">
+      Browse the whole Constitution and save your first 3 Articles to Recall permanently.
+      Their clauses, progress and scheduled revisions remain yours.
+    </p>
+    <p><a class="btn btn-ghost" href="{{ free_href }}">Continue free →</a></p>
+  </div>
+
+  <script type="application/json" id="pricing-data">{{ pricing_data | tojson }}</script>
+</section>
+{% endblock %}

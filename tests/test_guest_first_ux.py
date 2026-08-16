@@ -321,10 +321,15 @@ def test_dashboard_recent_activity_uses_display_title(tmp_path: Path):
         f"/auth/callback?code=fake-google-code&state={state}",
         follow_redirects=False,
     )
-    # Mark modes seen then done so a progress row exists.
+    # Mark modes seen then done so a progress row exists. First Done on an
+    # unclaimed Article asks to claim it as a Free Article — confirm inline.
     for mode in ("read", "cloze", "letters", "type", "recite", "card"):
         client.post("/learn/clause-1/seen", data={"mode": mode})
-    client.post("/learn/clause-1/done", follow_redirects=False)
+    client.post(
+        "/learn/clause-1/done",
+        data={"claim_article": "1"},
+        follow_redirects=False,
+    )
     dash = client.get("/dashboard")
     assert dash.status_code == 200
     assert "Article 20(1)" in dash.text

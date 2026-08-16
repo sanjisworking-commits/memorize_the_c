@@ -218,14 +218,16 @@ def test_learn_get_records_expected_stages(tmp_path: Path, caplog):
     line = messages[0]
     assert "path=/learn/clause-1" in line
     assert "auth_session_n=1" in line
+    assert "request_bootstrap_n=1" in line
     assert "mode_seen_write_n=1" in line
-    assert "progress_preload_n=1" in line
     assert "learn_build_n=" in line
     assert "template_n=" in line
-    assert "request_bootstrap" not in line
+    assert "progress_preload_n=" not in line
+    assert "split_prefs_n=" not in line
+    assert "theme_n=" not in line
     assert repo.mark_mode_seen_calls == 1
-    assert repo.list_all_progress_calls == 1
-    assert repo.load_request_bootstrap_calls == 0
+    assert repo.list_all_progress_calls == 0
+    assert repo.load_request_bootstrap_calls == 1
 
 
 def test_learn_split_redirect_skips_page_stages(tmp_path: Path, caplog):
@@ -240,12 +242,13 @@ def test_learn_split_redirect_skips_page_stages(tmp_path: Path, caplog):
     line = messages[0]
     assert "path=/learn/clause-2" in line
     assert "auth_session_n=1" in line
+    assert "request_bootstrap_n=1" in line
     assert "learn_build_" not in line
     assert "template_" not in line
     assert "mode_seen_write_" not in line
     assert repo.mark_mode_seen_calls == 0
     assert repo.set_split_preference_calls == 0
-    assert repo.load_request_bootstrap_calls == 0
+    assert repo.load_request_bootstrap_calls == 1
 
 
 def test_choose_get_shows_chooser(tmp_path: Path, caplog):
@@ -258,9 +261,18 @@ def test_choose_get_shows_chooser(tmp_path: Path, caplog):
     assert len(messages) == 1
     line = messages[0]
     assert "path=/learn/clause-2/choose" in line
+    assert "request_bootstrap_n=1" in line
+    assert "completion_n=1" in line
     assert "template_n=" in line
     assert "split_write_" not in line
+    assert "split_prefs_n=" not in line
+    assert "progress_preload_n=" not in line
+    assert "theme_n=" not in line
     assert repo.set_split_preference_calls == 0
+    assert repo.load_request_bootstrap_calls == 1
+    assert repo.list_split_preferences_calls == 0
+    assert repo.list_all_progress_calls == 0
+    assert repo.get_theme_calls == 0
 
 
 def test_choose_post_writes_preference(tmp_path: Path, caplog):
@@ -280,7 +292,11 @@ def test_choose_post_writes_preference(tmp_path: Path, caplog):
     assert "path=/learn/clause-2/choose" in line
     assert "split_write_n=1" in line
     assert "letters" not in line
+    assert "request_bootstrap_n=" not in line
+    assert "split_prefs_n=" not in line
     assert repo.set_split_preference_calls == 1
+    assert repo.load_request_bootstrap_calls == 0
+    assert repo.list_split_preferences_calls == 0
 
 
 def test_seen_post_is_json_write(tmp_path: Path, caplog):

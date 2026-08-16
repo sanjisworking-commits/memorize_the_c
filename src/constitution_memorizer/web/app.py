@@ -52,6 +52,7 @@ from constitution_memorizer.progress.repository import (
     LEARN_MODES,
     VALID_NOTIFICATION_FREQUENCIES,
     VALID_THEMES,
+    SplitMode,
 )
 from constitution_memorizer.progress.scheduler import (
     INTERVAL_LADDER,
@@ -683,6 +684,8 @@ def create_app(
             app.state.multiuser_enabled
             and getattr(request.state, "current_user", None) is None
         )
+        if not is_guest_early:
+            eng.bootstrap_request()
 
         # Guests skip split preference (no personal data); show the clause as-is.
         if not is_guest_early and needs_split_choice(eng, unit):
@@ -880,15 +883,17 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
         if not unit.allows_letter_split:
             return RedirectResponse(url=f"/learn/{clause_id}", status_code=303)
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        if not is_guest:
+            eng.bootstrap_request()
         existing = eng.get_split_preference(clause_id)
         if existing is not None:
             target = eng.next_to_learn_from_clause(clause_id) or clause_id
             return RedirectResponse(url=f"/learn/{target}", status_code=303)
         done_id = request.query_params.get("done")
-        is_guest = bool(
-            app.state.multiuser_enabled
-            and getattr(request.state, "current_user", None) is None
-        )
         started = time.perf_counter()
         completion = build_completion(
             eng=eng,
@@ -922,8 +927,9 @@ def create_app(
             return RedirectResponse(url=f"/learn/{clause_id}", status_code=303)
         if mode not in ("whole", "letters"):
             raise HTTPException(status_code=400, detail="mode must be whole or letters")
-        eng.set_split_preference(clause_id, mode)  # type: ignore[arg-type]
-        target = eng.next_to_learn_from_clause(clause_id) or clause_id
+        chosen: SplitMode = mode  # type: ignore[assignment]
+        eng.set_split_preference(clause_id, chosen)
+        target = eng.next_to_learn_from_clause(clause_id, mode=chosen) or clause_id
         return RedirectResponse(url=f"/learn/{target}", status_code=303)
 
     @app.post("/learn/{unit_id}/reset")

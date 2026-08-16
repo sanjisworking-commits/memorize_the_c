@@ -245,8 +245,8 @@ class ReminderEngine:
         started = perf_counter()
         self.repo.set_split_preference(self.user_id, parent_clause_id, mode)
         _record_timing("split_write", started)
-        cache = self._ensure_split_cache()
-        cache[parent_clause_id] = mode
+        if self._split_cache is not None:
+            self._split_cache[parent_clause_id] = mode
 
     def get_split_preference(self, parent_clause_id: str) -> SplitMode | None:
         return self._ensure_split_cache().get(parent_clause_id)
@@ -446,8 +446,23 @@ class ReminderEngine:
                 return candidate.child_unit_ids[0]
         return candidate_id
 
-    def next_to_learn_from_clause(self, parent_clause_id: str) -> str | None:
-        return self._apply_entry_preference(parent_clause_id) or parent_clause_id
+    def next_to_learn_from_clause(
+        self,
+        parent_clause_id: str,
+        *,
+        mode: SplitMode | None = None,
+    ) -> str | None:
+        if mode is None:
+            return self._apply_entry_preference(parent_clause_id) or parent_clause_id
+        unit = self.units.get(parent_clause_id)
+        if (
+            mode == "letters"
+            and unit is not None
+            and unit.allows_letter_split
+            and unit.child_unit_ids
+        ):
+            return unit.child_unit_ids[0]
+        return parent_clause_id
 
     def due_today(
         self,

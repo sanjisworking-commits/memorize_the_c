@@ -6,7 +6,8 @@ import logging
 import time
 from urllib.parse import urlencode
 from contextlib import asynccontextmanager
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+from uuid import uuid4
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
@@ -104,6 +105,12 @@ from constitution_memorizer.web.completion import (
     done_json_payload,
     next_learn_url,
     wants_json,
+)
+from constitution_memorizer.web.billing import (
+    BillingError,
+    billing_enabled,
+    create_order as billing_create,
+    verify_signature as billing_verify,
 )
 from constitution_memorizer.web.entitlements import (
     PREVIEW_STATES,
@@ -472,6 +479,11 @@ def create_app(
     app.state.relevant_laws_enabled = relevant_laws_enabled
     app.state.article_entitlements_enabled = bool(settings.article_entitlements_enabled)
     app.state.pricing_enabled = bool(settings.pricing_enabled)
+    # Razorpay Standard Checkout. The secret stays on app.state for
+    # server-side order creation + HMAC verification only — no template or
+    # JSON payload ever reads it.
+    app.state.razorpay_key_id = str(settings.razorpay_key_id or "")
+    app.state.razorpay_key_secret = str(settings.razorpay_key_secret or "")
     app.state.use_postgres_progress = use_postgres
     app.state.oauth_states = {}
     app.state.otp_limiter = OtpRateLimiter()
@@ -1737,7 +1749,7 @@ def create_app(
         request: Request,
         d: str | None = Query(default=None),
     ) -> Response:
-        """Purchase step 2 — provider handoff framing (no provider wired yet)."""
+        """Purchase step 2 — Razorpay Checkout (placeholder while keys absent)."""
         if not app.state.pricing_enabled:
             raise HTTPException(status_code=404, detail="Not found")
         plan = get_plan(d if d is not None else DEFAULT_DAYS)
@@ -1746,10 +1758,172 @@ def create_app(
             return RedirectResponse(
                 url=f"/login?next=/pricing%3Fd%3D{plan.days}", status_code=303
             )
+        checkout_live = billing_enabled(app.state)
+        checkout_data = None
+        if checkout_live:
+            checkout_data = {
+                "days": plan.days,
+                "key_id": app.state.razorpay_key_id,
+                "name": "Recall the C",
+                "description": f"{plan.days}-Day Recall",
+                "prefill_email": getattr(user, "email", None) or "",
+                "prefill_contact": getattr(user, "phone", None) or "",
+                "order_url": "/api/billing/order",
+                "verify_url": "/api/billing/verify",
+            }
+        start = date.today()
+        end = start + timedelta(days=plan.days)
         return templates.TemplateResponse(
             request,
             "purchase_result.html",
-            {"plan": plan, "stage": "pay"},
+            {
+                "plan": plan,
+                "stage": "pay",
+                "checkout_live": checkout_live,
+                "checkout_data": checkout_data,
+                "period_line": (
+                    f"{start.day} {start.strftime('%b %Y')} → "
+                    f"{end.day} {end.strftime('%b %Y')}"
+                ),
+            },
+        )
+
+    def _billing_user(request: Request) -> object | None:
+        """The account a purchase belongs to (multiuser only — the local
+        single-user owner already has full access and never buys)."""
+        if not app.state.multiuser_enabled:
+            return None
+        return getattr(request.state, "current_user", None)
+
+    @app.post("/api/billing/order")
+    async def billing_create_order(request: Request) -> JSONResponse:
+        """Create a Razorpay order for a plan. Amount comes from the pricing
+        catalog server-side; the client only ever names a duration."""
+        if not billing_enabled(app.state):
+            raise HTTPException(status_code=404, detail="Not found")
+        user = _billing_user(request)
+        if user is None:
+            return JSONResponse(
+                {"ok": False, "error": "sign_in_required"}, status_code=401
+            )
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        plan = get_plan(body.get("days") if isinstance(body, dict) else None)
+        amount_paise = plan.price_inr * 100
+        eng = _engine()
+        try:
+            order = billing_create(
+                key_id=app.state.razorpay_key_id,
+                key_secret=app.state.razorpay_key_secret,
+                amount_paise=amount_paise,
+                receipt=f"rtc-{plan.days}d-{uuid4().hex[:12]}",
+            )
+        except BillingError as exc:
+            return JSONResponse(
+                {"ok": False, "error": str(exc)}, status_code=exc.status_code
+            )
+        eng.repo.create_billing_order(
+            eng.user_id,
+            order_id=order.order_id,
+            plan_days=plan.days,
+            amount_paise=order.amount_paise,
+            currency=order.currency,
+        )
+        return JSONResponse(
+            {
+                "ok": True,
+                "order_id": order.order_id,
+                "amount": order.amount_paise,
+                "currency": order.currency,
+                "key_id": app.state.razorpay_key_id,
+                "plan_days": plan.days,
+            }
+        )
+
+    @app.post("/api/billing/verify")
+    async def billing_verify_payment(request: Request) -> JSONResponse:
+        """Verify Razorpay's payment signature; only then grant paid access.
+
+        Signature mismatch or an unknown/foreign order returns 400 and marks
+        nothing paid. Success marks the order paid and inserts the
+        'payment'-source access grant in one repository transaction.
+        """
+        if not billing_enabled(app.state):
+            raise HTTPException(status_code=404, detail="Not found")
+        user = _billing_user(request)
+        if user is None:
+            return JSONResponse(
+                {"ok": False, "error": "sign_in_required"}, status_code=401
+            )
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        order_id = str(body.get("razorpay_order_id") or "")
+        payment_id = str(body.get("razorpay_payment_id") or "")
+        signature = str(body.get("razorpay_signature") or "")
+        if not (order_id and payment_id and signature):
+            return JSONResponse(
+                {"ok": False, "error": "missing_fields"}, status_code=400
+            )
+        eng = _engine()
+        order = eng.repo.get_billing_order(eng.user_id, order_id)
+        if order is None:
+            return JSONResponse(
+                {"ok": False, "error": "unknown_order"}, status_code=400
+            )
+        if not billing_verify(
+            order_id=order_id,
+            payment_id=payment_id,
+            signature=signature,
+            key_secret=app.state.razorpay_key_secret,
+        ):
+            return JSONResponse(
+                {"ok": False, "error": "signature_mismatch"}, status_code=400
+            )
+        ends = datetime.now(timezone.utc) + timedelta(days=order.plan_days)
+        eng.repo.mark_billing_order_paid(
+            eng.user_id,
+            order_id=order_id,
+            payment_id=payment_id,
+            grant_id=str(uuid4()),
+            access_ends_at=ends.replace(microsecond=0).isoformat(),
+        )
+        return JSONResponse(
+            {"ok": True, "next": f"/subscribe/result?order={order_id}"}
+        )
+
+    @app.get("/subscribe/result", response_class=HTMLResponse)
+    async def subscribe_result(
+        request: Request,
+        order: str | None = Query(default=None),
+    ) -> Response:
+        """Purchase step 3 — receipt for a verified, persisted payment."""
+        if not app.state.pricing_enabled:
+            raise HTTPException(status_code=404, detail="Not found")
+        user = _billing_user(request)
+        if user is None:
+            return RedirectResponse(url="/login?next=/pricing", status_code=303)
+        eng = _engine()
+        row = eng.repo.get_billing_order(eng.user_id, order or "")
+        if row is None or row.status != "paid" or row.paid_at is None:
+            return RedirectResponse(url="/pricing", status_code=303)
+        plan = get_plan(row.plan_days)
+        paid_on = date.fromisoformat(row.paid_at[:10])
+        until = paid_on + timedelta(days=row.plan_days)
+        return templates.TemplateResponse(
+            request,
+            "purchase_result.html",
+            {
+                "plan": plan,
+                "stage": "receipt",
+                "access_until": f"{until.day} {until.strftime('%b %Y')}",
+                # What was actually charged for this order, not today's catalog.
+                "paid_inr": row.amount_paise // 100,
+                "receipt_email": getattr(user, "email", None),
+            },
         )
 
     @app.get("/settings", response_class=HTMLResponse)

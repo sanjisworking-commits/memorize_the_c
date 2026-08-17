@@ -98,6 +98,43 @@ class CompletionProgress:
     ease_factor: float
 
 
+@dataclass(frozen=True)
+class BillingOrder:
+    """One Razorpay order: created at checkout, paid after verified signature."""
+
+    order_id: str
+    user_id: str
+    plan_days: int
+    amount_paise: int
+    currency: str
+    status: str  # 'created' | 'paid'
+    razorpay_payment_id: str | None
+    created_at: str
+    paid_at: str | None
+
+
+def _billing_order_from_row(row: object) -> BillingOrder:
+    return BillingOrder(
+        order_id=str(row["order_id"]),  # type: ignore[index]
+        user_id=str(row["user_id"]),  # type: ignore[index]
+        plan_days=int(row["plan_days"]),  # type: ignore[index]
+        amount_paise=int(row["amount_paise"]),  # type: ignore[index]
+        currency=str(row["currency"]),  # type: ignore[index]
+        status=str(row["status"]),  # type: ignore[index]
+        razorpay_payment_id=(
+            str(row["razorpay_payment_id"])  # type: ignore[index]
+            if row["razorpay_payment_id"] is not None  # type: ignore[index]
+            else None
+        ),
+        created_at=str(row["created_at"]),  # type: ignore[index]
+        paid_at=(
+            str(row["paid_at"])  # type: ignore[index]
+            if row["paid_at"] is not None  # type: ignore[index]
+            else None
+        ),
+    )
+
+
 def _parse_date(value: str | None) -> date | None:
     if not value:
         return None
@@ -407,6 +444,98 @@ class ProgressRepository:
             (as_user_id(user_id), str(article_number), _utc_now_iso()),
         )
         self._conn.commit()
+
+    # ------------------------------------------------------------------ #
+    # Billing orders (Razorpay Standard Checkout)                         #
+    # ------------------------------------------------------------------ #
+    def create_billing_order(
+        self,
+        user_id: UUID | str,
+        *,
+        order_id: str,
+        plan_days: int,
+        amount_paise: int,
+        currency: str = "INR",
+    ) -> None:
+        self._conn.execute(
+            """
+            INSERT INTO billing_orders (
+                order_id, user_id, plan_days, amount_paise, currency,
+                status, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, 'created', ?)
+            """,
+            (
+                order_id,
+                as_user_id(user_id),
+                int(plan_days),
+                int(amount_paise),
+                currency,
+                _utc_now_iso(),
+            ),
+        )
+        self._conn.commit()
+
+    def get_billing_order(
+        self, user_id: UUID | str, order_id: str
+    ) -> BillingOrder | None:
+        row = self._conn.execute(
+            "SELECT * FROM billing_orders WHERE order_id = ? AND user_id = ?",
+            (order_id, as_user_id(user_id)),
+        ).fetchone()
+        return _billing_order_from_row(row) if row is not None else None
+
+    def latest_paid_billing_order(self, user_id: UUID | str) -> BillingOrder | None:
+        row = self._conn.execute(
+            """
+            SELECT * FROM billing_orders
+            WHERE user_id = ? AND status = 'paid'
+            ORDER BY paid_at DESC LIMIT 1
+            """,
+            (as_user_id(user_id),),
+        ).fetchone()
+        return _billing_order_from_row(row) if row is not None else None
+
+    def mark_billing_order_paid(
+        self,
+        user_id: UUID | str,
+        *,
+        order_id: str,
+        payment_id: str,
+        grant_id: str,
+        access_ends_at: str,
+    ) -> bool:
+        """Mark a created order paid and grant paid access in ONE transaction.
+
+        The 'payment'-source access_grants row rides the same commit as the
+        order update so either both persist or neither does. Returns False
+        (and writes nothing) when the order is already paid — a replayed
+        verify callback never double-grants.
+        """
+        uid = as_user_id(user_id)
+        now = _utc_now_iso()
+        cursor = self._conn.execute(
+            """
+            UPDATE billing_orders
+            SET status = 'paid', razorpay_payment_id = ?, paid_at = ?
+            WHERE order_id = ? AND user_id = ? AND status = 'created'
+            """,
+            (payment_id, now, order_id, uid),
+        )
+        if cursor.rowcount == 0:
+            self._conn.rollback()
+            return False
+        self._conn.execute(
+            """
+            INSERT INTO access_grants (
+                id, user_id, source, starts_at, ends_at, reason, created_at
+            )
+            VALUES (?, ?, 'payment', ?, ?, ?, ?)
+            """,
+            (grant_id, uid, now, access_ends_at, f"razorpay:{order_id}", now),
+        )
+        self._conn.commit()
+        return True
 
     def get_setting(self, user_id: UUID | str, key: str) -> str | None:
         row = self._conn.execute(

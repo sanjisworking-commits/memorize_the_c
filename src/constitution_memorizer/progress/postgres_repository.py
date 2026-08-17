@@ -18,8 +18,10 @@ from constitution_memorizer.progress.repository import (
     THEME_KEY,
     VALID_NOTIFICATION_FREQUENCIES,
     VALID_THEMES,
+    BillingOrder,
     CompletionProgress,
     CompletionState,
+    _billing_order_from_row,
     NotificationFrequency,
     ProgressRecord,
     ProgressStatus,
@@ -460,6 +462,102 @@ class PostgresProgressRepository:
                 (as_user_id(user_id), str(article_number), _utc_now()),
             )
             conn.commit()
+
+    # ------------------------------------------------------------------ #
+    # Billing orders (Razorpay Standard Checkout)                         #
+    # ------------------------------------------------------------------ #
+    def create_billing_order(
+        self,
+        user_id: UUID | str,
+        *,
+        order_id: str,
+        plan_days: int,
+        amount_paise: int,
+        currency: str = "INR",
+    ) -> None:
+        with self._cursor() as (conn, cur):
+            cur.execute(
+                """
+                INSERT INTO billing_orders (
+                    order_id, user_id, plan_days, amount_paise, currency,
+                    status, created_at
+                )
+                VALUES (%s, %s, %s, %s, %s, 'created', %s)
+                """,
+                (
+                    order_id,
+                    as_user_id(user_id),
+                    int(plan_days),
+                    int(amount_paise),
+                    currency,
+                    _utc_now(),
+                ),
+            )
+            conn.commit()
+
+    def get_billing_order(
+        self, user_id: UUID | str, order_id: str
+    ) -> BillingOrder | None:
+        with self._cursor() as (_conn, cur):
+            cur.execute(
+                "SELECT * FROM billing_orders WHERE order_id = %s AND user_id = %s",
+                (order_id, as_user_id(user_id)),
+            )
+            row = cur.fetchone()
+        return _billing_order_from_row(row) if row is not None else None
+
+    def latest_paid_billing_order(self, user_id: UUID | str) -> BillingOrder | None:
+        with self._cursor() as (_conn, cur):
+            cur.execute(
+                """
+                SELECT * FROM billing_orders
+                WHERE user_id = %s AND status = 'paid'
+                ORDER BY paid_at DESC LIMIT 1
+                """,
+                (as_user_id(user_id),),
+            )
+            row = cur.fetchone()
+        return _billing_order_from_row(row) if row is not None else None
+
+    def mark_billing_order_paid(
+        self,
+        user_id: UUID | str,
+        *,
+        order_id: str,
+        payment_id: str,
+        grant_id: str,
+        access_ends_at: str,
+    ) -> bool:
+        """Mark a created order paid and grant paid access in ONE transaction.
+
+        Returns False (writing nothing) when the order is already paid, so a
+        replayed verify callback never double-grants.
+        """
+        uid = as_user_id(user_id)
+        now = _utc_now()
+        with self._cursor() as (conn, cur):
+            cur.execute(
+                """
+                UPDATE billing_orders
+                SET status = 'paid', razorpay_payment_id = %s, paid_at = %s
+                WHERE order_id = %s AND user_id = %s AND status = 'created'
+                """,
+                (payment_id, now, order_id, uid),
+            )
+            if cur.rowcount == 0:
+                conn.rollback()
+                return False
+            cur.execute(
+                """
+                INSERT INTO access_grants (
+                    id, user_id, source, starts_at, ends_at, reason, created_at
+                )
+                VALUES (%s, %s, 'payment', %s, %s, %s, %s)
+                """,
+                (grant_id, uid, now, access_ends_at, f"razorpay:{order_id}", now),
+            )
+            conn.commit()
+        return True
 
     def get_setting(self, user_id: UUID | str, key: str) -> str | None:
         with self._cursor() as (_conn, cur):

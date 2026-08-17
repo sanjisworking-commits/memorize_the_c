@@ -404,7 +404,7 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             ctx["access"] = access_summary(request, eng)
             # Lifecycle surfaces (design 04/07): only expiring-soon and lapsed
             # may appear outside Profile. Dormant while billing returns None.
-            ctx["subscription"] = subscription_status(request)
+            ctx["subscription"] = subscription_status(request, eng)
             done_id = request.query_params.get("done")
             started = time.perf_counter()
             ctx["completion"] = build_completion(
@@ -484,7 +484,7 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
                 "profile": profile,
                 "access": access,
                 "free_slots": slots,
-                "subscription": subscription_status(request),
+                "subscription": subscription_status(request, eng),
                 "display_label": profile.get("display_name")
                 or user.display_name
                 or (mask_phone(user.phone) if user.phone else user.email or "Learner"),

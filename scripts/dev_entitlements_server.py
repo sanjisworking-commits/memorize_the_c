@@ -34,12 +34,28 @@ DEV_USER = UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
 DEV_EMAIL = "dev@example.com"
 
 
-def _settings():
+def _settings(port: int = 8898):
+    import os
+
     from constitution_memorizer.multiuser.settings import MultiUserSettings
+
+    # Razorpay test keys come from the developer's own .env (never hardcoded
+    # here) so the checkout flow can be exercised end-to-end when present.
+    razorpay_id, razorpay_secret = "", ""
+    env_path = ROOT / ".env"
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            if line.startswith("RAZORPAY_KEY_ID="):
+                razorpay_id = line.split("=", 1)[1].strip()
+            elif line.startswith("RAZORPAY_KEY_SECRET="):
+                razorpay_secret = line.split("=", 1)[1].strip()
+    razorpay_id = os.environ.get("RAZORPAY_KEY_ID", razorpay_id)
+    razorpay_secret = os.environ.get("RAZORPAY_KEY_SECRET", razorpay_secret)
 
     return MultiUserSettings(
         _env_file=None,
         APP_ENV="test",
+        APP_BASE_URL=f"http://localhost:{port}",
         MULTIUSER_ENABLED="true",
         AUTH_GOOGLE_ENABLED="true",
         AUTH_PHONE_ENABLED="true",
@@ -50,6 +66,8 @@ def _settings():
         COOKIE_SECURE="false",
         ARTICLE_ENTITLEMENTS_ENABLED="true",
         PRICING_ENABLED="true",
+        RAZORPAY_KEY_ID=razorpay_id,
+        RAZORPAY_KEY_SECRET=razorpay_secret,
     )
 
 
@@ -98,7 +116,7 @@ def main() -> int:
     app = create_app(
         db_path=DEV_DB,
         multiuser=True,
-        multiuser_settings=_settings(),
+        multiuser_settings=_settings(args.port),
         auth_provider=provider,
         session_store=InMemorySessionStore(),
     )

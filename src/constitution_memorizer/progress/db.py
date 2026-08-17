@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS access_grants (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     source TEXT NOT NULL DEFAULT 'admin_grant'
-        CHECK (source IN ('admin_grant', 'promotion')),
+        CHECK (source IN ('admin_grant', 'promotion', 'payment')),
     starts_at TEXT NOT NULL,
     ends_at TEXT,
     reason TEXT,
@@ -104,6 +104,21 @@ CREATE TABLE IF NOT EXISTS access_grants (
 );
 
 CREATE INDEX IF NOT EXISTS idx_access_grants_user ON access_grants(user_id);
+
+CREATE TABLE IF NOT EXISTS billing_orders (
+    order_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    plan_days INTEGER NOT NULL,
+    amount_paise INTEGER NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'INR',
+    status TEXT NOT NULL DEFAULT 'created'
+        CHECK (status IN ('created', 'paid')),
+    razorpay_payment_id TEXT,
+    created_at TEXT NOT NULL,
+    paid_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_billing_orders_user ON billing_orders(user_id);
 
 CREATE TABLE IF NOT EXISTS admin_audit_log (
     id TEXT PRIMARY KEY,
@@ -482,6 +497,53 @@ def _repair_partial_legacy(conn: sqlite3.Connection) -> None:
     ):
         _rebuild_app_settings(conn)
         logger.info("Rebuilt app_settings into user-scoped schema")
+    _widen_access_grants_sources(conn)
+
+
+def _widen_access_grants_sources(conn: sqlite3.Connection) -> None:
+    """Rebuild access_grants whose CHECK predates the 'payment' source.
+
+    SQLite cannot ALTER a CHECK constraint, and CREATE TABLE IF NOT EXISTS
+    never touches the existing shape — without this, the first verified
+    Razorpay payment would fail its grant INSERT. Idempotent: detected via
+    the stored DDL.
+    """
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='access_grants'"
+    ).fetchone()
+    if row is None or "'payment'" in str(row["sql"]):
+        return
+    conn.execute("DROP INDEX IF EXISTS idx_access_grants_user")
+    conn.execute("ALTER TABLE access_grants RENAME TO access_grants_old")
+    conn.execute(
+        """
+        CREATE TABLE access_grants (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'admin_grant'
+                CHECK (source IN ('admin_grant', 'promotion', 'payment')),
+            starts_at TEXT NOT NULL,
+            ends_at TEXT,
+            reason TEXT,
+            granted_by TEXT,
+            created_at TEXT NOT NULL,
+            revoked_at TEXT
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO access_grants
+        SELECT id, user_id, source, starts_at, ends_at, reason, granted_by,
+               created_at, revoked_at
+        FROM access_grants_old
+        """
+    )
+    conn.execute("DROP TABLE access_grants_old")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_access_grants_user ON access_grants(user_id)"
+    )
+    logger.info("Widened access_grants sources to include 'payment'")
 
 
 def init_db(conn: sqlite3.Connection) -> None:

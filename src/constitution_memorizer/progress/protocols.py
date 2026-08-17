@@ -7,6 +7,7 @@ from typing import Protocol
 from uuid import UUID
 
 from constitution_memorizer.progress.repository import (
+    BillingOrder,
     CompletionProgress,
     CompletionState,
     NotificationFrequency,
@@ -98,6 +99,34 @@ class ReminderRepositoryProtocol(Protocol):
     def is_article_claimed(self, user_id: UUID | str, article_number: str) -> bool: ...
 
     def claim_article(self, user_id: UUID | str, article_number: str) -> None: ...
+
+    def create_billing_order(
+        self,
+        user_id: UUID | str,
+        *,
+        order_id: str,
+        plan_days: int,
+        amount_paise: int,
+        currency: str = "INR",
+    ) -> None: ...
+
+    def get_billing_order(
+        self, user_id: UUID | str, order_id: str
+    ) -> BillingOrder | None: ...
+
+    def latest_paid_billing_order(
+        self, user_id: UUID | str
+    ) -> BillingOrder | None: ...
+
+    def mark_billing_order_paid(
+        self,
+        user_id: UUID | str,
+        *,
+        order_id: str,
+        payment_id: str,
+        grant_id: str,
+        access_ends_at: str,
+    ) -> bool: ...
 
     def get_setting(self, user_id: UUID | str, key: str) -> str | None: ...
 

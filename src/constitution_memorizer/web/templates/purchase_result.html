@@ -2,25 +2,53 @@
 {% block title %}{% if stage == 'receipt' %}Recall is active{% else %}Payment{% endif %} · {{ app_name|default('Recall the C') }}{% endblock %}
 {% block content %}
 <section class="panel purchase">
+  {% set steps = [('01', 'Confirm'), ('02', 'Payment'), ('03', 'Receipt'), ('04', 'First session')] %}
+  {% set current = '02' if stage in ('pay', 'failed') else '03' %}
   <div class="purchase-steps" role="tablist" aria-label="Purchase steps">
-    <span class="purchase-step" role="tab" aria-selected="false"><span class="purchase-step-n">01</span>Confirm</span>
-    <span class="purchase-step{% if stage == 'pay' %} is-current{% endif %}" role="tab" aria-selected="{{ 'true' if stage == 'pay' else 'false' }}"><span class="purchase-step-n">02</span>Payment</span>
-    <span class="purchase-step{% if stage == 'receipt' %} is-current{% endif %}" role="tab" aria-selected="{{ 'true' if stage == 'receipt' else 'false' }}"><span class="purchase-step-n">03</span>Receipt</span>
+    {% for n, label in steps %}
+    <span
+      class="purchase-step{% if n == current %} is-current{% elif n < current %} is-done{% endif %}"
+      role="tab"
+      aria-selected="{{ 'true' if n == current else 'false' }}"
+    ><span class="purchase-step-n">{{ n }}</span>{{ label }}</span>
+    {% endfor %}
   </div>
 
   {% if stage == 'pay' %}
-  <div class="purchase-card purchase-pay">
+  <div class="purchase-card purchase-pay{% if checkout_live %} is-live{% endif %}">
     <p class="purchase-card-title">Opening secure checkout</p>
     <p class="purchase-lede">
-      Payment is handled by the payment provider. You'll come back here as soon as
+      Payment is handled by Razorpay. You'll come back here as soon as
       it's done — don't close this tab.
     </p>
+    {% if checkout_live %}
+    <div class="purchase-row">
+      <span class="purchase-row-k">{{ plan.days }}-Day Recall</span>
+      <span class="purchase-row-price">₹{{ plan.price_inr }}</span>
+    </div>
+    <div class="purchase-row is-last">
+      <span class="purchase-row-k">Access period</span>
+      <span class="purchase-row-v">{{ period_line }}</span>
+    </div>
+    <div class="purchase-actions">
+      <button type="button" class="btn btn-accent purchase-pay-cta" data-checkout-pay>Pay ₹{{ plan.price_inr }} securely →</button>
+      <a class="purchase-change" href="/pricing?d={{ plan.days }}">Cancel and return to pricing</a>
+    </div>
+    <p class="purchase-error" data-checkout-error hidden role="alert"></p>
+    <p class="purchase-note">
+      Nothing is charged until Razorpay confirms the payment.
+      Your 3 Free Articles stay yours whatever happens to this plan.
+    </p>
+    <script type="application/json" id="billing-data">{{ checkout_data | tojson }}</script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+    {% else %}
     <div class="purchase-provider-box">
       <span>Secure checkout isn't live yet — purchasing opens soon. Nothing has been charged.</span>
     </div>
     <p class="purchase-actions">
       <a class="purchase-change" href="/pricing?d={{ plan.days }}">Cancel and return to pricing</a>
     </p>
+    {% endif %}
   </div>
 
   {% elif stage == 'failed' %}
@@ -37,22 +65,33 @@
   </div>
 
   {% elif stage == 'receipt' %}
-  <div class="purchase-card purchase-receipt">
+  <div
+    class="purchase-card purchase-receipt"
+    data-purchase-receipt
+    data-receipt-days="{{ plan.days }}"
+    data-receipt-until="{{ access_until }}"
+  >
     <p class="purchase-receipt-eyebrow">Payment received</p>
     <p class="purchase-receipt-title">Recall is active.</p>
     <div class="purchase-receipt-grid">
       <p><span>Plan</span><span>{{ plan.days }}-Day Recall</span></p>
-      <p><span>Paid</span><span>₹{{ plan.price_inr }}</span></p>
+      <p><span>Paid</span><span>₹{{ paid_inr }}</span></p>
       <p><span>Access until</span><span>{{ access_until }}</span></p>
-      <p><span>{{ 'Renews' if plan.recurring else 'Renewal' }}</span><span>{% if plan.recurring %}{{ access_until }} · ₹{{ plan.price_inr }}{% else %}None — one-time pass{% endif %}</span></p>
+      {# Standard Checkout sells one-time passes — nothing auto-renews,
+         whatever the pricing page says about longer plans' future behavior. #}
+      <p><span>Renewal</span><span>None — one-time pass</span></p>
     </div>
     {% if receipt_email %}
     <p class="purchase-note">A receipt is on its way to {{ receipt_email }}.</p>
     {% endif %}
     <div class="purchase-actions">
-      <a class="btn btn-accent" href="/dashboard">Start learning →</a>
+      <a class="btn btn-accent" href="/learn">Start learning →</a>
       <a class="purchase-change" href="/profile">View in Profile</a>
     </div>
+    <p class="purchase-note purchase-receipt-reassure">
+      Every Article is open now — Type and Recite included. The three Articles
+      you saved for free keep their progress and stay yours if the plan ever ends.
+    </p>
   </div>
   {% endif %}
 </section>

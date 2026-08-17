@@ -87,8 +87,8 @@
     </div>
     {% if subscription.state == 'active' %}
     <p class="lifecycle-title">Recall active · {{ subscription.plan_days }} days</p>
-    <p class="lifecycle-body">Renews {{ subscription.renews_on }} at ₹{{ subscription.plan_price_inr }}. Every Article is open and everything you learn is saved.</p>
-    <div class="lifecycle-actions"><a class="btn btn-ghost" href="/pricing">Manage plan</a><span class="lifecycle-aside">Cancel anytime — access runs to the end of the period.</span></div>
+    <p class="lifecycle-body">{% if subscription.recurring and subscription.renews_on %}Renews {{ subscription.renews_on }} at ₹{{ subscription.plan_price_inr }}.{% else %}Access until {{ subscription.ends_on }}.{% endif %} Every Article is open and everything you learn is saved.</p>
+    <div class="lifecycle-actions"><a class="btn btn-ghost" href="/pricing">Extend Recall</a><span class="lifecycle-aside">Your 3 Free Articles stay yours whatever happens to this pass.</span></div>
     {% elif subscription.state == 'expiring' %}
     <p class="lifecycle-title">{{ subscription.ends_on }} — your Recall pass ends soon</p>
     <p class="lifecycle-body">It does not renew on its own. Your 3 Free Articles and all saved progress stay after it ends.</p>

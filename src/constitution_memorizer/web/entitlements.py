@@ -19,6 +19,7 @@ billing seam filled in step 6 — until then it is always ``False``.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from datetime import date, timedelta
 from typing import Iterable
 
 from constitution_memorizer.admin.store import AccessOverride
@@ -573,6 +574,66 @@ class SubscriptionStatus:
         return self.state == "expiring"
 
 
-def subscription_status(request: object) -> SubscriptionStatus | None:
-    """Billing seam (roadmap step 6): always ``None`` until payments exist."""
-    return None
+def _format_day(value: date) -> str:
+    return f"{value.day} {value.strftime('%b %Y')}"
+
+
+def status_from_paid_order(
+    *,
+    plan_days: int,
+    amount_paise: int,
+    paid_on: date,
+    today: date,
+) -> SubscriptionStatus:
+    """Pure pass-state calculation from the latest verified payment.
+
+    Standard Checkout sells fixed-length access passes (a real auto-renewing
+    subscription needs Razorpay's Subscriptions API later), so the only
+    reachable states are active / expiring / lapsed and ``recurring`` is
+    always False — the lifecycle copy shows "Access until", never "Renews".
+    """
+    ends = paid_on + timedelta(days=plan_days)
+    if ends < today:
+        state = "lapsed"
+    elif (ends - today).days <= 7:
+        state = "expiring"
+    else:
+        state = "active"
+    return SubscriptionStatus(
+        state=state,
+        plan_days=plan_days,
+        plan_price_inr=amount_paise // 100,
+        recurring=False,
+        ends_on=_format_day(ends) if state != "lapsed" else None,
+        ended_on=_format_day(ends) if state == "lapsed" else None,
+    )
+
+
+def subscription_status(
+    request: object, engine: object = None
+) -> SubscriptionStatus | None:
+    """Pass state from the latest verified Razorpay payment (None = no pass).
+
+    Needs the request-bound engine to read billing rows; callers without one
+    (or with the entitlement boundary dormant) get ``None`` and every
+    lifecycle surface renders nothing.
+    """
+    if engine is None or not entitlements_active(request):
+        return None
+    user = getattr(getattr(request, "state", None), "current_user", None)
+    if user is None:
+        return None
+    getter = getattr(
+        getattr(engine, "repo", None), "latest_paid_billing_order", None
+    )
+    if getter is None:
+        return None
+    order = getter(getattr(engine, "user_id", None))
+    if order is None or order.paid_at is None:
+        return None
+    return status_from_paid_order(
+        plan_days=order.plan_days,
+        amount_paise=order.amount_paise,
+        paid_on=date.fromisoformat(str(order.paid_at)[:10]),
+        today=date.today(),
+    )

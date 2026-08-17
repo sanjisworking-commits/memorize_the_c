@@ -2256,6 +2256,178 @@
     });
   }
 
+  function initCheckout() {
+    const button = document.querySelector("[data-checkout-pay]");
+    if (!button) {
+      return;
+    }
+    let config = null;
+    try {
+      const node = document.getElementById("billing-data");
+      config = node ? JSON.parse(node.textContent || "null") : null;
+    } catch (_e) {
+      config = null;
+    }
+    const errorEl = document.querySelector("[data-checkout-error]");
+    if (!config) {
+      return; // placeholder page — nothing to wire
+    }
+
+    function showError(message) {
+      if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.hidden = false;
+      }
+      button.disabled = false;
+    }
+
+    function clearError() {
+      if (errorEl) {
+        errorEl.hidden = true;
+        errorEl.textContent = "";
+      }
+    }
+
+    async function verifyPayment(payload) {
+      // Server-side HMAC verification is the only thing that marks a
+      // payment as paid — the client never decides success on its own.
+      const resp = await fetch(config.verify_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await resp.json().catch(function () {
+        return {};
+      });
+      if (resp.ok && body.ok && body.next) {
+        window.location.assign(body.next);
+        return;
+      }
+      showError(
+        "Payment received but could not be verified. Nothing further was " +
+          "charged — contact support with your payment id " +
+          (payload.razorpay_payment_id || "") + "."
+      );
+    }
+
+    button.addEventListener("click", async function () {
+      if (typeof window.Razorpay !== "function") {
+        showError("Checkout is still loading — try again in a moment.");
+        return;
+      }
+      clearError();
+      button.disabled = true;
+      let order = null;
+      try {
+        const resp = await fetch(config.order_url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ days: config.days }),
+        });
+        const body = await resp.json().catch(function () {
+          return {};
+        });
+        if (resp.status === 401) {
+          window.location.assign("/login?next=/pricing");
+          return;
+        }
+        if (!resp.ok || !body.ok) {
+          showError("Could not start the payment. Nothing was charged — try again.");
+          return;
+        }
+        order = body;
+      } catch (_e) {
+        showError("Could not start the payment. Nothing was charged — try again.");
+        return;
+      }
+      const rzp = new window.Razorpay({
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.order_id,
+        name: config.name,
+        description: config.description,
+        prefill: {
+          email: config.prefill_email || undefined,
+          contact: config.prefill_contact || undefined,
+        },
+        handler: function (response) {
+          verifyPayment({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          });
+        },
+        modal: {
+          ondismiss: function () {
+            // User closed the modal — nothing was charged.
+            button.disabled = false;
+          },
+        },
+      });
+      rzp.on("payment.failed", function (event) {
+        const reason =
+          event && event.error && event.error.description
+            ? event.error.description
+            : "The payment did not go through.";
+        showError(reason + " Nothing changed on your account — you can try again.");
+      });
+      rzp.open();
+    });
+  }
+
+  function initFirstPaidSession() {
+    const KEY = "cm-first-paid-session";
+    // On the receipt: remember the fresh pass for the next Learn screen.
+    const receipt = document.querySelector("[data-purchase-receipt]");
+    if (receipt) {
+      try {
+        sessionStorage.setItem(
+          KEY,
+          JSON.stringify({
+            days: receipt.getAttribute("data-receipt-days") || "",
+            until: receipt.getAttribute("data-receipt-until") || "",
+          })
+        );
+      } catch (_e) {
+        /* ignore */
+      }
+      return;
+    }
+    // On the first Learn screen after purchase: show the band once (design
+    // 03·4), then clear the flag so it never reappears.
+    const learn = document.querySelector(".panel.learn");
+    if (!learn) {
+      return;
+    }
+    let pass = null;
+    try {
+      pass = JSON.parse(sessionStorage.getItem(KEY) || "null");
+      if (pass) {
+        sessionStorage.removeItem(KEY);
+      }
+    } catch (_e) {
+      pass = null;
+    }
+    if (!pass || !pass.days) {
+      return;
+    }
+    const band = document.createElement("div");
+    band.className = "first-session-band";
+    band.setAttribute("role", "status");
+    const chip = document.createElement("span");
+    chip.className = "first-session-chip";
+    chip.textContent = "Recall active · " + pass.days + " days";
+    band.appendChild(chip);
+    if (pass.until) {
+      const until = document.createElement("span");
+      until.className = "first-session-until";
+      until.textContent = "Access until " + pass.until;
+      band.appendChild(until);
+    }
+    learn.insertBefore(band, learn.firstChild);
+  }
+
   function initGuestStrip() {
     const strip = document.querySelector("[data-guest-strip]");
     if (!strip) {
@@ -2293,6 +2465,8 @@
     initPricing();
     initGuestStrip();
     initSlotsWhy();
+    initCheckout();
+    initFirstPaidSession();
   }
 
   if (document.readyState === "loading") {

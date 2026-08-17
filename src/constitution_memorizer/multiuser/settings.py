@@ -123,6 +123,13 @@ class MultiUserSettings(BaseSettings):
     # false everywhere; enable explicitly where the console should exist.
     admin_enabled: bool = Field(default=False, alias="ADMIN_ENABLED")
 
+    # Razorpay Standard Checkout. Both keys present = checkout is live on the
+    # purchase flow; either missing = the /subscribe/pay page keeps its
+    # "opens soon" placeholder. The key secret never reaches a template or
+    # client payload — it is used only server-side (order create + HMAC verify).
+    razorpay_key_id: str = Field(default="", alias="RAZORPAY_KEY_ID")
+    razorpay_key_secret: str = Field(default="", alias="RAZORPAY_KEY_SECRET")
+
     @field_validator(
         "auth_google_enabled",
         "auth_phone_enabled",

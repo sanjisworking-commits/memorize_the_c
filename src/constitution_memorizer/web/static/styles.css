@@ -7252,3 +7252,73 @@ html.rtc-anim .rtc-not-confirmed {
 }
 
 body.is-admin-previewing { padding-top: 40px; }
+
+.purchase-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--ink);
+  font-size: 14.5px;
+}
+
+.purchase-error {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--destructive);
+  max-width: 52ch;
+}
+
+.purchase-step.is-done {
+  color: var(--browse-due);
+}
+
+.purchase-step.is-done .purchase-step-n::after {
+  content: " ✓";
+}
+
+.purchase-pay.is-live .purchase-row {
+  max-width: 34rem;
+}
+
+.purchase-pay-cta {
+  padding: 0.8rem 1.3rem;
+  font-size: 15px;
+}
+
+.purchase-receipt-reassure {
+  max-width: 54ch;
+  border-top: 1px solid var(--hairline);
+  padding-top: 14px;
+}
+
+/* First subscribed session (design 03·4): teal chip, shows once via
+   sessionStorage after the receipt, then never again. */
+.first-session-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.first-session-chip {
+  display: inline-block;
+  border: 1px solid var(--browse-due);
+  color: var(--browse-due);
+  padding: 3px 9px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.first-session-until {
+  font-size: 13px;
+  color: var(--faint);
+}

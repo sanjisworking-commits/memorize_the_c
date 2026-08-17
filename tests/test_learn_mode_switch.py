@@ -213,15 +213,13 @@ def test_app_js_resets_destination_and_stops_recite():
 
 def test_app_js_gates_modes_on_completed_attempts():
     source = APP_JS.read_text(encoding="utf-8")
-    # Canonical partition mirror: only read/letters mark on tab visit.
-    assert 'AUTO_SEEN_MODES = new Set(["read", "letters"])' in source
+    # Canonical partition mirror: read/letters/test mark on tab visit.
+    assert 'AUTO_SEEN_MODES = new Set(["read", "letters", "test"])' in source
     learn_src = source.split("function initLearn()", 1)[1].split(
         "function initBrowseArticle()", 1
     )[0]
     assert "function markModeAttempted" in learn_src
     assert "AUTO_SEEN_MODES.has(nextMode)" in learn_src
-    # Test never rides the /seen path — only the graded /quiz response.
-    assert 'persistSeen("test")' not in learn_src
     assert "function applyQuizPayload" in learn_src
     assert "function applySeenPayload" in learn_src
     # Cloze counts individually tapped blanks; Reveal all never completes.

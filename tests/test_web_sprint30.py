@@ -11,8 +11,6 @@ from fastapi.testclient import TestClient
 from constitution_memorizer.progress.scheduler import ModesIncompleteError, ReminderEngine
 from constitution_memorizer.web.app import create_app
 
-from tests.quiz_helpers import submit_quiz
-
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 MINI_REVIEWED = Path(__file__).parent / "fixtures" / "learning" / "mini_reviewed.json"
 
@@ -153,15 +151,12 @@ def test_learn_marks_read_and_locks_done(client: TestClient):
 
 def test_seen_endpoint_unlocks_done(client: TestClient):
     client.get("/learn/clause-1")  # marks read
-    for mode in ("cloze", "letters", "type", "recite"):
+    for mode in ("cloze", "letters", "type", "recite", "test"):
         resp = client.post("/learn/clause-1/seen", data={"mode": mode})
         assert resp.status_code == 200
-        assert resp.json()["done"]["unlocked"] is False
-    # Test is the last method — completed only via the graded quiz.
-    resp = submit_quiz(client, MINI_UNITS, "clause-1")
+        if mode != "test":
+            assert resp.json()["done"]["unlocked"] is False
     data = resp.json()
-    assert data["complete"] is True
-    assert data["remaining"] == 0
     assert data["done"]["unlocked"] is True
     assert data["done"]["label"] == "Done — next unit"
     html = client.get("/learn/clause-1?mode=test").text
@@ -173,13 +168,16 @@ def test_seen_endpoint_unlocks_done(client: TestClient):
 
 
 def test_gated_mode_get_does_not_mark(client: TestClient):
-    # Opening a gated tab (test/cloze/type/recite) never earns a check.
-    for mode in ("test", "cloze", "type", "recite"):
+    # Opening a gated tab (cloze/type/recite) never earns a check.
+    for mode in ("cloze", "type", "recite"):
         client.get(f"/learn/clause-1?mode={mode}")
-    html = client.get("/learn/clause-1?mode=test").text
+    html = client.get("/learn/clause-1?mode=cloze").text
     assert "btn-done-locked" in html
     assert "methods left" in html
-    assert "✓" not in html.split("mode-tabs")[1].split("</div>")[0]
+    tabs = html.split("mode-tabs")[1].split("</div>")[0]
+    assert "Cloze ✓" not in tabs
+    assert "Type ✓" not in tabs
+    assert "Recite ✓" not in tabs
 
 
 def test_done_blocked_until_six_modes(client: TestClient):
@@ -191,9 +189,8 @@ def test_done_blocked_until_six_modes(client: TestClient):
 
 def test_done_advances_after_all_modes(client: TestClient):
     client.get("/learn/clause-1")
-    for mode in ("cloze", "letters", "type", "recite"):
+    for mode in ("cloze", "letters", "type", "recite", "test"):
         client.post("/learn/clause-1/seen", data={"mode": mode})
-    submit_quiz(client, MINI_UNITS, "clause-1")
     resp = client.post("/learn/clause-1/done", follow_redirects=False)
     assert resp.status_code == 303
     assert resp.headers["location"].startswith("/learn/")

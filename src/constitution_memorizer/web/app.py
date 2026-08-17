@@ -791,8 +791,8 @@ def create_app(
         else:
             # Locked modes are never recorded as seen; unclaimed Articles keep
             # mode visits provisional (client-tracked) until claimed on Done.
-            # Gated modes (cloze/type/recite/test) are never marked by a GET —
-            # they report their completed attempt via /seen or /quiz.
+            # Gated modes (cloze/type/recite) are never marked by a GET —
+            # they report their completed attempt via /seen.
             if (
                 mode_locked
                 or not learn_lock.can_persist_modes_seen
@@ -939,13 +939,8 @@ def create_app(
         # Trust model: for cloze/type/recite the client reports a completed
         # attempt and the server takes its word (no leaderboard, nothing to
         # win by cheating; recall_align.py exists if server-side verification
-        # is ever wanted). Test is the exception — it is server-graded, so
-        # its completion may only arrive through POST /learn/{id}/quiz.
-        if mode == "test":
-            return JSONResponse(
-                {"ok": False, "error": "quiz_required", "mode": mode},
-                status_code=400,
-            )
+        # is ever wanted). Test is auto-seen on tab visit (like Read/Letters);
+        # a graded /quiz submit may also mark it, which is idempotent.
         # Locked modes must never be recorded as seen (UI lock is not trusted).
         access = resolve_learn_access(request, eng, unit.article_number)
         if access.is_locked(mode):
@@ -967,7 +962,7 @@ def create_app(
 
     @app.post("/learn/{unit_id}/quiz")
     async def learn_quiz(request: Request, unit_id: str) -> JSONResponse:
-        """Grade a Test-mode submission; the only way Test gets marked seen."""
+        """Grade a Test-mode submission. Test is also auto-seen on tab visit."""
         eng = _engine()
         unit = eng.get_unit(unit_id)
         if unit is None:

@@ -1,8 +1,7 @@
-"""Helpers for completing the server-graded Test mode in tests.
+"""Helpers for completing Learn modes in tests.
 
-The Test mode only marks seen through POST /learn/{unit_id}/quiz, graded
-against the server's seeded quiz for the unit's current revision cycle —
-these helpers regenerate that quiz to compute correct answers.
+Test is auto-seen (visit or POST /seen). submit_quiz still grades the
+optional quiz against the server's seeded (unit, cycle) questions.
 """
 
 from __future__ import annotations
@@ -14,8 +13,8 @@ from pathlib import Path
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitsDocument
 from constitution_memorizer.web.quiz import build_quiz
 
-# /seen still accepts these five; "test" is rejected with quiz_required.
-SEEN_MODES = ("read", "cloze", "letters", "type", "recite")
+# All six modes accept /seen; Test is also marked by GET ?mode=test.
+SEEN_MODES = ("read", "cloze", "letters", "type", "recite", "test")
 
 
 def load_units(units_path: Path | str) -> dict[str, LearningUnit]:
@@ -36,7 +35,7 @@ def correct_quiz_answers(
 
 
 def current_quiz_cycle(client, unit_id: str) -> int:
-    """Read the unit's current cycle off the learn page (gated GET marks nothing)."""
+    """Read the unit's current cycle off the learn page."""
     html = client.get(f"/learn/{unit_id}?mode=test").text
     match = re.search(r'data-quiz-cycle="(\d+)"', html)
     return int(match.group(1)) if match else 0
@@ -55,15 +54,15 @@ def submit_quiz(client, units_path: Path | str, unit_id: str, cycle: int | None 
 
 
 def complete_all_modes(client, units_path: Path | str, unit_id: str):
-    """Mark every learn mode complete: /seen for five, /quiz for test.
+    """Mark every learn mode complete via /seen (Test is auto-seen).
 
     Entitlement-locked modes bounce with 403 mode_locked — that's the
     server refusing to record them, which is exactly what cap-reached
     scenarios exercise, so it is tolerated here.
     """
+    last = None
     for mode in SEEN_MODES:
         resp = client.post(f"/learn/{unit_id}/seen", data={"mode": mode})
         assert resp.status_code in (200, 403), (mode, resp.status_code)
-    resp = submit_quiz(client, units_path, unit_id)
-    assert resp.status_code == 200, resp.text
-    return resp
+        last = resp
+    return last

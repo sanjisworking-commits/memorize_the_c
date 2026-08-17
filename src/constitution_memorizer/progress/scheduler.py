@@ -308,6 +308,11 @@ class ReminderEngine:
             self._claimed_cache = set(self.repo.claimed_articles(self.user_id))
         return set(self._claimed_cache)
 
+    def claimed_articles_with_dates(self) -> dict[str, str]:
+        """Claimed Articles → claimed_at ISO timestamps (runs the backfill)."""
+        self.claimed_articles()  # ensures grandfather backfill has run
+        return self.repo.claimed_articles_with_dates(self.user_id)
+
     def is_article_claimed(self, article_number: str | None) -> bool:
         if article_number is None or not str(article_number).strip():
             return False
@@ -373,10 +378,16 @@ class ReminderEngine:
         *,
         as_of: date | None = None,
         require_all_modes: bool = True,
+        required_modes: frozenset[str] | None = None,
         claim_article: str | None = None,
     ) -> MarkDoneResult:
         """Advance the ladder; optionally claim a Free Article in the same
-        transaction (``claim_article`` rides inside ``commit_completion``)."""
+        transaction (``claim_article`` rides inside ``commit_completion``).
+
+        ``required_modes`` narrows the completion gate (entitlement- and
+        unit-aware: modes a unit cannot produce are omitted); ``None`` keeps
+        the historical all-six requirement.
+        """
         if unit_id not in self.units:
             raise KeyError(f"Unknown learning unit id: {unit_id}")
 
@@ -387,7 +398,8 @@ class ReminderEngine:
         if self._split_cache is None:
             self._split_cache = dict(state.split_preferences)
 
-        if require_all_modes and not LEARN_MODES_SET.issubset(state.modes_seen):
+        required = LEARN_MODES_SET if required_modes is None else required_modes
+        if require_all_modes and not required.issubset(state.modes_seen):
             raise ModesIncompleteError(unit_id, state.modes_seen)
 
         today = as_of or date.today()

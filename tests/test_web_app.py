@@ -12,6 +12,8 @@ from constitution_memorizer.web.app import create_app
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 
+from tests.quiz_helpers import complete_all_modes  # noqa: E402
+
 
 @pytest.fixture
 def client(tmp_path: Path) -> TestClient:
@@ -23,9 +25,7 @@ def client(tmp_path: Path) -> TestClient:
 
 
 def _visit_all_modes(client: TestClient, unit_id: str) -> None:
-    for mode in LEARN_MODES:
-        resp = client.post(f"/learn/{unit_id}/seen", data={"mode": mode})
-        assert resp.status_code == 200
+    complete_all_modes(client, MINI_UNITS, unit_id)
 
 
 def test_home_renders(client: TestClient):

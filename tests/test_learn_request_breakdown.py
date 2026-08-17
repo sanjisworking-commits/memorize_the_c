@@ -17,6 +17,8 @@ from constitution_memorizer.web.app import create_app
 from constitution_memorizer.web.request_context import wants_request_breakdown
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
+
+from tests.quiz_helpers import complete_all_modes  # noqa: E402
 USER = UUID("11111111-1111-4111-8111-111111111111")
 USER_EMAIL = "a@example.com"
 
@@ -332,9 +334,7 @@ def test_complete_done_records_schedule_leaves(tmp_path: Path, caplog):
     # Claimed Article + backfill marker: Done persists without a claim prompt.
     repo.claim_article(USER, "20")
     repo.set_setting(USER, "free_articles_backfilled", "1")
-    for mode in LEARN_MODES:
-        seen = client.post("/learn/clause-1/seen", data={"mode": mode})
-        assert seen.status_code == 200
+    complete_all_modes(client, MINI_UNITS, "clause-1")
     repo.reset_counts()
     with caplog.at_level(logging.INFO, logger="uvicorn.error"):
         caplog.clear()

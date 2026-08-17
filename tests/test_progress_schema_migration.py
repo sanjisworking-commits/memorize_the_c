@@ -261,3 +261,104 @@ def test_mark_done_after_legacy_sqlite_migrate(tmp_path: Path):
     result = engine.mark_done("article-2", as_of=date(2026, 8, 13))
     assert result.progress.status == "review"
     assert result.progress.times_completed == 1
+
+
+def _pre_gating_db(path: Path) -> None:
+    """Current user-scoped schema, but rows written under visit-to-check
+    (including a 'card' row) and no invalidation marker yet."""
+    from constitution_memorizer.progress.db import SCHEMA_SQL
+
+    conn = sqlite3.connect(path)
+    conn.executescript(SCHEMA_SQL)
+    conn.executemany(
+        "INSERT INTO unit_modes_seen VALUES (?, ?, ?, '2026-08-10T00:00:00+00:00')",
+        [
+            (UID, "article-1", mode)
+            for mode in ("read", "cloze", "letters", "type", "recite", "card")
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+
+def _modes_for(conn: sqlite3.Connection, unit_id: str) -> set[str]:
+    return {
+        row[0]
+        for row in conn.execute(
+            "SELECT mode FROM unit_modes_seen WHERE user_id = ? AND learning_unit_id = ?",
+            (UID, unit_id),
+        )
+    }
+
+
+def test_open_invalidates_legacy_gated_modes(tmp_path: Path):
+    db = tmp_path / "progress.db"
+    _pre_gating_db(db)
+
+    conn = open_progress_db(db)
+    assert _modes_for(conn, "article-1") == {"read", "letters"}
+    conn.close()
+
+
+def test_invalidation_marker_preserves_new_gated_marks(tmp_path: Path):
+    db = tmp_path / "progress.db"
+    _pre_gating_db(db)
+
+    conn = open_progress_db(db)
+    repo = ProgressRepository(conn)
+    repo.mark_mode_seen(UID, "article-1", "cloze")
+    repo.mark_mode_seen(UID, "article-1", "test")
+    conn.close()
+
+    conn = open_progress_db(db)
+    assert _modes_for(conn, "article-1") == {"read", "letters", "cloze", "test"}
+    conn.close()
+
+
+def test_invalidation_helper_is_idempotent(tmp_path: Path):
+    from constitution_memorizer.progress.db import _invalidate_legacy_gated_modes
+
+    db = tmp_path / "progress.db"
+    _pre_gating_db(db)
+
+    conn = open_progress_db(db)
+    _invalidate_legacy_gated_modes(conn)
+    _invalidate_legacy_gated_modes(conn)
+    assert _modes_for(conn, "article-1") == {"read", "letters"}
+    conn.close()
+
+
+def test_legacy_migrate_path_also_invalidates(tmp_path: Path):
+    """Pre-multiuser DB (no user_id anywhere): migrate + strict invalidation."""
+    db = tmp_path / "progress.db"
+    conn = sqlite3.connect(db)
+    conn.executescript(
+        """
+        CREATE TABLE learning_unit_progress (
+            learning_unit_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL DEFAULT 'new',
+            times_completed INTEGER NOT NULL DEFAULT 0,
+            last_completed TEXT,
+            next_revision TEXT,
+            interval_days INTEGER NOT NULL DEFAULT 0,
+            ease_factor REAL NOT NULL DEFAULT 2.5,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        CREATE TABLE unit_modes_seen (
+            learning_unit_id TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            seen_at TEXT NOT NULL
+        );
+        INSERT INTO unit_modes_seen VALUES
+            ('article-1', 'read', '2026-08-10T00:00:00+00:00'),
+            ('article-1', 'card', '2026-08-10T00:00:00+00:00'),
+            ('article-1', 'recite', '2026-08-10T00:00:00+00:00');
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    conn = open_progress_db(db)
+    assert _modes_for(conn, "article-1") == {"read"}
+    conn.close()

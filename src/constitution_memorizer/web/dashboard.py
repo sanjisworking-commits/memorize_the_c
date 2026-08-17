@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from constitution_memorizer.learning.schemas import LearningUnit
+from constitution_memorizer.progress.repository import LEARN_MODES
 from constitution_memorizer.progress.scheduler import ReminderEngine
 from constitution_memorizer.web.progress_stats import (
     _is_completed,
@@ -18,14 +19,13 @@ from constitution_memorizer.web.service import (
     session_progress,
 )
 
-LEARN_MODES = ("read", "cloze", "letters", "type", "recite", "card")
 MODE_LABELS = {
     "read": "Read",
     "cloze": "Cloze",
     "letters": "Letters",
     "type": "Type recall",
     "recite": "Recite",
-    "card": "Card",
+    "test": "Test",
 }
 
 

@@ -257,6 +257,8 @@ from constitution_memorizer.progress.scheduler import ReminderEngine  # noqa: E4
 from constitution_memorizer.utils.json_io import read_json  # noqa: E402
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
+
+from tests.quiz_helpers import complete_all_modes  # noqa: E402
 USER = UUID("22222222-2222-4222-8222-222222222222")
 OTHER_USER = UUID("33333333-3333-4333-8333-333333333333")
 
@@ -391,11 +393,15 @@ def test_free_status_renders_on_dashboard_settings_profile(tmp_path: Path) -> No
     assert "Free · 1 of 3 Articles" in settings.text
     assert "Manage in Profile" in settings.text
 
+    # Profile renders the numbered Free-Article slots (design 05): the empty
+    # slot is a row, not an absence, so the allowance is visible at a glance.
     profile = client.get("/profile")
     assert profile.status_code == 200
-    assert "Recall access" in profile.text
-    assert "Free · 1 of 3 Free Articles" in profile.text
+    assert "Free Articles" in profile.text
+    assert "1 of 3 used" in profile.text
     assert "/browse/article/20" in profile.text
+    assert profile.text.count("Empty slot") == 2
+    assert "Why can't I swap an Article?" in profile.text
 
 
 def test_guest_sees_no_access_status(tmp_path: Path) -> None:
@@ -419,8 +425,12 @@ def test_guest_sees_no_access_status(tmp_path: Path) -> None:
 # Step 2 · claim-on-Done flow                                                  #
 # --------------------------------------------------------------------------- #
 def _see_all_modes(client: TestClient, unit_id: str) -> None:
-    for m in LEARN_MODES:
-        client.get(f"/learn/{unit_id}?mode={m}")
+    """Complete every mode: /seen for the five, the graded quiz for Test.
+
+    GETs never mark gated modes anymore, so \"seeing\" a mode means
+    reporting its completed attempt (or grading the quiz server-side).
+    """
+    complete_all_modes(client, MINI_UNITS, unit_id)
 
 
 JSON_HEADERS = {"Accept": "application/json", "X-Requested-With": "XMLHttpRequest"}
@@ -518,7 +528,7 @@ def test_claim_prompt_requires_complete_modes(tmp_path: Path) -> None:
     # Forged mode names never count.
     resp = client.post(
         "/learn/clause-1/done",
-        data={"modes": "read,cloze,letters,type,recite,card,bogus"},
+        data={"modes": "read,cloze,letters,type,recite,test,bogus"},
         headers=JSON_HEADERS,
     )
     assert resp.status_code == 409
@@ -586,7 +596,10 @@ def test_claimed_article_shows_all_six_unlocked(tmp_path: Path) -> None:
     page = client.get("/learn/clause-1")  # Article 20 claimed
     assert 'data-locked-modes=""' in page.text
     assert "🔒" not in page.text
+    # Type is gated: opening the tab marks nothing; a completed attempt does.
     client.get("/learn/clause-1?mode=type")
+    assert "type" not in repo.modes_seen(USER, "clause-1")
+    client.post("/learn/clause-1/seen", data={"mode": "type"})
     assert "type" in repo.modes_seen(USER, "clause-1")
 
 
@@ -698,7 +711,7 @@ def test_cap_article_done_affordance_requires_four(tmp_path: Path) -> None:
     for n in ("101", "102", "103"):
         repo.claim_article(USER, n)
     page = client.get("/learn/clause-1")  # cap-reached Article 20
-    assert 'data-required-modes="read,cloze,letters,card"' in page.text
+    assert 'data-required-modes="read,cloze,letters,test"' in page.text
     assert "0 of 4 methods visited" in page.text
 
 

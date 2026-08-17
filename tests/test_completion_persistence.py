@@ -30,6 +30,8 @@ from constitution_memorizer.progress.scheduler import (
 from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
 from constitution_memorizer.utils.json_io import read_json
 from constitution_memorizer.web.app import create_app
+
+from tests.quiz_helpers import complete_all_modes
 from fastapi.testclient import TestClient
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
@@ -231,8 +233,7 @@ def test_done_uses_split_prefs_from_snapshot(tmp_path: Path):
     client = TestClient(
         create_app(units_path=MINI_UNITS, db_path=tmp_path / "progress.db")
     )
-    for mode in LEARN_MODES:
-        assert client.post("/learn/clause-1/seen", data={"mode": mode}).status_code == 200
+    complete_all_modes(client, MINI_UNITS, "clause-1")
     resp = client.post("/learn/clause-1/done", follow_redirects=False)
     assert resp.status_code == 303
     assert resp.headers["location"] == "/learn/clause-2/choose?done=clause-1"

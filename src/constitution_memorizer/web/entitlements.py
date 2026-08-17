@@ -21,12 +21,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
+from constitution_memorizer.progress.repository import LEARN_MODES
+
 # Modes always available (guest / free-cap-reached still get these four).
-OPEN_MODES: tuple[str, ...] = ("read", "cloze", "letters", "card")
+OPEN_MODES: tuple[str, ...] = ("read", "cloze", "letters", "test")
 # Subscriber-only modes (locked for guest and free-cap-reached).
 SUBSCRIBER_ONLY_MODES: tuple[str, ...] = ("type", "recite")
-# Canonical render order of all six modes.
-ALL_MODES: tuple[str, ...] = ("read", "cloze", "letters", "type", "recite", "card")
+# Canonical render order of all six modes (owned by progress.repository).
+ALL_MODES: tuple[str, ...] = LEARN_MODES
 
 # A signed-in Free account may permanently claim this many parent Articles.
 FREE_ARTICLE_LIMIT = 3
@@ -330,3 +332,49 @@ def _article_sort_key(value: str) -> tuple[int, object]:
         return (0, int(value))
     except (TypeError, ValueError):
         return (1, str(value))
+
+
+# --------------------------------------------------------------------------- #
+# Subscription lifecycle (design 04) — one dated status object                  #
+# --------------------------------------------------------------------------- #
+# The five lifecycle presentations (active / expiring soon / renewal failed /
+# cancelled / lapsed) all read from a single status object so the label and
+# the action can never disagree. Until the billing layer (roadmap step 6)
+# exists there is nothing to report and :func:`subscription_status` returns
+# ``None`` — every lifecycle surface renders nothing.
+
+SUBSCRIPTION_STATES: tuple[str, ...] = (
+    "active",
+    "expiring",
+    "renewal_failed",
+    "cancelled",
+    "lapsed",
+)
+
+
+@dataclass(frozen=True)
+class SubscriptionStatus:
+    """Dated subscription state driving Profile / Dashboard lifecycle UI."""
+
+    state: str  # one of SUBSCRIPTION_STATES
+    plan_days: int
+    plan_price_inr: int
+    recurring: bool
+    # ISO dates; which ones are set depends on the state.
+    renews_on: str | None = None
+    ends_on: str | None = None
+    ended_on: str | None = None
+    grace_until: str | None = None
+
+    @property
+    def is_lapsed(self) -> bool:
+        return self.state == "lapsed"
+
+    @property
+    def is_expiring(self) -> bool:
+        return self.state == "expiring"
+
+
+def subscription_status(request: object) -> SubscriptionStatus | None:
+    """Billing seam (roadmap step 6): always ``None`` until payments exist."""
+    return None

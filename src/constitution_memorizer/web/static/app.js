@@ -1,6 +1,9 @@
 /* Light progressive enhancement for the learning UI. */
 (function () {
-  const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "recite", "card"]);
+  // Mirrors the canonical partition in progress/repository.py — keep in sync.
+  const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "recite", "test"]);
+  // Auto-seen modes check on tab visit; the rest gate on a completed attempt.
+  const AUTO_SEEN_MODES = new Set(["read", "letters"]);
   const MOTION_KEY = "cm-motion";
   const SOUND_KEY = "cm-completion-sound";
   const DONE_SOUND_SRC = "/static/completion-done.mp3";
@@ -90,7 +93,7 @@
       .join(EN_SPACE);
   }
 
-  function initCloze(panel) {
+  function initCloze(panel, onComplete) {
     if (!panel) {
       return null;
     }
@@ -105,6 +108,32 @@
       density = "medium";
     }
     const revealed = new Set();
+    // Completion gate: only individually tapped blanks count — "Reveal all"
+    // feeds `revealed` but never `tapRevealed`, so it cannot check the mode.
+    const tapRevealed = new Set();
+    let completed = false;
+
+    function checkTapComplete() {
+      if (completed) {
+        return;
+      }
+      const blanks = [];
+      words.forEach((word, index) => {
+        if (isBlank(word)) {
+          blanks.push(index);
+        }
+      });
+      // No zero-blank auto-fire: an impossible cloze is simply not required.
+      if (blanks.length === 0) {
+        return;
+      }
+      if (blanks.every((index) => tapRevealed.has(index))) {
+        completed = true;
+        if (onComplete) {
+          onComplete();
+        }
+      }
+    }
 
     function threshold() {
       return DENSITY_THRESH[density] || 6;
@@ -154,7 +183,9 @@
           } else {
             const reveal = () => {
               revealed.add(index);
+              tapRevealed.add(index);
               render();
+              checkTapComplete();
             };
             span.addEventListener("click", reveal);
             span.addEventListener("keydown", (event) => {
@@ -176,7 +207,9 @@
       }
       density = next;
       panel.setAttribute("data-cloze-density", next);
+      // Changing density restarts the per-density tap attempt.
       revealed.clear();
+      tapRevealed.clear();
       densityBtns.forEach((btn) => {
         const active = btn.getAttribute("data-cloze-density") === next;
         btn.classList.toggle("is-active", active);
@@ -219,6 +252,7 @@
     return {
       reset() {
         revealed.clear();
+        tapRevealed.clear();
         render();
       },
     };
@@ -273,7 +307,7 @@
     return text.toLowerCase().replace(/[^a-z0-9]/g, "");
   }
 
-  function initType(panel) {
+  function initType(panel, onComplete) {
     if (!panel) {
       return null;
     }
@@ -281,6 +315,7 @@
     const input = panel.querySelector("[data-type-input]");
     const diffEl = panel.querySelector("[data-type-diff]");
     const statsEl = panel.querySelector("[data-type-stats]");
+    const checkBtn = panel.querySelector("[data-type-check]");
     const source = panel.getAttribute("data-type-text") || "";
     const words = source.trim() ? source.trim().split(/\s+/) : [];
 
@@ -321,6 +356,28 @@
     if (input) {
       input.addEventListener("input", render);
     }
+    if (checkBtn) {
+      checkBtn.addEventListener("click", () => {
+        // Any completed non-empty attempt counts — no accuracy threshold.
+        const typed = input ? input.value.trim() : "";
+        if (!typed) {
+          if (statsEl) {
+            statsEl.textContent = "Type your attempt first";
+          }
+          if (input) {
+            input.focus();
+          }
+          return;
+        }
+        render();
+        if (statsEl) {
+          statsEl.textContent = statsEl.textContent + " — attempt checked";
+        }
+        if (onComplete) {
+          onComplete();
+        }
+      });
+    }
     render();
 
     return {
@@ -333,7 +390,7 @@
     };
   }
 
-  function initRecite(panel) {
+  function initRecite(panel, onComplete) {
     if (!panel) {
       return null;
     }
@@ -513,6 +570,10 @@
         showStatus("Accuracy map from your recital.", null);
         showFallback(false);
         renderAccuracyMap(spoken, "Heard");
+        // A completed non-empty recitation counts — no accuracy threshold.
+        if (onComplete) {
+          onComplete();
+        }
       } else {
         showStatus(
           "No speech captured. Check your connection, or type what you recited below.",
@@ -673,6 +734,10 @@
         }
         showStatus("Accuracy map from your text.", null);
         renderAccuracyMap(spoken, "Entered");
+        // Manual fallback with non-empty text also completes the attempt.
+        if (onComplete) {
+          onComplete();
+        }
       });
     }
 
@@ -726,6 +791,181 @@
           showFallback(true);
         }
         render();
+      },
+    };
+  }
+
+  function initTest(panel, onGraded) {
+    if (!panel) {
+      return null;
+    }
+    const form = panel.querySelector("[data-quiz-form]");
+    const scoreEl = panel.querySelector("[data-quiz-score]");
+    const submitBtn = panel.querySelector("[data-quiz-submit]");
+    if (!form) {
+      // Unit without a quiz: the fallback message renders server-side and the
+      // mode is already absent from the effective required set.
+      return { reset() {} };
+    }
+    const learnRoot = panel.closest(".learn");
+    const unitId = learnRoot ? learnRoot.getAttribute("data-unit-id") || "" : "";
+    const cycle = parseInt(panel.getAttribute("data-quiz-cycle") || "0", 10) || 0;
+    const fieldsets = Array.from(panel.querySelectorAll("[data-quiz-q]"));
+    let errorEl = null;
+    let submitting = false;
+
+    function showError(message) {
+      if (!errorEl) {
+        errorEl = document.createElement("p");
+        errorEl.className = "learn-test-error";
+        form.appendChild(errorEl);
+      }
+      errorEl.textContent = message;
+      errorEl.hidden = !message;
+    }
+
+    function collectAnswers() {
+      const answers = [];
+      let firstMissing = null;
+      fieldsets.forEach((fieldset) => {
+        if (fieldset.getAttribute("data-kind") === "mcq") {
+          const checked = fieldset.querySelector("input[type=radio]:checked");
+          if (checked) {
+            answers.push(parseInt(checked.value, 10));
+          } else {
+            answers.push(null);
+            firstMissing = firstMissing || fieldset.querySelector("input[type=radio]");
+          }
+        } else {
+          const fill = fieldset.querySelector("[data-quiz-fill]");
+          const value = fill ? fill.value.trim() : "";
+          if (value) {
+            answers.push(value);
+          } else {
+            answers.push(null);
+            firstMissing = firstMissing || fill;
+          }
+        }
+      });
+      return { answers: answers, firstMissing: firstMissing };
+    }
+
+    function setFormDisabled(disabled) {
+      form.querySelectorAll("input").forEach((el) => {
+        el.disabled = disabled;
+      });
+      if (submitBtn) {
+        submitBtn.disabled = disabled;
+      }
+    }
+
+    function paintResults(payload) {
+      const results = Array.isArray(payload.results) ? payload.results : [];
+      fieldsets.forEach((fieldset, index) => {
+        const resultEl = fieldset.querySelector("[data-quiz-result]");
+        const result = results[index];
+        if (!resultEl || !result) {
+          return;
+        }
+        resultEl.hidden = false;
+        resultEl.classList.toggle("is-correct", result.correct === true);
+        resultEl.classList.toggle("is-wrong", result.correct !== true);
+        resultEl.textContent = result.correct
+          ? "✓ Correct"
+          : "✗ Correct answer: " + result.expected;
+      });
+      if (scoreEl && payload.score) {
+        scoreEl.hidden = false;
+        scoreEl.textContent =
+          "You got " + payload.score.correct + " of " + payload.score.total + ".";
+      }
+      setFormDisabled(true);
+      if (submitBtn) {
+        submitBtn.textContent = "Checked ✓";
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (submitting || !unitId) {
+        return;
+      }
+      const collected = collectAnswers();
+      if (collected.answers.some((answer) => answer === null)) {
+        showError("Answer all " + fieldsets.length + " to finish.");
+        if (collected.firstMissing) {
+          collected.firstMissing.focus();
+        }
+        return;
+      }
+      showError("");
+      submitting = true;
+      fetch("/learn/" + encodeURIComponent(unitId) + "/quiz", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ cycle: cycle, answers: collected.answers }),
+      })
+        .then((response) => {
+          const type = response.headers.get("content-type") || "";
+          if (!type.includes("application/json")) {
+            throw new Error("quiz-failed");
+          }
+          return response.json().then((payload) => ({
+            status: response.status,
+            payload: payload,
+          }));
+        })
+        .then((result) => {
+          submitting = false;
+          const payload = result.payload || {};
+          if (result.status === 409 && payload.error === "stale_quiz") {
+            showError("This unit moved on — reload the page for fresh questions.");
+            return;
+          }
+          if (result.status !== 200 || payload.ok !== true) {
+            showError("Couldn't check answers — try again.");
+            return;
+          }
+          paintResults(payload);
+          if (onGraded) {
+            onGraded(payload);
+          }
+        })
+        .catch(() => {
+          submitting = false;
+          showError("Couldn't check answers — try again.");
+        });
+    });
+
+    return {
+      reset() {
+        form.querySelectorAll("input[type=radio]").forEach((el) => {
+          el.checked = false;
+        });
+        form.querySelectorAll("[data-quiz-fill]").forEach((el) => {
+          el.value = "";
+        });
+        fieldsets.forEach((fieldset) => {
+          const resultEl = fieldset.querySelector("[data-quiz-result]");
+          if (resultEl) {
+            resultEl.hidden = true;
+            resultEl.textContent = "";
+          }
+        });
+        if (scoreEl) {
+          scoreEl.hidden = true;
+          scoreEl.textContent = "";
+        }
+        showError("");
+        setFormDisabled(false);
+        if (submitBtn) {
+          submitBtn.textContent = "Check answers";
+        }
       },
     };
   }
@@ -949,25 +1189,27 @@
     learn.classList.add("is-ready");
     initBareFns(learn);
 
-    const card = learn.querySelector(".learn-card");
     const clozePanel = learn.querySelector('[data-learn-panel="cloze"]');
     const lettersPanel = learn.querySelector('[data-learn-panel="letters"]');
     const typePanel = learn.querySelector('[data-learn-panel="type"]');
     const recitePanel = learn.querySelector('[data-learn-panel="recite"]');
-    const cloze = initCloze(clozePanel);
+    const testPanel = learn.querySelector('[data-learn-panel="test"]');
+    // Gated modes report a completed attempt through markModeAttempted (or the
+    // graded quiz payload); auto-seen modes are marked on tab visit instead.
+    const cloze = initCloze(clozePanel, function () {
+      markModeAttempted("cloze");
+    });
     const letters = initLetters(lettersPanel);
-    const typeMode = initType(typePanel);
-    const recite = initRecite(recitePanel);
+    const typeMode = initType(typePanel, function () {
+      markModeAttempted("type");
+    });
+    const recite = initRecite(recitePanel, function () {
+      markModeAttempted("recite");
+    });
+    const testMode = initTest(testPanel, function (payload) {
+      applyQuizPayload(payload);
+    });
     const doneBtn = document.getElementById("learn-done-btn");
-
-    function setFlipped(flipped) {
-      if (!card) {
-        return;
-      }
-      card.dataset.flipped = flipped ? "true" : "false";
-      card.classList.toggle("is-flipped", flipped);
-      card.setAttribute("aria-pressed", flipped ? "true" : "false");
-    }
 
     const MODE_LABELS = {
       read: "Read",
@@ -975,7 +1217,7 @@
       letters: "Letters",
       type: "Type",
       recite: "Recite",
-      card: "Card",
+      test: "Test",
     };
     const isGuest = learn.hasAttribute("data-guest-learn");
     const unitId = learn.getAttribute("data-unit-id") || "";
@@ -1026,6 +1268,11 @@
       } catch (_e) {
         /* ignore */
       }
+      // Keep the claim form's mode list in sync with every provisional mark.
+      const claimModes = document.querySelector("[data-claim-modes]");
+      if (claimModes) {
+        claimModes.value = Array.from(provisionalModes).join(",");
+      }
     }
     function visitedUnion() {
       const union = new Set(confirmedModes);
@@ -1071,25 +1318,33 @@
       return remaining + " methods left";
     }
 
+    function localVisited() {
+      return isGuest ? guestVisitedModes : visitedUnion();
+    }
+
     function applyLockedDoneLabel() {
-      if (isGuest || !doneBtn || serverDoneUnlocked) {
+      if (!doneBtn || serverDoneUnlocked) {
         return;
       }
-      const label = lockedMethodsLeftLabel(requiredVisitedCount(visitedUnion()));
+      const label = lockedMethodsLeftLabel(requiredVisitedCount(localVisited()));
       if (label) {
         doneBtn.textContent = label;
       }
     }
 
-    function maybeUnlockProvisionalDone() {
-      // Unclaimed Articles persist nothing server-side, so the Done affordance
-      // unlocks from the provisional union; the server re-validates on POST.
-      if (!seenProvisional || isGuest || serverDoneUnlocked || !doneBtn) {
+    function maybeUnlockLocalDone() {
+      // Guests and unclaimed Articles persist nothing server-side, so the
+      // Done affordance unlocks from the local set; the server re-validates
+      // on POST (guests get the sign-in prompt instead).
+      if (serverDoneUnlocked || !doneBtn) {
         return;
       }
-      if (requiredVisitedCount(visitedUnion()) >= requiredModes.size) {
+      if (!isGuest && !seenProvisional) {
+        return;
+      }
+      if (requiredVisitedCount(localVisited()) >= requiredModes.size) {
         serverDoneUnlocked = true;
-        applyDoneUnlocked("Mark it Done");
+        applyDoneUnlocked(isGuest ? "Mark as mastered" : "Mark it Done");
       } else {
         applyLockedDoneLabel();
       }
@@ -1121,7 +1376,7 @@
     }
 
     function applyDoneUnlocked(label) {
-      if (isGuest || !doneBtn) {
+      if (!doneBtn) {
         return;
       }
       doneBtn.disabled = false;
@@ -1134,12 +1389,69 @@
       }
     }
 
+    // One local mark per completed gated attempt (or auto-seen visit),
+    // routed to the right store for the current access level.
+    function markModeAttempted(mode) {
+      if (lockedModes.has(mode)) {
+        return;
+      }
+      if (isGuest) {
+        guestVisitedModes.add(mode);
+        applyTabMarks(guestVisitedModes);
+        applyTracker(guestVisitedModes);
+        maybeUnlockLocalDone();
+        return;
+      }
+      if (seenProvisional) {
+        provisionalModes.add(mode);
+        saveProvisional();
+        applyTabMarks(visitedUnion());
+        applyTracker(visitedUnion());
+        maybeUnlockLocalDone();
+        return;
+      }
+      persistSeen(mode);
+    }
+
+    // Shared server-payload handling for /seen and /quiz responses.
+    function applySeenPayload(payload) {
+      const seen = Array.isArray(payload.seen) ? payload.seen : [];
+      seen.forEach((item) => {
+        if (LEARN_MODES.has(item)) {
+          confirmedModes.add(item);
+        }
+      });
+      applyTabMarks(visitedUnion());
+      applyTracker(visitedUnion());
+      if (payload.done && payload.done.unlocked === true) {
+        serverDoneUnlocked = true;
+        applyDoneUnlocked(payload.done.label);
+      } else if (serverDoneUnlocked) {
+        /* keep unlocked; ignore stale unlocked:false */
+      } else {
+        applyLockedDoneLabel();
+      }
+    }
+
+    // Test completes only through the graded /quiz response — never /seen.
+    function applyQuizPayload(payload) {
+      if (isGuest) {
+        markModeAttempted("test");
+        return;
+      }
+      if (payload && payload.persisted === false) {
+        markModeAttempted("test");
+        return;
+      }
+      applySeenPayload(payload);
+    }
+
     function resetDestination(nextMode, prevMode) {
       if (prevMode === "recite" && nextMode !== "recite" && recite) {
         recite.reset();
       }
-      if (nextMode === "card") {
-        setFlipped(false);
+      if (nextMode === "test" && testMode) {
+        testMode.reset();
       }
       if (nextMode === "cloze" && cloze) {
         cloze.reset();
@@ -1208,25 +1520,10 @@
             saveProvisional();
             applyTabMarks(visitedUnion());
             applyTracker(visitedUnion());
-            maybeUnlockProvisionalDone();
+            maybeUnlockLocalDone();
             return;
           }
-          const seen = Array.isArray(payload.seen) ? payload.seen : [];
-          seen.forEach((item) => {
-            if (LEARN_MODES.has(item)) {
-              confirmedModes.add(item);
-            }
-          });
-          applyTabMarks(visitedUnion());
-          applyTracker(visitedUnion());
-          if (payload.done && payload.done.unlocked === true) {
-            serverDoneUnlocked = true;
-            applyDoneUnlocked(payload.done.label);
-          } else if (serverDoneUnlocked) {
-            /* keep unlocked; ignore stale unlocked:false */
-          } else {
-            applyLockedDoneLabel();
-          }
+          applySeenPayload(payload);
         })
         .catch(() => {
           inFlight.delete(mode);
@@ -1254,42 +1551,30 @@
       event.preventDefault();
       const current = learn.dataset.mode || "read";
       if (nextMode === current) {
-        if (!isGuest) {
+        // Re-clicking the open tab only re-marks auto-seen modes; gated
+        // modes wait for their completed attempt.
+        if (!isGuest && AUTO_SEEN_MODES.has(nextMode)) {
           persistSeen(nextMode);
         }
         return;
       }
       switchModeLocal(nextMode, tab);
-      if (isGuest) {
-        if (!lockedModes.has(nextMode)) {
-          guestVisitedModes.add(nextMode);
-        }
-        applyTabMarks(guestVisitedModes);
-        applyTracker(guestVisitedModes);
-        return;
+      if (AUTO_SEEN_MODES.has(nextMode)) {
+        markModeAttempted(nextMode);
       }
-      if (seenProvisional && !lockedModes.has(nextMode)) {
-        provisionalModes.add(nextMode);
-        saveProvisional();
-        applyTabMarks(visitedUnion());
-        applyTracker(visitedUnion());
-        maybeUnlockProvisionalDone();
-        return;
-      }
-      persistSeen(nextMode);
     });
 
     // Provisional boot: the server records nothing for unclaimed Articles, so
     // count the currently open mode locally and restore prior session marks.
     if (seenProvisional) {
       const bootMode = learn.dataset.mode || "read";
-      if (!lockedModes.has(bootMode)) {
+      if (!lockedModes.has(bootMode) && AUTO_SEEN_MODES.has(bootMode)) {
         provisionalModes.add(bootMode);
         saveProvisional();
       }
       applyTabMarks(visitedUnion());
       applyTracker(visitedUnion());
-      maybeUnlockProvisionalDone();
+      maybeUnlockLocalDone();
       // The server-rendered claim panel re-validates the mode gate on POST.
       const claimModes = document.querySelector("[data-claim-modes]");
       if (claimModes) {
@@ -1297,23 +1582,11 @@
       }
     }
 
-    if (card) {
-      card.addEventListener("click", () => {
-        setFlipped(card.dataset.flipped !== "true");
-      });
-      card.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          setFlipped(card.dataset.flipped !== "true");
-        }
-      });
-    }
-
     // Honor server-rendered mode (e.g. hard navigation to ?mode=…).
     // Reset interactive panels when landing on them.
     const mode = learn.dataset.mode || "read";
-    if (mode === "card") {
-      setFlipped(false);
+    if (mode === "test" && testMode) {
+      testMode.reset();
     }
     if (mode === "cloze" && cloze) {
       cloze.reset();
@@ -1898,9 +2171,12 @@
       }
       if (els.cta) {
         els.cta.textContent = "Start my " + plan.days + " days →";
-      }
-      if (els.ctaNote) {
-        els.ctaNote.hidden = true;
+        const href = els.cta.getAttribute("href");
+        if (href) {
+          const target = new URL(href, window.location.origin);
+          target.searchParams.set("d", String(plan.days));
+          els.cta.setAttribute("href", target.pathname + target.search);
+        }
       }
       if (els.billing) {
         els.billing.textContent = plan.billing_line;
@@ -1934,13 +2210,8 @@
           return;
         }
         event.preventDefault();
-        const more = root.querySelector("[data-pricing-more]");
-        if (more && more.hidden && more.contains(target)) {
-          more.hidden = false;
-          const toggle = root.querySelector("[data-pricing-more-toggle]");
-          if (toggle) {
-            toggle.setAttribute("aria-expanded", "true");
-          }
+        if (target.hidden) {
+          setMoreOpen(true);
         }
         select(target.getAttribute("data-pricing-days"));
         target.focus();
@@ -1948,19 +2219,66 @@
     });
 
     const moreToggle = root.querySelector("[data-pricing-more-toggle]");
-    const moreRail = root.querySelector("[data-pricing-more]");
-    if (moreToggle && moreRail) {
-      moreToggle.addEventListener("click", function () {
-        const open = moreRail.hidden;
-        moreRail.hidden = !open;
-        moreToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    const morePills = pills.filter(function (pill) {
+      return pill.classList.contains("is-more");
+    });
+
+    function setMoreOpen(open) {
+      morePills.forEach(function (pill) {
+        pill.hidden = !open && !pill.classList.contains("is-selected");
       });
+      if (moreToggle) {
+        moreToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        moreToggle.textContent = open ? "Fewer options" : "More options";
+      }
     }
 
-    if (els.cta && els.ctaNote) {
-      els.cta.addEventListener("click", function () {
-        // No purchase flow yet — quiet inline note, never a dead-end page.
-        els.ctaNote.hidden = false;
+    if (moreToggle) {
+      moreToggle.addEventListener("click", function () {
+        setMoreOpen(moreToggle.getAttribute("aria-expanded") !== "true");
+      });
+    }
+  }
+
+  function initSlotsWhy() {
+    const btn = document.querySelector("[data-slots-why]");
+    const body = document.querySelector("[data-slots-why-body]");
+    if (!btn || !body) {
+      return;
+    }
+    btn.addEventListener("click", function () {
+      const open = body.hidden;
+      body.hidden = !open;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.textContent = open
+        ? "Why can't I swap an Article? −"
+        : "Why can't I swap an Article? +";
+    });
+  }
+
+  function initGuestStrip() {
+    const strip = document.querySelector("[data-guest-strip]");
+    if (!strip) {
+      return;
+    }
+    const KEY = "cm-guest-strip-dismissed";
+    try {
+      if (sessionStorage.getItem(KEY) === "1") {
+        strip.hidden = true;
+        return;
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+    const dismiss = strip.querySelector("[data-guest-strip-dismiss]");
+    if (dismiss) {
+      dismiss.addEventListener("click", function () {
+        strip.hidden = true;
+        try {
+          sessionStorage.setItem(KEY, "1");
+        } catch (_e) {
+          /* ignore */
+        }
       });
     }
   }
@@ -1973,6 +2291,8 @@
     initServerAffirmation();
     initExperienceControls();
     initPricing();
+    initGuestStrip();
+    initSlotsWhy();
   }
 
   if (document.readyState === "loading") {

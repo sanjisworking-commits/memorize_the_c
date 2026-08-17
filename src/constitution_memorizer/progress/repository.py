@@ -29,8 +29,17 @@ VALID_THEMES: frozenset[str] = frozenset(("auto", "dark", "light"))
 NEWS_ARTICLES_KEY = "news_articles"
 DEFAULT_NEWS_ARTICLES = "19"
 
-LEARN_MODES: tuple[str, ...] = ("read", "cloze", "letters", "type", "recite", "card")
+LEARN_MODES: tuple[str, ...] = ("read", "cloze", "letters", "type", "recite", "test")
 LEARN_MODES_SET: frozenset[str] = frozenset(LEARN_MODES)
+
+# Canonical partition of the learn modes (this module is the single owner;
+# web/ modules and app.js mirror these — keep them in sync).
+# Auto-seen: marked complete just by opening the tab / GET.
+AUTO_SEEN_MODES: tuple[str, ...] = ("read", "letters")
+AUTO_SEEN_MODES_SET: frozenset[str] = frozenset(AUTO_SEEN_MODES)
+# Gated: require a completed in-mode attempt before they count.
+GATED_MODES: tuple[str, ...] = ("cloze", "type", "recite", "test")
+GATED_MODES_SET: frozenset[str] = frozenset(GATED_MODES)
 
 
 def _utc_now_iso() -> str:
@@ -371,6 +380,14 @@ class ProgressRepository:
             (as_user_id(user_id),),
         ).fetchall()
         return {str(r["article_number"]) for r in rows}
+
+    def claimed_articles_with_dates(self, user_id: UUID | str) -> dict[str, str]:
+        """Claimed parent Articles mapped to their claimed_at ISO timestamp."""
+        rows = self._conn.execute(
+            "SELECT article_number, claimed_at FROM user_free_articles WHERE user_id = ?",
+            (as_user_id(user_id),),
+        ).fetchall()
+        return {str(r["article_number"]): str(r["claimed_at"]) for r in rows}
 
     def is_article_claimed(self, user_id: UUID | str, article_number: str) -> bool:
         row = self._conn.execute(

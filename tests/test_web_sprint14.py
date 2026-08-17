@@ -35,7 +35,7 @@ def test_learn_enables_cloze_tab_and_panel_markup(client: TestClient):
     assert 'data-cloze-density="light"' in html
     assert 'data-cloze-density="medium"' in html
     assert 'data-cloze-density="heavy"' in html
-    assert "app.js?v=main19" in html
+    assert "app.js?v=main21" in html
 
 
 def test_cloze_mode_query_param_renders_cloze_active(client: TestClient):
@@ -60,8 +60,8 @@ def test_cloze_css_drives_panel_visibility_and_blank_styles(client: TestClient):
     assert "font-weight: 600" in text
 
 
-def test_cloze_shows_stem_for_subclause_unlike_card(client: TestClient):
-    """Design hasStem: subclause stem for Cloze, hidden only on Card."""
+def test_cloze_shows_stem_for_subclause_unlike_test(client: TestClient):
+    """Design hasStem: subclause stem for Cloze, hidden only on Test."""
     # Prefer letters so Learn opens the subclause (not Choose / whole clause).
     client.post(
         "/learn/clause-2/choose",
@@ -72,12 +72,12 @@ def test_cloze_shows_stem_for_subclause_unlike_card(client: TestClient):
     assert cloze.status_code == 200
     assert "learn-stem" in cloze.text
 
-    card = client.get("/learn/clause-2-a?mode=card")
-    assert card.status_code == 200
-    # Stem still in markup (shared), but CSS hides it for card mode.
-    assert "learn-stem" in card.text
+    test_page = client.get("/learn/clause-2-a?mode=test")
+    assert test_page.status_code == 200
+    # Stem still in markup (shared), but CSS hides it for test mode.
+    assert "learn-stem" in test_page.text
     css = client.get("/static/styles.css?v=main7").text
-    assert '.learn[data-mode="card"] .learn-stem' in css
+    assert '.learn[data-mode="test"] .learn-stem' in css
     assert "display: none" in css
 
 

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import logging
 import time
+from urllib.parse import urlencode
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
+from pydantic import BaseModel, ValidationError
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -49,7 +51,9 @@ from constitution_memorizer.utils.json_io import read_json
 logger = logging.getLogger(__name__)
 timing_logger = logging.getLogger("uvicorn.error")
 from constitution_memorizer.progress.repository import (
+    AUTO_SEEN_MODES_SET,
     LEARN_MODES,
+    LEARN_MODES_SET,
     VALID_NOTIFICATION_FREQUENCIES,
     VALID_THEMES,
 )
@@ -98,12 +102,13 @@ from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_p
 from constitution_memorizer.web.pricing import (
     DEFAULT_DAYS,
     MORE_DAYS,
-    PRIMARY_DAYS,
+    PLANS,
     billing_line,
     get_plan,
     per_day,
     plans_json,
 )
+from constitution_memorizer.web.quiz import build_quiz, grade_quiz, has_quiz
 from constitution_memorizer.web.quotes import load_quotes
 from constitution_memorizer.web.judicial_evolution import (
     get_judicial_evolution,
@@ -119,6 +124,7 @@ from constitution_memorizer.web.service import (
     done_button_state,
     due_checklist,
     earliest_upcoming_revision,
+    has_cloze_blanks,
     home_lede,
     kind_badge_label,
     learn_meta_line,
@@ -138,6 +144,25 @@ from constitution_memorizer.web.text_annotations import (
     annotations_for_unit,
     load_text_annotations,
 )
+
+def _effective_required_modes(unit, units, required_modes) -> set[str]:
+    """Entitlement-required modes minus the ones impossible for this unit.
+
+    Gated modes are never fake-completed: a unit that cannot produce a quiz
+    (or a cloze blank) simply doesn't require that mode this cycle.
+    """
+    required = set(required_modes)
+    if "test" in required and not has_quiz(unit, units):
+        required.discard("test")
+    if "cloze" in required and not has_cloze_blanks(unit.text):
+        required.discard("cloze")
+    return required
+
+
+class QuizSubmission(BaseModel):
+    cycle: int
+    answers: list[object]
+
 
 WEB_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = WEB_DIR / "templates"
@@ -699,7 +724,15 @@ def create_app(
         if unit is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
 
-        learn_mode = mode if mode in {"read", "cloze", "letters", "type", "recite", "card"} else "read"
+        if mode == "card":
+            # Compatibility alias for old bookmarks: card became test. Keep
+            # every other query parameter; only the mode key changes.
+            params = dict(request.query_params)
+            params["mode"] = "test"
+            return RedirectResponse(
+                url=f"/learn/{unit_id}?{urlencode(params)}", status_code=303
+            )
+        learn_mode = mode if mode in LEARN_MODES_SET else "read"
         is_guest_early = bool(
             app.state.multiuser_enabled
             and getattr(request.state, "current_user", None) is None
@@ -732,32 +765,47 @@ def create_app(
         learn_lock = resolve_learn_access(request, eng, target.article_number)
         locked_modes = learn_lock.locked_modes
         mode_locked = learn_mode in locked_modes
+        required_modes = _effective_required_modes(
+            target, eng.units, learn_lock.required_modes
+        )
         # Guests may try modes without writing progress.
         if is_guest:
-            seen: set[str] = set() if mode_locked else {learn_mode}
+            # Only auto-seen modes count on open; gated modes are tracked
+            # client-side once their gate fires.
+            seen: set[str] = (
+                {learn_mode}
+                if (not mode_locked and learn_mode in AUTO_SEEN_MODES_SET)
+                else set()
+            )
             progress = None
             done_count, chain_len = 0, 1
             pct = 0
-            # Guests can click Done/Again to open the sign-in prompt.
-            done_unlocked = True
-            done_label = "Mark as mastered"
+            # Done unlocks client-side once the effective open modes are
+            # complete; clicking it then opens the sign-in prompt.
+            done_state = done_button_state(target, seen, required=required_modes)
+            done_unlocked = done_state["unlocked"]
+            done_label = done_state["label"]
         else:
             # Locked modes are never recorded as seen; unclaimed Articles keep
             # mode visits provisional (client-tracked) until claimed on Done.
-            if mode_locked or not learn_lock.can_persist_modes_seen:
+            # Gated modes (cloze/type/recite/test) are never marked by a GET —
+            # they report their completed attempt via /seen or /quiz.
+            if (
+                mode_locked
+                or not learn_lock.can_persist_modes_seen
+                or learn_mode not in AUTO_SEEN_MODES_SET
+            ):
                 seen = eng.modes_seen(target.id)
             else:
                 seen = eng.mark_mode_seen(target.id, learn_mode)
             progress = eng.get_progress(target.id)
             done_count, _position, chain_len = session_progress(eng, target)
             pct = int(round(100 * done_count / chain_len)) if chain_len else 0
-            done_state = done_button_state(
-                target, seen, required=set(learn_lock.required_modes)
-            )
+            done_state = done_button_state(target, seen, required=required_modes)
             done_unlocked = done_state["unlocked"]
             done_label = done_state["label"]
         modes_payload = _modes_payload(
-            target.id, seen, required_count=len(learn_lock.required_modes)
+            target.id, seen, required_count=len(required_modes)
         )
 
         started = time.perf_counter()
@@ -799,6 +847,17 @@ def create_app(
                     }
                 if wants_gate and learn_gate_access.cap_reached:
                     subscription_gate = True
+
+        # Test-mode quiz: seeded on the revision cycle so every Done rotates
+        # the questions; answers never leave the server.
+        quiz_cycle = progress.times_completed if progress is not None else 0
+        quiz_available = has_quiz(target, eng.units)
+        quiz_questions = (
+            [q.public_dict() for q in build_quiz(target, eng.units, cycle=quiz_cycle)]
+            if quiz_available
+            else []
+        )
+        cloze_available = has_cloze_blanks(target.text)
 
         done_id = request.query_params.get("done")
         mode_suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
@@ -849,7 +908,11 @@ def create_app(
                 "seen_provisional": (
                     not is_guest and not learn_lock.can_persist_modes_seen
                 ),
-                "required_modes": learn_lock.required_modes,
+                "required_modes": [m for m in LEARN_MODES if m in required_modes],
+                "quiz_cycle": quiz_cycle,
+                "quiz_available": quiz_available,
+                "quiz_questions": quiz_questions,
+                "cloze_available": cloze_available,
                 "read_hint": (
                     "Bare Act wording, verbatim. Read it twice, then pick a recall mode."
                 ),
@@ -870,6 +933,16 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
         if mode not in LEARN_MODES:
             raise HTTPException(status_code=400, detail="Invalid learn mode")
+        # Trust model: for cloze/type/recite the client reports a completed
+        # attempt and the server takes its word (no leaderboard, nothing to
+        # win by cheating; recall_align.py exists if server-side verification
+        # is ever wanted). Test is the exception — it is server-graded, so
+        # its completion may only arrive through POST /learn/{id}/quiz.
+        if mode == "test":
+            return JSONResponse(
+                {"ok": False, "error": "quiz_required", "mode": mode},
+                status_code=400,
+            )
         # Locked modes must never be recorded as seen (UI lock is not trusted).
         access = resolve_learn_access(request, eng, unit.article_number)
         if access.is_locked(mode):
@@ -882,13 +955,91 @@ def create_app(
             # (client-tracked) until the Article is claimed on Done — they
             # never quietly become permanent account progress.
             return JSONResponse({"ok": True, "persisted": False, "mode": mode})
+        required = _effective_required_modes(unit, eng.units, access.required_modes)
         seen = eng.mark_mode_seen(unit_id, mode)
-        payload = _modes_payload(
-            unit_id, seen, required_count=len(access.required_modes)
+        payload = _modes_payload(unit_id, seen, required_count=len(required))
+        payload["done"] = done_button_state(unit, seen, required=required)
+        payload["persisted"] = True
+        return JSONResponse(payload)
+
+    @app.post("/learn/{unit_id}/quiz")
+    async def learn_quiz(request: Request, unit_id: str) -> JSONResponse:
+        """Grade a Test-mode submission; the only way Test gets marked seen."""
+        eng = _engine()
+        unit = eng.get_unit(unit_id)
+        if unit is None:
+            raise HTTPException(status_code=404, detail="Learning unit not found")
+        if not has_quiz(unit, eng.units):
+            return JSONResponse(
+                {"ok": False, "error": "no_quiz"}, status_code=400
+            )
+        try:
+            submission = QuizSubmission.model_validate(await request.json())
+        except (ValidationError, ValueError):
+            return JSONResponse(
+                {"ok": False, "error": "answers_invalid"}, status_code=400
+            )
+
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
         )
-        payload["done"] = done_button_state(
-            unit, seen, required=set(access.required_modes)
-        )
+        # Stale-cycle protection: a Done in another tab advances the cycle and
+        # clears unit_modes_seen — an old tab's submission must not complete
+        # the new cycle. The server's own cycle is authoritative.
+        progress = None if is_guest else eng.get_progress(unit_id)
+        current_cycle = progress.times_completed if progress is not None else 0
+        if submission.cycle != current_cycle:
+            return JSONResponse(
+                {"ok": False, "error": "stale_quiz", "current_cycle": current_cycle},
+                status_code=409,
+            )
+
+        questions = build_quiz(unit, eng.units, cycle=current_cycle)
+        answers = submission.answers
+        if len(answers) != len(questions) or any(
+            a is None or (isinstance(a, str) and not a.strip()) for a in answers
+        ):
+            return JSONResponse(
+                {"ok": False, "error": "answers_incomplete"}, status_code=400
+            )
+        for question, answer in zip(questions, answers):
+            if question.kind == "mcq":
+                bad = (
+                    not isinstance(answer, int)
+                    or isinstance(answer, bool)
+                    or not (0 <= answer < len(question.options))
+                )
+            else:
+                bad = not isinstance(answer, str)
+            if bad:
+                return JSONResponse(
+                    {"ok": False, "error": "answers_invalid"}, status_code=400
+                )
+
+        graded = grade_quiz(questions, answers)
+        payload: dict[str, object] = {
+            "ok": True,
+            "score": {"correct": graded["correct"], "total": graded["total"]},
+            "results": graded["results"],
+        }
+        if is_guest:
+            payload["persisted"] = False
+            return JSONResponse(payload)
+        access = resolve_learn_access(request, eng, unit.article_number)
+        if access.is_locked("test"):  # defensive: test is an open mode today
+            return JSONResponse(
+                {"ok": False, "error": "mode_locked", "mode": "test"},
+                status_code=403,
+            )
+        if not access.can_persist_modes_seen:
+            payload["persisted"] = False
+            return JSONResponse(payload)
+        required = _effective_required_modes(unit, eng.units, access.required_modes)
+        # Idempotent upsert — resubmitting the same cycle is harmless.
+        seen = eng.mark_mode_seen(unit_id, "test")
+        payload.update(_modes_payload(unit_id, seen, required_count=len(required)))
+        payload["done"] = done_button_state(unit, seen, required=required)
         payload["persisted"] = True
         return JSONResponse(payload)
 
@@ -937,8 +1088,11 @@ def create_app(
                     for m in str(form.get("modes") or "").split(",")
                     if m.strip() in LEARN_MODES
                 }
+                claim_required = _effective_required_modes(
+                    unit, eng.units, access.required_modes
+                )
                 modes_ok = (
-                    set(access.required_modes) <= provisional_modes
+                    claim_required <= provisional_modes
                     or eng.modes_complete(unit_id)
                 )
                 if not modes_ok:
@@ -988,8 +1142,16 @@ def create_app(
                 return _redirect_after_learn(
                     eng, result.next_unit_id, done_unit_id=unit_id
                 )
+        done_access = resolve_learn_access(request, eng, unit.article_number)
+        done_required = _effective_required_modes(
+            unit, eng.units, done_access.required_modes
+        )
         try:
-            result = eng.mark_done(unit_id, as_of=date.today())
+            result = eng.mark_done(
+                unit_id,
+                as_of=date.today(),
+                required_modes=frozenset(done_required),
+            )
         except ModesIncompleteError:
             if wants_json(request):
                 return JSONResponse(
@@ -1099,6 +1261,8 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
         eng.delete_progress(unit_id)
         eng.clear_modes_seen(unit_id)
+        if mode == "card":  # compatibility alias for the retired mode key
+            mode = "test"
         learn_mode = mode if mode in LEARN_MODES else "read"
         # Re-seed the currently open mode on the next GET; redirect preserves mode.
         suffix = f"?mode={learn_mode}" if learn_mode != "read" else ""
@@ -1120,6 +1284,8 @@ def create_app(
         sections = browse_parts_sections(eng, app.state.reviewed)
         record_request_timing("browse_build", started)
         parts_source = "reviewed" if app.state.reviewed is not None else "units-seed"
+        access = access_summary(request, eng)
+        claimed = set(access.claimed_articles) if access.enabled else set()
         started = time.perf_counter()
         response = templates.TemplateResponse(
             request,
@@ -1129,6 +1295,8 @@ def create_app(
                 "has_reviewed": app.state.reviewed is not None,
                 "parts_source": parts_source,
                 "present_marks": present_browse_marks(sections),
+                "access": access,
+                "claimed_articles": claimed,
             },
         )
         record_request_timing("template", started)
@@ -1453,14 +1621,70 @@ def create_app(
             request,
             "pricing.html",
             {
-                "primary_plans": [get_plan(days) for days in PRIMARY_DAYS],
-                "more_plans": [get_plan(days) for days in MORE_DAYS],
+                "all_plans": PLANS,
+                "more_days": list(MORE_DAYS),
                 "selected": selected,
                 "selected_per_day": f"{per_day(selected):.2f}",
                 "selected_billing": billing_line(selected),
                 "pricing_data": plans_json(),
                 "free_href": "/login" if is_guest else "/browse",
+                "cta_href": (
+                    "/login" if is_guest else "/subscribe/confirm"
+                ),
             },
+        )
+
+    @app.get("/subscribe/confirm", response_class=HTMLResponse)
+    async def subscribe_confirm(
+        request: Request,
+        d: str | None = Query(default=None),
+    ) -> Response:
+        """Purchase step 1 — confirm the plan before the payment handoff."""
+        if not app.state.pricing_enabled:
+            raise HTTPException(status_code=404, detail="Not found")
+        plan = get_plan(d if d is not None else DEFAULT_DAYS)
+        user = getattr(request.state, "current_user", None)
+        if app.state.multiuser_enabled and user is None:
+            return RedirectResponse(
+                url=f"/login?next=/pricing%3Fd%3D{plan.days}", status_code=303
+            )
+        start = date.today()
+        end = start + timedelta(days=plan.days)
+        account = None
+        if user is not None:
+            account = user.email or user.phone or user.display_name
+        return templates.TemplateResponse(
+            request,
+            "purchase_confirm.html",
+            {
+                "plan": plan,
+                "plan_billing": billing_line(plan),
+                "period_line": (
+                    f"{start.day} {start.strftime('%b %Y')} → "
+                    f"{end.day} {end.strftime('%b %Y')}"
+                ),
+                "account_label": account,
+            },
+        )
+
+    @app.get("/subscribe/pay", response_class=HTMLResponse)
+    async def subscribe_pay(
+        request: Request,
+        d: str | None = Query(default=None),
+    ) -> Response:
+        """Purchase step 2 — provider handoff framing (no provider wired yet)."""
+        if not app.state.pricing_enabled:
+            raise HTTPException(status_code=404, detail="Not found")
+        plan = get_plan(d if d is not None else DEFAULT_DAYS)
+        user = getattr(request.state, "current_user", None)
+        if app.state.multiuser_enabled and user is None:
+            return RedirectResponse(
+                url=f"/login?next=/pricing%3Fd%3D{plan.days}", status_code=303
+            )
+        return templates.TemplateResponse(
+            request,
+            "purchase_result.html",
+            {"plan": plan, "stage": "pay"},
         )
 
     @app.get("/settings", response_class=HTMLResponse)

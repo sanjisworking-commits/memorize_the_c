@@ -37,7 +37,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=main17">
+  <link rel="stylesheet" href="/static/styles.css?v=main19">
   <link rel="stylesheet" href="/static/visual-explainer.css?v=ve1">
   <link rel="icon" href="/static/main_logo.png" type="image/png">
 </head>
@@ -191,9 +191,9 @@
   {% include "visual_explainer.html" %}
 
   <script src="/static/recall_align.js?v=sprint22" defer></script>
-  <script src="/static/app.js?v=main19" defer></script>
+  <script src="/static/app.js?v=main21" defer></script>
   <script src="/static/visual-explainer.js?v=ve2" defer></script>
-  <script src="/static/auth.js?v=main4" defer></script>
+  <script src="/static/auth.js?v=main5" defer></script>
   {% if multiuser_enabled|default(false) or (current_user and path.startswith('/browse/article/')) %}
   {% if current_user and report_turnstile_enabled|default(false) %}
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>

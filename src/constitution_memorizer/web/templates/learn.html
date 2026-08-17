@@ -83,7 +83,7 @@
   </nav>
   {% endif %}
 
-  {# Six recall modes — always render explicitly (Read → Card). #}
+  {# Six recall modes — always render explicitly (Read → Test). #}
   {% set seen = modes_seen if modes_seen is defined else [] %}
   <div class="mode-tabs" role="tablist" aria-label="Recall modes">
     <a class="mode-tab{% if learn_mode == 'read' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'read' else 'false' }}" data-learn-mode="read" href="/learn/{{ unit.id }}?mode=read">Read{% if 'read' in seen %} ✓{% endif %}</a>
@@ -91,7 +91,7 @@
     <a class="mode-tab{% if learn_mode == 'letters' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'letters' else 'false' }}" data-learn-mode="letters" href="/learn/{{ unit.id }}?mode=letters">Letters{% if 'letters' in seen %} ✓{% endif %}</a>
     <a class="mode-tab{% if learn_mode == 'type' %} is-active{% endif %}{% if 'type' in locked_modes|default(()) %} is-locked{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'type' else 'false' }}" data-learn-mode="type" href="/learn/{{ unit.id }}?mode=type"{% if 'type' in locked_modes|default(()) %} aria-label="Type — part of full Recall access"{% endif %}>Type{% if 'type' in locked_modes|default(()) %} 🔒{% elif 'type' in seen %} ✓{% endif %}</a>
     <a class="mode-tab{% if learn_mode == 'recite' %} is-active{% endif %}{% if 'recite' in locked_modes|default(()) %} is-locked{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'recite' else 'false' }}" data-learn-mode="recite" href="/learn/{{ unit.id }}?mode=recite"{% if 'recite' in locked_modes|default(()) %} aria-label="Recite — part of full Recall access"{% endif %}>Recite{% if 'recite' in locked_modes|default(()) %} 🔒{% elif 'recite' in seen %} ✓{% endif %}</a>
-    <a class="mode-tab{% if learn_mode == 'card' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'card' else 'false' }}" data-learn-mode="card" href="/learn/{{ unit.id }}?mode=card">Card{% if 'card' in seen %} ✓{% endif %}</a>
+    <a class="mode-tab{% if learn_mode == 'test' %} is-active{% endif %}" role="tab" aria-selected="{{ 'true' if learn_mode == 'test' else 'false' }}" data-learn-mode="test" href="/learn/{{ unit.id }}?mode=test">Test{% if 'test' in seen %} ✓{% endif %}</a>
   </div>
   {% if modes_seen is not defined %}
   <p class="methods-tracker" id="methods-tracker" data-count="0">
@@ -134,6 +134,9 @@
       <button type="button" class="learn-cloze-density-btn is-active" data-cloze-density="medium" aria-pressed="true">Medium</button>
       <button type="button" class="learn-cloze-density-btn" data-cloze-density="heavy" aria-pressed="false">Heavy</button>
     </div>
+    {% if not cloze_available|default(true) %}
+    <p class="learn-hint" data-cloze-unavailable>No cloze exercise available for this text.</p>
+    {% endif %}
     <div class="learn-cloze-text" aria-live="polite"></div>
     <div class="learn-cloze-controls">
       <button type="button" class="learn-cloze-btn" data-cloze-action="reveal-all">Reveal all</button>
@@ -188,6 +191,7 @@
     ></textarea>
     <div class="learn-type-diff" data-type-diff aria-live="polite"></div>
     <p class="learn-type-stats" data-type-stats>0 / 0 words · 0 correct</p>
+    <button type="button" class="learn-type-check" data-type-check>Check my attempt</button>
     <noscript>
       <article class="unit-text learn-read-text">{{ unit.text }}</article>
       <p class="learn-hint">Enable JavaScript for typed recall checking.</p>
@@ -235,32 +239,61 @@
   </div>
   {% endif %}
 
-  <div class="learn-body learn-panel-card" data-learn-panel="card">
-    <div
-      class="learn-card"
-      role="button"
-      tabindex="0"
-      aria-label="Flip flashcard"
-      data-flipped="false"
-    >
-      <div class="learn-card-face learn-card-front">
-        <p class="learn-card-kind">{{ kind_badge }}</p>
-        <p class="learn-card-title">{{ unit.display_title }}</p>
-        {% if unit.title %}<p class="learn-card-sub">{{ unit.title }}</p>{% endif %}
-        <p class="learn-card-prompt">Recite it, then tap to check</p>
-      </div>
-      <div class="learn-card-face learn-card-back">
-        <p class="learn-card-text">{% if has_text_annotations %}{{ annotated_text }}{% else %}{{ unit.text }}{% endif %}</p>
-        <p class="learn-card-prompt">Tap to flip back</p>
-      </div>
-    </div>
+  <div class="learn-body learn-panel-test" data-learn-panel="test" data-quiz-cycle="{{ quiz_cycle|default(0) }}">
+    {% if quiz_available|default(false) and quiz_questions %}
+    <p class="learn-test-lede">Quick check — {{ quiz_questions|length }} question{{ 's' if quiz_questions|length != 1 }} on {{ unit.display_title }}. New questions each revision.</p>
+    <form data-quiz-form>
+      {% for q in quiz_questions %}
+      {% set qi = loop.index0 %}
+      <fieldset class="learn-test-q" data-quiz-q data-kind="{{ q.kind }}">
+        <legend class="learn-test-legend">{{ loop.index }}. {{ q.prompt }}</legend>
+        {% if q.kind == "mcq" %}
+          {% for opt in q.options %}
+          <label class="learn-test-opt">
+            <input type="radio" name="quiz-q{{ qi }}" value="{{ loop.index0 }}">
+            <span>{{ opt }}</span>
+          </label>
+          {% endfor %}
+        {% else %}
+          <label class="visually-hidden" for="quiz-fill-{{ qi }}">Missing word</label>
+          <input
+            type="text"
+            id="quiz-fill-{{ qi }}"
+            class="learn-test-fill"
+            data-quiz-fill
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="Missing word…"
+          >
+        {% endif %}
+        <p class="learn-test-q-result" data-quiz-result hidden></p>
+      </fieldset>
+      {% endfor %}
+      <button type="submit" class="btn learn-test-submit" data-quiz-submit>Check answers</button>
+    </form>
+    <p class="learn-test-score" data-quiz-score hidden aria-live="polite"></p>
+    <noscript>
+      <p class="learn-hint">Enable JavaScript to take the quiz.</p>
+    </noscript>
+    {% else %}
+    <p class="learn-hint" data-quiz-unavailable>Nothing to quiz here yet — this text is too short for questions.</p>
+    {% endif %}
   </div>
 
   <div class="learn-footer">
     <div class="learn-actions">
       {% if is_guest|default(false) %}
-      <button type="button" class="btn btn-accent" id="learn-done-btn" data-guest-action="mastered">{{ done_label }}</button>
+      <button
+        type="button"
+        class="btn {% if done_unlocked %}btn-accent{% else %}btn-done-locked{% endif %}"
+        id="learn-done-btn"
+        data-guest-action="mastered"
+        {% if not done_unlocked %}disabled aria-disabled="true"{% else %}aria-disabled="false"{% endif %}
+      >{{ done_label }}</button>
       <button type="button" class="btn btn-ghost" data-guest-action="again">Again tomorrow</button>
+      <span class="learn-guest-note muted" data-guest-done-note hidden role="status">Not saved — sign in to keep progress.</span>
       {% else %}
       <form class="learn-action-done" method="post" action="/learn/{{ unit.id }}/done">
         <button

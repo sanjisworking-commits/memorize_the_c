@@ -7322,3 +7322,101 @@ body.is-admin-previewing { padding-top: 40px; }
   font-size: 13px;
   color: var(--faint);
 }
+
+/* ============================================================ */
+/* Settings — Revision calendar (Google)                         */
+/* ============================================================ */
+
+.gcal-status-row {
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  padding: 16px 18px;
+  margin: 0 0 16px;
+}
+
+.gcal-status {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.gcal-badge {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border: 1px solid var(--browse-due);
+  color: var(--browse-due);
+  margin-left: 8px;
+}
+
+.gcal-badge.is-error {
+  border-color: var(--browse-news);
+  color: var(--browse-news);
+}
+
+.gcal-calendar-name {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.gcal-error {
+  margin: 0 0 14px;
+  color: var(--destructive);
+  font-size: 14px;
+}
+
+.gcal-pref-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0 0 14px;
+}
+
+.gcal-pref {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.gcal-pref-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gcal-pref input,
+.gcal-pref select {
+  border: 1px solid var(--control-border);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  padding: 8px 10px;
+}
+
+.gcal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.gcal-inline-form {
+  display: inline-block;
+  margin: 6px 0 0;
+}
+
+.gcal-connect-row {
+  border: 1px dashed var(--control-border);
+  padding: 16px 18px;
+}
+
+.gcal-connect-row .btn {
+  margin-top: 10px;
+}

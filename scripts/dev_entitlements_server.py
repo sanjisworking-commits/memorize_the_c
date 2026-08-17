@@ -39,18 +39,21 @@ def _settings(port: int = 8898):
 
     from constitution_memorizer.multiuser.settings import MultiUserSettings
 
-    # Razorpay test keys come from the developer's own .env (never hardcoded
-    # here) so the checkout flow can be exercised end-to-end when present.
-    razorpay_id, razorpay_secret = "", ""
+    # Razorpay + Google Calendar keys come from the developer's own .env
+    # (never hardcoded here) so both flows can be exercised end-to-end.
+    env_values: dict[str, str] = {}
     env_path = ROOT / ".env"
     if env_path.exists():
         for line in env_path.read_text().splitlines():
-            if line.startswith("RAZORPAY_KEY_ID="):
-                razorpay_id = line.split("=", 1)[1].strip()
-            elif line.startswith("RAZORPAY_KEY_SECRET="):
-                razorpay_secret = line.split("=", 1)[1].strip()
-    razorpay_id = os.environ.get("RAZORPAY_KEY_ID", razorpay_id)
-    razorpay_secret = os.environ.get("RAZORPAY_KEY_SECRET", razorpay_secret)
+            if "=" in line and not line.lstrip().startswith("#"):
+                key, _, value = line.partition("=")
+                env_values[key.strip()] = value.strip()
+
+    def _env(key: str) -> str:
+        return os.environ.get(key, env_values.get(key, ""))
+
+    razorpay_id = _env("RAZORPAY_KEY_ID")
+    razorpay_secret = _env("RAZORPAY_KEY_SECRET")
 
     return MultiUserSettings(
         _env_file=None,
@@ -68,6 +71,9 @@ def _settings(port: int = 8898):
         PRICING_ENABLED="true",
         RAZORPAY_KEY_ID=razorpay_id,
         RAZORPAY_KEY_SECRET=razorpay_secret,
+        GCAL_CLIENT_ID=_env("GCAL_CLIENT_ID"),
+        GCAL_CLIENT_SECRET=_env("GCAL_CLIENT_SECRET"),
+        GCAL_TOKEN_KEY=_env("GCAL_TOKEN_KEY"),
     )
 
 

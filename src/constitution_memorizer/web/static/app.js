@@ -2428,6 +2428,21 @@
     learn.insertBefore(band, learn.firstChild);
   }
 
+  function initGcalTimezone() {
+    const field = document.querySelector("[data-gcal-timezone]");
+    if (!field || field.value.trim()) {
+      return;
+    }
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz) {
+        field.value = tz;
+      }
+    } catch (_e) {
+      /* leave blank — server validates */
+    }
+  }
+
   function initGuestStrip() {
     const strip = document.querySelector("[data-guest-strip]");
     if (!strip) {
@@ -2467,6 +2482,7 @@
     initSlotsWhy();
     initCheckout();
     initFirstPaidSession();
+    initGcalTimezone();
   }
 
   if (document.readyState === "loading") {

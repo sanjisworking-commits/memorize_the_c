@@ -509,7 +509,15 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         eng = request.app.state.engine.for_user(user.id)
         if action == "delete_account":
             # Soft delete for this phase: clear personal data + session.
+            # Orchestration lives HERE, not in the progress domain — the
+            # revision engine stays ignorant of Google Calendar.
             eng.reset_all_personal_data()
+            calendar_store = getattr(request.app.state, "calendar_store", None)
+            if calendar_store is not None:
+                try:
+                    calendar_store.delete_user_data(user.id)
+                except Exception:  # noqa: BLE001 — deletion must not 500
+                    logger.exception("calendar cleanup failed during account delete")
             session_id = request.cookies.get(SESSION_COOKIE_NAME)
             if session_id:
                 request.app.state.session_store.delete(session_id)

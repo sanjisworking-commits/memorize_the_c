@@ -130,6 +130,21 @@ class MultiUserSettings(BaseSettings):
     razorpay_key_id: str = Field(default="", alias="RAZORPAY_KEY_ID")
     razorpay_key_secret: str = Field(default="", alias="RAZORPAY_KEY_SECRET")
 
+    # Google Calendar integration. A DEDICATED OAuth client (never the
+    # Supabase sign-in client — the Calendar grant must be independently
+    # revocable). GCAL_TOKEN_KEY is the Fernet key sealing refresh tokens at
+    # rest; all three present = the feature exists, any missing = the
+    # Revision-calendar settings section is hidden and routes 404.
+    gcal_client_id: str = Field(default="", alias="GCAL_CLIENT_ID")
+    gcal_client_secret: str = Field(default="", alias="GCAL_CLIENT_SECRET")
+    gcal_token_key: str = Field(default="", alias="GCAL_TOKEN_KEY")
+
+    @property
+    def gcal_configured(self) -> bool:
+        return bool(
+            self.gcal_client_id and self.gcal_client_secret and self.gcal_token_key
+        )
+
     @field_validator(
         "auth_google_enabled",
         "auth_phone_enabled",

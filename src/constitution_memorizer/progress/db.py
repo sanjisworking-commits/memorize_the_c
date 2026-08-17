@@ -120,6 +120,31 @@ CREATE TABLE IF NOT EXISTS billing_orders (
 
 CREATE INDEX IF NOT EXISTS idx_billing_orders_user ON billing_orders(user_id);
 
+CREATE TABLE IF NOT EXISTS google_calendar_connections (
+    user_id TEXT PRIMARY KEY,
+    google_calendar_id TEXT,
+    refresh_token_sealed TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (sync_status IN ('ok', 'error', 'pending', 'disconnected')),
+    sync_pending INTEGER NOT NULL DEFAULT 0,
+    sync_requested_at TEXT,
+    last_synced_at TEXT,
+    last_error TEXT,
+    connected_at TEXT,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS google_calendar_events (
+    user_id TEXT NOT NULL,
+    local_date TEXT NOT NULL,
+    google_event_id TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    last_synced_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, local_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_gcal_events_user ON google_calendar_events(user_id);
+
 CREATE TABLE IF NOT EXISTS admin_audit_log (
     id TEXT PRIMARY KEY,
     admin_user_id TEXT NOT NULL,

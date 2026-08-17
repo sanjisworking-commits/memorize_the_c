@@ -4,11 +4,18 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
 
 logger = logging.getLogger(__name__)
+
+# One-shot strict migration for the gated-completion model: rows written for
+# these modes under the old visit-to-check model are unearned, so they are
+# deleted at rollout ('card' is retired outright, never renamed to 'test').
+_GATED_MODES_MARKER_KEY = "gated_modes_invalidated_v1"
+_LEGACY_GATED_MODES = ("cloze", "type", "recite", "card")
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS learning_unit_progress (
@@ -55,6 +62,13 @@ CREATE TABLE IF NOT EXISTS unit_modes_seen (
     mode TEXT NOT NULL,
     seen_at TEXT NOT NULL,
     PRIMARY KEY (user_id, learning_unit_id, mode)
+);
+
+CREATE TABLE IF NOT EXISTS user_free_articles (
+    user_id TEXT NOT NULL,
+    article_number TEXT NOT NULL,
+    claimed_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, article_number)
 );
 
 CREATE TABLE IF NOT EXISTS user_profile (
@@ -268,7 +282,42 @@ def _migrate_legacy(conn: sqlite3.Connection) -> None:
     for name in _LEGACY_TABLES:
         conn.execute(f"DROP TABLE IF EXISTS {name}_legacy")
     conn.execute("PRAGMA foreign_keys = ON")
+    # Must run before this function's own commit — init_db returns right
+    # after _migrate_legacy, so a later call would be left uncommitted.
+    _invalidate_legacy_gated_modes(conn)
     conn.commit()
+
+
+def _invalidate_legacy_gated_modes(conn: sqlite3.Connection) -> None:
+    """Delete pre-gating cloze/type/recite/card marks (idempotent, one-shot).
+
+    unit_modes_seen is current-cycle state, so this only touches cycles in
+    progress at rollout; a marker row keeps reruns from wiping marks earned
+    under the new gates. Postgres gets the same DELETE via alembic.
+    """
+    marker = conn.execute(
+        "SELECT 1 FROM app_settings WHERE user_id = ? AND key = ?",
+        (str(LOCAL_USER_ID), _GATED_MODES_MARKER_KEY),
+    ).fetchone()
+    if marker is not None:
+        return
+    placeholders = ", ".join("?" for _ in _LEGACY_GATED_MODES)
+    conn.execute(
+        f"DELETE FROM unit_modes_seen WHERE mode IN ({placeholders})",
+        _LEGACY_GATED_MODES,
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO app_settings (user_id, key, value, updated_at)
+        VALUES (?, ?, '1', ?)
+        """,
+        (
+            str(LOCAL_USER_ID),
+            _GATED_MODES_MARKER_KEY,
+            datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        ),
+    )
+    logger.info("Invalidated legacy gated-mode seen rows (strict migration)")
 
 
 def _rebuild_unit_modes_seen(conn: sqlite3.Connection) -> None:
@@ -386,6 +435,7 @@ def init_db(conn: sqlite3.Connection) -> None:
     try:
         _repair_partial_legacy(conn)
         conn.executescript(SCHEMA_SQL)
+        _invalidate_legacy_gated_modes(conn)
     finally:
         conn.execute("PRAGMA foreign_keys = ON")
     conn.commit()

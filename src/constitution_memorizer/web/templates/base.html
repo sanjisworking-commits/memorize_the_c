@@ -37,7 +37,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=main16">
+  <link rel="stylesheet" href="/static/styles.css?v=main19">
   <link rel="stylesheet" href="/static/visual-explainer.css?v=ve1">
   <link rel="icon" href="/static/main_logo.png" type="image/png">
 </head>
@@ -65,6 +65,9 @@
             {% endif %}
           </a>
           <a href="/progress" class="nav-link{% if path.startswith('/progress') %} is-active{% endif %}">Progress</a>
+          {% if pricing_enabled|default(false) %}
+          <a href="/pricing" class="nav-link{% if path.startswith('/pricing') %} is-active{% endif %}">Pricing</a>
+          {% endif %}
           <div class="account-menu" data-account-menu>
             {% set label = current_user.display_name or current_user.email or current_user.phone or 'Account' %}
             {% set initials = (label[:1])|upper %}
@@ -113,6 +116,9 @@
           <a href="/browse" class="nav-link{% if path.startswith('/browse') %} is-active{% endif %}">Browse</a>
           <a href="/search" class="nav-link{% if path.startswith('/search') %} is-active{% endif %}">Search</a>
           <a href="/learn" class="nav-link{% if path.startswith('/learn') %} is-active{% endif %}">Learn</a>
+          {% if pricing_enabled|default(false) %}
+          <a href="/pricing" class="nav-link{% if path.startswith('/pricing') %} is-active{% endif %}">Pricing</a>
+          {% endif %}
           <span class="guest-pill" title="Learning as guest">
             <span class="guest-pill-dot" aria-hidden="true"></span>
             Learning as guest
@@ -185,9 +191,9 @@
   {% include "visual_explainer.html" %}
 
   <script src="/static/recall_align.js?v=sprint22" defer></script>
-  <script src="/static/app.js?v=main18" defer></script>
+  <script src="/static/app.js?v=main21" defer></script>
   <script src="/static/visual-explainer.js?v=ve2" defer></script>
-  <script src="/static/auth.js?v=main4" defer></script>
+  <script src="/static/auth.js?v=main5" defer></script>
   {% if multiuser_enabled|default(false) or (current_user and path.startswith('/browse/article/')) %}
   {% if current_user and report_turnstile_enabled|default(false) %}
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>

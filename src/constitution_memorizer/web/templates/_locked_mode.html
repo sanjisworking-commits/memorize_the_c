@@ -1,0 +1,28 @@
+{# Restrained locked-mode notice for subscriber-only Learn modes (Type/Recite).
+   Expects: unit, lock_reason ("guest" | "cap"), learn_mode context.
+   Guests are sent to sign-in and returned to this same Article + mode —
+   learn_access() then decides (slot free → mode opens; 3/3 → gate). #}
+<div class="locked-mode" role="status">
+  <p class="locked-mode-title">Part of full Recall access</p>
+  {% if lock_reason == 'guest' %}
+  <p class="locked-mode-body">
+    Typed and spoken recall are part of full Recall access.
+    Sign in to use your Free Articles — your first 3 Articles, all six methods,
+    with progress and scheduled revisions that stay yours permanently.
+  </p>
+  <div class="locked-mode-actions">
+    <a class="btn" href="/login?next={{ ('/learn/' ~ unit.id ~ '?mode=' ~ learn_mode) | urlencode }}&reason=default">Sign in to use your Free Articles</a>
+  </div>
+  {% else %}
+  <p class="locked-mode-body">
+    Typed and spoken recall stay available on your 3 Free Articles.
+    This Article isn’t one of them — a Recall subscription unlocks every Article.
+  </p>
+  <div class="locked-mode-actions">
+    {% if pricing_enabled|default(false) %}
+    <a class="btn" href="/pricing">Unlock every Article →</a>
+    {% endif %}
+    <a class="btn btn-ghost" href="/profile">See your Free Articles</a>
+  </div>
+  {% endif %}
+</div>

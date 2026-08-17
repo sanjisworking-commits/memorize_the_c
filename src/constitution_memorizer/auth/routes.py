@@ -31,6 +31,7 @@ from constitution_memorizer.auth.sessions import (
     new_csrf_token,
 )
 from constitution_memorizer.web.completion import build_completion, caught_up_quote
+from constitution_memorizer.web.entitlements import access_summary, subscription_status
 from constitution_memorizer.web.request_context import record_request_timing
 
 logger = logging.getLogger(__name__)
@@ -400,6 +401,10 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
             record_request_timing("dashboard_build", started)
             ctx["user"] = user
             ctx["dashboard_state"] = "ok"
+            ctx["access"] = access_summary(request, eng)
+            # Lifecycle surfaces (design 04/07): only expiring-soon and lapsed
+            # may appear outside Profile. Dormant while billing returns None.
+            ctx["subscription"] = subscription_status(request)
             done_id = request.query_params.get("done")
             started = time.perf_counter()
             ctx["completion"] = build_completion(
@@ -463,14 +468,23 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         user = getattr(request.state, "current_user", None)
         if user is None:
             return signin_redirect(next_url="/profile", reason="default")
+        from constitution_memorizer.web.service import free_article_slots
+
         eng = request.app.state.engine.for_user(user.id)
         profile = eng.repo.get_profile(user.id) or {}
+        access = access_summary(request, eng)
+        slots = (
+            free_article_slots(eng) if access.enabled and access.is_free else []
+        )
         return templates.TemplateResponse(
             request,
             "profile.html",
             {
                 "user": user,
                 "profile": profile,
+                "access": access,
+                "free_slots": slots,
+                "subscription": subscription_status(request),
                 "display_label": profile.get("display_name")
                 or user.display_name
                 or (mask_phone(user.phone) if user.phone else user.email or "Learner"),

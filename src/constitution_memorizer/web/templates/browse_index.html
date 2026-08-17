@@ -38,10 +38,23 @@
     {% if cards %}
     <div class="browse-article-grid">
       {% for card in cards %}
+      {# Entitlement markers (design 02): saved cards get an ink border +
+         teal label; at the cap, unsaved cards read "Preview only" and dim,
+         but stay fully clickable — the boundary is on saving, not reading. #}
+      {% set marker_state = '' %}
+      {% if access and access.enabled and access.is_free %}
+        {% if card.article_number|string in claimed_articles %}
+          {% set marker_state = 'saved' %}
+        {% elif access.cap_reached %}
+          {% set marker_state = 'preview' %}
+        {% endif %}
+      {% endif %}
       {% set card_classes = 'browse-article-card'
          ~ (' is-tracked' if card.tracked else ' is-untracked')
          ~ (' has-due' if card.due_count else '')
-         ~ (' has-tray' if card.marks else '') %}
+         ~ (' has-tray' if card.marks else '')
+         ~ (' is-saved' if marker_state == 'saved' else '')
+         ~ (' is-preview' if marker_state == 'preview' else '') %}
       {% if card.marks %}
       <div
         class="{{ card_classes }}"
@@ -65,6 +78,11 @@
           {{ card.due_count }} unit{% if card.due_count != 1 %}s{% endif %} due
         </span>
         {% endif %}
+        {% if marker_state == 'saved' %}
+        <span class="browse-access-label">Saved</span>
+        {% elif marker_state == 'preview' %}
+        <span class="browse-access-label">Preview only</span>
+        {% endif %}
       </a>
       {% if card.marks %}
         {{ mark_tray(card) }}
@@ -79,6 +97,30 @@
   <p class="lede">
     The Constitution, Part by Part. Open an Article, then learn any clause from inside it.
   </p>
+
+  {% if access and access.enabled and is_guest|default(false) %}
+  <div class="guest-strip" data-guest-strip>
+    <p>Reading as a guest. Sign in to save 3 Articles to Recall for free.</p>
+    <a class="guest-strip-signin" href="/login?next=/browse">Sign in</a>
+    <button type="button" class="guest-strip-dismiss" data-guest-strip-dismiss aria-label="Dismiss">✕</button>
+  </div>
+  {% elif access and access.enabled and access.is_free %}
+  <div class="browse-access-summary">
+    {% if access.legacy_over_cap %}
+    <p class="browse-access-status">Free · {{ access.claimed_count }} saved Articles · Legacy access</p>
+    <p class="browse-access-action">All your saved Articles stay fully open.</p>
+    {% elif access.cap_reached %}
+    <p class="browse-access-status">Free · 3 of 3 Articles saved</p>
+    <p class="browse-access-action">{% if pricing_enabled|default(false) %}<a href="/pricing">Unlock every Article →</a>{% else %}Your three saved Articles stay fully open.{% endif %}</p>
+    {% else %}
+    <p class="browse-access-status">Free · {{ access.claimed_count }} of 3 Articles saved</p>
+    <p class="browse-access-action">
+      {% set words = {1: 'One slot', 2: 'Two slots', 3: 'Three slots'} %}
+      {{ words.get(access.free_slots_remaining, access.free_slots_remaining|string ~ ' slots') }} left — any Article you finish can take one.
+    </p>
+    {% endif %}
+  </div>
+  {% endif %}
 
   {% if present_marks %}
   <div class="browse-legend" role="group" aria-label="Filter Articles by mark">

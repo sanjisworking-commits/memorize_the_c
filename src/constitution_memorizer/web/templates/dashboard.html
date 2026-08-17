@@ -53,7 +53,31 @@
       <h1 class="display dash-hello">{{ greeting }}</h1>
       <p class="dash-subtext">{{ subtext }}</p>
     </div>
+    {% if access and access.enabled and access.is_free %}
+    <span class="dash-access-chip" title="Your first three Articles stay yours permanently">
+      {% if access.legacy_over_cap %}Free · {{ access.claimed_count }} saved Articles{% else %}Free · {{ access.claimed_count }}/3 Articles{% endif %}
+      {% if access.cap_reached and pricing_enabled|default(false) %}
+      · <a href="/pricing">Unlock every Article →</a>
+      {% endif %}
+    </span>
+    {% endif %}
   </header>
+
+  {% if subscription and subscription.is_lapsed %}
+  {# Design 07: one banner per page; rows below stay in the list, dimmed. #}
+  <div class="lapse-banner">
+    <p class="lapse-banner-title">Your Recall plan ended{% if subscription.ended_on %} on {{ subscription.ended_on }}{% endif %}.</p>
+    <p class="lapse-banner-body">
+      Your {{ access.claimed_count if access else 3 }} Free Articles are still yours and still on schedule.
+      Revisions for the other Articles are paused, not deleted — they resume exactly where they were.
+    </p>
+  </div>
+  {% elif subscription and subscription.is_expiring %}
+  <p class="dash-subtext" role="status">
+    Your Recall pass ends {{ subscription.ends_on }} — it does not renew on its own.
+    {% if pricing_enabled|default(false) %}<a href="/pricing">Extend Recall →</a>{% endif %}
+  </p>
+  {% endif %}
 
   <div class="dash-top">
     <article class="dash-card dash-hero dash-due{% if due_count == 0 %} is-empty{% else %} is-due{% endif %}">

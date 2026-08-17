@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{% if stage == 'receipt' %}Recall is active{% else %}Payment{% endif %} · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block content %}
+<section class="panel purchase">
+  <div class="purchase-steps" role="tablist" aria-label="Purchase steps">
+    <span class="purchase-step" role="tab" aria-selected="false"><span class="purchase-step-n">01</span>Confirm</span>
+    <span class="purchase-step{% if stage == 'pay' %} is-current{% endif %}" role="tab" aria-selected="{{ 'true' if stage == 'pay' else 'false' }}"><span class="purchase-step-n">02</span>Payment</span>
+    <span class="purchase-step{% if stage == 'receipt' %} is-current{% endif %}" role="tab" aria-selected="{{ 'true' if stage == 'receipt' else 'false' }}"><span class="purchase-step-n">03</span>Receipt</span>
+  </div>
+
+  {% if stage == 'pay' %}
+  <div class="purchase-card purchase-pay">
+    <p class="purchase-card-title">Opening secure checkout</p>
+    <p class="purchase-lede">
+      Payment is handled by the payment provider. You'll come back here as soon as
+      it's done — don't close this tab.
+    </p>
+    <div class="purchase-provider-box">
+      <span>Secure checkout isn't live yet — purchasing opens soon. Nothing has been charged.</span>
+    </div>
+    <p class="purchase-actions">
+      <a class="purchase-change" href="/pricing?d={{ plan.days }}">Cancel and return to pricing</a>
+    </p>
+  </div>
+
+  {% elif stage == 'failed' %}
+  <div class="purchase-card purchase-failed">
+    <p class="purchase-failed-title">Payment didn't go through</p>
+    <p class="purchase-lede">
+      Nothing was charged and nothing changed on your account. You can try again
+      or pick a shorter duration.
+    </p>
+    <div class="purchase-actions">
+      <a class="btn" href="/subscribe/pay?d={{ plan.days }}">Try again</a>
+      <a class="btn btn-ghost" href="/pricing">Back to pricing</a>
+    </div>
+  </div>
+
+  {% elif stage == 'receipt' %}
+  <div class="purchase-card purchase-receipt">
+    <p class="purchase-receipt-eyebrow">Payment received</p>
+    <p class="purchase-receipt-title">Recall is active.</p>
+    <div class="purchase-receipt-grid">
+      <p><span>Plan</span><span>{{ plan.days }}-Day Recall</span></p>
+      <p><span>Paid</span><span>₹{{ plan.price_inr }}</span></p>
+      <p><span>Access until</span><span>{{ access_until }}</span></p>
+      <p><span>{{ 'Renews' if plan.recurring else 'Renewal' }}</span><span>{% if plan.recurring %}{{ access_until }} · ₹{{ plan.price_inr }}{% else %}None — one-time pass{% endif %}</span></p>
+    </div>
+    {% if receipt_email %}
+    <p class="purchase-note">A receipt is on its way to {{ receipt_email }}.</p>
+    {% endif %}
+    <div class="purchase-actions">
+      <a class="btn btn-accent" href="/dashboard">Start learning →</a>
+      <a class="purchase-change" href="/profile">View in Profile</a>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -57,7 +57,7 @@ def test_all_six_mode_tabs_keep_fallback_hrefs(tmp_path: Path):
         assert f'href="/learn/clause-1?mode={mode}"' in html
         assert 'role="tab"' in html
     assert 'data-modes-seen="' in html
-    assert "app.js?v=main18" in html
+    assert "app.js?v=main21" in html
 
 
 def test_direct_get_mode_query_still_server_renders(tmp_path: Path):
@@ -86,7 +86,7 @@ def test_guest_learn_marks_guest_and_does_not_require_post(tmp_path: Path):
     html = _guest_client(tmp_path).get("/learn/clause-1").text
     assert "data-guest-learn" in html
     assert 'data-learn-mode="read"' in html
-    assert 'href="/learn/clause-1?mode=card"' in html
+    assert 'href="/learn/clause-1?mode=test"' in html
 
 
 def test_app_js_intercepts_mode_tabs_and_updates_url():
@@ -134,7 +134,10 @@ def test_app_js_merges_seen_and_keeps_done_server_authoritative():
     assert "guestVisitedModes" in learn_src
     assert "ignore stale unlocked:false" in learn_src
     assert "inFlight.delete(mode)" in learn_src
-    assert "applyTabMarks(confirmedModes)" in learn_src
+    # Tab marks render the union of server-confirmed and provisional visits
+    # (provisional = unclaimed-Article mode visits, R2 persistence matrix).
+    assert "applyTabMarks(visitedUnion())" in learn_src
+    assert "provisionalModes" in learn_src
     switch = learn_src.split("function switchModeLocal", 1)[1].split(
         "function persistSeen", 1
     )[0]
@@ -160,8 +163,14 @@ def test_locked_done_label_progresses_and_ignores_stale():
     )[0]
     assert "function lockedMethodsLeftLabel" in learn_src
     assert "function applyLockedDoneLabel" in learn_src
-    assert "lockedMethodsLeftLabel(confirmedModes.size)" in learn_src
-    assert "if (isGuest || !doneBtn || serverDoneUnlocked)" in learn_src
+    # Label counts required visits across the local set: guests use
+    # guestVisitedModes, everyone else confirmed + provisional marks
+    # (entitlement-aware required set; unclaimed Articles track provisionally).
+    assert "lockedMethodsLeftLabel(requiredVisitedCount(localVisited()))" in learn_src
+    assert "if (!doneBtn || serverDoneUnlocked)" in learn_src
+    # Guest + provisional Done both unlock via the shared local gate.
+    assert "function maybeUnlockLocalDone" in learn_src
+    assert "maybeUnlockProvisionalDone" not in learn_src
     assert "applyLockedDoneLabel()" in learn_src
     assert "payload.done.unlocked === true" in learn_src
     assert "confirmedModes.size >= 6" not in learn_src
@@ -196,6 +205,29 @@ def test_app_js_resets_destination_and_stops_recite():
     assert "cloze.reset()" in learn_src
     assert "letters.reset()" in learn_src
     assert "typeMode.reset()" in learn_src
-    assert "setFlipped(false)" in learn_src
+    assert "testMode.reset()" in learn_src
+    assert "setFlipped" not in learn_src
     assert "Saving…" not in learn_src
     assert "spinner" not in learn_src.lower()
+
+
+def test_app_js_gates_modes_on_completed_attempts():
+    source = APP_JS.read_text(encoding="utf-8")
+    # Canonical partition mirror: only read/letters mark on tab visit.
+    assert 'AUTO_SEEN_MODES = new Set(["read", "letters"])' in source
+    learn_src = source.split("function initLearn()", 1)[1].split(
+        "function initBrowseArticle()", 1
+    )[0]
+    assert "function markModeAttempted" in learn_src
+    assert "AUTO_SEEN_MODES.has(nextMode)" in learn_src
+    # Test never rides the /seen path — only the graded /quiz response.
+    assert 'persistSeen("test")' not in learn_src
+    assert "function applyQuizPayload" in learn_src
+    assert "function applySeenPayload" in learn_src
+    # Cloze counts individually tapped blanks; Reveal all never completes.
+    cloze_src = source.split("function initCloze", 1)[1].split(
+        "function initLetters", 1
+    )[0]
+    assert "tapRevealed" in cloze_src
+    reveal_all_src = cloze_src.split('"reveal-all"', 1)[1].split('"hide-again"', 1)[0]
+    assert "tapRevealed.add" not in reveal_all_src

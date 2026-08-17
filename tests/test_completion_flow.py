@@ -13,6 +13,8 @@ from constitution_memorizer.multiuser.settings import MultiUserSettings, clear_s
 from constitution_memorizer.progress.repository import LEARN_MODES
 from constitution_memorizer.web.app import create_app
 
+from tests.quiz_helpers import complete_all_modes
+
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 
 
@@ -42,9 +44,7 @@ def _client(tmp_path: Path, *, multiuser: bool = False) -> TestClient:
 
 
 def _visit_all_modes(client: TestClient, unit_id: str) -> None:
-    for mode in LEARN_MODES:
-        resp = client.post(f"/learn/{unit_id}/seen", data={"mode": mode})
-        assert resp.status_code == 200
+    complete_all_modes(client, MINI_UNITS, unit_id)
 
 
 def test_done_redirect_carries_single_done_param(tmp_path: Path):
@@ -157,4 +157,4 @@ def test_completion_done_sound_asset_is_served(tmp_path: Path):
     js = client.get("/static/app.js").text
     assert "/static/completion-done.mp3" in js
     html = client.get("/").text
-    assert "app.js?v=main18" in html
+    assert "app.js?v=main21" in html

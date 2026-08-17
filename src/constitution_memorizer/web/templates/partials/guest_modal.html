@@ -10,17 +10,22 @@
       Create a personal learning record, continue across devices and receive future revisions.
     </p>
     <div class="guest-modal-actions">
-      <a class="btn" data-guest-modal-signin href="/login">Sign in</a>
-      <button type="submit" class="btn btn-ghost" data-guest-modal-dismiss>Continue as guest</button>
+      <a class="btn" data-guest-modal-signin href="/login">Sign in and save it</a>
+      <button type="submit" class="btn btn-ghost" data-guest-modal-dismiss>Keep going without saving</button>
     </div>
   </form>
 </dialog>
 <script type="application/json" id="guest-modal-copy">
 {
   "default": "Create a personal learning record, continue across devices and receive future revisions.",
-  "mastered": "Sign in to mark this unit mastered and keep it on your revision schedule.",
+  "mastered": "Signing in saves this Article, its clauses and tomorrow's revision. It counts as 1 of your 3 free Articles — no card needed.",
   "again": "Sign in to schedule this unit again tomorrow on your personal calendar.",
   "note": "Sign in to save memory notes against your account.",
   "visualise": "Sign in to view Visual Explainers."
+}
+</script>
+<script type="application/json" id="guest-modal-titles">
+{
+  "mastered": "You finished {% if unit is defined and unit.article_number %}Article {{ unit.article_number }}{% else %}this Article{% endif %}. Keep it?"
 }
 </script>

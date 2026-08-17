@@ -11,6 +11,8 @@ from fastapi.testclient import TestClient
 from constitution_memorizer.progress.scheduler import ModesIncompleteError, ReminderEngine
 from constitution_memorizer.web.app import create_app
 
+from tests.quiz_helpers import submit_quiz
+
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 MINI_REVIEWED = Path(__file__).parent / "fixtures" / "learning" / "mini_reviewed.json"
 
@@ -36,9 +38,9 @@ def test_brand_and_how_to_use(client: TestClient):
     assert "main_logo.png" in html
     assert "How to use" in html
     assert "Read the Bare Act wording twice, verbatim." in html
-    assert "Flip the card and self-grade your recall." in html
+    assert "Answer a short auto-made quiz — new questions each revision." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=main16" in html
+    assert "styles.css?v=main19" in html
 
 
 def test_dashboard_surfaces_use_theme_tokens():
@@ -155,14 +157,14 @@ def test_seen_endpoint_unlocks_done(client: TestClient):
         resp = client.post("/learn/clause-1/seen", data={"mode": mode})
         assert resp.status_code == 200
         assert resp.json()["done"]["unlocked"] is False
-    # Card is the last method — unlocks Done
-    resp = client.post("/learn/clause-1/seen", data={"mode": "card"})
+    # Test is the last method — completed only via the graded quiz.
+    resp = submit_quiz(client, MINI_UNITS, "clause-1")
     data = resp.json()
     assert data["complete"] is True
     assert data["remaining"] == 0
     assert data["done"]["unlocked"] is True
     assert data["done"]["label"] == "Done — next unit"
-    html = client.get("/learn/clause-1?mode=card").text
+    html = client.get("/learn/clause-1?mode=test").text
     assert "All 6 methods visited" in html
     assert "Done — next unit" in html
     assert "btn-done-locked" not in html
@@ -170,11 +172,14 @@ def test_seen_endpoint_unlocks_done(client: TestClient):
     assert 'aria-disabled="false"' in html
 
 
-def test_card_alone_does_not_unlock(client: TestClient):
-    client.get("/learn/clause-1?mode=card")
-    html = client.get("/learn/clause-1?mode=card").text
+def test_gated_mode_get_does_not_mark(client: TestClient):
+    # Opening a gated tab (test/cloze/type/recite) never earns a check.
+    for mode in ("test", "cloze", "type", "recite"):
+        client.get(f"/learn/clause-1?mode={mode}")
+    html = client.get("/learn/clause-1?mode=test").text
     assert "btn-done-locked" in html
     assert "methods left" in html
+    assert "✓" not in html.split("mode-tabs")[1].split("</div>")[0]
 
 
 def test_done_blocked_until_six_modes(client: TestClient):
@@ -186,8 +191,9 @@ def test_done_blocked_until_six_modes(client: TestClient):
 
 def test_done_advances_after_all_modes(client: TestClient):
     client.get("/learn/clause-1")
-    for mode in ("cloze", "letters", "type", "recite", "card"):
+    for mode in ("cloze", "letters", "type", "recite"):
         client.post("/learn/clause-1/seen", data={"mode": mode})
+    submit_quiz(client, MINI_UNITS, "clause-1")
     resp = client.post("/learn/clause-1/done", follow_redirects=False)
     assert resp.status_code == 303
     assert resp.headers["location"].startswith("/learn/")

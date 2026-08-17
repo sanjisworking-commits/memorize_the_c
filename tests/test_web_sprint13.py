@@ -1,4 +1,4 @@
-"""Sprint 13 — Learn Card recall mode (flip title ⇄ text)."""
+"""Sprint 13 — sixth recall mode panel (Card, since replaced by Test)."""
 
 from __future__ import annotations
 
@@ -21,52 +21,63 @@ def client(tmp_path: Path) -> TestClient:
     return TestClient(app)
 
 
-def test_learn_enables_card_tab_and_flashcard_markup(client: TestClient):
+def test_learn_enables_test_tab_and_quiz_markup(client: TestClient):
     response = client.get("/learn/clause-1")
     assert response.status_code == 200
     html = response.text
     assert 'data-learn-mode="read"' in html
-    assert 'data-learn-mode="card"' in html
-    assert 'href="/learn/clause-1?mode=card"' in html
+    assert 'data-learn-mode="test"' in html
+    assert 'href="/learn/clause-1?mode=test"' in html
     assert 'href="/learn/clause-1?mode=read"' in html
-    assert "learn-card" in html
-    assert "Recite it, then tap to check" in html
-    assert "Tap to flip back" in html
-    assert "learn-panel-card" in html
+    assert "learn-panel-test" in html
+    assert "data-quiz-form" in html
+    assert "data-quiz-cycle" in html
+    assert "Check answers" in html
     assert 'data-mode="read"' in html
-    assert "app.js?v=main18" in html
+    assert "app.js?v=main21" in html
 
 
-def test_card_mode_query_param_renders_card_active(client: TestClient):
-    """Tab switch must work even without JS via ?mode=card."""
-    response = client.get("/learn/clause-1?mode=card")
+def test_test_mode_query_param_renders_test_active(client: TestClient):
+    """Tab switch must work even without JS via ?mode=test."""
+    response = client.get("/learn/clause-1?mode=test")
     assert response.status_code == 200
     html = response.text
-    assert 'data-mode="card"' in html
-    assert 'data-learn-mode="card"' in html
+    assert 'data-mode="test"' in html
+    assert 'data-learn-mode="test"' in html
     assert 'aria-selected="true"' in html
-    # Card tab marked active
-    assert 'mode-tab is-active"\n      role="tab"\n      aria-selected="true"\n      data-learn-mode="card"' in html or (
-        'data-learn-mode="card"' in html and "is-active" in html
+    assert "New questions each revision." in html
+
+
+def test_legacy_card_mode_redirects_to_test(client: TestClient):
+    """Old ?mode=card bookmarks canonicalize to ?mode=test, params intact."""
+    resp = client.get("/learn/clause-1?mode=card", follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/learn/clause-1?mode=test"
+    resp = client.get(
+        "/learn/clause-1?mode=card&claim=1", follow_redirects=False
     )
-    assert "Recite it, then tap to check" in html
-    assert "(1) No person shall be convicted" in html
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/learn/clause-1?mode=test&claim=1"
+    # card is not a runtime mode anywhere anymore
+    followed = client.get("/learn/clause-1?mode=card")
+    assert 'data-mode="test"' in followed.text
 
 
-def test_card_css_drives_panel_visibility(client: TestClient):
-    css = client.get("/static/styles.css?v=main7")
+def test_test_css_drives_panel_visibility(client: TestClient):
+    css = client.get("/static/styles.css")
     assert css.status_code == 200
     text = css.text
-    assert '.learn[data-mode="card"] .learn-panel-card' in text
-    assert ".learn-panel-card" in text
+    assert '.learn[data-mode="test"] .learn-panel-test' in text
+    assert ".learn-panel-test" in text
     assert "display: none" in text
+    assert ".learn-card" not in text  # flip styles fully retired
 
 
-def test_card_face_shows_title_and_hides_stem_panel(client: TestClient):
-    response = client.get("/learn/clause-1?mode=card")
-    html = response.text
-    assert "learn-card-title" in html
-    assert "Article 20(1)" in html
-    card_start = html.index('data-learn-panel="card"')
-    card_chunk = html[card_start : card_start + 1200]
-    assert "learn-stem" not in card_chunk
+def test_quiz_answers_never_render_in_html(client: TestClient):
+    html = client.get("/learn/clause-1?mode=test").text
+    panel_start = html.index('data-learn-panel="test"')
+    panel_chunk = html[panel_start:]
+    assert "answer_index" not in panel_chunk
+    assert "answer_text" not in panel_chunk
+    # The stem stays out of the test panel (design hasStem).
+    assert "learn-stem" not in panel_chunk[:1200]

@@ -21,6 +21,8 @@ from constitution_memorizer.web.app import create_app
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 
+from tests.quiz_helpers import complete_all_modes  # noqa: E402
+
 
 @pytest.fixture(autouse=True)
 def _clear_settings():
@@ -321,10 +323,18 @@ def test_dashboard_recent_activity_uses_display_title(tmp_path: Path):
         f"/auth/callback?code=fake-google-code&state={state}",
         follow_redirects=False,
     )
-    # Mark modes seen then done so a progress row exists.
-    for mode in ("read", "cloze", "letters", "type", "recite", "card"):
-        client.post("/learn/clause-1/seen", data={"mode": mode})
-    client.post("/learn/clause-1/done", follow_redirects=False)
+    # Mark modes seen then done so a progress row exists. First Done on an
+    # unclaimed Article asks to claim it as a Free Article — confirm inline
+    # (the client sends its provisional mode list alongside the claim).
+    complete_all_modes(client, MINI_UNITS, "clause-1")
+    client.post(
+        "/learn/clause-1/done",
+        data={
+            "claim_article": "1",
+            "modes": "read,cloze,letters,type,recite,test",
+        },
+        follow_redirects=False,
+    )
     dash = client.get("/dashboard")
     assert dash.status_code == 200
     assert "Article 20(1)" in dash.text

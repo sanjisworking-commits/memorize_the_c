@@ -17,6 +17,8 @@ from constitution_memorizer.web.app import create_app
 from constitution_memorizer.web.request_context import wants_request_breakdown
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
+
+from tests.quiz_helpers import complete_all_modes  # noqa: E402
 USER = UUID("11111111-1111-4111-8111-111111111111")
 USER_EMAIL = "a@example.com"
 
@@ -317,6 +319,10 @@ def test_seen_post_is_json_write(tmp_path: Path, caplog):
 
 def test_incomplete_done_redirects_and_times_mode_reads(tmp_path: Path, caplog):
     client, repo = _counting_client(tmp_path)
+    # Claim Article 20 up front (marker set) so Done follows the claimed-Article
+    # path: no claim prompt and no grandfather backfill in the measured request.
+    repo.claim_article(USER, "20")
+    repo.set_setting(USER, "free_articles_backfilled", "1")
     with caplog.at_level(logging.INFO, logger="uvicorn.error"):
         caplog.clear()
         resp = client.post("/learn/clause-1/done", follow_redirects=False)
@@ -341,9 +347,10 @@ def test_incomplete_done_redirects_and_times_mode_reads(tmp_path: Path, caplog):
 
 def test_complete_done_records_schedule_leaves(tmp_path: Path, caplog):
     client, repo = _counting_client(tmp_path)
-    for mode in LEARN_MODES:
-        seen = client.post("/learn/clause-1/seen", data={"mode": mode})
-        assert seen.status_code == 200
+    # Claimed Article + backfill marker: Done persists without a claim prompt.
+    repo.claim_article(USER, "20")
+    repo.set_setting(USER, "free_articles_backfilled", "1")
+    complete_all_modes(client, MINI_UNITS, "clause-1")
     repo.reset_counts()
     with caplog.at_level(logging.INFO, logger="uvicorn.error"):
         caplog.clear()

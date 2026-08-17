@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Confirm your plan · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block content %}
+<section class="panel purchase">
+  <div class="purchase-steps" role="tablist" aria-label="Purchase steps">
+    <span class="purchase-step is-current" role="tab" aria-selected="true"><span class="purchase-step-n">01</span>Confirm</span>
+    <span class="purchase-step" role="tab" aria-selected="false"><span class="purchase-step-n">02</span>Payment</span>
+    <span class="purchase-step" role="tab" aria-selected="false"><span class="purchase-step-n">03</span>Receipt</span>
+  </div>
+
+  <div class="purchase-card purchase-confirm">
+    <p class="purchase-card-title">Confirm your plan</p>
+    <div class="purchase-row">
+      <span class="purchase-row-k">{{ plan.days }}-Day Recall</span>
+      <span class="purchase-row-price">₹{{ plan.price_inr }}</span>
+    </div>
+    <div class="purchase-row">
+      <span class="purchase-row-k">Access period</span>
+      <span class="purchase-row-v">{{ period_line }}</span>
+    </div>
+    <div class="purchase-row is-last">
+      <span class="purchase-row-k">Account</span>
+      <span class="purchase-row-v">{{ account_label or 'This account' }}</span>
+    </div>
+    <p class="purchase-note">{{ plan_billing }}. Your 3 Free Articles stay yours whatever happens to this plan.</p>
+    <div class="purchase-actions">
+      <a class="btn btn-accent" href="/subscribe/pay?d={{ plan.days }}">Continue to payment →</a>
+      <a class="purchase-change" href="/pricing?d={{ plan.days }}">Change duration</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

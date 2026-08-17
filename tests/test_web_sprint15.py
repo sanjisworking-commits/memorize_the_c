@@ -32,7 +32,7 @@ def test_learn_enables_letters_tab_and_panel_markup(client: TestClient):
     assert "data-letters-toggle" in html
     assert "Show full text" in html
     assert "Recite from the initials, then check yourself." in html
-    assert "app.js?v=main18" in html
+    assert "app.js?v=main21" in html
 
 
 def test_letters_mode_query_param_renders_letters_active(client: TestClient):

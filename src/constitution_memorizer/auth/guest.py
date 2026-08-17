@@ -78,6 +78,10 @@ def requires_auth(path: str, method: str) -> bool:
     if path == "/reset" and m == "POST":
         return True
     if path.startswith("/learn/") and m == "POST":
+        # /quiz only grades server-side; nothing persists for guests, and
+        # guests need the graded result to complete the Test gate locally.
+        if path.endswith("/quiz"):
+            return False
         return True
     if path.startswith("/memory") and m == "POST":
         return True

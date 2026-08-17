@@ -1,6 +1,9 @@
 /* Light progressive enhancement for the learning UI. */
 (function () {
-  const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "recite", "card"]);
+  // Mirrors the canonical partition in progress/repository.py — keep in sync.
+  const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "recite", "test"]);
+  // Auto-seen modes check on tab visit; the rest gate on a completed attempt.
+  const AUTO_SEEN_MODES = new Set(["read", "letters"]);
   const MOTION_KEY = "cm-motion";
   const SOUND_KEY = "cm-completion-sound";
   const DONE_SOUND_SRC = "/static/completion-done.mp3";
@@ -90,7 +93,7 @@
       .join(EN_SPACE);
   }
 
-  function initCloze(panel) {
+  function initCloze(panel, onComplete) {
     if (!panel) {
       return null;
     }
@@ -105,6 +108,32 @@
       density = "medium";
     }
     const revealed = new Set();
+    // Completion gate: only individually tapped blanks count — "Reveal all"
+    // feeds `revealed` but never `tapRevealed`, so it cannot check the mode.
+    const tapRevealed = new Set();
+    let completed = false;
+
+    function checkTapComplete() {
+      if (completed) {
+        return;
+      }
+      const blanks = [];
+      words.forEach((word, index) => {
+        if (isBlank(word)) {
+          blanks.push(index);
+        }
+      });
+      // No zero-blank auto-fire: an impossible cloze is simply not required.
+      if (blanks.length === 0) {
+        return;
+      }
+      if (blanks.every((index) => tapRevealed.has(index))) {
+        completed = true;
+        if (onComplete) {
+          onComplete();
+        }
+      }
+    }
 
     function threshold() {
       return DENSITY_THRESH[density] || 6;
@@ -154,7 +183,9 @@
           } else {
             const reveal = () => {
               revealed.add(index);
+              tapRevealed.add(index);
               render();
+              checkTapComplete();
             };
             span.addEventListener("click", reveal);
             span.addEventListener("keydown", (event) => {
@@ -176,7 +207,9 @@
       }
       density = next;
       panel.setAttribute("data-cloze-density", next);
+      // Changing density restarts the per-density tap attempt.
       revealed.clear();
+      tapRevealed.clear();
       densityBtns.forEach((btn) => {
         const active = btn.getAttribute("data-cloze-density") === next;
         btn.classList.toggle("is-active", active);
@@ -219,6 +252,7 @@
     return {
       reset() {
         revealed.clear();
+        tapRevealed.clear();
         render();
       },
     };
@@ -273,7 +307,7 @@
     return text.toLowerCase().replace(/[^a-z0-9]/g, "");
   }
 
-  function initType(panel) {
+  function initType(panel, onComplete) {
     if (!panel) {
       return null;
     }
@@ -281,6 +315,7 @@
     const input = panel.querySelector("[data-type-input]");
     const diffEl = panel.querySelector("[data-type-diff]");
     const statsEl = panel.querySelector("[data-type-stats]");
+    const checkBtn = panel.querySelector("[data-type-check]");
     const source = panel.getAttribute("data-type-text") || "";
     const words = source.trim() ? source.trim().split(/\s+/) : [];
 
@@ -321,6 +356,28 @@
     if (input) {
       input.addEventListener("input", render);
     }
+    if (checkBtn) {
+      checkBtn.addEventListener("click", () => {
+        // Any completed non-empty attempt counts — no accuracy threshold.
+        const typed = input ? input.value.trim() : "";
+        if (!typed) {
+          if (statsEl) {
+            statsEl.textContent = "Type your attempt first";
+          }
+          if (input) {
+            input.focus();
+          }
+          return;
+        }
+        render();
+        if (statsEl) {
+          statsEl.textContent = statsEl.textContent + " — attempt checked";
+        }
+        if (onComplete) {
+          onComplete();
+        }
+      });
+    }
     render();
 
     return {
@@ -333,7 +390,7 @@
     };
   }
 
-  function initRecite(panel) {
+  function initRecite(panel, onComplete) {
     if (!panel) {
       return null;
     }
@@ -513,6 +570,10 @@
         showStatus("Accuracy map from your recital.", null);
         showFallback(false);
         renderAccuracyMap(spoken, "Heard");
+        // A completed non-empty recitation counts — no accuracy threshold.
+        if (onComplete) {
+          onComplete();
+        }
       } else {
         showStatus(
           "No speech captured. Check your connection, or type what you recited below.",
@@ -673,6 +734,10 @@
         }
         showStatus("Accuracy map from your text.", null);
         renderAccuracyMap(spoken, "Entered");
+        // Manual fallback with non-empty text also completes the attempt.
+        if (onComplete) {
+          onComplete();
+        }
       });
     }
 
@@ -726,6 +791,181 @@
           showFallback(true);
         }
         render();
+      },
+    };
+  }
+
+  function initTest(panel, onGraded) {
+    if (!panel) {
+      return null;
+    }
+    const form = panel.querySelector("[data-quiz-form]");
+    const scoreEl = panel.querySelector("[data-quiz-score]");
+    const submitBtn = panel.querySelector("[data-quiz-submit]");
+    if (!form) {
+      // Unit without a quiz: the fallback message renders server-side and the
+      // mode is already absent from the effective required set.
+      return { reset() {} };
+    }
+    const learnRoot = panel.closest(".learn");
+    const unitId = learnRoot ? learnRoot.getAttribute("data-unit-id") || "" : "";
+    const cycle = parseInt(panel.getAttribute("data-quiz-cycle") || "0", 10) || 0;
+    const fieldsets = Array.from(panel.querySelectorAll("[data-quiz-q]"));
+    let errorEl = null;
+    let submitting = false;
+
+    function showError(message) {
+      if (!errorEl) {
+        errorEl = document.createElement("p");
+        errorEl.className = "learn-test-error";
+        form.appendChild(errorEl);
+      }
+      errorEl.textContent = message;
+      errorEl.hidden = !message;
+    }
+
+    function collectAnswers() {
+      const answers = [];
+      let firstMissing = null;
+      fieldsets.forEach((fieldset) => {
+        if (fieldset.getAttribute("data-kind") === "mcq") {
+          const checked = fieldset.querySelector("input[type=radio]:checked");
+          if (checked) {
+            answers.push(parseInt(checked.value, 10));
+          } else {
+            answers.push(null);
+            firstMissing = firstMissing || fieldset.querySelector("input[type=radio]");
+          }
+        } else {
+          const fill = fieldset.querySelector("[data-quiz-fill]");
+          const value = fill ? fill.value.trim() : "";
+          if (value) {
+            answers.push(value);
+          } else {
+            answers.push(null);
+            firstMissing = firstMissing || fill;
+          }
+        }
+      });
+      return { answers: answers, firstMissing: firstMissing };
+    }
+
+    function setFormDisabled(disabled) {
+      form.querySelectorAll("input").forEach((el) => {
+        el.disabled = disabled;
+      });
+      if (submitBtn) {
+        submitBtn.disabled = disabled;
+      }
+    }
+
+    function paintResults(payload) {
+      const results = Array.isArray(payload.results) ? payload.results : [];
+      fieldsets.forEach((fieldset, index) => {
+        const resultEl = fieldset.querySelector("[data-quiz-result]");
+        const result = results[index];
+        if (!resultEl || !result) {
+          return;
+        }
+        resultEl.hidden = false;
+        resultEl.classList.toggle("is-correct", result.correct === true);
+        resultEl.classList.toggle("is-wrong", result.correct !== true);
+        resultEl.textContent = result.correct
+          ? "✓ Correct"
+          : "✗ Correct answer: " + result.expected;
+      });
+      if (scoreEl && payload.score) {
+        scoreEl.hidden = false;
+        scoreEl.textContent =
+          "You got " + payload.score.correct + " of " + payload.score.total + ".";
+      }
+      setFormDisabled(true);
+      if (submitBtn) {
+        submitBtn.textContent = "Checked ✓";
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (submitting || !unitId) {
+        return;
+      }
+      const collected = collectAnswers();
+      if (collected.answers.some((answer) => answer === null)) {
+        showError("Answer all " + fieldsets.length + " to finish.");
+        if (collected.firstMissing) {
+          collected.firstMissing.focus();
+        }
+        return;
+      }
+      showError("");
+      submitting = true;
+      fetch("/learn/" + encodeURIComponent(unitId) + "/quiz", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ cycle: cycle, answers: collected.answers }),
+      })
+        .then((response) => {
+          const type = response.headers.get("content-type") || "";
+          if (!type.includes("application/json")) {
+            throw new Error("quiz-failed");
+          }
+          return response.json().then((payload) => ({
+            status: response.status,
+            payload: payload,
+          }));
+        })
+        .then((result) => {
+          submitting = false;
+          const payload = result.payload || {};
+          if (result.status === 409 && payload.error === "stale_quiz") {
+            showError("This unit moved on — reload the page for fresh questions.");
+            return;
+          }
+          if (result.status !== 200 || payload.ok !== true) {
+            showError("Couldn't check answers — try again.");
+            return;
+          }
+          paintResults(payload);
+          if (onGraded) {
+            onGraded(payload);
+          }
+        })
+        .catch(() => {
+          submitting = false;
+          showError("Couldn't check answers — try again.");
+        });
+    });
+
+    return {
+      reset() {
+        form.querySelectorAll("input[type=radio]").forEach((el) => {
+          el.checked = false;
+        });
+        form.querySelectorAll("[data-quiz-fill]").forEach((el) => {
+          el.value = "";
+        });
+        fieldsets.forEach((fieldset) => {
+          const resultEl = fieldset.querySelector("[data-quiz-result]");
+          if (resultEl) {
+            resultEl.hidden = true;
+            resultEl.textContent = "";
+          }
+        });
+        if (scoreEl) {
+          scoreEl.hidden = true;
+          scoreEl.textContent = "";
+        }
+        showError("");
+        setFormDisabled(false);
+        if (submitBtn) {
+          submitBtn.textContent = "Check answers";
+        }
       },
     };
   }
@@ -949,25 +1189,27 @@
     learn.classList.add("is-ready");
     initBareFns(learn);
 
-    const card = learn.querySelector(".learn-card");
     const clozePanel = learn.querySelector('[data-learn-panel="cloze"]');
     const lettersPanel = learn.querySelector('[data-learn-panel="letters"]');
     const typePanel = learn.querySelector('[data-learn-panel="type"]');
     const recitePanel = learn.querySelector('[data-learn-panel="recite"]');
-    const cloze = initCloze(clozePanel);
+    const testPanel = learn.querySelector('[data-learn-panel="test"]');
+    // Gated modes report a completed attempt through markModeAttempted (or the
+    // graded quiz payload); auto-seen modes are marked on tab visit instead.
+    const cloze = initCloze(clozePanel, function () {
+      markModeAttempted("cloze");
+    });
     const letters = initLetters(lettersPanel);
-    const typeMode = initType(typePanel);
-    const recite = initRecite(recitePanel);
+    const typeMode = initType(typePanel, function () {
+      markModeAttempted("type");
+    });
+    const recite = initRecite(recitePanel, function () {
+      markModeAttempted("recite");
+    });
+    const testMode = initTest(testPanel, function (payload) {
+      applyQuizPayload(payload);
+    });
     const doneBtn = document.getElementById("learn-done-btn");
-
-    function setFlipped(flipped) {
-      if (!card) {
-        return;
-      }
-      card.dataset.flipped = flipped ? "true" : "false";
-      card.classList.toggle("is-flipped", flipped);
-      card.setAttribute("aria-pressed", flipped ? "true" : "false");
-    }
 
     const MODE_LABELS = {
       read: "Read",
@@ -975,7 +1217,7 @@
       letters: "Letters",
       type: "Type",
       recite: "Recite",
-      card: "Card",
+      test: "Test",
     };
     const isGuest = learn.hasAttribute("data-guest-learn");
     const unitId = learn.getAttribute("data-unit-id") || "";
@@ -997,21 +1239,76 @@
 
     const confirmedModes = parseModes(learn.getAttribute("data-modes-seen"));
     const guestVisitedModes = parseModes(learn.getAttribute("data-modes-seen"));
+    const lockedModes = parseModes(learn.getAttribute("data-locked-modes"));
+    // Entitlement-aware required set: six normally; the four open modes for
+    // guests / cap-reached Articles (Type/Recite locked).
+    const requiredModesRaw = parseModes(learn.getAttribute("data-required-modes"));
+    const requiredModes = requiredModesRaw.size > 0 ? requiredModesRaw : new Set(LEARN_MODES);
+    // Unclaimed Articles keep mode visits provisional until claimed on Done —
+    // tracked in sessionStorage so a reload keeps the marks without any server
+    // persistence (R2: three saved Articles, not unlimited half-saved ones).
+    const seenProvisional = learn.getAttribute("data-seen-provisional") === "true";
+    const provisionalKey = "cm-provisional:" + unitId;
+    const provisionalModes = (function () {
+      if (!seenProvisional) {
+        return new Set();
+      }
+      try {
+        return parseModes(sessionStorage.getItem(provisionalKey));
+      } catch (_e) {
+        return new Set();
+      }
+    })();
+    function saveProvisional() {
+      if (!seenProvisional) {
+        return;
+      }
+      try {
+        sessionStorage.setItem(provisionalKey, Array.from(provisionalModes).join(","));
+      } catch (_e) {
+        /* ignore */
+      }
+      // Keep the claim form's mode list in sync with every provisional mark.
+      const claimModes = document.querySelector("[data-claim-modes]");
+      if (claimModes) {
+        claimModes.value = Array.from(provisionalModes).join(",");
+      }
+    }
+    function visitedUnion() {
+      const union = new Set(confirmedModes);
+      provisionalModes.forEach(function (mode) {
+        union.add(mode);
+      });
+      return union;
+    }
     const inFlight = new Set();
     let serverDoneUnlocked = learn.dataset.doneUnlocked === "true";
 
+    function requiredVisitedCount(visited) {
+      let count = 0;
+      requiredModes.forEach(function (mode) {
+        if (visited.has(mode)) {
+          count += 1;
+        }
+      });
+      return count;
+    }
+
     function methodsTrackerLine(count) {
-      if (count >= 6) {
-        return "All 6 methods visited — revision complete, mark it Done";
+      const total = requiredModes.size;
+      if (count >= total) {
+        return "All " + total + " methods visited — revision complete, mark it Done";
       }
+      const word = total === 6 ? "six" : String(total);
       return (
         count +
-        " of 6 methods visited · revision completes when you've been through all six"
+        " of " + total + " methods visited · revision completes when you've been through all " +
+        word
       );
     }
 
     function lockedMethodsLeftLabel(confirmedCount) {
-      const remaining = 6 - confirmedCount;
+      const remaining = requiredModes.size - confirmedCount;
       if (remaining <= 0) {
         return null;
       }
@@ -1021,13 +1318,35 @@
       return remaining + " methods left";
     }
 
+    function localVisited() {
+      return isGuest ? guestVisitedModes : visitedUnion();
+    }
+
     function applyLockedDoneLabel() {
-      if (isGuest || !doneBtn || serverDoneUnlocked) {
+      if (!doneBtn || serverDoneUnlocked) {
         return;
       }
-      const label = lockedMethodsLeftLabel(confirmedModes.size);
+      const label = lockedMethodsLeftLabel(requiredVisitedCount(localVisited()));
       if (label) {
         doneBtn.textContent = label;
+      }
+    }
+
+    function maybeUnlockLocalDone() {
+      // Guests and unclaimed Articles persist nothing server-side, so the
+      // Done affordance unlocks from the local set; the server re-validates
+      // on POST (guests get the sign-in prompt instead).
+      if (serverDoneUnlocked || !doneBtn) {
+        return;
+      }
+      if (!isGuest && !seenProvisional) {
+        return;
+      }
+      if (requiredVisitedCount(localVisited()) >= requiredModes.size) {
+        serverDoneUnlocked = true;
+        applyDoneUnlocked(isGuest ? "Mark as mastered" : "Mark it Done");
+      } else {
+        applyLockedDoneLabel();
       }
     }
 
@@ -1038,6 +1357,11 @@
           return;
         }
         const label = MODE_LABELS[tabMode] || tabMode;
+        if (lockedModes.has(tabMode)) {
+          // Locked modes never earn a ✓ — keep the restrained lock mark.
+          tab.textContent = label + " 🔒";
+          return;
+        }
         tab.textContent = visited.has(tabMode) ? label + " ✓" : label;
       });
     }
@@ -1046,12 +1370,13 @@
       if (!trackerEl) {
         return;
       }
-      trackerEl.setAttribute("data-count", String(visited.size));
-      trackerEl.textContent = methodsTrackerLine(visited.size);
+      const count = requiredVisitedCount(visited);
+      trackerEl.setAttribute("data-count", String(count));
+      trackerEl.textContent = methodsTrackerLine(count);
     }
 
     function applyDoneUnlocked(label) {
-      if (isGuest || !doneBtn) {
+      if (!doneBtn) {
         return;
       }
       doneBtn.disabled = false;
@@ -1064,12 +1389,69 @@
       }
     }
 
+    // One local mark per completed gated attempt (or auto-seen visit),
+    // routed to the right store for the current access level.
+    function markModeAttempted(mode) {
+      if (lockedModes.has(mode)) {
+        return;
+      }
+      if (isGuest) {
+        guestVisitedModes.add(mode);
+        applyTabMarks(guestVisitedModes);
+        applyTracker(guestVisitedModes);
+        maybeUnlockLocalDone();
+        return;
+      }
+      if (seenProvisional) {
+        provisionalModes.add(mode);
+        saveProvisional();
+        applyTabMarks(visitedUnion());
+        applyTracker(visitedUnion());
+        maybeUnlockLocalDone();
+        return;
+      }
+      persistSeen(mode);
+    }
+
+    // Shared server-payload handling for /seen and /quiz responses.
+    function applySeenPayload(payload) {
+      const seen = Array.isArray(payload.seen) ? payload.seen : [];
+      seen.forEach((item) => {
+        if (LEARN_MODES.has(item)) {
+          confirmedModes.add(item);
+        }
+      });
+      applyTabMarks(visitedUnion());
+      applyTracker(visitedUnion());
+      if (payload.done && payload.done.unlocked === true) {
+        serverDoneUnlocked = true;
+        applyDoneUnlocked(payload.done.label);
+      } else if (serverDoneUnlocked) {
+        /* keep unlocked; ignore stale unlocked:false */
+      } else {
+        applyLockedDoneLabel();
+      }
+    }
+
+    // Test completes only through the graded /quiz response — never /seen.
+    function applyQuizPayload(payload) {
+      if (isGuest) {
+        markModeAttempted("test");
+        return;
+      }
+      if (payload && payload.persisted === false) {
+        markModeAttempted("test");
+        return;
+      }
+      applySeenPayload(payload);
+    }
+
     function resetDestination(nextMode, prevMode) {
       if (prevMode === "recite" && nextMode !== "recite" && recite) {
         recite.reset();
       }
-      if (nextMode === "card") {
-        setFlipped(false);
+      if (nextMode === "test" && testMode) {
+        testMode.reset();
       }
       if (nextMode === "cloze" && cloze) {
         cloze.reset();
@@ -1101,7 +1483,14 @@
     }
 
     function persistSeen(mode) {
-      if (isGuest || confirmedModes.has(mode) || inFlight.has(mode) || !unitId) {
+      if (
+        isGuest ||
+        lockedModes.has(mode) ||
+        confirmedModes.has(mode) ||
+        provisionalModes.has(mode) ||
+        inFlight.has(mode) ||
+        !unitId
+      ) {
         return;
       }
       inFlight.add(mode);
@@ -1125,22 +1514,16 @@
         })
         .then((payload) => {
           inFlight.delete(mode);
-          const seen = Array.isArray(payload.seen) ? payload.seen : [];
-          seen.forEach((item) => {
-            if (LEARN_MODES.has(item)) {
-              confirmedModes.add(item);
-            }
-          });
-          applyTabMarks(confirmedModes);
-          applyTracker(confirmedModes);
-          if (payload.done && payload.done.unlocked === true) {
-            serverDoneUnlocked = true;
-            applyDoneUnlocked(payload.done.label);
-          } else if (serverDoneUnlocked) {
-            /* keep unlocked; ignore stale unlocked:false */
-          } else {
-            applyLockedDoneLabel();
+          if (payload && payload.persisted === false) {
+            // Provisional visit — track locally until the Article is claimed.
+            provisionalModes.add(mode);
+            saveProvisional();
+            applyTabMarks(visitedUnion());
+            applyTracker(visitedUnion());
+            maybeUnlockLocalDone();
+            return;
           }
+          applySeenPayload(payload);
         })
         .catch(() => {
           inFlight.delete(mode);
@@ -1168,38 +1551,42 @@
       event.preventDefault();
       const current = learn.dataset.mode || "read";
       if (nextMode === current) {
-        if (!isGuest) {
+        // Re-clicking the open tab only re-marks auto-seen modes; gated
+        // modes wait for their completed attempt.
+        if (!isGuest && AUTO_SEEN_MODES.has(nextMode)) {
           persistSeen(nextMode);
         }
         return;
       }
       switchModeLocal(nextMode, tab);
-      if (isGuest) {
-        guestVisitedModes.add(nextMode);
-        applyTabMarks(guestVisitedModes);
-        applyTracker(guestVisitedModes);
-        return;
+      if (AUTO_SEEN_MODES.has(nextMode)) {
+        markModeAttempted(nextMode);
       }
-      persistSeen(nextMode);
     });
 
-    if (card) {
-      card.addEventListener("click", () => {
-        setFlipped(card.dataset.flipped !== "true");
-      });
-      card.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          setFlipped(card.dataset.flipped !== "true");
-        }
-      });
+    // Provisional boot: the server records nothing for unclaimed Articles, so
+    // count the currently open mode locally and restore prior session marks.
+    if (seenProvisional) {
+      const bootMode = learn.dataset.mode || "read";
+      if (!lockedModes.has(bootMode) && AUTO_SEEN_MODES.has(bootMode)) {
+        provisionalModes.add(bootMode);
+        saveProvisional();
+      }
+      applyTabMarks(visitedUnion());
+      applyTracker(visitedUnion());
+      maybeUnlockLocalDone();
+      // The server-rendered claim panel re-validates the mode gate on POST.
+      const claimModes = document.querySelector("[data-claim-modes]");
+      if (claimModes) {
+        claimModes.value = Array.from(provisionalModes).join(",");
+      }
     }
 
     // Honor server-rendered mode (e.g. hard navigation to ?mode=…).
     // Reset interactive panels when landing on them.
     const mode = learn.dataset.mode || "read";
-    if (mode === "card") {
-      setFlipped(false);
+    if (mode === "test" && testMode) {
+      testMode.reset();
     }
     if (mode === "cloze" && cloze) {
       cloze.reset();
@@ -1472,6 +1859,68 @@
     await presentAffirmation(el, nextUrl);
   }
 
+  function buildClaimDialog(payload) {
+    const article = String(payload.article_number || "");
+    const slots = Number(payload.slots_remaining || 0);
+    const dialog = document.createElement("dialog");
+    dialog.className = "guest-modal claim-modal";
+    dialog.setAttribute("aria-labelledby", "claim-modal-title");
+    dialog.innerHTML =
+      '<div class="guest-modal-card">' +
+      '<h2 class="guest-modal-title" id="claim-modal-title"></h2>' +
+      '<p class="guest-modal-body"></p>' +
+      '<div class="guest-modal-actions">' +
+      '<button type="button" class="btn" data-claim-confirm></button>' +
+      '<button type="button" class="btn btn-ghost" data-claim-dismiss>Not now</button>' +
+      "</div>" +
+      '<p class="claim-modal-note"></p>' +
+      "</div>";
+    dialog.querySelector(".guest-modal-title").textContent =
+      "Add Article " + article + " to your Free Articles?";
+    dialog.querySelector(".guest-modal-body").textContent =
+      "Article " + article + " and all its clauses will count as 1 of your 3 permanent " +
+      "Free Articles. You’ll keep its progress and scheduled revisions.";
+    dialog.querySelector("[data-claim-confirm]").textContent = "Add Article " + article;
+    dialog.querySelector(".claim-modal-note").textContent =
+      slots + " of 3 Free Article slot" + (slots === 1 ? "" : "s") + " remaining.";
+    return dialog;
+  }
+
+  function confirmClaim(payload) {
+    return new Promise(function (resolve) {
+      const dialog = buildClaimDialog(payload);
+      document.body.appendChild(dialog);
+      let settled = false;
+      function finish(confirmed) {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        try {
+          dialog.close();
+        } catch (_e) {
+          /* ignore */
+        }
+        dialog.remove();
+        resolve(confirmed);
+      }
+      dialog.querySelector("[data-claim-confirm]").addEventListener("click", function () {
+        finish(true);
+      });
+      dialog.querySelector("[data-claim-dismiss]").addEventListener("click", function () {
+        finish(false);
+      });
+      dialog.addEventListener("cancel", function () {
+        finish(false);
+      });
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+    });
+  }
+
   function initDoneInterceptor() {
     const form = document.querySelector("form.learn-action-done");
     if (!form) {
@@ -1479,6 +1928,76 @@
     }
     const btn = form.querySelector("#learn-done-btn") || form.querySelector("button[type='submit']");
     let fetchAttempted = false;
+
+    function restoreButton(original) {
+      btn.classList.remove("is-rtc-saving");
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+
+    async function postDone(extraFields) {
+      const body = new FormData(form);
+      // Unclaimed Articles track mode visits provisionally (sessionStorage);
+      // the Done POST carries that list so the server can validate the gate.
+      const learnEl = form.closest(".learn");
+      if (learnEl && learnEl.getAttribute("data-seen-provisional") === "true") {
+        const unit = learnEl.getAttribute("data-unit-id") || "";
+        let provisional = "";
+        try {
+          provisional = sessionStorage.getItem("cm-provisional:" + unit) || "";
+        } catch (_e) {
+          /* ignore */
+        }
+        if (provisional) {
+          body.set("modes", provisional);
+        }
+      }
+      if (extraFields) {
+        Object.keys(extraFields).forEach(function (key) {
+          body.set(key, extraFields[key]);
+        });
+      }
+      const response = await fetch(form.getAttribute("action"), {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: body,
+      });
+      const type = response.headers.get("content-type") || "";
+      if (!type.includes("application/json")) {
+        return null;
+      }
+      return response.json();
+    }
+
+    async function celebrate(payload) {
+      btn.classList.remove("is-rtc-saving");
+      btn.classList.add("is-rtc-saved");
+      btn.textContent = "Saved";
+      const soundP = soundEnabled() ? playCompletionSound() : Promise.resolve();
+      await wait(motionEnabled() ? 120 : 0);
+      const modal = buildAffirmationEl(payload);
+      await presentAffirmation(modal, null);
+      await soundP;
+      window.location.assign(cleanDoneParam(payload.next_url));
+    }
+
+    function surfaceError(payload, original) {
+      showNotConfirmed(form.closest(".learn"));
+      const box = document.querySelector(".rtc-not-confirmed p:not(.rtc-not-confirmed-eyebrow)");
+      if (box && payload && payload.error === "modes_incomplete") {
+        box.textContent = "All six methods need a visit before Done can save.";
+      } else if (box && payload && payload.error === "subscription_required") {
+        box.textContent =
+          "Your 3 Free Articles are in use, so this review can’t be saved on the Free plan.";
+      } else if (box && payload && payload.error && payload.error !== "sign_in_required") {
+        box.textContent = String(payload.error);
+      }
+      restoreButton(original);
+    }
+
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
       if (!btn || btn.disabled) {
@@ -1494,51 +2013,36 @@
       btn.classList.add("is-rtc-saving");
       btn.textContent = "Saving…";
       try {
-        const response = await fetch(form.getAttribute("action"), {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "X-Requested-With": "XMLHttpRequest",
-          },
-          body: new FormData(form),
-        });
-        const type = response.headers.get("content-type") || "";
-        if (!type.includes("application/json")) {
+        let payload = await postDone(null);
+        if (!payload) {
           showNotConfirmed(form.closest(".learn"));
-          btn.classList.remove("is-rtc-saving");
-          btn.textContent = original;
-          btn.disabled = false;
+          restoreButton(original);
           return;
         }
-        const payload = await response.json();
-        if (!response.ok || !payload.ok) {
-          const msg = payload && payload.error ? String(payload.error) : "Could not save this review.";
-          showNotConfirmed(form.closest(".learn"));
-          const box = document.querySelector(".rtc-not-confirmed p:not(.rtc-not-confirmed-eyebrow)");
-          if (box && payload && payload.error === "modes_incomplete") {
-            box.textContent = "All six methods need a visit before Done can save.";
-          } else if (box && msg && payload.error !== "sign_in_required") {
-            box.textContent = msg;
+        if (!payload.ok && payload.error === "claim_required") {
+          const confirmed = await confirmClaim(payload);
+          if (!confirmed) {
+            // "Not now" — nothing persisted; the learner may press Done again.
+            restoreButton(original);
+            fetchAttempted = false;
+            return;
           }
-          btn.classList.remove("is-rtc-saving");
-          btn.textContent = original;
-          btn.disabled = false;
+          // User-confirmed second action (not an auto-retry).
+          payload = await postDone({ claim_article: "1" });
+          if (!payload) {
+            showNotConfirmed(form.closest(".learn"));
+            restoreButton(original);
+            return;
+          }
+        }
+        if (!payload.ok) {
+          surfaceError(payload, original);
           return;
         }
-        btn.classList.remove("is-rtc-saving");
-        btn.classList.add("is-rtc-saved");
-        btn.textContent = "Saved";
-        const soundP = soundEnabled() ? playCompletionSound() : Promise.resolve();
-        await wait(motionEnabled() ? 120 : 0);
-        const modal = buildAffirmationEl(payload);
-        await presentAffirmation(modal, null);
-        await soundP;
-        window.location.assign(cleanDoneParam(payload.next_url));
+        await celebrate(payload);
       } catch (_err) {
         showNotConfirmed(form.closest(".learn"));
-        btn.classList.remove("is-rtc-saving");
-        btn.textContent = original;
-        btn.disabled = false;
+        restoreButton(original);
       }
     });
   }
@@ -1606,6 +2110,179 @@
     syncRtcAnim();
   }
 
+  function initPricing() {
+    const root = document.querySelector("[data-pricing]");
+    if (!root) {
+      return;
+    }
+    let plans = [];
+    try {
+      const data = document.getElementById("pricing-data");
+      plans = data ? JSON.parse(data.textContent || "[]") : [];
+    } catch (_e) {
+      return; // fall back to full-page navigation via the pill links
+    }
+    const byDays = {};
+    plans.forEach(function (plan) {
+      byDays[String(plan.days)] = plan;
+    });
+    const pills = Array.from(root.querySelectorAll("[data-pricing-days]"));
+    const els = {
+      title: root.querySelector("[data-pricing-title]"),
+      price: root.querySelector("[data-pricing-price]"),
+      perday: root.querySelector("[data-pricing-perday]"),
+      tagline: root.querySelector("[data-pricing-tagline]"),
+      annotation: root.querySelector("[data-pricing-annotation]"),
+      journey: root.querySelector("[data-pricing-journey]"),
+      cta: root.querySelector("[data-pricing-cta]"),
+      ctaNote: root.querySelector("[data-pricing-cta-note]"),
+      billing: root.querySelector("[data-pricing-billing]"),
+    };
+
+    function select(days) {
+      const plan = byDays[String(days)];
+      if (!plan) {
+        return;
+      }
+      root.setAttribute("data-selected-days", String(plan.days));
+      pills.forEach(function (pill) {
+        const active = pill.getAttribute("data-pricing-days") === String(plan.days);
+        pill.classList.toggle("is-selected", active);
+        pill.setAttribute("aria-checked", active ? "true" : "false");
+      });
+      if (els.title) {
+        els.title.textContent = plan.days + "-Day Recall";
+      }
+      if (els.price) {
+        els.price.textContent = "₹" + plan.price_inr;
+      }
+      if (els.perday) {
+        els.perday.textContent = "₹" + plan.per_day.toFixed(2) + " / day";
+      }
+      if (els.tagline) {
+        els.tagline.textContent = plan.tagline;
+      }
+      if (els.annotation) {
+        els.annotation.textContent = plan.annotation || "";
+        els.annotation.hidden = !plan.annotation;
+      }
+      if (els.journey) {
+        els.journey.hidden = plan.days !== 180;
+      }
+      if (els.cta) {
+        els.cta.textContent = "Start my " + plan.days + " days →";
+        const href = els.cta.getAttribute("href");
+        if (href) {
+          const target = new URL(href, window.location.origin);
+          target.searchParams.set("d", String(plan.days));
+          els.cta.setAttribute("href", target.pathname + target.search);
+        }
+      }
+      if (els.billing) {
+        els.billing.textContent = plan.billing_line;
+      }
+      // Update only the d param — preserve any other query params and hash.
+      const u = new URL(window.location.href);
+      u.searchParams.set("d", String(plan.days));
+      history.replaceState(null, "", u.pathname + u.search + u.hash);
+    }
+
+    pills.forEach(function (pill, index) {
+      pill.addEventListener("click", function (event) {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+          return;
+        }
+        event.preventDefault();
+        select(pill.getAttribute("data-pricing-days"));
+        pill.focus();
+      });
+      pill.addEventListener("keydown", function (event) {
+        let target = null;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+          target = pills[(index + 1) % pills.length];
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+          target = pills[(index - 1 + pills.length) % pills.length];
+        } else if (event.key === "Home") {
+          target = pills[0];
+        } else if (event.key === "End") {
+          target = pills[pills.length - 1];
+        } else {
+          return;
+        }
+        event.preventDefault();
+        if (target.hidden) {
+          setMoreOpen(true);
+        }
+        select(target.getAttribute("data-pricing-days"));
+        target.focus();
+      });
+    });
+
+    const moreToggle = root.querySelector("[data-pricing-more-toggle]");
+    const morePills = pills.filter(function (pill) {
+      return pill.classList.contains("is-more");
+    });
+
+    function setMoreOpen(open) {
+      morePills.forEach(function (pill) {
+        pill.hidden = !open && !pill.classList.contains("is-selected");
+      });
+      if (moreToggle) {
+        moreToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        moreToggle.textContent = open ? "Fewer options" : "More options";
+      }
+    }
+
+    if (moreToggle) {
+      moreToggle.addEventListener("click", function () {
+        setMoreOpen(moreToggle.getAttribute("aria-expanded") !== "true");
+      });
+    }
+  }
+
+  function initSlotsWhy() {
+    const btn = document.querySelector("[data-slots-why]");
+    const body = document.querySelector("[data-slots-why-body]");
+    if (!btn || !body) {
+      return;
+    }
+    btn.addEventListener("click", function () {
+      const open = body.hidden;
+      body.hidden = !open;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.textContent = open
+        ? "Why can't I swap an Article? −"
+        : "Why can't I swap an Article? +";
+    });
+  }
+
+  function initGuestStrip() {
+    const strip = document.querySelector("[data-guest-strip]");
+    if (!strip) {
+      return;
+    }
+    const KEY = "cm-guest-strip-dismissed";
+    try {
+      if (sessionStorage.getItem(KEY) === "1") {
+        strip.hidden = true;
+        return;
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+    const dismiss = strip.querySelector("[data-guest-strip-dismiss]");
+    if (dismiss) {
+      dismiss.addEventListener("click", function () {
+        strip.hidden = true;
+        try {
+          sessionStorage.setItem(KEY, "1");
+        } catch (_e) {
+          /* ignore */
+        }
+      });
+    }
+  }
+
   function bootInteraction() {
     syncRtcAnim();
     getDoneAudio();
@@ -1613,6 +2290,9 @@
     initDoneInterceptor();
     initServerAffirmation();
     initExperienceControls();
+    initPricing();
+    initGuestStrip();
+    initSlotsWhy();
   }
 
   if (document.readyState === "loading") {

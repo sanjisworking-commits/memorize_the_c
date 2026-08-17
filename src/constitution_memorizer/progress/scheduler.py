@@ -97,6 +97,7 @@ class ReminderEngine:
         self._split_cache: dict[str, SplitMode] | None = None
         self._theme_cache: ThemePreference | None = None
         self._news_cache: str | None = None
+        self._claimed_cache: set[str] | None = None
 
     def for_user(self, user_id: UUID) -> ReminderEngine:
         """Return a lightweight engine bound to ``user_id`` (shared units + repo)."""
@@ -288,6 +289,63 @@ class ReminderEngine:
         self.repo.set_news_articles_raw(self.user_id, value)
         self._news_cache = value.strip()
 
+    # ------------------------------------------------------------------ #
+    # Free-Article entitlement slots (parent Article level)               #
+    # ------------------------------------------------------------------ #
+    _FREE_ARTICLES_BACKFILLED_KEY = "free_articles_backfilled"
+
+    def claimed_articles(self) -> set[str]:
+        """Parent Articles claimed as this user's permanent Free Articles.
+
+        Runs the one-time grandfather backfill on first access: every distinct
+        parent Article the user already has genuine Done progress on
+        (``times_completed >= 1``) is claimed, even beyond the 3-slot limit —
+        existing learning is never taken away. Request-scoped cache, same as
+        the other engine caches (``for_user`` starts fresh).
+        """
+        if self._claimed_cache is None:
+            self._ensure_free_articles_backfilled()
+            self._claimed_cache = set(self.repo.claimed_articles(self.user_id))
+        return set(self._claimed_cache)
+
+    def claimed_articles_with_dates(self) -> dict[str, str]:
+        """Claimed Articles → claimed_at ISO timestamps (runs the backfill)."""
+        self.claimed_articles()  # ensures grandfather backfill has run
+        return self.repo.claimed_articles_with_dates(self.user_id)
+
+    def is_article_claimed(self, article_number: str | None) -> bool:
+        if article_number is None or not str(article_number).strip():
+            return False
+        return str(article_number).strip() in self.claimed_articles()
+
+    def claim_article(self, article_number: str) -> None:
+        """Idempotently claim a parent Article as a permanent Free Article."""
+        key = str(article_number).strip()
+        if not key:
+            raise ValueError("article_number is required to claim a Free Article")
+        self._ensure_free_articles_backfilled()
+        self.repo.claim_article(self.user_id, key)
+        if self._claimed_cache is not None:
+            self._claimed_cache.add(key)
+
+    def _ensure_free_articles_backfilled(self) -> None:
+        """One-time grandfather backfill, reusing the request progress cache.
+
+        Uses ``_ensure_progress_cache`` so the dashboard/browse request flow
+        (which preloads progress via ``bootstrap_request``) never pays an extra
+        ``list_all_progress`` round trip for entitlement status.
+        """
+        if self.repo.get_setting(self.user_id, self._FREE_ARTICLES_BACKFILLED_KEY) == "1":
+            return
+        for record in self._ensure_progress_cache().values():
+            if record.times_completed < 1:
+                continue
+            unit = self.units.get(record.learning_unit_id)
+            if unit is None or not unit.article_number:
+                continue
+            self.repo.claim_article(self.user_id, str(unit.article_number).strip())
+        self.repo.set_setting(self.user_id, self._FREE_ARTICLES_BACKFILLED_KEY, "1")
+
     def mark_mode_seen(self, unit_id: str, mode: str) -> set[str]:
         if unit_id not in self.units:
             raise KeyError(f"Unknown learning unit id: {unit_id}")
@@ -320,7 +378,16 @@ class ReminderEngine:
         *,
         as_of: date | None = None,
         require_all_modes: bool = True,
+        required_modes: frozenset[str] | None = None,
+        claim_article: str | None = None,
     ) -> MarkDoneResult:
+        """Advance the ladder; optionally claim a Free Article in the same
+        transaction (``claim_article`` rides inside ``commit_completion``).
+
+        ``required_modes`` narrows the completion gate (entitlement- and
+        unit-aware: modes a unit cannot produce are omitted); ``None`` keeps
+        the historical all-six requirement.
+        """
         if unit_id not in self.units:
             raise KeyError(f"Unknown learning unit id: {unit_id}")
 
@@ -331,7 +398,8 @@ class ReminderEngine:
         if self._split_cache is None:
             self._split_cache = dict(state.split_preferences)
 
-        if require_all_modes and not LEARN_MODES_SET.issubset(state.modes_seen):
+        required = LEARN_MODES_SET if required_modes is None else required_modes
+        if require_all_modes and not required.issubset(state.modes_seen):
             raise ModesIncompleteError(unit_id, state.modes_seen)
 
         today = as_of or date.today()
@@ -369,7 +437,15 @@ class ReminderEngine:
                 )
 
         started = perf_counter()
-        progress = self.repo.commit_completion(self.user_id, unit_id, command)
+        if claim_article:
+            progress = self.repo.commit_completion(
+                self.user_id, unit_id, command, claim_article=str(claim_article)
+            )
+            if self._claimed_cache is not None:
+                self._claimed_cache.add(str(claim_article))
+        else:
+            # Legacy call shape — keeps simple repo wrappers compatible.
+            progress = self.repo.commit_completion(self.user_id, unit_id, command)
         _record_timing("completion_commit", started)
         self._store_progress(progress)
 

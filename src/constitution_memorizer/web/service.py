@@ -375,23 +375,58 @@ LEARN_MODE_LABELS: dict[str, str] = {
     "letters": "Letters",
     "type": "Type",
     "recite": "Recite",
-    "card": "Card",
+    "test": "Test",
 }
 
+# Loosest cloze density threshold (heavy) — mirrors DENSITY_THRESH/letterLen
+# in app.js. If no word clears it, no density can produce a blank.
+_CLOZE_MIN_LETTER_LEN = 4
 
-def methods_tracker_line(seen_count: int) -> str:
-    """Copy under the Learn mode tab bar (METHODS-THEME-HANDOFF)."""
-    if seen_count >= len(LEARN_MODES_SET):
-        return "All 6 methods visited — revision complete, mark it Done"
+
+def _letter_len(word: str) -> int:
+    # JS: word.replace(/[^A-Za-z]/g, "").length — ASCII letters only.
+    return sum(1 for ch in word if ch.isascii() and ch.isalpha())
+
+
+def has_cloze_blanks(text: str) -> bool:
+    """Whether any cloze density can blank at least one word of ``text``.
+
+    When False, cloze is omitted from the unit's effective required modes —
+    it must never be fake-completed just because nothing could be revealed.
+    """
+    return any(_letter_len(word) >= _CLOZE_MIN_LETTER_LEN for word in text.split())
+
+
+def methods_tracker_line(seen_count: int, required_count: int = 6) -> str:
+    """Copy under the Learn mode tab bar (METHODS-THEME-HANDOFF).
+
+    ``required_count`` reflects the entitlement-aware required set — six for
+    claimed/claimable/subscribed Articles, four open methods for guests and
+    cap-reached Articles.
+    """
+    if seen_count >= required_count:
+        return (
+            f"All {required_count} methods visited — revision complete, mark it Done"
+        )
+    word = "six" if required_count == 6 else str(required_count)
     return (
-        f"{seen_count} of 6 methods visited · revision completes "
-        "when you've been through all six"
+        f"{seen_count} of {required_count} methods visited · revision completes "
+        f"when you've been through all {word}"
     )
 
 
-def done_button_state(unit: LearningUnit, seen: set[str]) -> dict[str, object]:
-    """Locked Done until all six modes visited; unlocks on the last (Card if in order)."""
-    missing = LEARN_MODES_SET - set(seen)
+def done_button_state(
+    unit: LearningUnit,
+    seen: set[str],
+    required: set[str] | None = None,
+) -> dict[str, object]:
+    """Locked Done until the required modes are visited (entitlement-aware).
+
+    Defaults to all six; guests / cap-reached Articles require only the four
+    open modes to reach the Done affordance (which then gates server-side).
+    """
+    required_set = LEARN_MODES_SET if required is None else set(required)
+    missing = required_set - set(seen)
     remaining = len(missing)
     if remaining > 0:
         label = f"{remaining} method{'s' if remaining != 1 else ''} left"
@@ -407,3 +442,70 @@ def done_button_state(unit: LearningUnit, seen: set[str]) -> dict[str, object]:
         "disabled": False,
         "missing": [],
     }
+
+
+def free_article_slots(eng: ReminderEngine) -> list[dict[str, object]]:
+    """Numbered Free-Article slot rows for the Profile (design 05).
+
+    One row per claimed parent Article — title, saved date, clause count and
+    the earliest upcoming review across that Article's units. Callers render
+    remaining allowance as explicit empty-slot rows; legacy over-cap accounts
+    simply produce more than three rows.
+    """
+    claimed_dates = eng.claimed_articles_with_dates()
+    rows: list[dict[str, object]] = []
+
+    def _sort_key(value: str) -> tuple[int, object]:
+        try:
+            return (0, int(value))
+        except (TypeError, ValueError):
+            return (1, str(value))
+
+    for article in sorted(claimed_dates, key=_sort_key):
+        units = [
+            u
+            for u in eng.units.values()
+            if u.article_number is not None and str(u.article_number) == article
+        ]
+        title = None
+        for unit in units:
+            if unit.type == LearningUnitType.ARTICLE and unit.title:
+                title = unit.title
+                break
+        if title is None:
+            for unit in units:
+                if unit.title:
+                    title = unit.title
+                    break
+        clause_count = sum(1 for u in units if u.type != LearningUnitType.ARTICLE)
+        next_review: date | None = None
+        for unit in units:
+            record = eng.repo.get_progress(eng.user_id, unit.id)
+            if record is not None and record.next_revision is not None:
+                if next_review is None or record.next_revision < next_review:
+                    next_review = record.next_revision
+
+        meta_bits: list[str] = []
+        claimed_at = claimed_dates[article]
+        if claimed_at:
+            try:
+                saved = date.fromisoformat(claimed_at[:10])
+                meta_bits.append(f"Saved {saved.day} {saved.strftime('%b %Y')}")
+            except ValueError:
+                pass
+        if clause_count:
+            meta_bits.append(
+                f"{clause_count} clause{'s' if clause_count != 1 else ''}"
+            )
+        if next_review is not None:
+            meta_bits.append(
+                f"next review {next_review.day} {next_review.strftime('%b')}"
+            )
+        rows.append(
+            {
+                "article": article,
+                "title": f"Article {article}" + (f" — {title}" if title else ""),
+                "meta": " · ".join(meta_bits),
+            }
+        )
+    return rows

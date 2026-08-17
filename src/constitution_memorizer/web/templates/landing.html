@@ -76,7 +76,7 @@
         <a href="#learn" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Modes</a>
         <a href="#revision" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Schedule</a>
         {% if pricing_enabled|default(false) %}
-        <a href="/pricing" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Pricing</a>
+        <a href="#pricing" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Pricing</a>
         {% endif %}
       </nav>
       <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:9px 16px;font-size:14px;font-weight:600" class="j-ghost">Explore as guest</a>
@@ -311,6 +311,20 @@
   </div>
 </div>
 
+{% if pricing_enabled|default(false) %}
+<!-- ══ PRICING — one product, choose a duration ══ -->
+<section id="pricing" style="border-top:1px solid rgba(244,241,234,0.12);padding:clamp(60px,9vh,120px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+  <p style="margin:0 0 14px;font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;color:rgba(244,241,234,0.42)">Pricing</p>
+  <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(28px,3.6vw,52px);line-height:1.06;letter-spacing:-0.035em;font-weight:700;margin:0 0 20px;max-width:22ch;text-wrap:balance">Everything in Recall. Choose your duration.</h2>
+  <p style="margin:0 0 14px;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:44ch;text-wrap:pretty">One product, no tiers — every plan unlocks the complete experience, from a 3-day sprint to a full year. Only the duration changes.</p>
+  <p style="margin:0 0 34px;font-size:14.5px;line-height:1.6;color:rgba(244,241,234,0.45);max-width:44ch">Exploring is free: browse the whole Constitution and keep your first 3 Articles — clauses, progress and scheduled revisions — permanently.</p>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+    <a href="/pricing" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:16px 32px;font-size:16px;font-weight:700" class="j-ink">See pricing →</a>
+    <span style="font-size:14px;color:rgba(244,241,234,0.45)">3 · 7 · 15 · 30 · 60 · 180 · 365 days</span>
+  </div>
+</section>
+{% endif %}
+
 <section style="border-top:1px solid rgba(244,241,234,0.12);padding:clamp(60px,9vh,120px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
   <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(28px,3.6vw,52px);line-height:1.06;letter-spacing:-0.035em;font-weight:700;margin:0 0 24px;max-width:18ch;text-wrap:balance">Start with one Article.</h2>
   <p style="margin:0 0 34px;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:36ch;text-wrap:pretty">The schedule takes care of the other 179 days.</p>
@@ -329,6 +343,9 @@
       <span style="font-family:Fraunces,Georgia,serif;font-size:17px;font-weight:700;letter-spacing:-0.02em">Recall the C</span>
     </a>
     <p style="margin:0;font-family:Fraunces,Georgia,serif;font-style:italic;font-size:14.5px;color:rgba(244,241,234,0.5)">Read it. See it. Recall it. Revisit it. Remember it.</p>
+    {% if pricing_enabled|default(false) %}
+    <a href="/pricing" style="font-size:13.5px;font-weight:600;color:rgba(244,241,234,0.6)">Pricing</a>
+    {% endif %}
     <p style="margin:0;font-size:13px;color:rgba(244,241,234,0.38);max-width:420px">A study aid, not an official legal source. Verify against an authoritative publication where it counts.</p>
   </div>
 </footer>

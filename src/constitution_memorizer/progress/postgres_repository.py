@@ -429,6 +429,16 @@ class PostgresProgressRepository:
             rows = cur.fetchall()
         return {str(row["article_number"]) for row in rows}
 
+    def claimed_articles_with_dates(self, user_id: UUID | str) -> dict[str, str]:
+        """Claimed parent Articles mapped to their claimed_at ISO timestamp."""
+        with self._cursor() as (_conn, cur):
+            cur.execute(
+                "SELECT article_number, claimed_at FROM user_free_articles WHERE user_id = %s",
+                (as_user_id(user_id),),
+            )
+            rows = cur.fetchall()
+        return {str(row["article_number"]): str(row["claimed_at"]) for row in rows}
+
     def is_article_claimed(self, user_id: UUID | str, article_number: str) -> bool:
         with self._cursor() as (_conn, cur):
             cur.execute(

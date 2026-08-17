@@ -8,9 +8,27 @@
   <p class="lede">
     Create a personal learning record, continue across devices and receive future revisions.
   </p>
+
+  {% if kind == 'dashboard' %}
+  {# Design 06·C — nothing to show yet: explain the ladder, one quiet CTA. #}
+  <div class="guest-empty">
+    <p class="guest-empty-title">No scheduled revisions yet</p>
+    <p class="guest-empty-body">
+      Revisions are scheduled against your account. Sign in, finish an Article,
+      and it appears here on the 1 → 3 → 7 → 14 → 30 → 60 ladder.
+    </p>
+    <p class="actions">
+      <a class="btn btn-ghost" href="/login?next=/dashboard&reason={{ reason|default('default') }}">Sign in</a>
+    </p>
+  </div>
+  <p class="actions">
+    <a class="btn btn-ghost" href="/browse">Continue as guest</a>
+  </p>
+  {% else %}
   <p class="actions">
     <a class="btn" href="/login?next=/{% if kind == 'progress' %}progress{% else %}dashboard{% endif %}&reason={{ reason|default('default') }}">Sign in</a>
     <a class="btn btn-ghost" href="/browse">Continue as guest</a>
   </p>
+  {% endif %}
 </section>
 {% endblock %}

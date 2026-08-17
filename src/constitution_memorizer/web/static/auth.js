@@ -125,9 +125,30 @@
     } catch (_e) { /* ignore */ }
     var body = qs("[data-guest-modal-body]", dialog);
     var signin = qs("[data-guest-modal-signin]", dialog);
+    var title = qs(".guest-modal-title", dialog);
+    var titles = {};
+    var titleNode = qs("#guest-modal-titles");
+    try {
+      if (titleNode) titles = JSON.parse(titleNode.textContent || "{}");
+    } catch (_e) { /* ignore */ }
+    var defaultTitle = title ? title.textContent : "";
+    var DONE_PROMPT_KEY = "cm-guest-done-prompted";
 
     function openGuestModal(reason) {
       var key = reason || "default";
+      // The Done prompt is the earned moment — it fires on the first Done of a
+      // session, not on every one (design 06·B).
+      if (key === "mastered") {
+        try {
+          if (sessionStorage.getItem(DONE_PROMPT_KEY) === "1") {
+            var quiet = qs("[data-guest-done-note]");
+            if (quiet) quiet.hidden = false;
+            return;
+          }
+          sessionStorage.setItem(DONE_PROMPT_KEY, "1");
+        } catch (_e) { /* ignore */ }
+      }
+      if (title) title.textContent = titles[key] || defaultTitle;
       if (body) body.textContent = copy[key] || copy.default || body.textContent;
       if (signin) {
         var next = window.location.pathname + window.location.search;

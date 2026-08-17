@@ -794,3 +794,159 @@ def test_learn_access_resolves_from_real_store(tmp_path: Path) -> None:
     assert summary.claimed_count == 3
     assert summary.cap_reached is True
     assert summary.status_line == "Free · 3 of 3 Articles"
+
+
+# --------------------------------------------------------------------------- #
+# Admin role + manual grants: access_source, no fake subscription             #
+# --------------------------------------------------------------------------- #
+from datetime import datetime, timedelta, timezone  # noqa: E402
+from uuid import uuid4  # noqa: E402
+
+
+def _seed_admin_role(repo: ProgressRepository, user_id: UUID) -> None:
+    repo.conn.execute(
+        "INSERT INTO user_roles (user_id, role, created_at) VALUES (?, 'admin', ?)",
+        (str(user_id), datetime.now(timezone.utc).isoformat()),
+    )
+    repo.conn.commit()
+
+
+def _seed_grant(
+    repo: ProgressRepository,
+    user_id: UUID,
+    *,
+    source: str = "admin_grant",
+    ends_at: datetime | None = None,
+) -> None:
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    repo.conn.execute(
+        """
+        INSERT INTO access_grants (
+            id, user_id, source, starts_at, ends_at, reason,
+            granted_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, 'test', ?, ?)
+        """,
+        (
+            str(uuid4()),
+            str(user_id),
+            source,
+            (now - timedelta(hours=1)).isoformat(),
+            ends_at.isoformat() if ends_at else None,
+            str(uuid4()),
+            now.isoformat(),
+        ),
+    )
+    repo.conn.commit()
+
+
+def test_admin_resolves_full_access_without_subscription(tmp_path: Path) -> None:
+    client, repo = _authed_client(tmp_path)
+    _seed_admin_role(repo, USER)
+
+    # Learn: all six modes, no locks, no claim prompt, no cap.
+    page = client.get("/learn/clause-1")
+    assert page.status_code == 200
+    assert 'data-locked-modes=""' in page.text
+
+    # Dashboard chip says administrator, never a subscription.
+    dash = client.get("/dashboard")
+    assert "Administrator access" in dash.text
+    assert "Recall active" not in dash.text
+
+
+def test_admin_done_never_writes_free_article_slot(tmp_path: Path) -> None:
+    client, repo = _authed_client(tmp_path)
+    _seed_admin_role(repo, USER)
+    complete_all_modes(client, MINI_UNITS, "clause-1")
+    done = client.post(
+        "/learn/clause-1/done", headers={"accept": "application/json"}
+    )
+    assert done.status_code == 200
+    # Done persisted as progress, but no Free-Article slot was consumed.
+    assert repo.claimed_articles(USER) == set()
+    assert repo.get_progress(USER, "clause-1") is not None
+
+
+def test_grant_holder_resolves_subscribed_with_source(tmp_path: Path) -> None:
+    ends = datetime.now(timezone.utc) + timedelta(days=30)
+    client, repo = _authed_client(tmp_path)
+    _seed_grant(repo, USER, ends_at=ends)
+
+    page = client.get("/learn/clause-1")
+    assert page.status_code == 200
+    assert 'data-locked-modes=""' in page.text
+
+    dash = client.get("/dashboard")
+    assert "Recall access granted" in dash.text
+    assert "Recall active" not in dash.text
+
+
+def test_access_level_stays_three_valued(tmp_path: Path) -> None:
+    # Even for an admin, access_level returns "subscribed" — the admin-ness
+    # lives in is_admin/access_source on the result objects.
+    conn = open_progress_db(tmp_path / "progress.db")
+    repo = ProgressRepository(conn)
+    from constitution_memorizer.admin.store import SqliteAccessStore
+
+    _seed_admin_role(repo, USER)
+    store = SqliteAccessStore(conn)
+
+    class _State:
+        current_user = type("U", (), {"id": USER})()
+
+    class _AppState:
+        multiuser_enabled = True
+        article_entitlements_enabled = True
+        access_store = store
+
+    req = type(
+        "R",
+        (),
+        {"app": type("A", (), {"state": _AppState()})(), "state": _State()},
+    )()
+    assert ent.access_level(req) == ent.SUBSCRIBED
+
+    access = ent.resolve_learn_access(req, _EngineWithClaims(set()), 14)
+    assert access.level == ent.SUBSCRIBED
+    assert access.is_admin is True
+    assert access.access_source == "admin"
+    assert access.locked_modes == ()
+
+    summary = ent.access_summary(req, _EngineWithClaims(set()))
+    assert summary.level == ent.SUBSCRIBED
+    assert summary.is_subscribed is False
+    assert summary.access_source == "admin"
+    assert summary.status_line == "Administrator access"
+
+
+def test_grant_summary_carries_expiry_and_no_subscription(tmp_path: Path) -> None:
+    conn = open_progress_db(tmp_path / "progress.db")
+    repo = ProgressRepository(conn)
+    ends = datetime(2026, 9, 30, 18, 29, 59, tzinfo=timezone.utc)
+    _seed_grant(repo, USER, source="promotion", ends_at=None)
+    _seed_grant(repo, USER, source="admin_grant", ends_at=ends)
+    from constitution_memorizer.admin.store import SqliteAccessStore
+
+    store = SqliteAccessStore(conn)
+
+    class _State:
+        current_user = type("U", (), {"id": USER})()
+
+    class _AppState:
+        multiuser_enabled = True
+        article_entitlements_enabled = True
+        access_store = store
+
+    req = type(
+        "R",
+        (),
+        {"app": type("A", (), {"state": _AppState()})(), "state": _State()},
+    )()
+    summary = ent.access_summary(req, _EngineWithClaims({"14"}))
+    # Indefinite promotion beats the dated grant; no expiry is printed.
+    assert summary.access_source == "promotion"
+    assert summary.renews_or_expires_on is None
+    assert summary.is_subscribed is False
+    assert summary.status_line == "Recall access granted"
+    # Claims survive and stay listed for grant holders.
+    assert summary.claimed_articles == ("14",)

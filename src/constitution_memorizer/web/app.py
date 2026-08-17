@@ -15,6 +15,17 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from constitution_memorizer.admin.dependencies import admin_hint
+from constitution_memorizer.admin.routes import create_admin_router
+from constitution_memorizer.admin.repository import (
+    PostgresAdminRepository,
+    SqliteAdminRepository,
+)
+from constitution_memorizer.admin.store import (
+    AdminHintCache,
+    PostgresAccessStore,
+    SqliteAccessStore,
+)
 from constitution_memorizer.auth.fake_provider import FakeAuthProvider
 from constitution_memorizer.auth.rate_limit import OtpRateLimiter
 from constitution_memorizer.auth.routes import create_auth_router, install_auth_middleware
@@ -95,8 +106,10 @@ from constitution_memorizer.web.completion import (
     wants_json,
 )
 from constitution_memorizer.web.entitlements import (
+    PREVIEW_STATES,
     access_summary,
     article_key,
+    preview_state,
     resolve_learn_access,
 )
 from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
@@ -237,6 +250,8 @@ def create_app(
     contact_message_repo=None,
     contact_message_notifier=None,
     progress_repo=None,
+    access_store=None,
+    admin_repo=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -407,6 +422,14 @@ def create_app(
                 "memory_log_enabled": memory_log_enabled,
                 "relevant_laws_enabled": relevant_laws_enabled,
                 "pricing_enabled": bool(settings.pricing_enabled),
+                # Cosmetic nav hint only (~60s TTL cache); /admin itself
+                # re-checks the authoritative role store on every request.
+                "is_admin_hint": admin_hint(request),
+                # Fixed banner label while the admin Entitlement Preview is
+                # active (verified admins only; empty string otherwise).
+                "admin_preview_label": PREVIEW_STATES.get(
+                    preview_state(request) or "", ""
+                ),
                 # Guests cannot submit Contact Us / Report Issue — do not expose
                 # Turnstile site key or load the client script for them.
                 "report_turnstile_enabled": bool(
@@ -518,6 +541,32 @@ def create_app(
     else:
         app.state.contact_message_notifier = None
 
+    # Admin foundation: hot-path access store (role + effective grant) and the
+    # cold-path console repository. ADMIN_ENABLED gates the console only; the
+    # role's entitlement bypass follows user_roles regardless of the flag.
+    if access_store is not None:
+        app.state.access_store = access_store
+    elif use_postgres:
+        app.state.access_store = PostgresAccessStore(_ensure_pool())
+    else:
+        _sqlite_conn = getattr(engine.repo, "conn", None)
+        app.state.access_store = (
+            SqliteAccessStore(_sqlite_conn) if _sqlite_conn is not None else None
+        )
+
+    if admin_repo is not None:
+        app.state.admin_repo = admin_repo
+    elif use_postgres:
+        app.state.admin_repo = PostgresAdminRepository(_ensure_pool())
+    else:
+        _sqlite_conn = getattr(engine.repo, "conn", None)
+        app.state.admin_repo = (
+            SqliteAdminRepository(_sqlite_conn) if _sqlite_conn is not None else None
+        )
+
+    app.state.admin_enabled = bool(settings.admin_enabled)
+    app.state.admin_hint_cache = AdminHintCache()
+
     app.state.db_pool = db_pool
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -576,6 +625,7 @@ def create_app(
                 reset_request_timings(token)
 
     app.include_router(create_auth_router(templates))
+    app.include_router(create_admin_router(templates))
 
     def _engine() -> ReminderEngine:
         bound = bound_engine.get()
@@ -1114,6 +1164,14 @@ def create_app(
                     return RedirectResponse(
                         url=f"/learn/{unit_id}?claim=1", status_code=303
                     )
+                # Previewed access (admin Entitlement Preview) synthesizes
+                # should_prompt_claim with can_persist_done=False — a
+                # combination outside the real matrix. Confirming the claim
+                # must write nothing.
+                if not access.can_persist_done:
+                    if wants_json(request):
+                        return JSONResponse({"ok": True, "persisted": False})
+                    return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
                 # Confirmed: claim + Done + schedule land in ONE transaction —
                 # the claim insert rides inside commit_completion, so either
                 # everything persists or nothing does.
@@ -1141,6 +1199,12 @@ def create_app(
                     eng, result.next_unit_id, done_unit_id=unit_id
                 )
         done_access = resolve_learn_access(request, eng, unit.article_number)
+        if not done_access.can_persist_done:
+            # Reachable only under the admin Entitlement Preview — every real
+            # non-persisting state (guest, cap) returned above.
+            if wants_json(request):
+                return JSONResponse({"ok": True, "persisted": False})
+            return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
         done_required = _effective_required_modes(
             unit, eng.units, done_access.required_modes
         )

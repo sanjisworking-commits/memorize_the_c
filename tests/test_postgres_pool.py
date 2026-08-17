@@ -277,6 +277,8 @@ def test_injected_postgres_repos_do_not_open_a_pool(tmp_path: Path):
         progress_repo=MagicMock(),
         issue_report_repo=MagicMock(),
         contact_message_repo=MagicMock(),
+        access_store=MagicMock(),
+        admin_repo=MagicMock(),
     )
     assert app.state.db_pool is None
     clear_settings_cache()

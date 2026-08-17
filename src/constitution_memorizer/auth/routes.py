@@ -548,6 +548,13 @@ def _establish_session(
             display_name=profile.get("display_name") or auth_session.user.display_name,
             avatar_url=auth_session.user.avatar_url,
         )
+    # Durable identity directory: email/phone/last_sign_in_at refresh on every
+    # successful sign-in so admin search outlives the 14-day session window.
+    request.app.state.engine.repo.record_identity(
+        auth_session.user.id,
+        email=auth_session.user.email,
+        phone=auth_session.user.phone,
+    )
 
     dest = next_url or request.cookies.get("rtc_auth_next") or "/dashboard"
     dest = _safe_next(dest)
@@ -645,6 +652,7 @@ def install_auth_middleware(app) -> None:
                 or path.startswith("/settings")
                 or path.startswith("/profile")
                 or path.startswith("/api/theme")
+                or path.startswith("/admin")
             ):
                 return signin_redirect(next_url=path, reason="default")
             elif method != "GET":

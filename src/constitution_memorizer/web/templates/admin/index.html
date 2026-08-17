@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Overview{% endblock %}
+{% block admin_content %}
+<div class="admin-panel">
+  <div class="admin-panel-head">
+    <h1 class="admin-title">Overview</h1>
+    <span class="admin-meta">{{ admins }} administrator{{ '' if admins == 1 else 's' }}</span>
+  </div>
+
+  <div class="admin-cells">
+    {% for cell in cells %}
+    <a class="admin-cell" href="{{ cell.href }}">
+      <span class="admin-cell-label">{{ cell.label }}</span>
+      <span class="admin-cell-value is-{{ cell.color }}">{{ cell.value }}</span>
+      <span class="admin-cell-sub">{{ cell.sub }}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <p class="admin-footnote">
+    No payment metrics exist yet. Paid active, recurring, one-time passes and
+    failed payments join this row when billing lands — the grid is built for
+    eight cells, not five.
+  </p>
+</div>
+{% endblock %}

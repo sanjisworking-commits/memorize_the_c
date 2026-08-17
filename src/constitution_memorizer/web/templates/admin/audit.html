@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Audit{% endblock %}
+{% block admin_content %}
+<div class="admin-panel">
+  <div class="admin-panel-head">
+    <h1 class="admin-title">Audit</h1>
+    {% if target_user_id %}
+    <a class="admin-chip is-active" href="/admin/audit">Filtered to {{ target_user_id[:13] }}… ✕</a>
+    {% endif %}
+  </div>
+
+  {% include "admin/_audit_table.html" %}
+
+  {% if audit|length >= 100 or offset > 0 %}
+  <p class="admin-pager">
+    {% if offset > 0 %}<a href="/admin/audit?target_user_id={{ target_user_id }}&offset={{ [offset - 100, 0]|max }}">← Newer</a>{% endif %}
+    {% if audit|length >= 100 %}<a href="/admin/audit?target_user_id={{ target_user_id }}&offset={{ offset + 100 }}">Older →</a>{% endif %}
+  </p>
+  {% endif %}
+
+  <p class="admin-footnote">
+    Append-only. No row here can be edited or removed from the console, and
+    every mutation elsewhere in the console has a row here or it did not happen.
+  </p>
+</div>
+{% endblock %}

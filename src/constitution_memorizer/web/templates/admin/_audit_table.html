@@ -1,0 +1,21 @@
+{# Audit table component — used by /admin/audit and the user detail page.
+   Diff column shows changed keys only; full JSON lives in the title attr. #}
+{% if audit %}
+<div class="admin-table" style="--cols: 1.1fr 1.1fr 1.2fr 1.2fr 2.4fr;">
+  <div class="admin-thead">
+    <span>When</span><span>Admin</span><span>Action</span>
+    <span>Target</span><span>Before → after</span>
+  </div>
+  {% for e in audit %}
+  <div class="admin-row">
+    <span class="admin-mono">{{ e.at }}</span>
+    <span>{{ e.admin }}</span>
+    <span class="admin-mono admin-state is-{{ e.action_color }}">{{ e.action }}</span>
+    <span class="admin-muted">{{ e.target }}</span>
+    <span class="admin-mono admin-diff" title="{{ e.full }}">{{ e.diff }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="admin-empty">No audit entries yet.</p>
+{% endif %}

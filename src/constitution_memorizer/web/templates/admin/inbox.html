@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ 'Reports' if is_reports else 'Contact' }}{% endblock %}
+{% block admin_content %}
+<div class="admin-panel">
+  <div class="admin-panel-head">
+    <h1 class="admin-title">{{ 'Issue reports' if is_reports else 'Contact messages' }}</h1>
+    <div class="admin-chip-row">
+      {% for chip in chips %}
+      <a class="admin-chip{% if status_filter == chip %} is-active{% endif %}" href="{{ base_path }}?status={{ chip }}">{{ chip }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if not available %}
+  <p class="admin-empty">Inbox requires the hosted database.</p>
+  {% elif inbox %}
+  <div class="admin-table" style="--cols: 0.8fr 1fr 2.6fr 1.1fr 1.5fr;">
+    <div class="admin-thead">
+      <span>ID</span>
+      <span>{{ 'Article' if is_reports else 'Subject' }}</span>
+      <span>Message</span><span>Status</span><span>Move to</span>
+    </div>
+    {% for r in inbox %}
+    <div class="admin-row">
+      <span class="admin-mono">{{ r.short_id }}</span>
+      <span>{{ r.subject }}</span>
+      <span class="admin-inbox-body">{{ r.body }}<br><span class="admin-mono admin-inbox-meta">{{ r.meta }}</span></span>
+      <span class="admin-mono admin-state is-{{ r.status_color }} admin-inbox-status">{{ r.status }}</span>
+      <span class="admin-inbox-actions">
+        {% for m in r.moves %}
+        <form method="post" action="{{ base_path }}/{{ r.id }}/status?status={{ status_filter }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="status" value="{{ m.target }}">
+          <button type="submit" class="admin-btn admin-move is-{{ m.color }}">{{ m.label }}</button>
+        </form>
+        {% endfor %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="admin-empty">Nothing in this state.</p>
+  {% endif %}
+
+  <p class="admin-footnote">
+    Labels are New / Reviewing / Resolved / Dismissed. The stored values stay
+    <span class="admin-mono">{{ 'new · reviewing · fixed · rejected' if is_reports else 'new · reviewing · resolved' }}</span>
+    — the UI renames, the constraint is untouched.
+  </p>
+</div>
+{% endblock %}

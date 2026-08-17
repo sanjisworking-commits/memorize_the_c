@@ -552,6 +552,34 @@ class ProgressRepository:
             )
         self._conn.commit()
 
+    def record_identity(
+        self,
+        user_id: UUID | str,
+        *,
+        email: str | None,
+        phone: str | None,
+    ) -> None:
+        """Refresh the identity directory at sign-in.
+
+        Never clobbers display_name/avatar (owned by /welcome and /profile);
+        a null email/phone from the provider keeps the last known value.
+        """
+        now = _utc_now_iso()
+        self._conn.execute(
+            """
+            INSERT INTO user_profile (
+                user_id, display_name, avatar_url, created_at, updated_at,
+                email, phone, last_sign_in_at
+            ) VALUES (?, NULL, NULL, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                email = COALESCE(excluded.email, user_profile.email),
+                phone = COALESCE(excluded.phone, user_profile.phone),
+                last_sign_in_at = excluded.last_sign_in_at
+            """,
+            (as_user_id(user_id), now, now, email, phone, now),
+        )
+        self._conn.commit()
+
     def get_profile(self, user_id: UUID | str) -> dict[str, str | None] | None:
         row = self._conn.execute(
             """

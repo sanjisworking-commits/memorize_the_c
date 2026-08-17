@@ -147,6 +147,14 @@ class ReminderRepositoryProtocol(Protocol):
         avatar_url: str | None,
     ) -> None: ...
 
+    def record_identity(
+        self,
+        user_id: UUID | str,
+        *,
+        email: str | None,
+        phone: str | None,
+    ) -> None: ...
+
     def get_profile(self, user_id: UUID | str) -> dict[str, str | None] | None: ...
 
     def needs_welcome(self, user_id: UUID | str) -> bool: ...

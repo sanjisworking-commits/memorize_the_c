@@ -1,0 +1,187 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ target.display_name or 'User' }}{% endblock %}
+{% block admin_content %}
+<div class="admin-panel">
+
+  <div class="admin-identity-head">
+    <div>
+      <h1 class="admin-title">{{ target.display_name or '—' }}</h1>
+      <p class="admin-mono admin-user-uuid">{{ target.user_id }}</p>
+    </div>
+    {% if target.is_admin %}
+    <span class="admin-badge">Administrator</span>
+    {% endif %}
+  </div>
+
+  <div class="admin-identity-grid">
+    <div><span class="admin-label">Email</span><p>{{ target.email or '—' }}</p></div>
+    <div><span class="admin-label">Phone</span><p>{{ target.phone or '—' }}</p></div>
+    <div><span class="admin-label">Joined</span><p>{{ joined or '—' }}</p></div>
+    <div><span class="admin-label">Last sign-in</span><p>{{ last_sign_in or '—' }}</p></div>
+  </div>
+
+  <div class="admin-block">
+    <span class="admin-label">Effective access</span>
+    <div class="admin-access-line">
+      <span class="admin-access-headline is-{{ access_color }}">{{ access_headline }}</span>
+      <span class="admin-mono admin-access-facts">{{ access_facts }}</span>
+    </div>
+    <p class="admin-access-note">{{ access_note }}</p>
+  </div>
+
+  <div class="admin-block">
+    <div class="admin-block-head">
+      <span class="admin-label">Free Articles claimed</span>
+      <span class="admin-mono admin-meta">{{ claimed|length }} of 3 slots used</span>
+    </div>
+    {% if claimed %}
+    <div class="admin-claim-chips">
+      {% for c in claimed %}
+      <span class="admin-claim-chip"><strong>Article {{ c.article }}</strong><span class="admin-mono">{{ c.on }}</span></span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="admin-muted">No Articles claimed.</p>
+    {% endif %}
+    <p class="admin-footnote">
+      Claims are permanent and are never consumed or returned by a grant.
+      Read-only here — the console does not edit progress.
+    </p>
+  </div>
+
+  <div class="admin-block admin-progress-grid">
+    {% for p in progress %}
+    <div><span class="admin-label">{{ p.k }}</span><p class="admin-progress-value">{{ p.v }}</p></div>
+    {% endfor %}
+  </div>
+
+  <div class="admin-block">
+    <div class="admin-block-head">
+      <span class="admin-label">Access history</span>
+      <a class="admin-jump" href="#grant-form">Grant access ↓</a>
+    </div>
+    {% if grants %}
+    <div class="admin-table" style="--cols: 1fr 1.1fr 1.1fr 1.9fr 0.9fr;">
+      <div class="admin-thead">
+        <span>State</span><span>Source</span><span>Window</span>
+        <span>Reason</span><span></span>
+      </div>
+      {% for g in grants %}
+      <div class="admin-row{% if g.dimmed %} is-dimmed{% endif %}">
+        <span class="admin-mono admin-state is-{{ g.state_color }}">{{ g.state }}</span>
+        <span class="admin-mono">{{ g.source }}</span>
+        <span class="admin-mono">{{ g.window }}</span>
+        <span>{{ g.reason }}</span>
+        <span>
+          {% if g.can_revoke %}
+          <form method="post" action="/admin/grants/{{ g.id }}/revoke">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="admin-btn is-destructive">Revoke</button>
+          </form>
+          {% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="admin-muted">No grants on this account.</p>
+    {% endif %}
+    <p class="admin-footnote">
+      When grants overlap, the one reaching furthest wins; an indefinite grant
+      beats any dated one. The winning row is the only one marked EFFECTIVE.
+    </p>
+  </div>
+
+  <div class="admin-block admin-grant-panel" id="grant-form">
+    <div class="admin-grant-form">
+      <h2 class="admin-block-title">Grant Recall access</h2>
+      <p class="admin-subtitle">Manual grant only. This writes no billing record and charges nothing.</p>
+      <form method="post" action="/admin/users/{{ target.user_id }}/grants" data-grant-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <span class="admin-label">Source</span>
+        <div class="admin-source-pick" role="radiogroup" aria-label="Grant source">
+          {% for s in grant_sources %}
+          <label class="admin-source-option">
+            <input type="radio" name="source" value="{{ s }}"{% if loop.first %} checked{% endif %}>
+            <span class="admin-mono">{{ s }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <span class="admin-label">Ends at</span>
+        <div class="admin-ends-row">
+          <input type="date" name="ends_on" data-grant-ends>
+          <label class="admin-indef">
+            <input type="checkbox" name="indefinite" value="1" data-grant-indef>
+            Indefinite
+          </label>
+        </div>
+        <span class="admin-label">Reason — required</span>
+        <textarea
+          name="reason"
+          rows="2"
+          required
+          placeholder="Support case #218 — payment failed after UPI mandate lapse"
+          data-grant-reason
+        ></textarea>
+        <div class="admin-grant-actions">
+          <button type="submit" class="admin-btn is-primary">Create grant</button>
+          <span class="admin-grant-msg" data-grant-msg></span>
+        </div>
+      </form>
+      <p class="admin-footnote">
+        Grants become visible to the user only while
+        <span class="admin-mono">ARTICLE_ENTITLEMENTS_ENABLED</span> is on.
+        With entitlements off, everyone already has full access.
+      </p>
+    </div>
+    <div class="admin-grant-consequences">
+      <h2 class="admin-block-title">What the write does</h2>
+      <p class="admin-subtitle">Both rows commit in one transaction. If the audit insert fails, the grant does not exist.</p>
+      <div class="admin-write-plan is-teal">
+        <span class="admin-label">access_grants</span>
+        <p class="admin-mono">user_id · source · starts_at=now() · ends_at · reason · granted_by · revoked_at=null</p>
+      </div>
+      <div class="admin-write-plan is-ink">
+        <span class="admin-label">admin_audit_log</span>
+        <p class="admin-mono">action=grant_access · target=this user · before=null · after={grant} · same transaction</p>
+      </div>
+      <div class="admin-revoke-note">
+        <span class="admin-label">Revoke</span>
+        <p>Revoke sets <span class="admin-mono">revoked_at=now()</span> and writes
+        <span class="admin-mono">revoke_grant</span>. Rows are never deleted — the
+        history stays readable, greyed, marked REVOKED. Access ends on the
+        user's next request.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-block">
+    <span class="admin-label">Audit</span>
+    {% include "admin/_audit_table.html" %}
+  </div>
+
+</div>
+<script>
+  (function () {
+    var form = document.querySelector('[data-grant-form]');
+    if (!form) return;
+    var ends = form.querySelector('[data-grant-ends]');
+    var indef = form.querySelector('[data-grant-indef]');
+    var reason = form.querySelector('[data-grant-reason]');
+    var msg = form.querySelector('[data-grant-msg]');
+    function syncEnds() {
+      ends.disabled = indef.checked;
+      ends.style.opacity = indef.checked ? '0.4' : '';
+    }
+    indef.addEventListener('change', syncEnds);
+    syncEnds();
+    form.addEventListener('submit', function (event) {
+      if (!reason.value.trim()) {
+        event.preventDefault();
+        msg.textContent = 'Reason is required — 400 without it.';
+        reason.focus();
+      }
+    });
+  })();
+</script>
+{% endblock %}

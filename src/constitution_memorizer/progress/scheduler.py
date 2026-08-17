@@ -26,7 +26,7 @@ from constitution_memorizer.progress.repository import (
 from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
 from constitution_memorizer.utils.json_io import read_json
 
-INTERVAL_LADDER: tuple[int, ...] = (1, 3, 7, 14, 30, 60)
+INTERVAL_LADDER: tuple[int, ...] = (1, 3, 7, 15, 30, 60)
 DEFAULT_EASE_FACTOR = 2.5
 
 

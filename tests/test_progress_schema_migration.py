@@ -362,3 +362,51 @@ def test_legacy_migrate_path_also_invalidates(tmp_path: Path):
     conn = open_progress_db(db)
     assert _modes_for(conn, "article-1") == {"read"}
     conn.close()
+
+
+def test_ladder_day15_reslots_interval_14(tmp_path: Path) -> None:
+    """One-shot ladder correction: interval_days 14 → 15, dates untouched."""
+    db = tmp_path / "progress.db"
+    conn = open_progress_db(db)
+    conn.execute(
+        """
+        INSERT INTO learning_unit_progress (
+            user_id, learning_unit_id, status, times_completed, last_completed,
+            next_revision, interval_days, ease_factor, created_at, updated_at
+        )
+        VALUES (?, 'clause-14', 'review', 4, '2026-08-10', '2026-08-24', 14, 2.5,
+                '2026-08-01T00:00:00+00:00', '2026-08-10T00:00:00+00:00')
+        """,
+        (UID,),
+    )
+    # Simulate a pre-correction DB: clear the marker written at first open.
+    conn.execute(
+        "DELETE FROM app_settings WHERE user_id = ? AND key = 'ladder_day15_migrated_v1'",
+        (UID,),
+    )
+    conn.commit()
+    conn.close()
+
+    conn = open_progress_db(db)
+    row = conn.execute(
+        "SELECT interval_days, next_revision FROM learning_unit_progress "
+        "WHERE learning_unit_id = 'clause-14'"
+    ).fetchone()
+    assert int(row["interval_days"]) == 15
+    assert str(row["next_revision"]) == "2026-08-24"  # scheduled date NOT shifted
+
+    # Idempotent: a fresh 14 written AFTER the marker is user state, not legacy —
+    # reopening must not touch it.
+    conn.execute(
+        "UPDATE learning_unit_progress SET interval_days = 14 "
+        "WHERE learning_unit_id = 'clause-14'"
+    )
+    conn.commit()
+    conn.close()
+    conn = open_progress_db(db)
+    row = conn.execute(
+        "SELECT interval_days FROM learning_unit_progress "
+        "WHERE learning_unit_id = 'clause-14'"
+    ).fetchone()
+    assert int(row["interval_days"]) == 14
+    conn.close()

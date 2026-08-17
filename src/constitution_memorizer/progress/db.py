@@ -344,7 +344,43 @@ def _migrate_legacy(conn: sqlite3.Connection) -> None:
     # Must run before this function's own commit — init_db returns right
     # after _migrate_legacy, so a later call would be left uncommitted.
     _invalidate_legacy_gated_modes(conn)
+    _migrate_ladder_day15(conn)
     conn.commit()
+
+
+_LADDER_DAY15_MARKER_KEY = "ladder_day15_migrated_v1"
+
+
+def _migrate_ladder_day15(conn: sqlite3.Connection) -> None:
+    """Re-slot interval_days 14 → 15 (idempotent, one-shot).
+
+    The Constitution ladder's fourth rung was corrected from Day 14 to Day 15.
+    Without this, ``advance_interval(14)`` would round a unit UP to the new 15
+    rung — repeating the two-week interval instead of advancing to 30. Stored
+    ``next_revision`` dates are deliberately untouched: already-scheduled
+    reviews keep their dates. Postgres gets the same UPDATE via alembic.
+    """
+    marker = conn.execute(
+        "SELECT 1 FROM app_settings WHERE user_id = ? AND key = ?",
+        (str(LOCAL_USER_ID), _LADDER_DAY15_MARKER_KEY),
+    ).fetchone()
+    if marker is not None:
+        return
+    conn.execute(
+        "UPDATE learning_unit_progress SET interval_days = 15 WHERE interval_days = 14"
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO app_settings (user_id, key, value, updated_at)
+        VALUES (?, ?, '1', ?)
+        """,
+        (
+            str(LOCAL_USER_ID),
+            _LADDER_DAY15_MARKER_KEY,
+            datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        ),
+    )
+    logger.info("Re-slotted interval_days 14 -> 15 (ladder day-15 correction)")
 
 
 def _invalidate_legacy_gated_modes(conn: sqlite3.Connection) -> None:
@@ -557,6 +593,7 @@ def init_db(conn: sqlite3.Connection) -> None:
         _ensure_profile_identity_columns(conn)
         conn.executescript(SCHEMA_SQL)
         _invalidate_legacy_gated_modes(conn)
+        _migrate_ladder_day15(conn)
     finally:
         conn.execute("PRAGMA foreign_keys = ON")
     conn.commit()

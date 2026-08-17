@@ -1,0 +1,40 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Access grants{% endblock %}
+{% block admin_content %}
+<div class="admin-panel">
+  <div class="admin-panel-head">
+    <h1 class="admin-title">All grants</h1>
+    <div class="admin-chip-row">
+      {% for f in filters %}
+      <a class="admin-chip{% if state == f %} is-active{% endif %}" href="/admin/access?state={{ f }}">{{ f }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if grants %}
+  <div class="admin-table" style="--cols: 1.4fr 0.9fr 1fr 1.1fr 1.7fr 1fr;">
+    <div class="admin-thead">
+      <span>User</span><span>State</span><span>Source</span>
+      <span>Window</span><span>Reason</span><span>Granted by</span>
+    </div>
+    {% for g in grants %}
+    <a class="admin-row is-link{% if g.dimmed %} is-dimmed{% endif %}" href="/admin/users/{{ g.user_id }}">
+      <span class="admin-user-name">{{ g.user }}</span>
+      <span class="admin-mono admin-state is-{{ g.state_color }}">{{ g.state }}</span>
+      <span class="admin-mono">{{ g.source }}</span>
+      <span class="admin-mono">{{ g.window }}</span>
+      <span class="admin-muted">{{ g.reason }}</span>
+      <span class="admin-muted">{{ g.by }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% if total > offset + page_size %}
+  <p class="admin-pager"><a href="/admin/access?state={{ state }}&offset={{ offset + page_size }}">Next {{ page_size }} →</a></p>
+  {% elif offset > 0 %}
+  <p class="admin-pager"><a href="/admin/access?state={{ state }}">← Back to start</a></p>
+  {% endif %}
+  {% else %}
+  <p class="admin-empty">No grants in this state.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -31,6 +31,7 @@ AUTH_REQUIRED_PREFIXES = (
     "/settings",
     "/api/theme",
     "/api/explainers",
+    "/admin",
 )
 
 # Learn/progress mutations that require an account.

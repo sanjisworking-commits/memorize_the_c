@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Users{% endblock %}
+{% block admin_content %}
+<div class="admin-panel">
+  <h1 class="admin-title">Users</h1>
+  <p class="admin-subtitle">
+    Search by user ID, email, phone or display name. Matches read
+    <span class="admin-mono">user_profile</span>, so users who haven't signed
+    in recently are still findable.
+  </p>
+
+  <form class="admin-search" method="get" action="/admin/users">
+    <input
+      type="search"
+      name="q"
+      value="{{ q }}"
+      placeholder="9f2c1b74… · name@mail.com · +91 98200 41772 · Ananya"
+      aria-label="Search users"
+    >
+    <button type="submit" class="admin-btn">Search</button>
+    {% if q %}<a class="admin-btn is-ghost" href="/admin/users">Clear</a>{% endif %}
+  </form>
+  <p class="admin-result-line">{{ result_line }}</p>
+
+  {% if users %}
+  <div class="admin-table" style="--cols: 1.5fr 1.7fr 1.2fr 1.1fr 0.7fr 1.2fr;">
+    <div class="admin-thead">
+      <span>User</span><span>Email</span><span>Phone</span>
+      <span>Last sign-in</span><span>Role</span><span>Access</span>
+    </div>
+    {% for u in users %}
+    <a class="admin-row is-link" href="/admin/users/{{ u.user_id }}">
+      <span class="admin-cell-user">
+        <span class="admin-user-name">{{ u.name }}</span>
+        <span class="admin-mono admin-user-id">{{ u.short_id }}</span>
+      </span>
+      <span class="admin-mono">{{ u.email }}</span>
+      <span class="admin-mono">{{ u.phone }}</span>
+      <span class="admin-mono">{{ u.last_sign_in }}</span>
+      <span class="admin-mono admin-role">{{ u.role }}</span>
+      <span class="admin-state is-{{ u.access_color }}">{{ u.access }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="admin-empty">
+    No user matches that. Try a full email, the phone with country code, or
+    paste the user ID from a support message.
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

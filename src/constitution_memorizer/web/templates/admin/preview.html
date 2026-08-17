@@ -1,0 +1,42 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Entitlement preview{% endblock %}
+{% block admin_content %}
+<div class="admin-panel">
+  <h1 class="admin-title">Entitlement preview</h1>
+  <p class="admin-subtitle">
+    Simulates Learn access restrictions only. Your session, nav and account
+    pages still show the real you, and nothing you do while previewing is
+    saved. To test a true signed-out visit, use a private window.
+  </p>
+
+  <div class="admin-preview-cards">
+    {% for c in cards %}
+    <form method="post" action="/admin/preview">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="state" value="{{ c.code }}">
+      <button type="submit" class="admin-preview-card{% if c.selected %} is-selected{% endif %}">
+        <span class="admin-mono admin-preview-code">{{ c.code }}</span>
+        <span class="admin-preview-label">{{ c.label }}</span>
+        <span class="admin-preview-sub">{{ c.sub }}</span>
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+
+  {% if current %}
+  <form method="post" action="/admin/preview/clear" class="admin-preview-exit">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="admin-btn">Exit preview</button>
+  </form>
+  {% endif %}
+
+  <p class="admin-footnote">
+    Each card sets the <span class="admin-mono">rtc_admin_preview</span> cookie
+    to the value it prints, so a bug report can name the state. The cookie is
+    honoured only for verified administrators; every previewed state forces
+    <span class="admin-mono">can_persist_modes_seen=false</span> and
+    <span class="admin-mono">can_persist_done=false</span> — including the
+    claim-confirm branch, which writes nothing.
+  </p>
+</div>
+{% endblock %}

@@ -109,9 +109,29 @@
   </div>
   {% endif %}
 
-  {% if access and access.enabled and access.is_free %}
+  {% if access and access.enabled and access.access_source in ('admin', 'admin_grant', 'promotion') %}
+  {# Admin/grant access line (Admin Foundation design 10): real capability,
+     no purchase — never worded as a subscription. Indefinite grants print
+     no expiry at all. #}
+  <h2 class="section-title">Recall access</h2>
+  <div class="lifecycle-card is-active">
+    <p class="lifecycle-title">{{ access.status_line }}</p>
+    <p class="lifecycle-body">
+      {% if access.access_source == 'admin' -%}
+      Full Recall access from your admin role. No billing attached.
+      {%- elif access.renews_or_expires_on -%}
+      Full access until {{ access.renews_or_expires_on }}.
+      {%- else -%}
+      Full access, no end date.
+      {%- endif %}
+    </p>
+  </div>
+  {% endif %}
+
+  {% if access and access.enabled and (access.is_free or (access.access_source in ('admin_grant', 'promotion') and access.claimed_count > 0)) %}
   {# Free Articles — numbered slot rows (design 05): the empty slot is a row,
-     not an absence, so the remaining allowance is visible without arithmetic. #}
+     not an absence, so the remaining allowance is visible without arithmetic.
+     Grant holders keep seeing their claims: those survive the grant ending. #}
   <div class="slots-head">
     <h2 class="slots-title">Free Articles</h2>
     {% if access.legacy_over_cap %}
@@ -131,7 +151,7 @@
     <span class="slot-right">Permanent</span>
   </div>
   {% endfor %}
-  {% if not access.legacy_over_cap %}
+  {% if access.is_free and not access.legacy_over_cap %}
   {% for _ in range(access.free_slots_remaining) %}
   <div class="slot-row is-empty">
     <span class="slot-index">{{ '%02d' % (free_slots|length + loop.index) }}</span>
@@ -152,7 +172,7 @@
     it stays spent. Recall opens every Article without touching these three.
   </p>
 
-  {% if pricing_enabled|default(false) and not access.legacy_over_cap %}
+  {% if pricing_enabled|default(false) and access.is_free and not access.legacy_over_cap %}
   <div class="slots-foot">
     <a class="btn btn-accent" href="/pricing">Unlock every Article →</a>
     <span class="slots-foot-aside">Your three stay yours either way.</span>

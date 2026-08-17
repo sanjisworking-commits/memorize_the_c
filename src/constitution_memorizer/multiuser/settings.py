@@ -116,6 +116,13 @@ class MultiUserSettings(BaseSettings):
     # working purchase flow.
     pricing_enabled: bool = Field(default=False, alias="PRICING_ENABLED")
 
+    # Admin console (/admin/*) and the Admin nav link. Gates the console
+    # ONLY: an admin identity's full Recall entitlement follows its
+    # user_roles row and is unaffected by this flag — removing the role
+    # (scripts/revoke_admin.py) is how admin access is revoked. Default
+    # false everywhere; enable explicitly where the console should exist.
+    admin_enabled: bool = Field(default=False, alias="ADMIN_ENABLED")
+
     @field_validator(
         "auth_google_enabled",
         "auth_phone_enabled",
@@ -127,6 +134,7 @@ class MultiUserSettings(BaseSettings):
         "relevant_laws_enabled",
         "article_entitlements_enabled",
         "pricing_enabled",
+        "admin_enabled",
         mode="before",
     )
     @classmethod

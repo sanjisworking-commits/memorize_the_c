@@ -76,8 +76,52 @@ CREATE TABLE IF NOT EXISTS user_profile (
     display_name TEXT,
     avatar_url TEXT,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    last_sign_in_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('admin')),
+    created_at TEXT NOT NULL,
+    created_by TEXT,
+    PRIMARY KEY (user_id, role)
+);
+
+CREATE TABLE IF NOT EXISTS access_grants (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'admin_grant'
+        CHECK (source IN ('admin_grant', 'promotion')),
+    starts_at TEXT NOT NULL,
+    ends_at TEXT,
+    reason TEXT,
+    granted_by TEXT,
+    created_at TEXT NOT NULL,
+    revoked_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_access_grants_user ON access_grants(user_id);
+
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+    id TEXT PRIMARY KEY,
+    admin_user_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    target_user_id TEXT,
+    target_type TEXT,
+    target_id TEXT,
+    before_state TEXT,
+    after_state TEXT,
+    reason TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_admin
+    ON admin_audit_log(admin_user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_target
+    ON admin_audit_log(target_user_id, created_at);
 
 CREATE TABLE IF NOT EXISTS app_session (
     session_id TEXT PRIMARY KEY,
@@ -404,6 +448,20 @@ def _rebuild_app_settings(conn: sqlite3.Connection) -> None:
     conn.execute("ALTER TABLE app_settings_new RENAME TO app_settings")
 
 
+def _ensure_profile_identity_columns(conn: sqlite3.Connection) -> None:
+    """Add email/phone/last_sign_in_at to pre-0006 user_profile tables.
+
+    CREATE TABLE IF NOT EXISTS never alters an existing table, so local DBs
+    created before the admin foundation need the columns added in place.
+    """
+    cols = _column_names(conn, "user_profile")
+    if not cols:
+        return
+    for column in ("email", "phone", "last_sign_in_at"):
+        if column not in cols:
+            conn.execute(f"ALTER TABLE user_profile ADD COLUMN {column} TEXT")
+
+
 def _repair_partial_legacy(conn: sqlite3.Connection) -> None:
     """Fix 8001 tables that exist without user_id or without a PRIMARY KEY.
 
@@ -434,6 +492,7 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA foreign_keys = OFF")
     try:
         _repair_partial_legacy(conn)
+        _ensure_profile_identity_columns(conn)
         conn.executescript(SCHEMA_SQL)
         _invalidate_legacy_gated_modes(conn)
     finally:

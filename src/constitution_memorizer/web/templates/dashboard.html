@@ -60,6 +60,10 @@
       · <a href="/pricing">Unlock every Article →</a>
       {% endif %}
     </span>
+    {% elif access and access.enabled and access.access_source in ('admin', 'admin_grant', 'promotion') %}
+    {# Same headline as Profile, no detail line. Not a subscription — the
+       chip never says "Recall active" for admin or granted access. #}
+    <span class="dash-access-chip">{{ access.status_line }}</span>
     {% endif %}
   </header>
 

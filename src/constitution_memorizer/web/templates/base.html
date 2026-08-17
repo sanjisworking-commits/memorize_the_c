@@ -41,7 +41,18 @@
   <link rel="stylesheet" href="/static/visual-explainer.css?v=ve1">
   <link rel="icon" href="/static/main_logo.png" type="image/png">
 </head>
-<body class="{% block body_class %}{% endblock %}{% if multiuser_enabled|default(false) %}{% if current_user %} is-authed{% else %} is-guest{% endif %}{% endif %}">
+<body class="{% block body_class %}{% endblock %}{% if multiuser_enabled|default(false) %}{% if current_user %} is-authed{% else %} is-guest{% endif %}{% endif %}{% if admin_preview_label|default('') %} is-admin-previewing{% endif %}">
+  {% if admin_preview_label|default('') %}
+  {# Fixed top strip: survives scroll on every page. Amber — a mode, not an
+     error. Simulates Learn restrictions only; the account is unchanged. #}
+  <div class="admin-preview-banner" role="status">
+    <span class="admin-preview-banner-text"><strong>ADMIN PREVIEW</strong> — viewing Recall as {{ admin_preview_label }}. Your account is unchanged.</span>
+    <form method="post" action="/admin/preview/clear?next={{ request.url.path }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="admin-preview-banner-exit">Exit preview</button>
+    </form>
+  </div>
+  {% endif %}
   {% set path = request.url.path %}
   {% set auth_surface = path.startswith('/login') or path.startswith('/auth/') or path.startswith('/signed-out') or path.startswith('/session-expired') %}
   <div class="page-wrap">
@@ -104,6 +115,12 @@
               <a role="menuitem" href="/calendar">Calendar</a>
               {% if memory_log_enabled|default(false) %}
               <a role="menuitem" href="/memory">Memory log</a>
+              {% endif %}
+              {% if is_admin_hint|default(false) %}
+              <a role="menuitem" href="/admin" class="account-menu-admin">
+                Admin console
+                <span class="account-menu-admin-tag" aria-hidden="true">/admin</span>
+              </a>
               {% endif %}
               <form method="post" action="/logout">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

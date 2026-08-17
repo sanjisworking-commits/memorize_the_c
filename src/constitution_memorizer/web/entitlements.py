@@ -18,9 +18,10 @@ billing seam filled in step 6 — until then it is always ``False``.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Iterable
 
+from constitution_memorizer.admin.store import AccessOverride
 from constitution_memorizer.progress.repository import LEARN_MODES
 
 # Modes always available (guest / free-cap-reached still get these four).
@@ -33,10 +34,30 @@ ALL_MODES: tuple[str, ...] = LEARN_MODES
 # A signed-in Free account may permanently claim this many parent Articles.
 FREE_ARTICLE_LIMIT = 3
 
-# Access levels.
+# Access levels. Deliberately only these three: an administrator or a grant
+# holder resolves to SUBSCRIBED capabilities with a distinguishing
+# access_source, never a fourth level.
 GUEST = "guest"
 FREE = "free"
 SUBSCRIBED = "subscribed"
+
+# Why full access exists for this request. "admin" and the grant sources are
+# real capability without a purchase — is_subscribed stays False for them so
+# no surface (or table) ever claims a subscription that does not exist.
+ACCESS_SOURCES: tuple[str, ...] = (
+    "free",
+    "payment",
+    "subscription",
+    "admin_grant",
+    "promotion",
+    "admin",
+    "local_owner",
+)
+
+
+def _multiuser_enabled(request: object) -> bool:
+    app_state = getattr(getattr(request, "app", None), "state", None)
+    return bool(getattr(app_state, "multiuser_enabled", False))
 
 
 def entitlements_active(request: object) -> bool:
@@ -70,6 +91,29 @@ def is_subscribed(user: object) -> bool:
     return False
 
 
+def _request_override(request: object) -> AccessOverride:
+    """Role + effective manual grant for this request (memoized per request).
+
+    Empty override when multiuser is off, the user is a guest, or no access
+    store is wired — the caller falls through to the normal level logic.
+    """
+    from constitution_memorizer.admin.dependencies import resolve_access_override
+
+    try:
+        return resolve_access_override(request)  # type: ignore[arg-type]
+    except AttributeError:  # pragma: no cover - defensive; bare stub request
+        return AccessOverride()
+
+
+def has_active_recall_access(request: object) -> bool:
+    """Capability reduction: admin role OR active manual grant.
+
+    The billing layer (roadmap step 7) ORs paid entitlements into this same
+    check; feature code keeps asking one question.
+    """
+    return _request_override(request).has_recall_access
+
+
 def resolve_level(*, multiuser_enabled: bool, has_user: bool, subscribed: bool) -> str:
     """Pure access-level resolution (unit-testable without a request).
 
@@ -85,14 +129,29 @@ def resolve_level(*, multiuser_enabled: bool, has_user: bool, subscribed: bool) 
 
 
 def access_level(request: object) -> str:
-    """Resolve the access level for a FastAPI request."""
+    """Resolve the access level for a FastAPI request.
+
+    Still returns only guest/free/subscribed. An admin role or an active
+    manual grant resolves to ``subscribed`` (effective capabilities); the
+    result objects carry ``access_source`` to say why. The override lookup
+    only runs while the entitlement boundary is active, preserving the
+    zero-DB-reads property of the dormant flag.
+    """
     app_state = getattr(getattr(request, "app", None), "state", None)
     multiuser_enabled = bool(getattr(app_state, "multiuser_enabled", False))
     user = getattr(getattr(request, "state", None), "current_user", None)
+    subscribed = user is not None and is_subscribed(user)
+    if (
+        multiuser_enabled
+        and user is not None
+        and not subscribed
+        and entitlements_active(request)
+    ):
+        subscribed = has_active_recall_access(request)
     return resolve_level(
         multiuser_enabled=multiuser_enabled,
         has_user=user is not None,
-        subscribed=user is not None and is_subscribed(user),
+        subscribed=subscribed,
     )
 
 
@@ -119,12 +178,25 @@ class LearnAccess:
     can_persist_done: bool
     should_prompt_claim: bool
     cap_reached: bool
+    # Identity/commerce split: an administrator has full capability with
+    # is_admin=True and access_source="admin" while level stays "subscribed"
+    # — no fake purchase anywhere. Keyword-with-default, appended last, so
+    # existing constructions stay valid.
+    is_admin: bool = False
+    access_source: str | None = None
 
     def is_locked(self, mode: str) -> bool:
         return mode in self.locked_modes
 
 
-def _full_access(level: str, *, article_claimed: bool, slots: int) -> LearnAccess:
+def _full_access(
+    level: str,
+    *,
+    article_claimed: bool,
+    slots: int,
+    is_admin: bool = False,
+    access_source: str | None = None,
+) -> LearnAccess:
     return LearnAccess(
         level=level,
         article_claimed=article_claimed,
@@ -136,6 +208,8 @@ def _full_access(level: str, *, article_claimed: bool, slots: int) -> LearnAcces
         can_persist_done=True,
         should_prompt_claim=False,
         cap_reached=False,
+        is_admin=is_admin,
+        access_source=access_source,
     )
 
 
@@ -206,18 +280,104 @@ def compute_learn_access(
     )
 
 
+# --------------------------------------------------------------------------- #
+# Admin Entitlement Preview                                                    #
+# --------------------------------------------------------------------------- #
+# Simulates Learn access restrictions only — session, nav and account pages
+# still show the real signed-in admin. States are Article-state-aware because
+# Learn behaviour follows the claim state, not the slot count alone. Every
+# previewed state forces both persistence flags off, so nothing an admin does
+# while previewing is saved (the Done handlers check can_persist_done before
+# any write, including the claim-confirm branch).
+
+PREVIEW_COOKIE = "rtc_admin_preview"
+
+PREVIEW_STATES: dict[str, str] = {
+    "free_claimable": "Free — Article claimable",
+    "free_claimed": "Free — claimed Article",
+    "free_cap": "Free — 3/3 used",
+    "subscribed": "Subscriber",
+}
+
+
+def preview_state(request: object) -> str | None:
+    """The active preview state, honored only for a verified admin.
+
+    Forging the cookie as a non-admin does nothing: the authoritative role
+    bit from the access override gates it, so no signing is needed. Without
+    the cookie there is zero extra cost on any request.
+    """
+    cookies = getattr(request, "cookies", None)
+    raw = cookies.get(PREVIEW_COOKIE) if cookies else None
+    if not raw or raw not in PREVIEW_STATES:
+        return None
+    if not _request_override(request).is_admin:
+        return None
+    return raw
+
+
+def _preview_learn_access(state: str) -> LearnAccess:
+    if state == "free_claimable":
+        access = compute_learn_access(
+            FREE, article_claimed=False, free_slots_remaining=2
+        )
+    elif state == "free_claimed":
+        access = compute_learn_access(
+            FREE, article_claimed=True, free_slots_remaining=1
+        )
+    elif state == "free_cap":
+        access = compute_learn_access(
+            FREE, article_claimed=False, free_slots_remaining=0
+        )
+    else:  # subscribed
+        access = compute_learn_access(SUBSCRIBED)
+    return replace(
+        access, can_persist_modes_seen=False, can_persist_done=False
+    )
+
+
 def resolve_learn_access(request: object, engine: object, article_number: object) -> LearnAccess:
     """Resolve :class:`LearnAccess` from a request + the per-user engine.
 
     While ``ARTICLE_ENTITLEMENTS_ENABLED`` is off, every request resolves to
     full legacy access (all six modes, everything persists, no prompts) and no
     entitlement store reads happen.
+
+    Order of authority once active: entitlement preview (verified admins
+    only, checked before everything so gates can be tested even where the
+    flag is off), then admin role, then active manual grant — both full
+    access without reading the claim store, never consuming a free slot —
+    then the normal guest/free/subscribed matrix.
     """
-    level = access_level(request)
+    previewed = preview_state(request)
+    if previewed is not None:
+        return _preview_learn_access(previewed)
     if not entitlements_active(request):
-        return _full_access(level, article_claimed=False, slots=FREE_ARTICLE_LIMIT)
+        return _full_access(
+            access_level(request), article_claimed=False, slots=FREE_ARTICLE_LIMIT
+        )
+    override = _request_override(request)
+    if override.is_admin:
+        return _full_access(
+            SUBSCRIBED,
+            article_claimed=False,
+            slots=0,
+            is_admin=True,
+            access_source="admin",
+        )
+    if override.effective_grant is not None:
+        return _full_access(
+            SUBSCRIBED,
+            article_claimed=False,
+            slots=0,
+            access_source=override.effective_grant.source,
+        )
+    level = access_level(request)
     if level != FREE:
-        return compute_learn_access(level)
+        access = compute_learn_access(level)
+        if level == SUBSCRIBED and not _multiuser_enabled(request):
+            access = replace(access, access_source="local_owner")
+        return access
     claimed = _claimed_articles(engine)
     key = article_key(article_number)
     return compute_learn_access(
@@ -244,9 +404,14 @@ class AccessSummary:
     enabled: bool = True
     # Grandfathered accounts may hold more than the 3-slot limit permanently.
     legacy_over_cap: bool = False
-    # Filled from the billing layer in step 7; None until then.
+    # Filled from the billing layer in step 7; None until then. For manual
+    # grants this is the effective grant's end date (None = indefinite).
     subscription_label: str | None = None
     renews_or_expires_on: str | None = None
+    # Identity/commerce split: real capability without a purchase keeps
+    # is_subscribed False and says why here instead.
+    is_admin: bool = False
+    access_source: str | None = None
 
     @property
     def is_free(self) -> bool:
@@ -255,6 +420,10 @@ class AccessSummary:
     @property
     def status_line(self) -> str:
         """Compact one-line status for Settings / Dashboard chip."""
+        if self.access_source == "admin":
+            return "Administrator access"
+        if self.access_source in ("admin_grant", "promotion"):
+            return "Recall access granted"
         if self.level == SUBSCRIBED:
             if self.subscription_label:
                 return f"Recall active · {self.subscription_label}"
@@ -303,6 +472,11 @@ def access_summary(request: object, engine: object) -> AccessSummary:
 
     Returns a disabled marker (no DB reads) while the entitlement boundary is
     dormant, so status surfaces stay hidden and query load is unchanged.
+
+    Admin and grant holders summarize as level=subscribed with
+    ``is_subscribed=False`` — the capability is real, the purchase is not —
+    and ``access_source`` carries the display. Their claimed Free Articles
+    stay listed: claims are permanent and survive any grant ending.
     """
     if not entitlements_active(request):
         return _DISABLED_SUMMARY
@@ -310,7 +484,31 @@ def access_summary(request: object, engine: object) -> AccessSummary:
     if level == GUEST:
         return build_access_summary(GUEST)
     claimed = sorted(_claimed_articles(engine), key=_article_sort_key)
-    return build_access_summary(level, claimed_articles=claimed, subscribed=(level == SUBSCRIBED))
+    override = _request_override(request)
+    if override.is_admin:
+        return replace(
+            build_access_summary(SUBSCRIBED, claimed_articles=claimed),
+            is_admin=True,
+            access_source="admin",
+        )
+    if override.effective_grant is not None:
+        grant = override.effective_grant
+        ends = grant.ends_at
+        return replace(
+            build_access_summary(SUBSCRIBED, claimed_articles=claimed),
+            access_source=grant.source,
+            # Long date for display ("30 September 2026"); indefinite grants
+            # carry None and print no expiry at all.
+            renews_or_expires_on=(
+                f"{ends.day} {ends:%B %Y}" if ends is not None else None
+            ),
+        )
+    summary = build_access_summary(
+        level, claimed_articles=claimed, subscribed=(level == SUBSCRIBED)
+    )
+    if level == SUBSCRIBED and not _multiuser_enabled(request):
+        summary = replace(summary, access_source="local_owner")
+    return summary
 
 
 # --------------------------------------------------------------------------- #

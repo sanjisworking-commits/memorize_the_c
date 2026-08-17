@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{% block admin_title %}Admin{% endblock %} · Recall Admin{% endblock %}
+{% block body_class %}admin-console{% endblock %}
+{% block content %}
+<section class="admin-shell">
+  <header class="admin-bar">
+    <div class="admin-bar-brand">
+      <span class="admin-bar-name">Recall</span>
+      <span class="admin-tag">Admin</span>
+    </div>
+    <div class="admin-bar-side">
+      {% if admin_env_chip %}<span class="admin-env-chip">{{ admin_env_chip }}</span>{% endif %}
+      <a class="admin-bar-back" href="/dashboard">← App</a>
+    </div>
+  </header>
+
+  <nav class="admin-tabs" aria-label="Admin console">
+    {% for key, label, href in admin_nav %}
+    <a class="admin-tab{% if admin_tab == key %} is-active{% endif %}" href="{{ href }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if notice %}
+  <p class="admin-notice" role="status">{{ notice }}</p>
+  {% endif %}
+
+  {% block admin_content %}{% endblock %}
+</section>
+{% endblock %}

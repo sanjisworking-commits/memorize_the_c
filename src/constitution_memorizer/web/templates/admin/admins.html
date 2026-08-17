@@ -1,0 +1,39 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Administrators{% endblock %}
+{% block admin_content %}
+<div class="admin-panel">
+  <div class="admin-panel-head">
+    <h1 class="admin-title">Administrators</h1>
+    <span class="admin-mono admin-meta">{{ admins|length }} account{{ '' if admins|length == 1 else 's' }}</span>
+  </div>
+
+  {% if admins %}
+  <div class="admin-table" style="--cols: 1.4fr 1.8fr 1fr 1.2fr;">
+    <div class="admin-thead">
+      <span>Administrator</span><span>User ID</span>
+      <span>Admin since</span><span>Granted by</span>
+    </div>
+    {% for a in admins %}
+    <a class="admin-row is-link" href="/admin/users/{{ a.user_id }}">
+      <span class="admin-user-name">{{ a.name }}</span>
+      <span class="admin-mono">{{ a.user_id }}</span>
+      <span class="admin-mono">{{ a.since }}</span>
+      <span class="admin-muted">{{ a.by }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="admin-empty">No administrators yet — bootstrap one from the command line.</p>
+  {% endif %}
+
+  <div class="admin-wash-box">
+    <p class="admin-wash-title">Roles change from the command line, not here.</p>
+    <p class="admin-wash-body">
+      Adding or removing an administrator is a privileged write, and
+      browser-based role management waits until admin accounts are behind MFA.
+      Both scripts write the audit log.
+    </p>
+    <p class="admin-mono admin-wash-cmds">python scripts/grant_admin.py --email name@recall.app<br>python scripts/revoke_admin.py --user-id &lt;uuid&gt;</p>
+  </div>
+</div>
+{% endblock %}

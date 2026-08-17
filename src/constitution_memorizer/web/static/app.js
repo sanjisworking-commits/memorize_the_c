@@ -3,7 +3,7 @@
   // Mirrors the canonical partition in progress/repository.py — keep in sync.
   const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "recite", "test"]);
   // Auto-seen modes check on tab visit; the rest gate on a completed attempt.
-  const AUTO_SEEN_MODES = new Set(["read", "letters"]);
+  const AUTO_SEEN_MODES = new Set(["read", "letters", "test"]);
   const MOTION_KEY = "cm-motion";
   const SOUND_KEY = "cm-completion-sound";
   const DONE_SOUND_SRC = "/static/completion-done.mp3";
@@ -1433,7 +1433,7 @@
       }
     }
 
-    // Test completes only through the graded /quiz response — never /seen.
+    // A graded /quiz may also mark Test; visit already does via AUTO_SEEN.
     function applyQuizPayload(payload) {
       if (isGuest) {
         markModeAttempted("test");

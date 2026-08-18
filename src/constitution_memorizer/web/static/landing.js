@@ -424,7 +424,7 @@
         var on = reduced || (pinned && i < lit);
         el.style.color = on
           ? i === spans.length - 1 && lit >= spans.length
-            ? "#8fd6c9"
+            ? "#6E82C8"
             : "#f4f1ea"
           : "rgba(244,241,234,0.26)";
       });

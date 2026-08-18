@@ -68,13 +68,16 @@ class ProgressRecord:
 
 @dataclass(frozen=True)
 class RequestBootstrap:
-    """Bundled request-start reads (progress, prefs, theme, optional news/profile)."""
+    """Bundled request-start reads (progress, prefs, settings, optional packs)."""
 
     progress: list[ProgressRecord]
     split_preferences: dict[str, SplitMode]
     theme: ThemePreference
     news_articles_raw: str | None = None
     profile: dict[str, str | None] | None = None
+    settings: dict[str, str] | None = None
+    modes_seen_by_unit: dict[str, frozenset[str]] | None = None
+    account: AccountBootstrap | None = None
 
 
 @dataclass(frozen=True)
@@ -133,6 +136,36 @@ def _billing_order_from_row(row: object) -> BillingOrder:
             else None
         ),
     )
+
+
+@dataclass(frozen=True)
+class AccountBootstrap:
+    """Optional account/commerce snapshot. ``None`` pack means not loaded."""
+
+    claimed_articles: frozenset[str]
+    latest_paid_billing_order: BillingOrder | None
+
+
+def _theme_from_raw(raw: str | None) -> ThemePreference:
+    return raw if raw in VALID_THEMES else DEFAULT_THEME  # type: ignore[return-value]
+
+
+def _news_from_raw(raw: str | None) -> str:
+    return DEFAULT_NEWS_ARTICLES if raw is None else raw
+
+
+def _frequency_from_raw(raw: str | None) -> NotificationFrequency:
+    if raw in VALID_NOTIFICATION_FREQUENCIES:
+        return raw  # type: ignore[return-value]
+    return DEFAULT_NOTIFICATION_FREQUENCY
+
+
+def _modes_by_unit_from_rows(rows) -> dict[str, frozenset[str]]:
+    grouped: dict[str, set[str]] = {}
+    for row in rows:
+        unit_id = str(row["learning_unit_id"])  # type: ignore[index]
+        grouped.setdefault(unit_id, set()).add(str(row["mode"]))  # type: ignore[index]
+    return {unit_id: frozenset(modes) for unit_id, modes in grouped.items()}
 
 
 def _parse_date(value: str | None) -> date | None:
@@ -740,13 +773,39 @@ class ProgressRepository:
         *,
         include_profile: bool = False,
         include_news: bool = False,
+        include_modes: bool = False,
+        include_account: bool = False,
     ) -> RequestBootstrap:
+        uid = as_user_id(user_id)
+        settings_rows = self._conn.execute(
+            "SELECT key, value FROM app_settings WHERE user_id = ?",
+            (uid,),
+        ).fetchall()
+        settings = {str(row["key"]): str(row["value"]) for row in settings_rows}
+        modes: dict[str, frozenset[str]] | None = None
+        if include_modes:
+            mode_rows = self._conn.execute(
+                "SELECT learning_unit_id, mode FROM unit_modes_seen WHERE user_id = ?",
+                (uid,),
+            ).fetchall()
+            modes = _modes_by_unit_from_rows(mode_rows)
+        account: AccountBootstrap | None = None
+        if include_account:
+            account = AccountBootstrap(
+                claimed_articles=frozenset(self.claimed_articles(user_id)),
+                latest_paid_billing_order=self.latest_paid_billing_order(user_id),
+            )
         return RequestBootstrap(
             progress=self.list_all_progress(user_id),
             split_preferences=self.list_split_preferences(user_id),
-            theme=self.get_theme(user_id),
-            news_articles_raw=self.get_news_articles_raw(user_id) if include_news else None,
+            theme=_theme_from_raw(settings.get(THEME_KEY)),
+            news_articles_raw=(
+                _news_from_raw(settings.get(NEWS_ARTICLES_KEY)) if include_news else None
+            ),
             profile=self.get_profile(user_id) if include_profile else None,
+            settings=settings,
+            modes_seen_by_unit=modes,
+            account=account,
         )
 
     def load_completion_state(

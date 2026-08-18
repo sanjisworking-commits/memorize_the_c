@@ -15,6 +15,10 @@ from constitution_memorizer.progress.protocols import ReminderRepositoryProtocol
 from constitution_memorizer.progress.repository import (
     LEARN_MODES,
     LEARN_MODES_SET,
+    NEWS_ARTICLES_KEY,
+    NOTIFICATION_FREQUENCY_KEY,
+    THEME_KEY,
+    BillingOrder,
     CompletionProgress,
     NotificationFrequency,
     ProgressRecord,
@@ -22,6 +26,9 @@ from constitution_memorizer.progress.repository import (
     RequestBootstrap,
     SplitMode,
     ThemePreference,
+    _frequency_from_raw,
+    _news_from_raw,
+    _theme_from_raw,
 )
 from constitution_memorizer.progress.user_ids import LOCAL_USER_ID
 from constitution_memorizer.utils.json_io import read_json
@@ -98,6 +105,11 @@ class ReminderEngine:
         self._theme_cache: ThemePreference | None = None
         self._news_cache: str | None = None
         self._claimed_cache: set[str] | None = None
+        self._settings_cache: dict[str, str] | None = None
+        self._modes_seen_cache: dict[str, set[str]] | None = None
+        self._backfill_checked: bool = False
+        self._billing_loaded: bool = False
+        self._latest_paid_order: BillingOrder | None = None
 
     def for_user(self, user_id: UUID) -> ReminderEngine:
         """Return a lightweight engine bound to ``user_id`` (shared units + repo)."""
@@ -120,6 +132,8 @@ class ReminderEngine:
         *,
         include_profile: bool = False,
         include_news: bool = False,
+        include_modes: bool = False,
+        include_account: bool = False,
     ) -> RequestBootstrap:
         """Load independent request data once and seed request-local caches."""
         started = perf_counter()
@@ -127,13 +141,26 @@ class ReminderEngine:
             self.user_id,
             include_profile=include_profile,
             include_news=include_news,
+            include_modes=include_modes,
+            include_account=include_account,
         )
         _record_timing("request_bootstrap", started)
         self._progress_cache = {row.learning_unit_id: row for row in bundle.progress}
         self._split_cache = dict(bundle.split_preferences)
         self._theme_cache = bundle.theme
+        self._settings_cache = dict(bundle.settings or {})
         if include_news:
-            self._news_cache = bundle.news_articles_raw if bundle.news_articles_raw is not None else ""
+            self._news_cache = (
+                bundle.news_articles_raw if bundle.news_articles_raw is not None else ""
+            )
+        if bundle.modes_seen_by_unit is not None:
+            self._modes_seen_cache = {
+                unit_id: set(modes) for unit_id, modes in bundle.modes_seen_by_unit.items()
+            }
+        if bundle.account is not None:
+            self._claimed_cache = set(bundle.account.claimed_articles)
+            self._billing_loaded = True
+            self._latest_paid_order = bundle.account.latest_paid_billing_order
         return bundle
 
     def _ensure_split_cache(self) -> dict[str, SplitMode]:
@@ -163,6 +190,22 @@ class ReminderEngine:
 
     def _invalidate_news_cache(self) -> None:
         self._news_cache = None
+
+    def _invalidate_settings_cache(self) -> None:
+        self._settings_cache = None
+
+    def _invalidate_modes_cache(self) -> None:
+        self._modes_seen_cache = None
+
+    def _invalidate_account_cache(self) -> None:
+        self._claimed_cache = None
+        self._backfill_checked = False
+        self._billing_loaded = False
+        self._latest_paid_order = None
+
+    def _patch_settings_cache(self, key: str, value: str) -> None:
+        if self._settings_cache is not None:
+            self._settings_cache[key] = value
 
     @classmethod
     def from_repository(
@@ -241,6 +284,9 @@ class ReminderEngine:
         self._invalidate_split_cache()
         self._invalidate_theme_cache()
         self._invalidate_news_cache()
+        self._invalidate_settings_cache()
+        self._invalidate_modes_cache()
+        self._invalidate_account_cache()
 
     def set_split_preference(self, parent_clause_id: str, mode: SplitMode) -> None:
         started = perf_counter()
@@ -258,6 +304,10 @@ class ReminderEngine:
             self._split_cache.pop(parent_clause_id, None)
 
     def get_notification_frequency(self) -> NotificationFrequency:
+        if self._settings_cache is not None:
+            return _frequency_from_raw(
+                self._settings_cache.get(NOTIFICATION_FREQUENCY_KEY)
+            )
         started = perf_counter()
         value = self.repo.get_notification_frequency(self.user_id)
         _record_timing("settings_frequency", started)
@@ -265,10 +315,24 @@ class ReminderEngine:
 
     def set_notification_frequency(self, frequency: NotificationFrequency) -> None:
         self.repo.set_notification_frequency(self.user_id, frequency)
+        self._patch_settings_cache(NOTIFICATION_FREQUENCY_KEY, frequency)
+
+    def get_setting(self, key: str) -> str | None:
+        if self._settings_cache is not None:
+            return self._settings_cache.get(key)
+        return self.repo.get_setting(self.user_id, key)
+
+    def set_setting(self, key: str, value: str) -> None:
+        self.repo.set_setting(self.user_id, key, value)
+        self._patch_settings_cache(key, value)
 
     def get_theme(self) -> ThemePreference:
         if self._theme_cache is not None:
             return self._theme_cache
+        if self._settings_cache is not None:
+            theme = _theme_from_raw(self._settings_cache.get(THEME_KEY))
+            self._theme_cache = theme
+            return theme
         started = perf_counter()
         theme = self.repo.get_theme(self.user_id)
         _record_timing("theme", started)
@@ -278,10 +342,15 @@ class ReminderEngine:
     def set_theme(self, theme: ThemePreference) -> None:
         self.repo.set_theme(self.user_id, theme)
         self._theme_cache = theme
+        self._patch_settings_cache(THEME_KEY, theme)
 
     def get_news_articles_raw(self) -> str:
         if self._news_cache is not None:
             return self._news_cache
+        if self._settings_cache is not None:
+            value = _news_from_raw(self._settings_cache.get(NEWS_ARTICLES_KEY))
+            self._news_cache = value
+            return value
         started = perf_counter()
         value = self.repo.get_news_articles_raw(self.user_id)
         _record_timing("news_setting", started)
@@ -290,7 +359,9 @@ class ReminderEngine:
 
     def set_news_articles_raw(self, value: str) -> None:
         self.repo.set_news_articles_raw(self.user_id, value)
-        self._news_cache = value.strip()
+        stripped = value.strip()
+        self._news_cache = stripped
+        self._patch_settings_cache(NEWS_ARTICLES_KEY, stripped)
 
     # ------------------------------------------------------------------ #
     # Free-Article entitlement slots (parent Article level)               #
@@ -305,9 +376,12 @@ class ReminderEngine:
         (``times_completed >= 1``) is claimed, even beyond the 3-slot limit —
         existing learning is never taken away. Request-scoped cache, same as
         the other engine caches (``for_user`` starts fresh).
+
+        A bootstrap-seeded claim cache does not skip the grandfather check:
+        ``_claimed_cache is not None`` is not the same as ``backfill checked``.
         """
+        self._ensure_free_articles_backfilled()
         if self._claimed_cache is None:
-            self._ensure_free_articles_backfilled()
             started = perf_counter()
             self._claimed_cache = set(self.repo.claimed_articles(self.user_id))
             _record_timing("claimed_articles", started)
@@ -333,6 +407,16 @@ class ReminderEngine:
         if self._claimed_cache is not None:
             self._claimed_cache.add(key)
 
+    def latest_paid_billing_order(self) -> BillingOrder | None:
+        if self._billing_loaded:
+            return self._latest_paid_order
+        started = perf_counter()
+        order = self.repo.latest_paid_billing_order(self.user_id)
+        _record_timing("billing_status", started)
+        self._billing_loaded = True
+        self._latest_paid_order = order
+        return order
+
     def _ensure_free_articles_backfilled(self) -> None:
         """One-time grandfather backfill, reusing the request progress cache.
 
@@ -340,10 +424,16 @@ class ReminderEngine:
         (which preloads progress via ``bootstrap_request``) never pays an extra
         ``list_all_progress`` round trip for entitlement status.
         """
-        started = perf_counter()
-        flag = self.repo.get_setting(self.user_id, self._FREE_ARTICLES_BACKFILLED_KEY)
-        _record_timing("free_articles_backfill_check", started)
+        if self._backfill_checked:
+            return
+        if self._settings_cache is not None:
+            flag = self._settings_cache.get(self._FREE_ARTICLES_BACKFILLED_KEY)
+        else:
+            started = perf_counter()
+            flag = self.repo.get_setting(self.user_id, self._FREE_ARTICLES_BACKFILLED_KEY)
+            _record_timing("free_articles_backfill_check", started)
         if flag == "1":
+            self._backfill_checked = True
             return
         for record in self._ensure_progress_cache().values():
             if record.times_completed < 1:
@@ -351,8 +441,13 @@ class ReminderEngine:
             unit = self.units.get(record.learning_unit_id)
             if unit is None or not unit.article_number:
                 continue
-            self.repo.claim_article(self.user_id, str(unit.article_number).strip())
+            article = str(unit.article_number).strip()
+            self.repo.claim_article(self.user_id, article)
+            if self._claimed_cache is not None:
+                self._claimed_cache.add(article)
         self.repo.set_setting(self.user_id, self._FREE_ARTICLES_BACKFILLED_KEY, "1")
+        self._patch_settings_cache(self._FREE_ARTICLES_BACKFILLED_KEY, "1")
+        self._backfill_checked = True
 
     def mark_mode_seen(self, unit_id: str, mode: str) -> set[str]:
         if unit_id not in self.units:
@@ -360,9 +455,13 @@ class ReminderEngine:
         started = perf_counter()
         seen = self.repo.mark_mode_seen(self.user_id, unit_id, mode)
         _record_timing("mode_seen_write", started)
+        if self._modes_seen_cache is not None:
+            self._modes_seen_cache[unit_id] = set(seen)
         return seen
 
     def modes_seen(self, unit_id: str) -> set[str]:
+        if self._modes_seen_cache is not None:
+            return set(self._modes_seen_cache.get(unit_id, set()))
         started = perf_counter()
         seen = self.repo.modes_seen(self.user_id, unit_id)
         _record_timing("modes_seen", started)
@@ -376,6 +475,8 @@ class ReminderEngine:
 
     def clear_modes_seen(self, unit_id: str) -> None:
         self.repo.clear_modes_seen(self.user_id, unit_id)
+        if self._modes_seen_cache is not None:
+            self._modes_seen_cache[unit_id] = set()
 
     def modes_complete(self, unit_id: str) -> bool:
         return self.repo.modes_complete(self.user_id, unit_id)
@@ -456,6 +557,8 @@ class ReminderEngine:
             progress = self.repo.commit_completion(self.user_id, unit_id, command)
         _record_timing("completion_commit", started)
         self._store_progress(progress)
+        if self._modes_seen_cache is not None:
+            self._modes_seen_cache[unit_id] = set()
 
         started = perf_counter()
         next_unit_id = self.resolve_next_unit_id(unit_id)

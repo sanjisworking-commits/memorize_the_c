@@ -38,11 +38,9 @@ class CountingProgressRepo:
     def __getattr__(self, name: str):
         return getattr(self.inner, name)
 
-    def load_request_bootstrap(self, user_id, *, include_profile=False, include_news=False):
+    def load_request_bootstrap(self, user_id, **kwargs):
         self.load_request_bootstrap_calls += 1
-        return self.inner.load_request_bootstrap(
-            user_id, include_profile=include_profile, include_news=include_news
-        )
+        return self.inner.load_request_bootstrap(user_id, **kwargs)
 
     def list_all_progress(self, user_id):
         self.list_all_progress_calls += 1

@@ -153,20 +153,22 @@ def schedule_sync(request: Request, user_id) -> None:
 # A pending flag older than this on a settings view means the original async
 # task never finished (crash/restart) — kick reconciliation again.
 STALE_PENDING_SECONDS = 60
+_UNSET = object()
 
 
-def retry_stale_pending(request: Request, user_id) -> None:
+def retry_stale_pending(request: Request, user_id, *, connection=_UNSET) -> None:
     """Settings-view recovery: restart a sync whose durable flag went stale."""
     if not _gcal_enabled(request):
         return
     store = request.app.state.calendar_store
-    started = perf_counter()
-    try:
-        connection = store.get_connection(user_id)
-    except Exception:  # noqa: BLE001
-        return
-    finally:
-        _record_timing("calendar_pending_retry", started)
+    if connection is _UNSET:
+        started = perf_counter()
+        try:
+            connection = store.get_connection(user_id)
+        except Exception:  # noqa: BLE001
+            return
+        finally:
+            _record_timing("calendar_pending_retry", started)
     if connection is None or not connection.is_active or not connection.sync_pending:
         return
     from datetime import datetime, timezone as _tz

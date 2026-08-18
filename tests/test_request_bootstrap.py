@@ -20,6 +20,7 @@ from constitution_memorizer.progress.postgres_repository import PostgresProgress
 from constitution_memorizer.progress.repository import (
     DEFAULT_NEWS_ARTICLES,
     DEFAULT_THEME,
+    LEARN_MODES,
     ProgressRepository,
 )
 from constitution_memorizer.progress.scheduler import ReminderEngine
@@ -52,6 +53,10 @@ class CountingProgressRepo:
         self.get_setting_calls = 0
         self.modes_seen_calls = 0
         self.load_request_bootstrap_calls = 0
+        self.get_notification_frequency_calls = 0
+        self.claimed_articles_calls = 0
+        self.latest_paid_billing_order_calls = 0
+        self.last_bootstrap_kwargs = None
 
     def get_progress(self, user_id, unit_id: str):
         self.get_progress_calls += 1
@@ -97,11 +102,22 @@ class CountingProgressRepo:
         self.modes_seen_calls += 1
         return self.inner.modes_seen(user_id, unit_id)
 
-    def load_request_bootstrap(self, user_id, *, include_profile=False, include_news=False):
+    def get_notification_frequency(self, user_id):
+        self.get_notification_frequency_calls += 1
+        return self.inner.get_notification_frequency(user_id)
+
+    def claimed_articles(self, user_id):
+        self.claimed_articles_calls += 1
+        return self.inner.claimed_articles(user_id)
+
+    def latest_paid_billing_order(self, user_id):
+        self.latest_paid_billing_order_calls += 1
+        return self.inner.latest_paid_billing_order(user_id)
+
+    def load_request_bootstrap(self, user_id, **kwargs):
         self.load_request_bootstrap_calls += 1
-        return self.inner.load_request_bootstrap(
-            user_id, include_profile=include_profile, include_news=include_news
-        )
+        self.last_bootstrap_kwargs = dict(kwargs)
+        return self.inner.load_request_bootstrap(user_id, **kwargs)
 
 
 @pytest.fixture(autouse=True)
@@ -262,7 +278,7 @@ def test_authenticated_dashboard_one_bootstrap(tmp_path: Path):
     assert repo.list_split_preferences_calls == 0
     assert repo.get_theme_calls == 0
     assert repo.list_due_calls == 0
-    assert repo.modes_seen_calls <= 1
+    assert repo.modes_seen_calls == 0
 
 
 def test_authenticated_browse_one_bootstrap(tmp_path: Path):
@@ -408,12 +424,16 @@ class _FakeCursor:
             self._kind = "progress"
         elif "split_preference" in text:
             self._kind = "split"
-        elif "app_settings" in text and params and params[-1] == "theme":
-            self._kind = "theme"
         elif "app_settings" in text:
-            self._kind = "news"
+            self._kind = "settings"
         elif "user_profile" in text:
             self._kind = "profile"
+        elif "unit_modes_seen" in text:
+            self._kind = "modes"
+        elif "user_free_articles" in text:
+            self._kind = "claims"
+        elif "billing_orders" in text:
+            self._kind = "billing"
         else:
             self._kind = "other"
 
@@ -483,8 +503,10 @@ def test_postgres_pipeline_queues_executes_before_fetch(monkeypatch: pytest.Monk
         {
             "progress": [_progress_row()],
             "split": [{"parent_clause_id": "clause-2", "mode": "letters"}],
-            "theme": [{"value": "dark"}],
-            "news": [{"value": "14"}],
+            "settings": [
+                {"key": "theme", "value": "dark"},
+                {"key": "news_articles", "value": "14"},
+            ],
             "profile": [
                 {
                     "user_id": USER,
@@ -509,7 +531,7 @@ def test_postgres_pipeline_queues_executes_before_fetch(monkeypatch: pytest.Monk
     first_fetch = next(
         i for i, kind in enumerate(kinds) if kind in {"fetchall", "fetchone"}
     )
-    assert kinds[:first_fetch].count("execute") == 5
+    assert kinds[:first_fetch].count("execute") == 4
     assert "fetchall" not in kinds[:first_fetch]
     assert "fetchone" not in kinds[:first_fetch]
     assert all(cur.closed for cur in conn.cursors)
@@ -520,6 +542,9 @@ def test_postgres_pipeline_queues_executes_before_fetch(monkeypatch: pytest.Monk
     assert bundle.news_articles_raw == "14"
     assert bundle.profile is not None
     assert bundle.profile["display_name"] == "Ada"
+    assert bundle.settings == {"theme": "dark", "news_articles": "14"}
+    assert bundle.modes_seen_by_unit is None
+    assert bundle.account is None
 
 
 def test_postgres_fallback_without_pipeline_preserves_semantics(
@@ -529,8 +554,7 @@ def test_postgres_fallback_without_pipeline_preserves_semantics(
         {
             "progress": [],
             "split": [],
-            "theme": [],
-            "news": [],
+            "settings": [],
         }
     )
     pool = _FakePool(conn)
@@ -547,4 +571,192 @@ def test_postgres_fallback_without_pipeline_preserves_semantics(
     assert bundle.theme == DEFAULT_THEME
     assert bundle.news_articles_raw == DEFAULT_NEWS_ARTICLES
     assert bundle.profile is None
+    assert bundle.settings == {}
     assert all(cur.closed for cur in conn.cursors)
+
+
+def test_sqlite_bootstrap_settings_modes_and_account(tmp_path: Path):
+    repo, engine = _seeded_engine(tmp_path)
+    engine.set_setting("user_timezone", "Asia/Kolkata")
+    engine.set_notification_frequency("twice")
+    engine.mark_mode_seen("clause-1", "read")
+    engine.claim_article("20")
+    engine._invalidate_settings_cache()
+    engine._invalidate_modes_cache()
+    engine._invalidate_account_cache()
+    repo.reset_counts()
+
+    bundle = engine.bootstrap_request(include_modes=True, include_account=True)
+    assert bundle.settings is not None
+    assert bundle.settings.get("theme") == "dark"
+    assert bundle.settings.get("user_timezone") == "Asia/Kolkata"
+    assert bundle.settings.get("notification_frequency") == "twice"
+    assert bundle.modes_seen_by_unit is not None
+    assert "read" in bundle.modes_seen_by_unit.get("clause-1", frozenset())
+    assert bundle.account is not None
+    assert "20" in bundle.account.claimed_articles
+    assert bundle.account.latest_paid_billing_order is None
+
+
+def test_sqlite_include_flags_skip_optional_packs(tmp_path: Path):
+    repo, engine = _seeded_engine(tmp_path)
+    bundle = engine.bootstrap_request()
+    assert bundle.modes_seen_by_unit is None
+    assert bundle.account is None
+    assert bundle.settings is not None
+
+
+def test_postgres_optional_packs_share_pipeline(monkeypatch: pytest.MonkeyPatch):
+    conn = _FakeConnection(
+        {
+            "progress": [],
+            "split": [],
+            "settings": [],
+            "modes": [{"learning_unit_id": "clause-1", "mode": "read"}],
+            "claims": [{"article_number": "20"}],
+            "billing": [],
+        }
+    )
+    pool = _FakePool(conn)
+    monkeypatch.setattr(
+        "constitution_memorizer.progress.postgres_repository._pipeline_supported",
+        lambda: True,
+    )
+    repo = PostgresProgressRepository(pool)
+    bundle = repo.load_request_bootstrap(
+        USER, include_modes=True, include_account=True
+    )
+    assert pool.borrows == 1
+    assert conn.pipeline_entries == 1
+    kinds = [event[0] for event in conn.events]
+    first_fetch = next(
+        i for i, kind in enumerate(kinds) if kind in {"fetchall", "fetchone"}
+    )
+    assert kinds[:first_fetch].count("execute") == 6
+    sql = " ".join(event[1] for event in conn.events if event[0] == "execute")
+    assert "unit_modes_seen" in sql
+    assert "user_free_articles" in sql
+    assert "billing_orders" in sql
+    assert bundle.modes_seen_by_unit == {"clause-1": frozenset({"read"})}
+    assert bundle.account is not None
+    assert bundle.account.claimed_articles == frozenset({"20"})
+    assert bundle.account.latest_paid_billing_order is None
+
+
+def test_postgres_skips_modes_and_account_sql_when_not_requested(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    conn = _FakeConnection({"progress": [], "split": [], "settings": []})
+    pool = _FakePool(conn)
+    monkeypatch.setattr(
+        "constitution_memorizer.progress.postgres_repository._pipeline_supported",
+        lambda: True,
+    )
+    repo = PostgresProgressRepository(pool)
+    bundle = repo.load_request_bootstrap(USER)
+    sql = " ".join(event[1] for event in conn.events if event[0] == "execute")
+    assert "unit_modes_seen" not in sql
+    assert "user_free_articles" not in sql
+    assert "billing_orders" not in sql
+    assert bundle.modes_seen_by_unit is None
+    assert bundle.account is None
+
+
+def test_engine_settings_and_account_caches_skip_repo(tmp_path: Path):
+    repo, engine = _seeded_engine(tmp_path)
+    engine.set_setting("user_timezone", "Asia/Kolkata")
+    engine.set_setting("gcal_revision_time", "21:00")
+    engine.set_setting("free_articles_backfilled", "1")
+    engine.set_notification_frequency("hourly")
+    engine.mark_mode_seen("clause-1", "cloze")
+    engine._invalidate_settings_cache()
+    engine._invalidate_modes_cache()
+    engine._invalidate_account_cache()
+    engine.bootstrap_request(include_news=True, include_modes=True, include_account=True)
+    repo.reset_counts()
+
+    assert engine.get_theme() == "dark"
+    assert engine.get_news_articles_raw() == "14,21"
+    assert engine.get_notification_frequency() == "hourly"
+    assert engine.get_setting("user_timezone") == "Asia/Kolkata"
+    assert engine.get_setting("gcal_revision_time") == "21:00"
+    assert "cloze" in engine.modes_seen("clause-1")
+    assert engine.latest_paid_billing_order() is None
+    engine.claimed_articles()
+    assert repo.get_theme_calls == 0
+    assert repo.get_news_articles_raw_calls == 0
+    assert repo.get_notification_frequency_calls == 0
+    assert repo.get_setting_calls == 0
+    assert repo.modes_seen_calls == 0
+    assert repo.claimed_articles_calls == 0
+    assert repo.latest_paid_billing_order_calls == 0
+
+
+def test_mark_done_clears_bootstrapped_modes_cache(tmp_path: Path):
+    repo, engine = _seeded_engine(tmp_path)
+    for mode in LEARN_MODES:
+        engine.mark_mode_seen("clause-1", mode)
+    engine.bootstrap_request(include_modes=True)
+    assert engine.modes_seen("clause-1")
+    engine.mark_done("clause-1", as_of=date(2026, 8, 15), require_all_modes=False)
+    repo.reset_counts()
+    assert engine.modes_seen("clause-1") == set()
+    assert repo.modes_seen_calls == 0
+
+
+def test_seeded_claimed_cache_still_runs_grandfather(tmp_path: Path):
+    conn = open_progress_db(tmp_path / "progress.db")
+    repo = CountingProgressRepo(ProgressRepository(conn))
+    engine = ReminderEngine.from_repository(repo, _catalog(), user_id=USER)
+    for mode in LEARN_MODES:
+        engine.mark_mode_seen("clause-1", mode)
+    engine.mark_done("clause-1", as_of=date(2026, 8, 15), require_all_modes=False)
+    # No backfill flag yet. Account bootstrap seeds current (empty) claims.
+    engine = engine.for_user(USER)
+    bundle = engine.bootstrap_request(include_account=True)
+    assert bundle.account is not None
+    repo.reset_counts()
+    claimed = engine.claimed_articles()
+    assert "20" in claimed
+    assert engine.get_setting("free_articles_backfilled") == "1"
+    assert repo.claimed_articles_calls == 0
+    assert repo.get_setting_calls == 0
+    assert repo.inner.get_setting(USER, "free_articles_backfilled") == "1"
+
+
+def test_authenticated_dashboard_entitlements_use_account_pack(tmp_path: Path):
+    conn = open_progress_db(tmp_path / "progress.db")
+    repo = CountingProgressRepo(ProgressRepository(conn))
+    provider = FakeAuthProvider()
+    provider.seed_google_user(
+        user_id=USER, email=USER_EMAIL, display_name="Test User"
+    )
+    app = create_app(
+        units_path=MINI_UNITS,
+        db_path=tmp_path / "unused.db",
+        multiuser=True,
+        multiuser_settings=_settings(ARTICLE_ENTITLEMENTS_ENABLED="true"),
+        auth_provider=provider,
+        session_store=InMemorySessionStore(),
+        progress_repo=repo,
+    )
+    client = TestClient(app)
+    start = client.get("/auth/google/start", follow_redirects=False)
+    state = start.cookies.get("rtc_oauth_state")
+    cb = client.get(
+        f"/auth/callback?code=fake-google-code&state={state}",
+        follow_redirects=False,
+    )
+    assert cb.status_code == 303
+    repo.reset_counts()
+    resp = client.get("/dashboard")
+    assert resp.status_code == 200
+    assert repo.load_request_bootstrap_calls == 1
+    assert repo.last_bootstrap_kwargs is not None
+    assert repo.last_bootstrap_kwargs.get("include_profile") is True
+    assert repo.last_bootstrap_kwargs.get("include_modes") is True
+    assert repo.last_bootstrap_kwargs.get("include_account") is True
+    assert repo.modes_seen_calls == 0
+    assert repo.claimed_articles_calls == 0
+    assert repo.latest_paid_billing_order_calls == 0
+    assert repo.get_setting_calls == 0

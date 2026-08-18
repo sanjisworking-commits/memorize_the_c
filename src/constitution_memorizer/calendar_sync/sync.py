@@ -48,6 +48,17 @@ VALID_SESSION_MINUTES = (15, 30, 45, 60)
 _user_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 
+def _engine_setting(engine, key: str) -> str | None:
+    getter = getattr(engine, "get_setting", None)
+    if getter is not None:
+        return getter(key)
+    repo = getattr(engine, "repo", None)
+    uid = getattr(engine, "user_id", None)
+    if repo is None:
+        return None
+    return repo.get_setting(uid, key)
+
+
 def calendar_prefs(engine) -> dict:
     """Read the user's calendar preferences with defaults."""
     from constitution_memorizer.calendar_sync.projection import (
@@ -55,17 +66,15 @@ def calendar_prefs(engine) -> dict:
         VALID_REMINDER_CADENCES,
     )
 
-    repo = engine.repo
-    uid = engine.user_id
-    tz = repo.get_setting(uid, "user_timezone") or ""
-    time_pref = repo.get_setting(uid, "gcal_revision_time") or DEFAULT_REVISION_TIME
+    tz = _engine_setting(engine, "user_timezone") or ""
+    time_pref = _engine_setting(engine, "gcal_revision_time") or DEFAULT_REVISION_TIME
     try:
-        minutes = int(repo.get_setting(uid, "gcal_session_minutes") or "")
+        minutes = int(_engine_setting(engine, "gcal_session_minutes") or "")
     except ValueError:
         minutes = DEFAULT_SESSION_MINUTES
     if minutes not in VALID_SESSION_MINUTES:
         minutes = DEFAULT_SESSION_MINUTES
-    cadence_raw = repo.get_setting(uid, "gcal_reminder_cadence") or ""
+    cadence_raw = _engine_setting(engine, "gcal_reminder_cadence") or ""
     cadence = (
         cadence_raw if cadence_raw in VALID_REMINDER_CADENCES
         else DEFAULT_REMINDER_CADENCE
@@ -86,7 +95,7 @@ def user_local_today(engine) -> date:
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
-    tz_name = engine.repo.get_setting(engine.user_id, "user_timezone") or ""
+    tz_name = _engine_setting(engine, "user_timezone") or ""
     if tz_name:
         try:
             return datetime.now(ZoneInfo(tz_name)).date()

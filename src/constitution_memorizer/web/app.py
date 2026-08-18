@@ -696,17 +696,13 @@ def create_app(
     async def home(request: Request) -> HTMLResponse:
         if app.state.multiuser_enabled:
             if getattr(request.state, "current_user", None) is None:
-                # Persisted marketing-landing theme (default dark). The toggle
-                # in the header sets this cookie and reloads; each theme is a
-                # separate, structurally different template.
-                landing_template = (
-                    "landing_light.html"
-                    if request.cookies.get("rtc_landing_theme") == "light"
-                    else "landing.html"
-                )
+                # Marketing landing. The light variant is currently disabled —
+                # always serve the dark landing (a stale rtc_landing_theme
+                # cookie must not strand anyone on light). landing_light.html
+                # stays in the repo, dormant, for easy re-enable.
                 return templates.TemplateResponse(
                     request,
-                    landing_template,
+                    "landing.html",
                     {
                         "landing_review_days": list(INTERVAL_LADDER),
                     },

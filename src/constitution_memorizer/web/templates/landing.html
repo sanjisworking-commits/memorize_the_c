@@ -11,11 +11,12 @@
 <script src="/static/brain-path.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,500&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  body{margin:0;background:#0b0b0b;color:#f4f1ea;font-family:"Source Sans 3",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  html{scroll-behavior:smooth;overflow-x:clip}
+  body{margin:0;background:#0b0b0b;color:#f4f1ea;font-family:"Source Sans 3",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:clip}
   *,*::before,*::after{box-sizing:border-box}
   a{color:inherit;text-decoration:none}
-  a:hover{color:#8fd6c9}
-  .j-ink:hover{background:#8fd6c9;border-color:#8fd6c9;color:#0b0b0b}
+  a:hover{color:#6E82C8}
+  .j-ink:hover{background:#6E82C8;border-color:#6E82C8;color:#0b0b0b}
   .j-ghost:hover{border-color:#f4f1ea;color:#f4f1ea}
   @keyframes caretBlink{0%,100%{opacity:1}50%{opacity:0}}
   @keyframes hintDrift{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(7px);opacity:1}}
@@ -46,7 +47,6 @@
     [data-brand] > span:last-child{font-size:16px !important}
     [data-hdr]{gap:6px !important}
     [data-hdr] a.j-ghost,[data-hdr] a.j-ink{padding:8px 12px !important;font-size:13px !important}
-    [data-hdr] #landing-theme-toggle{width:34px !important;height:34px !important}
     [data-lbl-full]{display:none}
     [data-lbl-short]{display:inline}
     [data-herocta] a{padding:13px 20px !important;font-size:14.5px !important}
@@ -60,7 +60,25 @@
     [data-lede-hide]{display:none !important}
     [data-fit]{font-size:clamp(22px,6.2vw,30px) !important;line-height:1.14 !important;max-width:none !important}
   }
+  /* §01 arithmetic — phone: squares stream through the frame (top:0, transform-driven), 3 columns. */
+  @media (max-width:900px){
+    [data-pcard]{top:0 !important;width:30vw !important;height:30vw !important;padding:12px !important}
+    [data-pcard] > p:first-child{font-size:10px !important}
+    [data-pcard] > p:nth-child(2){font-size:13px !important}
+    [data-pcard] > p:last-child{font-size:10px !important}
+    [data-pcard]:nth-of-type(3n+1){left:2% !important}
+    [data-pcard]:nth-of-type(3n+2){left:35% !important}
+    [data-pcard]:nth-of-type(3n){left:68% !important}
+  }
+  /* Reduced-motion phones: no pass-through — fall back to a static grid. */
+  @media (max-width:900px) and (prefers-reduced-motion:reduce){
+    [data-pin-src]{height:auto !important;padding-bottom:clamp(70px,11vh,150px) !important}
+    [data-pin]{position:static !important;height:auto !important}
+    [data-pgrid]{position:static !important;overflow:visible !important;left:auto !important;margin-left:0 !important;width:auto !important;display:grid !important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr)) !important;gap:10px !important;margin-top:34px !important}
+    [data-pcard]{position:static !important;left:auto !important;top:auto !important;width:auto !important;height:auto !important;min-height:120px !important;transform:none !important;opacity:1 !important}
+  }
   @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
     *{animation:none !important}
   }
 </style>
@@ -70,7 +88,7 @@
 <div style="width:100%;overflow-x:clip;background:#0b0b0b;position:relative">
 
 <div data-progress-track="1" style="position:fixed;top:0;left:0;right:0;height:2px;background:rgba(244,241,234,0.1);z-index:80">
-  <div data-progress-bar="1" style="height:2px;width:0;background:#8fd6c9"></div>
+  <div data-progress-bar="1" style="height:2px;width:0;background:#6E82C8"></div>
 </div>
 
 <div aria-hidden="true" style="position:fixed;inset:0;z-index:0;pointer-events:none">
@@ -94,7 +112,6 @@
       </nav>
       <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:9px 16px;font-size:14px;font-weight:600;white-space:nowrap" class="j-ghost"><span data-lbl-full>Explore as guest</span><span data-lbl-short>Explore</span></a>
       <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:10px 18px;font-size:14px;font-weight:700;white-space:nowrap" class="j-ink"><span data-lbl-full>Start learning</span><span data-lbl-short>Learn</span></a>
-      <button id="landing-theme-toggle" data-to="light" type="button" aria-label="Switch to light theme" title="Light theme" style="display:grid;place-items:center;width:38px;height:38px;background:none;border:1px solid rgba(244,241,234,0.3);color:rgba(244,241,234,0.7);font-size:15px;line-height:1;cursor:pointer;font-family:inherit">&#9788;</button>
     </div>
   </div>
 </header>
@@ -105,18 +122,16 @@
 <section id="top" data-stage="0" style="position:relative;min-height:calc(100vh - 60px);display:flex;flex-direction:column;justify-content:center;padding:clamp(60px,8vh,110px) clamp(20px,4vw,80px) clamp(70px,9vh,120px);max-width:1500px;margin:0 auto">
   <div aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:0;pointer-events:none;background:radial-gradient(ellipse 78% 74% at 50% 50%,rgba(11,11,11,0.92) 0%,rgba(11,11,11,0.86) 46%,rgba(11,11,11,0.4) 74%,rgba(11,11,11,0) 100%)"></div>
   <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center">
-  <p style="margin:0 0 clamp(24px,3vh,40px);display:flex;align-items:center;justify-content:center;gap:13px;text-transform:uppercase;letter-spacing:0.22em;font-size:11.5px;font-weight:700;color:#8fd6c9">
-    <span style="width:30px;height:1px;background:#8fd6c9;display:inline-block"></span>A memory system for the Bare Act
-  </p>
-  <h1 style="font-family:Fraunces,Georgia,serif;font-size:clamp(46px,9.6vw,152px);line-height:0.92;letter-spacing:-0.045em;font-weight:700;margin:0 0 clamp(26px,3.4vh,44px);text-wrap:balance">Memorize the C.<br><span style="font-style:italic;font-weight:300;color:#8fd6c9">Verbatim.</span></h1>
-  <p style="margin:0 0 clamp(16px,2vh,24px);font-size:clamp(17px,1.5vw,21px);line-height:1.55;color:rgba(244,241,234,0.66);max-width:46ch;text-wrap:pretty">The exact wording of the Constitution, kept where you actually need it &mdash; in your head.</p>
-  <p style="margin:0 0 clamp(28px,3.6vh,44px);display:inline-flex;align-items:baseline;gap:9px;align-self:center;font-family:Fraunces,Georgia,serif">
-    <span style="font-size:clamp(15px,1.4vw,18px);font-style:italic;font-weight:300;color:rgba(244,241,234,0.6)">In</span>
-    <span style="font-size:clamp(21px,2.2vw,30px);line-height:1;font-weight:700;letter-spacing:-0.02em;color:#F59022">180</span>
-    <span style="font-size:clamp(15px,1.4vw,18px);font-style:italic;font-weight:300;color:rgba(244,241,234,0.6)">days</span>
-  </p>
+  <h1 style="font-family:Fraunces,Georgia,serif;font-size:clamp(38px,7.4vw,118px);line-height:0.94;letter-spacing:-0.042em;font-weight:700;margin:0 0 clamp(26px,3.4vh,44px);text-wrap:balance">The whole document.<br><span style="color:#6E82C8">In your memory.</span></h1>
+  <div style="margin:0 0 clamp(28px,3.6vh,44px);display:flex;align-items:center;gap:clamp(14px,2vw,26px);width:min(560px,100%)">
+    <span style="flex:1;height:1px;background:rgba(244,241,234,0.22)"></span>
+    <span style="display:inline-flex;align-items:baseline;gap:10px;font-family:Fraunces,Georgia,serif;white-space:nowrap">
+      <span style="font-size:clamp(34px,3.8vw,52px);line-height:1;font-weight:700;letter-spacing:-0.03em;color:#E8C46A">180</span>
+      <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;font-family:'Source Sans 3',system-ui,sans-serif;color:rgba(244,241,234,0.6)">days</span>
+    </span>
+    <span style="flex:1;height:1px;background:rgba(244,241,234,0.22)"></span>
+  </div>
   <div data-herocta="1" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center">
-    <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:16px 32px;font-size:16px;font-weight:700" class="j-ink">Start learning</a>
     <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:16px 28px;font-size:15px;font-weight:600" class="j-ghost">Explore the Constitution &rarr;</a>
   </div>
   <p style="margin:clamp(44px,7vh,90px) 0 0;display:flex;align-items:center;justify-content:center;gap:11px;font-size:11.5px;text-transform:uppercase;letter-spacing:0.2em;font-weight:700;color:rgba(244,241,234,0.42)">
@@ -125,27 +140,83 @@
   </div>
 </section>
 
-<!-- ══ § 01 THE ARITHMETIC ══ -->
-<section id="arithmetic" data-stage="1" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+<!-- ══ § 01 THE ARITHMETIC — 13 Parts fly up and settle ══ -->
+<section id="arithmetic" data-stage="1" data-pin-src="1" style="position:relative;padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px) 0;max-width:1500px;margin:0 auto;height:300vh">
   <div data-reveal="1" style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;border-bottom:1px solid rgba(244,241,234,0.24);margin-bottom:clamp(30px,4vh,52px);opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease">
     <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700">The arithmetic</span>
     <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;01</span>
   </div>
-  <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
-    <!-- Scrim hugs only the text so the background animation shows through the empty space. -->
-    <div style="max-width:760px;margin:0 auto clamp(40px,6vh,72px);padding:clamp(16px,3vh,34px) 28px;background:radial-gradient(ellipse 84% 108% at 50% 46%,rgba(11,11,11,0.9) 0%,rgba(11,11,11,0.72) 54%,rgba(11,11,11,0) 100%)">
-      <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 auto clamp(22px,2.6vh,34px);max-width:15ch;text-align:center;text-wrap:balance">Three Articles a day.<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">Six months of them.</span></h2>
-      <p style="margin:0 auto;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:46ch;text-align:center;text-wrap:pretty">Nothing here asks for a heroic week. It asks for ordinary days, in a row.</p>
+  <div data-pin="1" style="position:sticky;top:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div data-reveal="1" data-delay="90" style="position:relative;z-index:0;width:min(620px,72%);text-align:center;opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
+      <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(28px,3.4vw,54px);line-height:1.05;letter-spacing:-0.03em;font-weight:700;margin:0 auto;max-width:16ch;text-wrap:balance">Three Articles a day.<br><span style="color:rgba(244,241,234,0.5)">Six months of them.</span></h2>
     </div>
 
-    <div style="margin-bottom:0">
-      <div style="position:relative;height:34px;border-bottom:1px solid rgba(244,241,234,0.4)">
-        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(90deg,rgba(244,241,234,0.18) 0 1px,transparent 1px 1.6666%),repeating-linear-gradient(90deg,rgba(244,241,234,0.5) 0 1px,transparent 1px 16.666%);background-position:bottom;background-size:100% 10px,100% 22px;background-repeat:repeat-x"></div>
-        <div data-ruler="1" style="position:absolute;left:0;bottom:0;width:0;height:22px;background:#8fd6c9;opacity:0.22"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:9px;font-family:Fraunces,Georgia,serif;font-size:12.5px;font-weight:600;color:rgba(244,241,234,0.42)">
-        <span>000</span><span>030</span><span>060</span><span>090</span><span>120</span><span>150</span><span>180</span>
-      </div>
+    <div data-pgrid="1" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:1;pointer-events:none;overflow:hidden">
+      <article data-pcard="1" style="position:absolute;left:0.5%;top:0;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part III</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Fundamental Rights</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 12&ndash;35</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:14.8%;top:62%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part IV</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Directive Principles</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 36&ndash;51</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:29.1%;top:8%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part II</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Citizenship</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 5&ndash;11</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:43.4%;top:66%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part V</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">The Union</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 52&ndash;151</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:57.7%;top:2%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part XVIII</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Emergency Provisions</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 352&ndash;360</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:72%;top:64%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part XX</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Amendment</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Article 368</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:86.3%;top:14%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part I</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">The Union and its Territory</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 1&ndash;4</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:0.5%;top:44%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part IVA</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Fundamental Duties</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Article 51A</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:14.8%;top:22%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part VI</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">The States</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 152&ndash;237</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:29.1%;top:50%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part XI</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Centre and State Relations</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 245&ndash;263</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:43.4%;top:28%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part IX</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Panchayats</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 243&ndash;243O</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:57.7%;top:40%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part XIV</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Services under the State</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 308&ndash;323</p>
+      </article>
+      <article data-pcard="1" style="position:absolute;left:72%;top:26%;width:min(190px,12.5vw);height:min(190px,12.5vw);box-sizing:border-box;background:#151517;padding:clamp(10px,1.15vw,16px);display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translate3d(0,100vh,0);transition:none">
+        <p style="margin:0 0 7px;font-size:clamp(8.5px,0.8vw,10.5px);font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(244,241,234,0.42)">Part VIII</p>
+        <p style="margin:0 0 5px;font-family:Fraunces,Georgia,serif;font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.2">Union Territories</p>
+        <p style="margin:0;font-size:clamp(9.5px,0.95vw,12.5px);color:rgba(244,241,234,0.5)">Articles 239&ndash;242</p>
+      </article>
     </div>
   </div>
 </section>
@@ -158,7 +229,7 @@
     <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;02</span>
   </div>
   <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
-    <h2 data-fit="1" style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:16ch;text-wrap:balance">Rereading is recognition.<br><span style="font-style:italic;font-weight:300;color:#8fd6c9">Recall is knowledge.</span></h2>
+    <h2 data-fit="1" style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:16ch;text-wrap:balance">Rereading is recognition.<br><span style="font-style:italic;font-weight:300;color:#6E82C8">Recall is knowledge.</span></h2>
     <p data-lede-hide="1" style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:58ch;text-wrap:pretty">Familiarity feels like knowing. The real question is whether the words are still there once the page is gone.</p>
 
     <div style="display:flex;flex-wrap:wrap;gap:1px;background:rgba(244,241,234,0.14);border:1px solid rgba(244,241,234,0.14)">
@@ -168,9 +239,9 @@
         <p style="margin:18px 0 0;font-size:13.5px;color:rgba(244,241,234,0.42)">Every word is right there.</p>
       </div>
       <div style="flex:1 1 300px;min-width:0;padding:30px 30px;background:#131313">
-        <p style="margin:0 0 18px;display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:700;color:#8fd6c9;text-transform:uppercase;letter-spacing:0.16em"><span style="width:21px;height:21px;display:grid;place-items:center;background:#8fd6c9;color:#0b0b0b;border-radius:50%;font-family:Fraunces,Georgia,serif;font-size:11px">2</span>From memory</p>
+        <p style="margin:0 0 18px;display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:700;color:#6E82C8;text-transform:uppercase;letter-spacing:0.16em"><span style="width:21px;height:21px;display:grid;place-items:center;background:#6E82C8;color:#0b0b0b;border-radius:50%;font-family:Fraunces,Georgia,serif;font-size:11px">2</span>From memory</p>
         <p style="margin:0;font-family:Fraunces,Georgia,serif;font-size:clamp(19px,1.8vw,25px);line-height:1.6;font-weight:500">No person shall be <span style="display:inline-block;min-width:88px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span> of his <span style="display:inline-block;min-width:56px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span> or personal <span style="display:inline-block;min-width:70px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span> except according to <span style="display:inline-block;min-width:92px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span> established by <span style="display:inline-block;min-width:48px;border-bottom:2px solid rgba(244,241,234,0.3)">&nbsp;</span>.</p>
-        <p style="margin:18px 0 0;font-size:13.5px;font-weight:600;color:#8fd6c9">Five words gone. The only test that counts.</p>
+        <p style="margin:18px 0 0;font-size:13.5px;font-weight:600;color:#6E82C8">Five words gone. The only test that counts.</p>
       </div>
     </div>
   </div>

@@ -53,6 +53,9 @@
     /* Cut the dead space: shorten the pinned closing block and trim section padding. */
     [data-lit-src]{height:140vh !important}
     main > section:not(#top){padding-top:clamp(44px,7vh,72px) !important;padding-bottom:clamp(44px,7vh,72px) !important}
+    /* Closing scrim: a band behind the statement that fades top and bottom so
+       the brain shows above and below it on phones. */
+    [data-closescrim]{background:linear-gradient(180deg,rgba(11,11,11,0) 0%,rgba(11,11,11,0.92) 26%,rgba(11,11,11,0.92) 74%,rgba(11,11,11,0) 100%) !important}
   }
   @media (prefers-reduced-motion:reduce){
     *{animation:none !important}

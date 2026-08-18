@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import threading
 from datetime import date
 from pathlib import Path
 from uuid import UUID
@@ -16,6 +17,7 @@ from constitution_memorizer.calendar_sync.store import (
     SqliteCalendarStore,
 )
 from constitution_memorizer.calendar_sync.sync import (
+    _prepare_reconciliation,
     reconcile_user_calendar,
     sync_user_calendar,
 )
@@ -107,6 +109,44 @@ def _units_catalog():
 def _complete(engine: ReminderEngine, unit_id: str, on: date) -> None:
     engine.mark_all_modes_seen(unit_id)
     engine.mark_done(unit_id, as_of=on)
+
+
+class ProbeCalendarStore:
+    """Records the thread id of blocking store methods used by background sync."""
+
+    def __init__(self, inner: SqliteCalendarStore) -> None:
+        self._inner = inner
+        self.clear_thread_records()
+
+    def clear_thread_records(self) -> None:
+        self.get_connection_threads: list[int] = []
+        self.list_event_mappings_threads: list[int] = []
+        self.upsert_event_mapping_threads: list[int] = []
+        self.delete_event_mapping_threads: list[int] = []
+        self.mark_sync_result_threads: list[int] = []
+
+    def __getattr__(self, name: str):
+        return getattr(self._inner, name)
+
+    def get_connection(self, user_id):
+        self.get_connection_threads.append(threading.get_ident())
+        return self._inner.get_connection(user_id)
+
+    def list_event_mappings(self, user_id):
+        self.list_event_mappings_threads.append(threading.get_ident())
+        return self._inner.list_event_mappings(user_id)
+
+    def upsert_event_mapping(self, user_id, **kwargs):
+        self.upsert_event_mapping_threads.append(threading.get_ident())
+        return self._inner.upsert_event_mapping(user_id, **kwargs)
+
+    def delete_event_mapping(self, user_id, local_date):
+        self.delete_event_mapping_threads.append(threading.get_ident())
+        return self._inner.delete_event_mapping(user_id, local_date)
+
+    def mark_sync_result(self, user_id, *, ok: bool, error: str | None = None):
+        self.mark_sync_result_threads.append(threading.get_ident())
+        return self._inner.mark_sync_result(user_id, ok=ok, error=error)
 
 
 def _reconcile(engine, store, client, today: date):
@@ -374,3 +414,123 @@ def test_cadence_change_repatches_all_events(tmp_path: Path) -> None:
         assert body["reminders"]["useDefault"] is False
         assert [o["minutes"] for o in body["reminders"]["overrides"]] == [480, 240, 10]
         assert all(o["method"] == "popup" for o in body["reminders"]["overrides"])
+
+
+def _assert_off_loop(threads: list[int], loop_thread: int) -> None:
+    assert threads
+    assert all(t != loop_thread for t in threads)
+
+
+def test_sync_store_and_prepare_run_off_event_loop_thread(
+    tmp_path: Path, monkeypatch
+) -> None:
+    engine, inner, fake, client = _setup(tmp_path)
+    probe = ProbeCalendarStore(inner)
+    _complete(engine, "clause-1", date(2026, 8, 18))
+    probe.upsert_connection(
+        USER,
+        google_calendar_id=CAL_ID,
+        refresh_token_sealed="sealed",
+        sync_status=SYNC_PENDING,
+    )
+    probe.mark_sync_pending(USER)
+
+    prepare_threads: list[int] = []
+    real_prepare = _prepare_reconciliation
+
+    def _spy_prepare(engine_arg, store_arg, today):
+        prepare_threads.append(threading.get_ident())
+        return real_prepare(engine_arg, store_arg, today)
+
+    monkeypatch.setattr(
+        "constitution_memorizer.calendar_sync.sync._prepare_reconciliation",
+        _spy_prepare,
+    )
+
+    async def _run() -> int:
+        probe.clear_thread_records()
+        prepare_threads.clear()
+        loop_thread = threading.get_ident()
+        ok = await sync_user_calendar(
+            user_id=USER,
+            engine=engine,
+            store=probe,
+            client_factory=lambda _c: client,
+            dashboard_url=DASH,
+        )
+        assert ok is True
+        return loop_thread
+
+    loop_thread = asyncio.run(_run())
+    _assert_off_loop(probe.get_connection_threads, loop_thread)
+    _assert_off_loop(probe.list_event_mappings_threads, loop_thread)
+    _assert_off_loop(probe.upsert_event_mapping_threads, loop_thread)
+    _assert_off_loop(probe.mark_sync_result_threads, loop_thread)
+    _assert_off_loop(prepare_threads, loop_thread)
+    connection = inner.get_connection(USER)
+    assert connection is not None
+    assert connection.sync_pending is False and connection.sync_status == "ok"
+
+
+def test_sync_delete_and_failure_mark_result_run_off_loop(tmp_path: Path) -> None:
+    engine, inner, fake, client = _setup(tmp_path)
+    probe = ProbeCalendarStore(inner)
+    _complete(engine, "clause-1", date(2026, 8, 18))
+    probe.upsert_connection(
+        USER,
+        google_calendar_id=CAL_ID,
+        refresh_token_sealed="sealed",
+        sync_status=SYNC_PENDING,
+    )
+    asyncio.run(
+        reconcile_user_calendar(
+            engine=engine,
+            store=probe,
+            client=client,
+            calendar_id=CAL_ID,
+            dashboard_url=DASH,
+            today=date(2026, 8, 18),
+        )
+    )
+    _complete(engine, "clause-1", date(2026, 8, 19))
+
+    async def _delete_run() -> int:
+        probe.clear_thread_records()
+        loop_thread = threading.get_ident()
+        ok = await sync_user_calendar(
+            user_id=USER,
+            engine=engine,
+            store=probe,
+            client_factory=lambda _c: client,
+            dashboard_url=DASH,
+        )
+        assert ok is True
+        return loop_thread
+
+    loop_thread = asyncio.run(_delete_run())
+    _assert_off_loop(probe.delete_event_mapping_threads, loop_thread)
+    _assert_off_loop(probe.mark_sync_result_threads, loop_thread)
+
+    fake.fail_all = True
+    probe.mark_sync_pending(USER)
+    _complete(engine, "clause-2", date(2026, 8, 19))
+
+    async def _fail_run() -> int:
+        probe.clear_thread_records()
+        loop_thread = threading.get_ident()
+        ok = await sync_user_calendar(
+            user_id=USER,
+            engine=engine,
+            store=probe,
+            client_factory=lambda _c: client,
+            dashboard_url=DASH,
+        )
+        assert ok is False
+        return loop_thread
+
+    loop_thread = asyncio.run(_fail_run())
+    _assert_off_loop(probe.mark_sync_result_threads, loop_thread)
+    connection = inner.get_connection(USER)
+    assert connection is not None
+    assert connection.sync_pending is True
+    assert "google api" in (connection.last_error or "")

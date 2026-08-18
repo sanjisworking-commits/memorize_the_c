@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
+from time import perf_counter
 from typing import Iterable
 
 from constitution_memorizer.admin.store import AccessOverride
@@ -628,7 +629,11 @@ def subscription_status(
     )
     if getter is None:
         return None
+    from constitution_memorizer.web.request_context import record_request_timing
+
+    started = perf_counter()
     order = getter(getattr(engine, "user_id", None))
+    record_request_timing("billing_status", started)
     if order is None or order.paid_at is None:
         return None
     return status_from_paid_order(

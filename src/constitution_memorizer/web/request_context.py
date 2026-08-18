@@ -43,15 +43,43 @@ TIMING_STAGES: tuple[str, ...] = (
     "theme",
     "nav_due",
     "template",
+    "access_override",
+    "free_articles_backfill_check",
+    "claimed_articles",
+    "billing_status",
+    "admin_hint",
+    "settings_frequency",
+    "calendar_connection",
+    "calendar_prefs",
+    "calendar_pending_retry",
+    "calendar_pref_write",
+    "calendar_sync_schedule",
+    "calendar_connection_write",
+    "google_token_exchange",
+    "google_calendar_check",
+    "google_token_revoke",
 )
 
 _TIMING_STAGE_SET = frozenset(TIMING_STAGES)
 _LEARN_BREAKDOWN_SUFFIXES = frozenset({"choose", "seen", "done"})
+_BREAKDOWN_PATHS = frozenset(
+    {
+        "/dashboard",
+        "/browse",
+        "/settings",
+        "/pricing",
+        "/calendar",
+        "/calendar/google/connect",
+        "/calendar/google/callback",
+        "/calendar/google/preferences",
+        "/calendar/google/disconnect",
+    }
+)
 
 
 def wants_request_breakdown(path: str) -> bool:
-    """True for Dashboard, Browse, Browse Article, and Learn-flow paths."""
-    if path in {"/dashboard", "/browse"}:
+    """True for Dashboard, Browse, Learn-flow, Settings, Pricing, and Calendar."""
+    if path in _BREAKDOWN_PATHS:
         return True
     parts = [segment for segment in path.split("/") if segment]
     if len(parts) == 3 and parts[0] == "browse" and parts[1] == "article":

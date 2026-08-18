@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
+from time import perf_counter
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
@@ -39,6 +40,12 @@ GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.app.created"
 
 router = APIRouter()
+
+
+def _record_timing(stage: str, started: float) -> None:
+    from constitution_memorizer.web.request_context import record_request_timing
+
+    record_request_timing(stage, started)
 
 
 def _gcal_enabled(request: Request) -> bool:
@@ -100,6 +107,7 @@ def schedule_sync(request: Request, user_id) -> None:
     if not _gcal_enabled(request):
         return
     store = request.app.state.calendar_store
+    started = perf_counter()
     try:
         connection = store.get_connection(user_id)
         if connection is None or not connection.is_active:
@@ -108,6 +116,8 @@ def schedule_sync(request: Request, user_id) -> None:
     except Exception:  # noqa: BLE001 — never break the request path
         logger.exception("calendar sync flagging failed")
         return
+    finally:
+        _record_timing("calendar_sync_schedule", started)
     engine = request.app.state.engine.for_user(user_id)
     settings = request.app.state.multiuser_settings
     factory = make_client_factory(request)
@@ -147,10 +157,13 @@ def retry_stale_pending(request: Request, user_id) -> None:
     if not _gcal_enabled(request):
         return
     store = request.app.state.calendar_store
+    started = perf_counter()
     try:
         connection = store.get_connection(user_id)
     except Exception:  # noqa: BLE001
         return
+    finally:
+        _record_timing("calendar_pending_retry", started)
     if connection is None or not connection.is_active or not connection.sync_pending:
         return
     from datetime import datetime, timezone as _tz
@@ -184,8 +197,13 @@ async def gcal_connect(request: Request) -> RedirectResponse:
         except (KeyError, ValueError):
             pass
         else:
-            if not (repo.get_setting(user.id, "user_timezone") or ""):
+            started = perf_counter()
+            current_tz = repo.get_setting(user.id, "user_timezone") or ""
+            _record_timing("calendar_prefs", started)
+            if not current_tz:
+                started = perf_counter()
                 repo.set_setting(user.id, "user_timezone", browser_tz)
+                _record_timing("calendar_pref_write", started)
     state = secrets.token_urlsafe(24)
     params = {
         "client_id": settings.gcal_client_id,
@@ -240,6 +258,7 @@ async def gcal_callback(request: Request) -> RedirectResponse:
         return _fail("code")
 
     transport = getattr(request.app.state, "gcal_transport", None)
+    started = perf_counter()
     try:
         payload = await exchange_code(
             client_id=settings.gcal_client_id,
@@ -250,10 +269,14 @@ async def gcal_callback(request: Request) -> RedirectResponse:
         )
     except GoogleApiError:
         return _fail("exchange")
+    finally:
+        _record_timing("google_token_exchange", started)
 
     sealer = TokenSealer(settings.gcal_token_key)
     refresh_token = str(payload.get("refresh_token") or "")
+    started = perf_counter()
     existing = store.get_connection(user.id)
+    _record_timing("calendar_connection", started)
     if refresh_token:
         sealed = sealer.seal(refresh_token)
     elif existing is not None and existing.refresh_token_sealed:
@@ -273,23 +296,37 @@ async def gcal_callback(request: Request) -> RedirectResponse:
     # Calendars.get) — never CalendarList.list, never a duplicate calendar.
     calendar_id = existing.google_calendar_id if existing else None
     try:
-        if calendar_id and not await client.get_calendar(calendar_id):
-            calendar_id = None
+        if calendar_id:
+            started = perf_counter()
+            try:
+                found = await client.get_calendar(calendar_id)
+            finally:
+                _record_timing("google_calendar_check", started)
+            if not found:
+                calendar_id = None
         if calendar_id is None:
+            started = perf_counter()
             tz = (
                 request.app.state.engine.repo.get_setting(user.id, "user_timezone")
                 or "UTC"
             )
-            calendar_id = await client.create_calendar(timezone_id=tz)
+            _record_timing("calendar_prefs", started)
+            started = perf_counter()
+            try:
+                calendar_id = await client.create_calendar(timezone_id=tz)
+            finally:
+                _record_timing("google_calendar_check", started)
     except GoogleApiError:
         return _fail("calendar")
 
+    started = perf_counter()
     store.upsert_connection(
         user.id,
         google_calendar_id=calendar_id,
         refresh_token_sealed=sealed,
         sync_status=SYNC_PENDING,
     )
+    _record_timing("calendar_connection_write", started)
     # Initial sync runs async — the browser is never held for 90 days of events.
     schedule_sync(request, user.id)
     response = RedirectResponse(url="/settings?gcal=connected", status_code=303)
@@ -310,18 +347,24 @@ async def gcal_disconnect(
         return RedirectResponse(url="/settings?gcal=error&why=csrf", status_code=303)
     settings = request.app.state.multiuser_settings
     store = request.app.state.calendar_store
+    started = perf_counter()
     connection = store.get_connection(user.id)
+    _record_timing("calendar_connection", started)
     if connection is not None and connection.refresh_token_sealed:
         try:
             token = TokenSealer(settings.gcal_token_key).unseal(
                 connection.refresh_token_sealed
             )
+            started = perf_counter()
             await revoke_token(
                 token, transport=getattr(request.app.state, "gcal_transport", None)
             )
+            _record_timing("google_token_revoke", started)
         except TokenSealError:
             pass  # can't unseal → nothing to revoke remotely
+    started = perf_counter()
     store.tombstone(user.id)
+    _record_timing("calendar_connection_write", started)
     return RedirectResponse(url="/settings?gcal=disconnected", status_code=303)
 
 
@@ -357,6 +400,7 @@ async def gcal_preferences(
         return RedirectResponse(url="/settings?gcal=error&why=csrf", status_code=303)
     repo = request.app.state.engine.repo
 
+    started = None
     tz = user_timezone.strip()
     if tz:
         try:
@@ -365,6 +409,7 @@ async def gcal_preferences(
             return RedirectResponse(
                 url="/settings?gcal=error&why=timezone", status_code=303
             )
+        started = perf_counter()
         repo.set_setting(user.id, "user_timezone", tz)
 
     time_pref = revision_time.strip()
@@ -373,6 +418,8 @@ async def gcal_preferences(
         assert 0 <= hour <= 23 and 0 <= minute <= 59
     except (ValueError, AssertionError):
         return RedirectResponse(url="/settings?gcal=error&why=time", status_code=303)
+    if started is None:
+        started = perf_counter()
     repo.set_setting(user.id, "gcal_revision_time", f"{hour:02d}:{minute:02d}")
 
     try:
@@ -383,7 +430,10 @@ async def gcal_preferences(
         return RedirectResponse(
             url="/settings?gcal=error&why=duration", status_code=303
         )
+    if started is None:
+        started = perf_counter()
     repo.set_setting(user.id, "gcal_session_minutes", str(minutes))
+    _record_timing("calendar_pref_write", started)
 
     # Prefs change event times → resync.
     schedule_sync(request, user.id)

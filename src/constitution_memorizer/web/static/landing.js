@@ -284,11 +284,26 @@
 
     var y = window.pageYOffset || doc.scrollTop || 0;
 
-    // Top progress rail
+    // Top progress rail — always true page scroll.
     var max = doc.scrollHeight - vh;
-    scrollP = max > 0 ? Math.min(1, y / max) : 0;
+    var trueP = max > 0 ? Math.min(1, y / max) : 0;
     var bar = document.querySelector("[data-progress-bar]");
-    if (bar) bar.style.width = (scrollP * 100).toFixed(2) + "%";
+    if (bar) bar.style.width = (trueP * 100).toFixed(2) + "%";
+
+    // The letter field runs on its own clock, frozen while #arithmetic is
+    // pinned: that section's scroll span is removed from the total, so the
+    // brain holds the state it reached and resumes from there afterwards.
+    var ay = y;
+    var hold = 0;
+    var pinSrc = document.querySelector("[data-pin-src]");
+    if (pinSrc) {
+      var psr = pinSrc.getBoundingClientRect();
+      var pinTop = psr.top + y;
+      hold = Math.max(0, psr.height - vh);
+      if (y > pinTop + hold) ay = y - hold;
+      else if (y > pinTop) ay = pinTop;
+    }
+    scrollP = Math.min(1, ay / Math.max(1, max - hold));
 
     // Per-section scrims: rise as the section enters, fall as it leaves, so
     // the letter field stays visible between sections but never under copy.
@@ -314,12 +329,53 @@
       }
     );
 
-    // 180-day ruler scrubs with its own section
-    var ruler = document.querySelector("[data-ruler]");
-    if (ruler) {
-      var rr = ruler.getBoundingClientRect();
-      var rp = Math.max(0, Math.min(1, (vh * 0.85 - rr.top) / (vh * 0.5)));
-      ruler.style.width = rp * 100 + "%";
+    // §01 "The arithmetic": 13 Part squares fly up from the bottom of the
+    // pinned frame and settle in a scatter (desktop) / stream through (phone).
+    var pin = document.querySelector("[data-pin-src]");
+    if (pin) {
+      var pr = pin.getBoundingClientRect();
+      var span = pr.height - vh;
+      var p = span > 40 ? Math.max(0, Math.min(1, -pr.top / span)) : 1;
+
+      // The field holds its state here but dims to ~25% so the squares read;
+      // brightness returns only once #method is half scrolled.
+      var brain = document.querySelector("[data-brain]");
+      if (brain) {
+        var enterD = Math.min(1, p / 0.12);
+        var holdD = 1;
+        var nxt = document.getElementById("method");
+        if (nxt) {
+          var mr = nxt.getBoundingClientRect();
+          holdD = 1 - Math.max(0, Math.min(1, -mr.top / Math.max(1, mr.height * 0.5)));
+        }
+        var dimv = Math.max(0, Math.min(enterD, holdD));
+        brain.style.opacity = (1 - 0.75 * dimv).toFixed(3);
+      }
+
+      var cards = pin.querySelectorAll("[data-pcard]");
+      var n = cards.length;
+      var narrow = window.innerWidth <= 900;
+      var frameH = pr.height > vh ? vh : pr.height;
+      Array.prototype.forEach.call(cards, function (el, i) {
+        if (narrow && !reduced) {
+          // Phone: no rest — rise from below the frame and carry out the top.
+          var kk = Math.max(0, Math.min(1, (p - (i / n) * 0.7) / 0.3));
+          el.style.opacity = "1";
+          el.style.transform =
+            "translate3d(0," + (((110 - 160 * kk) * vh) / 100).toFixed(1) + "px,0)";
+          return;
+        }
+        // Desktop: the statement lands first, then each square eases up to its
+        // authored resting slot (pulled up rather than clipped at the bottom).
+        var start = 0.16 + (i / n) * 0.62;
+        var k = reduced ? 1 : Math.max(0, Math.min(1, (p - start) / 0.22));
+        var e = 1 - Math.pow(1 - k, 3);
+        var lift = Math.max(0, el.offsetTop + el.offsetHeight - frameH + 10);
+        var travel = Math.max(0, frameH - el.offsetTop + lift);
+        el.style.opacity = k > 0 ? "1" : "0";
+        el.style.transform =
+          "translate3d(0," + ((1 - e) * travel - lift).toFixed(1) + "px,0)";
+      });
     }
 
     // Six mode circles: overlapped when the section arrives, spaced out as it passes
@@ -412,21 +468,7 @@
     drawField();
   }
 
-  // Persisted dark/light landing toggle: set the cookie the server reads to
-  // pick the template, then reload so the other landing is served.
-  function wireThemeToggle() {
-    var btn = document.getElementById("landing-theme-toggle");
-    if (!btn) return;
-    btn.addEventListener("click", function () {
-      var to = btn.getAttribute("data-to") || "light";
-      document.cookie =
-        "rtc_landing_theme=" + to + "; path=/; max-age=31536000; samesite=lax";
-      location.reload();
-    });
-  }
-
   function boot() {
-    wireThemeToggle();
     raf = requestAnimationFrame(tick);
 
     measure();

@@ -86,10 +86,12 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert home.status_code == 200
     html = home.text
     assert "Recall the C" in html
-    assert "Memorize the C." in html
-    assert "A memory system for the Bare Act" in html
-    assert "Start learning" in html
-    assert "Start memorizing" in html
+    # Hero headline (design variant B) — no eyebrow, no sub-heading.
+    assert "The whole document." in html
+    assert "In your memory." in html
+    assert "A memory system for the Bare Act" not in html
+    assert "Start learning" in html  # header CTA still present
+    assert "Start memorizing" in html  # final-CTA section (unchanged)
     assert 'href="/login"' in html
     assert 'href="/browse"' in html
     assert "Explore as guest" in html
@@ -98,17 +100,18 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     # Signature of the brain-canvas landing: the letter-field canvas + data file
     assert "data-brain" in html
     assert "brain-path.js" in html
-    # Section markers of the brain-canvas landing
-    assert "Six modes" in html
+    # §01 rebuilt to the 13 Part squares (pinned)
     assert "The arithmetic" in html
-    # §04 "The schedule" section was removed
-    assert 'id="revision"' not in html
-    assert "You never decide" not in html
-    assert "Eleven provisions due" not in html
-    # §01 day blocks removed — the timeline ruler stands alone
+    assert 'data-pin="1"' in html
+    assert "data-pcard" in html
+    assert "Fundamental Rights" in html
+    assert "Six modes" in html
+    # Old §01 bits removed (ruler + day blocks); §04 schedule already gone
+    assert "data-ruler" not in html
     assert "data-daycards" not in html
-    # Persisted dark/light theme toggle
-    assert 'id="landing-theme-toggle"' in html
+    assert 'id="revision"' not in html
+    # Light-landing switch disabled — no theme toggle in the header
+    assert 'id="landing-theme-toggle"' not in html
     assert "landing.js" in html
     assert "family=Fraunces" in html
     assert "@keyframes hintDrift" in html
@@ -132,43 +135,30 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert "guest-signin-modal" in learn.text
 
 
-def test_landing_light_theme_cookie(tmp_path: Path):
-    """The rtc_landing_theme=light cookie serves the light split landing."""
+def test_light_theme_switch_disabled(tmp_path: Path):
+    """The light landing is disabled: even a rtc_landing_theme=light cookie
+    still serves the dark brain-canvas landing (no way to reach light)."""
     client = _client(tmp_path)
     client.cookies.set("rtc_landing_theme", "light")
     home = client.get("/", follow_redirects=False)
     assert home.status_code == 200
     html = home.text
-    # Light landing signatures (orbit-rings figure + mode switcher + ruler).
-    assert "data-fig" in html
-    assert "data-modes" in html
-    assert "data-fill" in html
-    assert "Article 32(1)" in html
-    assert "Understand the structure" in html
-    assert 'id="landing-theme-toggle"' in html
-    assert "landing-light.js" in html
-    # It is not the dark brain-canvas page.
-    assert "data-brain" not in html
-    assert "brain-path.js" not in html
-    # §04 schedule removed here too.
-    assert 'id="revision"' not in html
-    # Standalone marketing page — no app chrome.
+    # Dark landing served regardless of the cookie.
+    assert "data-brain" in html
+    assert "brain-path.js" in html
+    # Not the light split layout.
+    assert "data-fig" not in html
+    assert "landing-light.js" not in html
     assert "{% extends" not in html
-    assert 'class="nav-link">Home' not in html
 
 
 def test_landing_pricing_nav_when_enabled(tmp_path: Path):
-    """With pricing on, both landings link the Pricing nav to /pricing, no teaser."""
+    """With pricing on, the landing links the Pricing nav to /pricing, no teaser."""
     client = _client(tmp_path, pricing=True)
     dark = client.get("/", follow_redirects=False).text
     assert 'href="/pricing"' in dark
     # The inline in-page pricing teaser was removed.
     assert 'id="pricing"' not in dark
-
-    client.cookies.set("rtc_landing_theme", "light")
-    light = client.get("/", follow_redirects=False).text
-    assert 'href="/pricing"' in light
-    assert "data-fig" in light  # confirm the light template rendered
 
 
 def test_landing_only_when_multiuser_guest(tmp_path: Path):
@@ -187,7 +177,7 @@ def test_landing_only_when_multiuser_guest(tmp_path: Path):
     guest = _client(tmp_path)
     guest_home = guest.get("/", follow_redirects=False)
     assert guest_home.status_code == 200
-    assert "A memory system for the Bare Act" in guest_home.text
+    assert "The whole document." in guest_home.text
     assert ">Today<" not in guest_home.text
 
 

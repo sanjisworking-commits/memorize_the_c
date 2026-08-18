@@ -346,3 +346,31 @@ def test_delete_user_data_removes_everything(tmp_path: Path) -> None:
     assert store.get_connection(USER) is None
     assert store.list_event_mappings(USER) == []
     assert store.get_connection(other) is not None  # other users intact
+
+
+def test_events_carry_default_once_reminder(tmp_path: Path) -> None:
+    """A fresh app-created calendar has NO default notifications, so every
+    event must ship an explicit 10-minute popup even before any choice."""
+    engine, store, fake, client = _setup(tmp_path)
+    _complete(engine, "clause-1", date(2026, 8, 18))
+    _reconcile(engine, store, client, date(2026, 8, 18))
+    assert len(fake.events) == 6
+    for body in fake.events.values():
+        assert body["reminders"] == {
+            "useDefault": False,
+            "overrides": [{"method": "popup", "minutes": 10}],
+        }
+
+
+def test_cadence_change_repatches_all_events(tmp_path: Path) -> None:
+    engine, store, fake, client = _setup(tmp_path)
+    _complete(engine, "clause-1", date(2026, 8, 18))
+    _reconcile(engine, store, client, date(2026, 8, 18))
+    engine.repo.set_setting(USER, "gcal_reminder_cadence", "thrice")
+    counts = _reconcile(engine, store, client, date(2026, 8, 18))
+    # Only the reminder offsets changed → every event repatches, none recreated.
+    assert counts == {"created": 0, "patched": 6, "deleted": 0, "unchanged": 0}
+    for body in fake.events.values():
+        assert body["reminders"]["useDefault"] is False
+        assert [o["minutes"] for o in body["reminders"]["overrides"]] == [480, 240, 10]
+        assert all(o["method"] == "popup" for o in body["reminders"]["overrides"])

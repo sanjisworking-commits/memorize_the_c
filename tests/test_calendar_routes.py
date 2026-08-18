@@ -650,3 +650,87 @@ def test_background_sync_does_not_record_split_prefs_on_create_task(
     assert "split_prefs" not in snap
     assert "progress_preload" not in snap
     assert "theme" not in snap
+
+
+def test_reminder_popup_shown_until_cadence_chosen(tmp_path: Path) -> None:
+    client, _store, fake, repo = _client(tmp_path)
+    fake.calendar_exists = False
+    location = _connect(client, fake)  # → /settings?gcal=connected
+    html = client.get(location).text
+    assert "gcal-reminder-modal" in html
+    # A plain settings view (no post-connect redirect) never prompts.
+    assert "gcal-reminder-modal" not in client.get("/settings").text
+    # Choosing a cadence persists it and silences the prompt for good.
+    csrf = client.cookies.get("rtc_csrf")
+    resp = client.post(
+        "/calendar/google/preferences",
+        data={"csrf_token": csrf, "reminder_cadence": "twice"},
+        follow_redirects=False,
+    )
+    assert resp.headers["location"] == "/settings?gcal=saved"
+    assert repo.get_setting(USER, "gcal_reminder_cadence") == "twice"
+    assert "gcal-reminder-modal" not in client.get("/settings?gcal=connected").text
+    # The Settings grid shows the stored choice.
+    assert 'value="twice" selected' in client.get("/settings").text
+
+
+def test_invalid_cadence_rejected(tmp_path: Path) -> None:
+    client, _store, fake, repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    resp = client.post(
+        "/calendar/google/preferences",
+        data={"csrf_token": csrf, "reminder_cadence": "hourly"},
+        follow_redirects=False,
+    )
+    assert "why=cadence" in resp.headers["location"]
+    assert repo.get_setting(USER, "gcal_reminder_cadence") is None
+
+
+def test_partial_preference_post_keeps_other_fields(tmp_path: Path) -> None:
+    """The popup posts ONLY the cadence — it must never clobber the rest."""
+    client, _store, fake, repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    client.post(
+        "/calendar/google/preferences",
+        data={
+            "csrf_token": csrf,
+            "user_timezone": "Asia/Kolkata",
+            "revision_time": "21:30",
+            "session_minutes": "45",
+        },
+        follow_redirects=False,
+    )
+    resp = client.post(
+        "/calendar/google/preferences",
+        data={"csrf_token": csrf, "reminder_cadence": "thrice"},
+        follow_redirects=False,
+    )
+    assert resp.headers["location"] == "/settings?gcal=saved"
+    assert repo.get_setting(USER, "gcal_reminder_cadence") == "thrice"
+    assert repo.get_setting(USER, "user_timezone") == "Asia/Kolkata"
+    assert repo.get_setting(USER, "gcal_revision_time") == "21:30"
+    assert repo.get_setting(USER, "gcal_session_minutes") == "45"
+
+
+def test_multiuser_settings_drop_study_reminders(tmp_path: Path) -> None:
+    """Multiuser accounts get calendar reminders instead of the local
+    LaunchAgent radios; saving without the radios must still work."""
+    client, _store, _fake, _repo = _client(tmp_path)
+    html = client.get("/settings").text
+    assert "Study reminders" not in html
+    assert "notification_frequency" not in html
+    resp = client.post(
+        "/settings", data={"news_articles": "19, 21"}, follow_redirects=False
+    )
+    assert resp.status_code == 303
+    # An explicitly invalid frequency is still rejected, not ignored.
+    bad = client.post(
+        "/settings",
+        data={"notification_frequency": "bogus", "news_articles": ""},
+        follow_redirects=False,
+    )
+    assert bad.status_code == 400

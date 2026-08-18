@@ -10,6 +10,7 @@ from constitution_memorizer.calendar_sync.projection import (
     DayProjection,
     build_event_content,
     build_projection,
+    reminder_minutes_for,
 )
 from constitution_memorizer.progress.scheduler import ReminderEngine
 
@@ -143,3 +144,43 @@ def test_payload_hash_dirties_on_every_visible_field() -> None:
         assert (
             build_event_content(day, **{**base, **change}).payload_hash() != baseline
         )
+
+
+def test_reminder_cadence_offsets() -> None:
+    """once/twice/thrice at the default 20:00 revision time."""
+    assert reminder_minutes_for("once", "20:00") == (10,)
+    # Morning popup at 08:00 = 12 h before a 20:00 revision.
+    assert reminder_minutes_for("twice", "20:00") == (720, 10)
+    assert reminder_minutes_for("thrice", "20:00") == (480, 240, 10)
+
+
+def test_reminder_cadence_degrades_for_early_revision_times() -> None:
+    # A 07:00 revision has no same-day morning slot → twice collapses to once.
+    assert reminder_minutes_for("twice", "07:00") == (10,)
+    # thrice at 07:00: the 8 h offset would cross midnight; 4 h survives.
+    assert reminder_minutes_for("thrice", "07:00") == (240, 10)
+    # Unparseable time falls back to the 20:00 default.
+    assert reminder_minutes_for("thrice", "garbage") == (480, 240, 10)
+    # Unknown cadence behaves like once — never notification-free.
+    assert reminder_minutes_for("weird", "20:00") == (10,)
+
+
+def test_reminder_offsets_dirty_payload_hash() -> None:
+    """A cadence switch must repatch every event via the normal hash path."""
+    day = DayProjection(
+        local_date=date(2026, 8, 24),
+        items=[DayItem(unit_id="u1", label="Article 14 — Day 15")],
+    )
+    base = dict(
+        revision_time="20:00",
+        session_minutes=30,
+        timezone="Asia/Kolkata",
+        dashboard_url="https://recall-the-c.in/dashboard",
+    )
+    once = build_event_content(day, **base, reminder_minutes=(10,))
+    thrice = build_event_content(day, **base, reminder_minutes=(480, 240, 10))
+    assert once.payload_hash() != thrice.payload_hash()
+    assert (
+        build_event_content(day, **base, reminder_minutes=(10,)).payload_hash()
+        == once.payload_hash()
+    )

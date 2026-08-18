@@ -29,6 +29,42 @@ MAX_DESCRIPTION_ITEMS = 15
 
 EVENT_TITLE_PREFIX = "🧠 Recall the C"
 
+# Reminder cadence → popup notifications on each event (minutes before start).
+VALID_REMINDER_CADENCES: tuple[str, ...] = ("once", "twice", "thrice")
+DEFAULT_REMINDER_CADENCE = "once"
+_MORNING_MINUTES = 8 * 60  # the "morning" anchor for the twice cadence
+_FINAL_OFFSET = 10
+
+
+def reminder_minutes_for(cadence: str, revision_time: str) -> tuple[int, ...]:
+    """Popup offsets (minutes before the event) for a reminder cadence.
+
+    once   → 10 minutes before.
+    twice  → one in the morning (08:00 local, expressed as an offset from the
+             revision time) plus 10 minutes before.
+    thrice → evenly spaced: 8 h, 4 h and 10 min before.
+
+    Offsets that would cross into the previous day (revision time earlier
+    than the offset) or collapse into the final 10-minute one are dropped —
+    an 07:00 revision never gets a 23:00-the-night-before popup. Result is
+    descending, deduped, never empty.
+    """
+    try:
+        hour, minute = (int(p) for p in revision_time.split(":", 1))
+        start_minutes = hour * 60 + minute
+    except (ValueError, AttributeError):
+        start_minutes = 20 * 60  # matches DEFAULT_REVISION_TIME
+    offsets = {_FINAL_OFFSET}
+    if cadence == "twice":
+        morning = start_minutes - _MORNING_MINUTES
+        if morning > _FINAL_OFFSET:
+            offsets.add(morning)
+    elif cadence == "thrice":
+        for candidate in (480, 240):
+            if _FINAL_OFFSET < candidate < start_minutes:
+                offsets.add(candidate)
+    return tuple(sorted(offsets, reverse=True))
+
 
 @dataclass(frozen=True)
 class DayItem:
@@ -116,9 +152,11 @@ class EventContent:
     duration_minutes: int
     timezone: str  # IANA id
     url: str
+    reminder_minutes: tuple[int, ...] = ()
 
     def payload_hash(self) -> str:
-        """Hash of the FULL payload — time/duration/tz/url changes dirty it."""
+        """Hash of the FULL payload — any visible change dirties it, including
+        the reminder offsets, so a cadence switch repatches every event."""
         blob = json.dumps(
             {
                 "date": self.local_date.isoformat(),
@@ -128,6 +166,7 @@ class EventContent:
                 "minutes": self.duration_minutes,
                 "tz": self.timezone,
                 "url": self.url,
+                "reminders": list(self.reminder_minutes),
             },
             sort_keys=True,
         )
@@ -141,6 +180,7 @@ def build_event_content(
     session_minutes: int,
     timezone: str,
     dashboard_url: str,
+    reminder_minutes: tuple[int, ...] = (),
 ) -> EventContent:
     n = day.count
     title = f"{EVENT_TITLE_PREFIX} — {n} revision{'s' if n != 1 else ''}"
@@ -159,4 +199,5 @@ def build_event_content(
         duration_minutes=session_minutes,
         timezone=timezone,
         url=dashboard_url,
+        reminder_minutes=reminder_minutes,
     )

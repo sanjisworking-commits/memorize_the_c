@@ -144,13 +144,14 @@ class GoogleCalendarClient:
         start_time: str,
         duration_minutes: int,
         timezone_id: str,
+        reminder_minutes: tuple[int, ...] = (),
     ) -> dict:
         hour, minute = (int(part) for part in start_time.split(":", 1))
         start = datetime(
             local_date.year, local_date.month, local_date.day, hour, minute
         )
         end = start + timedelta(minutes=duration_minutes)
-        return {
+        body = {
             "summary": title,
             "description": description,
             "start": {
@@ -162,6 +163,17 @@ class GoogleCalendarClient:
                 "timeZone": timezone_id,
             },
         }
+        if reminder_minutes:
+            # A fresh secondary calendar has NO default notifications, so
+            # every event carries explicit popup overrides (Google caps 5).
+            body["reminders"] = {
+                "useDefault": False,
+                "overrides": [
+                    {"method": "popup", "minutes": m}
+                    for m in reminder_minutes[:5]
+                ],
+            }
+        return body
 
     async def insert_event(self, calendar_id: str, **event_kwargs) -> str:
         response = await self._request(

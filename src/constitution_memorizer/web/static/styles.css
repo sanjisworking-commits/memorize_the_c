@@ -7544,3 +7544,48 @@ body.is-admin-previewing { padding-top: 40px; }
 .gcal-permission-line span {
   color: var(--muted);
 }
+
+/* Post-connect reminder-cadence popup ---------------------------------- */
+.gcal-reminder-modal {
+  max-width: 30rem;
+}
+
+.gcal-cadence-options {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.gcal-cadence-options form {
+  margin: 0;
+}
+
+.gcal-cadence-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  background: var(--wash);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.gcal-cadence-btn:hover,
+.gcal-cadence-btn:focus-visible {
+  border-color: var(--ink);
+}
+
+.gcal-cadence-name {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.gcal-cadence-desc {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}

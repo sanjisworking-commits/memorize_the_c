@@ -11,6 +11,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
+from contextvars import Context
+from time import perf_counter
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
@@ -25,9 +27,9 @@ from constitution_memorizer.calendar_sync.google_client import (
     exchange_code,
     revoke_token,
 )
+from constitution_memorizer.calendar_sync.projection import VALID_REMINDER_CADENCES
 from constitution_memorizer.calendar_sync.store import SYNC_PENDING
 from constitution_memorizer.calendar_sync.sync import (
-    DEFAULT_REVISION_TIME,
     VALID_SESSION_MINUTES,
     sync_user_calendar,
 )
@@ -39,6 +41,12 @@ GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.app.created"
 
 router = APIRouter()
+
+
+def _record_timing(stage: str, started: float) -> None:
+    from constitution_memorizer.web.request_context import record_request_timing
+
+    record_request_timing(stage, started)
 
 
 def _gcal_enabled(request: Request) -> bool:
@@ -100,6 +108,7 @@ def schedule_sync(request: Request, user_id) -> None:
     if not _gcal_enabled(request):
         return
     store = request.app.state.calendar_store
+    started = perf_counter()
     try:
         connection = store.get_connection(user_id)
         if connection is None or not connection.is_active:
@@ -108,6 +117,8 @@ def schedule_sync(request: Request, user_id) -> None:
     except Exception:  # noqa: BLE001 — never break the request path
         logger.exception("calendar sync flagging failed")
         return
+    finally:
+        _record_timing("calendar_sync_schedule", started)
     engine = request.app.state.engine.for_user(user_id)
     settings = request.app.state.multiuser_settings
     factory = make_client_factory(request)
@@ -124,15 +135,17 @@ def schedule_sync(request: Request, user_id) -> None:
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:  # no running loop (sync test contexts)
-        asyncio.run(_run())
+        # Fresh Context so asyncio.run does not inherit the HTTP timing collector.
+        Context().run(asyncio.run, _run())
         return
     # Hold a strong reference — a bare create_task can be garbage-collected
-    # mid-flight, silently dropping the sync.
+    # mid-flight, silently dropping the sync. Launch in a fresh Context so
+    # the background reconciliation cannot record into this request's timings.
     tasks = getattr(request.app.state, "gcal_tasks", None)
     if tasks is None:
         tasks = set()
         request.app.state.gcal_tasks = tasks
-    task = loop.create_task(_run())
+    task = Context().run(loop.create_task, _run())
     tasks.add(task)
     task.add_done_callback(tasks.discard)
 
@@ -147,10 +160,13 @@ def retry_stale_pending(request: Request, user_id) -> None:
     if not _gcal_enabled(request):
         return
     store = request.app.state.calendar_store
+    started = perf_counter()
     try:
         connection = store.get_connection(user_id)
     except Exception:  # noqa: BLE001
         return
+    finally:
+        _record_timing("calendar_pending_retry", started)
     if connection is None or not connection.is_active or not connection.sync_pending:
         return
     from datetime import datetime, timezone as _tz
@@ -184,8 +200,13 @@ async def gcal_connect(request: Request) -> RedirectResponse:
         except (KeyError, ValueError):
             pass
         else:
-            if not (repo.get_setting(user.id, "user_timezone") or ""):
+            started = perf_counter()
+            current_tz = repo.get_setting(user.id, "user_timezone") or ""
+            _record_timing("calendar_prefs", started)
+            if not current_tz:
+                started = perf_counter()
                 repo.set_setting(user.id, "user_timezone", browser_tz)
+                _record_timing("calendar_pref_write", started)
     state = secrets.token_urlsafe(24)
     params = {
         "client_id": settings.gcal_client_id,
@@ -240,6 +261,7 @@ async def gcal_callback(request: Request) -> RedirectResponse:
         return _fail("code")
 
     transport = getattr(request.app.state, "gcal_transport", None)
+    started = perf_counter()
     try:
         payload = await exchange_code(
             client_id=settings.gcal_client_id,
@@ -250,10 +272,14 @@ async def gcal_callback(request: Request) -> RedirectResponse:
         )
     except GoogleApiError:
         return _fail("exchange")
+    finally:
+        _record_timing("google_token_exchange", started)
 
     sealer = TokenSealer(settings.gcal_token_key)
     refresh_token = str(payload.get("refresh_token") or "")
+    started = perf_counter()
     existing = store.get_connection(user.id)
+    _record_timing("calendar_connection", started)
     if refresh_token:
         sealed = sealer.seal(refresh_token)
     elif existing is not None and existing.refresh_token_sealed:
@@ -269,27 +295,60 @@ async def gcal_callback(request: Request) -> RedirectResponse:
         refresh_token=refresh_token,
         transport=transport,
     )
-    # Reuse the app-created calendar across disconnects (tombstoned id +
-    # Calendars.get) — never CalendarList.list, never a duplicate calendar.
-    calendar_id = existing.google_calendar_id if existing else None
+    # Reuse the app-created calendar only while the connection stayed ACTIVE
+    # (a re-consent without disconnecting). Our disconnect flow revokes the
+    # grant, and revoking removes an app-created calendar from the user's
+    # calendar LIST: Calendars.get still answers 200 for the re-authorised
+    # app, but the user can't see the calendar, and the narrow
+    # calendar.app.created scope has no calendarList.insert to re-list it.
+    # Reusing after a disconnect would sync into an invisible calendar, so a
+    # reconnect mints a fresh one (creation re-lists it automatically).
+    calendar_id = (
+        existing.google_calendar_id
+        if existing is not None and existing.is_active
+        else None
+    )
     try:
-        if calendar_id and not await client.get_calendar(calendar_id):
-            calendar_id = None
+        if calendar_id:
+            started = perf_counter()
+            try:
+                found = await client.get_calendar(calendar_id)
+            finally:
+                _record_timing("google_calendar_check", started)
+            if not found:
+                calendar_id = None
         if calendar_id is None:
+            started = perf_counter()
             tz = (
                 request.app.state.engine.repo.get_setting(user.id, "user_timezone")
                 or "UTC"
             )
-            calendar_id = await client.create_calendar(timezone_id=tz)
+            _record_timing("calendar_prefs", started)
+            started = perf_counter()
+            try:
+                calendar_id = await client.create_calendar(timezone_id=tz)
+            finally:
+                _record_timing("google_calendar_check", started)
+            # The fresh calendar starts empty: stored mappings point at the
+            # old calendar's events and would suppress re-inserts — drop them
+            # so the initial sync repopulates cleanly (no duplicates possible
+            # in a brand-new calendar). Only a replacement calendar can have
+            # stale mappings; first-ever connect (existing is None) skips this.
+            if existing is not None:
+                started = perf_counter()
+                store.delete_all_event_mappings(user.id)
+                _record_timing("calendar_connection_write", started)
     except GoogleApiError:
         return _fail("calendar")
 
+    started = perf_counter()
     store.upsert_connection(
         user.id,
         google_calendar_id=calendar_id,
         refresh_token_sealed=sealed,
         sync_status=SYNC_PENDING,
     )
+    _record_timing("calendar_connection_write", started)
     # Initial sync runs async — the browser is never held for 90 days of events.
     schedule_sync(request, user.id)
     response = RedirectResponse(url="/settings?gcal=connected", status_code=303)
@@ -310,18 +369,24 @@ async def gcal_disconnect(
         return RedirectResponse(url="/settings?gcal=error&why=csrf", status_code=303)
     settings = request.app.state.multiuser_settings
     store = request.app.state.calendar_store
+    started = perf_counter()
     connection = store.get_connection(user.id)
+    _record_timing("calendar_connection", started)
     if connection is not None and connection.refresh_token_sealed:
         try:
             token = TokenSealer(settings.gcal_token_key).unseal(
                 connection.refresh_token_sealed
             )
+            started = perf_counter()
             await revoke_token(
                 token, transport=getattr(request.app.state, "gcal_transport", None)
             )
+            _record_timing("google_token_revoke", started)
         except TokenSealError:
             pass  # can't unseal → nothing to revoke remotely
+    started = perf_counter()
     store.tombstone(user.id)
+    _record_timing("calendar_connection_write", started)
     return RedirectResponse(url="/settings?gcal=disconnected", status_code=303)
 
 
@@ -344,10 +409,16 @@ async def gcal_retry(
 async def gcal_preferences(
     request: Request,
     csrf_token: str = Form(...),
-    user_timezone: str = Form(""),
-    revision_time: str = Form(DEFAULT_REVISION_TIME),
-    session_minutes: str = Form("30"),
+    user_timezone: str | None = Form(None),
+    revision_time: str | None = Form(None),
+    session_minutes: str | None = Form(None),
+    reminder_cadence: str | None = Form(None),
 ) -> RedirectResponse:
+    """Persist whichever preference fields the form supplied.
+
+    Absent fields are left untouched — the post-connect reminder popup posts
+    ONLY ``reminder_cadence``, while the Settings grid posts the full set.
+    """
     if not _gcal_enabled(request):
         return _not_found()
     user = _current_user(request)
@@ -357,34 +428,60 @@ async def gcal_preferences(
         return RedirectResponse(url="/settings?gcal=error&why=csrf", status_code=303)
     repo = request.app.state.engine.repo
 
-    tz = user_timezone.strip()
-    if tz:
+    started = None
+
+    if user_timezone is not None:
+        tz = user_timezone.strip()
+        if tz:
+            try:
+                ZoneInfo(tz)
+            except (KeyError, ValueError):
+                return RedirectResponse(
+                    url="/settings?gcal=error&why=timezone", status_code=303
+                )
+            if started is None:
+                started = perf_counter()
+            repo.set_setting(user.id, "user_timezone", tz)
+
+    if revision_time is not None:
+        time_pref = revision_time.strip()
         try:
-            ZoneInfo(tz)
-        except (KeyError, ValueError):
+            hour, minute = (int(p) for p in time_pref.split(":", 1))
+            assert 0 <= hour <= 23 and 0 <= minute <= 59
+        except (ValueError, AssertionError):
             return RedirectResponse(
-                url="/settings?gcal=error&why=timezone", status_code=303
+                url="/settings?gcal=error&why=time", status_code=303
             )
-        repo.set_setting(user.id, "user_timezone", tz)
+        if started is None:
+            started = perf_counter()
+        repo.set_setting(user.id, "gcal_revision_time", f"{hour:02d}:{minute:02d}")
 
-    time_pref = revision_time.strip()
-    try:
-        hour, minute = (int(p) for p in time_pref.split(":", 1))
-        assert 0 <= hour <= 23 and 0 <= minute <= 59
-    except (ValueError, AssertionError):
-        return RedirectResponse(url="/settings?gcal=error&why=time", status_code=303)
-    repo.set_setting(user.id, "gcal_revision_time", f"{hour:02d}:{minute:02d}")
+    if session_minutes is not None:
+        try:
+            minutes = int(session_minutes)
+        except ValueError:
+            minutes = 0
+        if minutes not in VALID_SESSION_MINUTES:
+            return RedirectResponse(
+                url="/settings?gcal=error&why=duration", status_code=303
+            )
+        if started is None:
+            started = perf_counter()
+        repo.set_setting(user.id, "gcal_session_minutes", str(minutes))
 
-    try:
-        minutes = int(session_minutes)
-    except ValueError:
-        minutes = 0
-    if minutes not in VALID_SESSION_MINUTES:
-        return RedirectResponse(
-            url="/settings?gcal=error&why=duration", status_code=303
-        )
-    repo.set_setting(user.id, "gcal_session_minutes", str(minutes))
+    if reminder_cadence is not None:
+        cadence = reminder_cadence.strip()
+        if cadence not in VALID_REMINDER_CADENCES:
+            return RedirectResponse(
+                url="/settings?gcal=error&why=cadence", status_code=303
+            )
+        if started is None:
+            started = perf_counter()
+        repo.set_setting(user.id, "gcal_reminder_cadence", cadence)
 
-    # Prefs change event times → resync.
+    if started is not None:
+        _record_timing("calendar_pref_write", started)
+
+    # Prefs change event times/notifications → resync.
     schedule_sync(request, user.id)
     return RedirectResponse(url="/settings?gcal=saved", status_code=303)

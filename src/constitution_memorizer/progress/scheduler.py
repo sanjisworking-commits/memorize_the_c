@@ -258,7 +258,10 @@ class ReminderEngine:
             self._split_cache.pop(parent_clause_id, None)
 
     def get_notification_frequency(self) -> NotificationFrequency:
-        return self.repo.get_notification_frequency(self.user_id)
+        started = perf_counter()
+        value = self.repo.get_notification_frequency(self.user_id)
+        _record_timing("settings_frequency", started)
+        return value
 
     def set_notification_frequency(self, frequency: NotificationFrequency) -> None:
         self.repo.set_notification_frequency(self.user_id, frequency)
@@ -305,7 +308,9 @@ class ReminderEngine:
         """
         if self._claimed_cache is None:
             self._ensure_free_articles_backfilled()
+            started = perf_counter()
             self._claimed_cache = set(self.repo.claimed_articles(self.user_id))
+            _record_timing("claimed_articles", started)
         return set(self._claimed_cache)
 
     def claimed_articles_with_dates(self) -> dict[str, str]:
@@ -335,7 +340,10 @@ class ReminderEngine:
         (which preloads progress via ``bootstrap_request``) never pays an extra
         ``list_all_progress`` round trip for entitlement status.
         """
-        if self.repo.get_setting(self.user_id, self._FREE_ARTICLES_BACKFILLED_KEY) == "1":
+        started = perf_counter()
+        flag = self.repo.get_setting(self.user_id, self._FREE_ARTICLES_BACKFILLED_KEY)
+        _record_timing("free_articles_backfill_check", started)
+        if flag == "1":
             return
         for record in self._ensure_progress_cache().values():
             if record.times_completed < 1:

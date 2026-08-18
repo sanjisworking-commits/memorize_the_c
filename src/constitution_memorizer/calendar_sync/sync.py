@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date
 from uuid import UUID
 
@@ -26,10 +27,12 @@ from constitution_memorizer.calendar_sync.google_client import (
     GoogleCalendarClient,
 )
 from constitution_memorizer.calendar_sync.projection import (
+    DayProjection,
     build_event_content,
     build_projection,
+    reminder_minutes_for,
 )
-from constitution_memorizer.calendar_sync.store import CalendarStore
+from constitution_memorizer.calendar_sync.store import CalendarStore, EventMapping
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +50,11 @@ _user_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 def calendar_prefs(engine) -> dict:
     """Read the user's calendar preferences with defaults."""
+    from constitution_memorizer.calendar_sync.projection import (
+        DEFAULT_REMINDER_CADENCE,
+        VALID_REMINDER_CADENCES,
+    )
+
     repo = engine.repo
     uid = engine.user_id
     tz = repo.get_setting(uid, "user_timezone") or ""
@@ -57,7 +65,20 @@ def calendar_prefs(engine) -> dict:
         minutes = DEFAULT_SESSION_MINUTES
     if minutes not in VALID_SESSION_MINUTES:
         minutes = DEFAULT_SESSION_MINUTES
-    return {"timezone": tz, "revision_time": time_pref, "session_minutes": minutes}
+    cadence_raw = repo.get_setting(uid, "gcal_reminder_cadence") or ""
+    cadence = (
+        cadence_raw if cadence_raw in VALID_REMINDER_CADENCES
+        else DEFAULT_REMINDER_CADENCE
+    )
+    return {
+        "timezone": tz,
+        "revision_time": time_pref,
+        "session_minutes": minutes,
+        "reminder_cadence": cadence,
+        # Popup visibility: absent = never explicitly chosen (dismiss keeps
+        # the once default without marking it chosen).
+        "cadence_chosen": bool(cadence_raw),
+    }
 
 
 def user_local_today(engine) -> date:
@@ -74,6 +95,29 @@ def user_local_today(engine) -> date:
     return date.today()
 
 
+@dataclass(frozen=True)
+class ReconciliationSnapshot:
+    """Synchronous read/prepare result; contains no Google HTTP."""
+
+    prefs: dict
+    anchor: date
+    projection: dict[date, DayProjection]
+    mappings: list[EventMapping]
+
+
+def _prepare_reconciliation(engine, store, today) -> ReconciliationSnapshot:
+    prefs = calendar_prefs(engine)
+    anchor = today or user_local_today(engine)
+    projection = build_projection(engine, today=anchor)
+    mappings = store.list_event_mappings(engine.user_id)
+    return ReconciliationSnapshot(
+        prefs=prefs,
+        anchor=anchor,
+        projection=projection,
+        mappings=mappings,
+    )
+
+
 async def reconcile_user_calendar(
     *,
     engine,
@@ -84,22 +128,25 @@ async def reconcile_user_calendar(
     today: date | None = None,
 ) -> dict[str, int]:
     """Run one full bounded reconciliation. Returns per-op counts."""
-    prefs = calendar_prefs(engine)
+    snapshot = await asyncio.to_thread(_prepare_reconciliation, engine, store, today)
+    prefs = snapshot.prefs
     tz = prefs["timezone"] or "UTC"
-    anchor = today or user_local_today(engine)
-    projection = build_projection(engine, today=anchor)
+    reminders = reminder_minutes_for(
+        prefs["reminder_cadence"], prefs["revision_time"]
+    )
     expected: dict[date, tuple[str, dict]] = {}
-    for local_date, day in projection.items():
+    for local_date, day in snapshot.projection.items():
         content = build_event_content(
             day,
             revision_time=prefs["revision_time"],
             session_minutes=prefs["session_minutes"],
             timezone=tz,
             dashboard_url=dashboard_url,
+            reminder_minutes=reminders,
         )
         expected[local_date] = (content.payload_hash(), content.__dict__)
 
-    mapped = {m.local_date: m for m in store.list_event_mappings(engine.user_id)}
+    mapped = {m.local_date: m for m in snapshot.mappings}
     counts = {"created": 0, "patched": 0, "deleted": 0, "unchanged": 0}
 
     for local_date, (content_hash, content) in sorted(expected.items()):
@@ -110,11 +157,13 @@ async def reconcile_user_calendar(
             "start_time": content["start_time"],
             "duration_minutes": content["duration_minutes"],
             "timezone_id": content["timezone"],
+            "reminder_minutes": tuple(content["reminder_minutes"]),
         }
         mapping = mapped.get(local_date)
         if mapping is None:
             event_id = await client.insert_event(calendar_id, **event_kwargs)
-            store.upsert_event_mapping(
+            await asyncio.to_thread(
+                store.upsert_event_mapping,
                 engine.user_id,
                 local_date=local_date,
                 google_event_id=event_id,
@@ -130,7 +179,8 @@ async def reconcile_user_calendar(
                 event_id = await client.insert_event(calendar_id, **event_kwargs)
             else:
                 event_id = patched
-            store.upsert_event_mapping(
+            await asyncio.to_thread(
+                store.upsert_event_mapping,
                 engine.user_id,
                 local_date=local_date,
                 google_event_id=event_id,
@@ -143,7 +193,9 @@ async def reconcile_user_calendar(
     for local_date, mapping in mapped.items():
         if local_date not in expected:
             await client.delete_event(calendar_id, mapping.google_event_id)
-            store.delete_event_mapping(engine.user_id, local_date)
+            await asyncio.to_thread(
+                store.delete_event_mapping, engine.user_id, local_date
+            )
             counts["deleted"] += 1
 
     return counts
@@ -165,11 +217,13 @@ async def sync_user_calendar(
     """
     uid = str(user_id)
     async with _user_locks[uid]:
-        connection = store.get_connection(uid)
+        connection = await asyncio.to_thread(store.get_connection, uid)
         if connection is None or not connection.is_active:
             return False
         if not connection.google_calendar_id:
-            store.mark_sync_result(uid, ok=False, error="missing calendar id")
+            await asyncio.to_thread(
+                store.mark_sync_result, uid, ok=False, error="missing calendar id"
+            )
             return False
         client = client_factory(connection)
         if client is None:
@@ -183,16 +237,23 @@ async def sync_user_calendar(
                 dashboard_url=dashboard_url,
             )
         except GoogleAuthRevoked:
-            store.mark_sync_result(uid, ok=False, error="authorization revoked")
+            await asyncio.to_thread(
+                store.mark_sync_result, uid, ok=False, error="authorization revoked"
+            )
             return False
         except GoogleApiError as exc:
-            store.mark_sync_result(
-                uid, ok=False, error=f"google api {exc.status_code or 'error'}"
+            await asyncio.to_thread(
+                store.mark_sync_result,
+                uid,
+                ok=False,
+                error=f"google api {exc.status_code or 'error'}",
             )
             return False
         except Exception:  # noqa: BLE001 — sync must never crash callers
             logger.exception("Calendar sync failed for user %s", uid)
-            store.mark_sync_result(uid, ok=False, error="internal error")
+            await asyncio.to_thread(
+                store.mark_sync_result, uid, ok=False, error="internal error"
+            )
             return False
-        store.mark_sync_result(uid, ok=True)
+        await asyncio.to_thread(store.mark_sync_result, uid, ok=True)
         return True

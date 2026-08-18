@@ -2454,6 +2454,49 @@
     }
   }
 
+  function initGcalReminderPrompt() {
+    // The dialog ships with the open attribute so it works without JS;
+    // upgrade to showModal() for the backdrop + focus trap when we can.
+    const modal = document.querySelector("[data-gcal-reminder-modal]");
+    if (!modal) {
+      return;
+    }
+    if (typeof modal.showModal === "function") {
+      try {
+        modal.removeAttribute("open");
+        modal.showModal();
+      } catch (_e) {
+        modal.setAttribute("open", "");
+      }
+    }
+    const dismiss = modal.querySelector("[data-gcal-reminder-dismiss]");
+    if (dismiss) {
+      dismiss.addEventListener("click", function () {
+        // Dismiss saves nothing: events already default to the 10-minute
+        // reminder, and the prompt returns on the next connect redirect only.
+        modal.close ? modal.close() : modal.removeAttribute("open");
+      });
+    }
+    // The save round-trips the server (settings write + sync flag + reload),
+    // which can take a few seconds on production — acknowledge the click
+    // immediately so it never feels like nothing happened.
+    modal.querySelectorAll("form").forEach(function (form) {
+      form.addEventListener("submit", function () {
+        modal.querySelectorAll("button").forEach(function (b) {
+          b.disabled = true;
+        });
+        const btn = form.querySelector(".gcal-cadence-btn");
+        if (btn) {
+          btn.classList.add("is-saving");
+          const name = btn.querySelector(".gcal-cadence-name");
+          if (name) {
+            name.textContent = "Saving\u2026";
+          }
+        }
+      });
+    });
+  }
+
   function initGuestStrip() {
     const strip = document.querySelector("[data-guest-strip]");
     if (!strip) {
@@ -2494,6 +2537,7 @@
     initCheckout();
     initFirstPaidSession();
     initGcalTimezone();
+    initGcalReminderPrompt();
   }
 
   if (document.readyState === "loading") {

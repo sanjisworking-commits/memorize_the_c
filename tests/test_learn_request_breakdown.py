@@ -208,6 +208,17 @@ def test_wants_request_breakdown_paths():
     assert wants_request_breakdown("/learn/clause-1/again") is False
     assert wants_request_breakdown("/learn/clause-1/reset") is False
 
+    assert wants_request_breakdown("/settings") is True
+    assert wants_request_breakdown("/pricing") is True
+    assert wants_request_breakdown("/calendar") is True
+    assert wants_request_breakdown("/calendar/google/connect") is True
+    assert wants_request_breakdown("/calendar/google/callback") is True
+    assert wants_request_breakdown("/calendar/google/preferences") is True
+    assert wants_request_breakdown("/calendar/google/disconnect") is True
+    assert wants_request_breakdown("/calendar/google/retry") is False
+    assert wants_request_breakdown("/health") is False
+    assert wants_request_breakdown("/static/styles.css") is False
+
 
 def test_learn_get_records_expected_stages(tmp_path: Path, caplog):
     client, repo = _counting_client(tmp_path)

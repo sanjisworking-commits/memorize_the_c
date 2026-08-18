@@ -10,6 +10,7 @@ from constitution_memorizer.calendar_sync.projection import (
     DayProjection,
     build_event_content,
     build_projection,
+    reminder_minutes_for,
 )
 from constitution_memorizer.progress.scheduler import ReminderEngine
 
@@ -36,21 +37,22 @@ def test_full_remaining_ladder_is_projected(tmp_path: Path) -> None:
     engine = _engine(tmp_path)
     _complete(engine, "clause-1", date(2026, 8, 18))
     projection = build_projection(engine, today=date(2026, 8, 18))
-    # 19 (+1) → 22 (+3) → 29 (+7) → 13 Sep (+15) → 13 Oct (+30);
-    # the +60 rung (12 Dec) falls beyond the 90-day horizon.
+    # 19 (+1) → 22 (+3) → 29 (+7) → 13 Sep (+15) → 13 Oct (+30) →
+    # 12 Dec (+60): the 120-day horizon draws the ENTIRE ladder at once.
     assert sorted(projection) == [
         date(2026, 8, 19),
         date(2026, 8, 22),
         date(2026, 8, 29),
         date(2026, 9, 13),
         date(2026, 10, 13),
+        date(2026, 12, 12),
     ]
     first = projection[date(2026, 8, 19)]
     assert first.count == 1
     assert first.items[0].unit_id == "clause-1"
     assert first.items[0].label.endswith("— Day 1")
     assert projection[date(2026, 8, 22)].items[0].label.endswith("— Day 3")
-    assert projection[date(2026, 10, 13)].items[0].label.endswith("— Day 30")
+    assert projection[date(2026, 12, 12)].items[0].label.endswith("— Day 60")
 
 
 def test_overdue_rolls_into_today_and_past_rungs_stay_dead(tmp_path: Path) -> None:
@@ -64,6 +66,7 @@ def test_overdue_rolls_into_today_and_past_rungs_stay_dead(tmp_path: Path) -> No
         today,
         date(2026, 8, 27),   # +15 from the missed 12 Aug rung
         date(2026, 9, 26),   # +30
+        date(2026, 11, 25),  # +60 — inside the 120-day horizon
     ]
     assert projection[today].items[0].label.endswith("— Day 1")
 
@@ -141,3 +144,43 @@ def test_payload_hash_dirties_on_every_visible_field() -> None:
         assert (
             build_event_content(day, **{**base, **change}).payload_hash() != baseline
         )
+
+
+def test_reminder_cadence_offsets() -> None:
+    """once/twice/thrice at the default 20:00 revision time."""
+    assert reminder_minutes_for("once", "20:00") == (10,)
+    # Morning popup at 08:00 = 12 h before a 20:00 revision.
+    assert reminder_minutes_for("twice", "20:00") == (720, 10)
+    assert reminder_minutes_for("thrice", "20:00") == (480, 240, 10)
+
+
+def test_reminder_cadence_degrades_for_early_revision_times() -> None:
+    # A 07:00 revision has no same-day morning slot → twice collapses to once.
+    assert reminder_minutes_for("twice", "07:00") == (10,)
+    # thrice at 07:00: the 8 h offset would cross midnight; 4 h survives.
+    assert reminder_minutes_for("thrice", "07:00") == (240, 10)
+    # Unparseable time falls back to the 20:00 default.
+    assert reminder_minutes_for("thrice", "garbage") == (480, 240, 10)
+    # Unknown cadence behaves like once — never notification-free.
+    assert reminder_minutes_for("weird", "20:00") == (10,)
+
+
+def test_reminder_offsets_dirty_payload_hash() -> None:
+    """A cadence switch must repatch every event via the normal hash path."""
+    day = DayProjection(
+        local_date=date(2026, 8, 24),
+        items=[DayItem(unit_id="u1", label="Article 14 — Day 15")],
+    )
+    base = dict(
+        revision_time="20:00",
+        session_minutes=30,
+        timezone="Asia/Kolkata",
+        dashboard_url="https://recall-the-c.in/dashboard",
+    )
+    once = build_event_content(day, **base, reminder_minutes=(10,))
+    thrice = build_event_content(day, **base, reminder_minutes=(480, 240, 10))
+    assert once.payload_hash() != thrice.payload_hash()
+    assert (
+        build_event_content(day, **base, reminder_minutes=(10,)).payload_hash()
+        == once.payload_hash()
+    )

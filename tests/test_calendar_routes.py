@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import logging
+from datetime import date, timedelta
 from pathlib import Path
 from uuid import UUID
 
@@ -63,6 +65,26 @@ class FakeGoogleAuth:
         return httpx.Response(404)
 
 
+class ProbeCalendarStore:
+    """Counts mapping-delete calls used by the OAuth callback cleanup."""
+
+    def __init__(self, inner: SqliteCalendarStore) -> None:
+        self._inner = inner
+        self.delete_all_event_mappings_calls = 0
+        self.delete_event_mapping_calls = 0
+
+    def __getattr__(self, name: str):
+        return getattr(self._inner, name)
+
+    def delete_all_event_mappings(self, user_id):
+        self.delete_all_event_mappings_calls += 1
+        return self._inner.delete_all_event_mappings(user_id)
+
+    def delete_event_mapping(self, user_id, local_date):
+        self.delete_event_mapping_calls += 1
+        return self._inner.delete_event_mapping(user_id, local_date)
+
+
 def _settings(*, gcal: bool = True) -> MultiUserSettings:
     return MultiUserSettings(
         _env_file=None,
@@ -87,6 +109,7 @@ def _client(tmp_path: Path, *, gcal: bool = True, signed_in: bool = True):
     provider = FakeAuthProvider()
     provider.seed_google_user(user_id=USER, email="a@example.com", display_name="T")
     fake = FakeGoogleAuth()
+    store = ProbeCalendarStore(SqliteCalendarStore(conn))
     app = create_app(
         units_path=MINI_UNITS,
         db_path=tmp_path / "unused.db",
@@ -95,7 +118,7 @@ def _client(tmp_path: Path, *, gcal: bool = True, signed_in: bool = True):
         auth_provider=provider,
         session_store=InMemorySessionStore(),
         progress_repo=repo,
-        calendar_store=SqliteCalendarStore(conn),
+        calendar_store=store,
         gcal_transport=fake.transport(),
     )
     client = TestClient(app)
@@ -107,7 +130,7 @@ def _client(tmp_path: Path, *, gcal: bool = True, signed_in: bool = True):
             follow_redirects=False,
         )
         assert cb.status_code == 303
-    return client, SqliteCalendarStore(conn), fake, repo
+    return client, store, fake, repo
 
 
 def _connect(client: TestClient, fake: FakeGoogleAuth) -> str:
@@ -169,11 +192,18 @@ def test_callback_rejects_state_mismatch(tmp_path: Path) -> None:
     assert store.get_connection(USER) is None
 
 
-def test_reconnect_reuses_tombstoned_calendar(tmp_path: Path) -> None:
+def test_reconnect_after_disconnect_mints_fresh_calendar(tmp_path: Path) -> None:
+    """Disconnect revokes the grant, which DELISTS the app-created calendar
+    from the user's Google UI (Calendars.get still 200s, but our scope has no
+    calendarList.insert to re-list it) — so a reconnect must create a fresh,
+    visible calendar and drop mappings that point at the old one's events."""
     client, store, fake, _repo = _client(tmp_path)
     fake.calendar_exists = False
     _connect(client, fake)  # creates cal_new_1
-    # Disconnect (tombstone).
+    store.upsert_event_mapping(
+        USER, local_date=date(2026, 8, 19), google_event_id="ev-old", content_hash="h"
+    )
+    # Disconnect (tombstone + remote revoke).
     csrf = client.cookies.get("rtc_csrf")
     resp = client.post(
         "/calendar/google/disconnect",
@@ -182,13 +212,151 @@ def test_reconnect_reuses_tombstoned_calendar(tmp_path: Path) -> None:
     )
     assert resp.headers["location"] == "/settings?gcal=disconnected"
     assert store.get_connection(USER).is_active is False
-    # Reconnect: Calendars.get(cal_new_1) → 200 → reuse, no second calendar.
+    # Reconnect: even though cal_new_1 still answers Calendars.get, it was
+    # delisted by the revoke → mint cal_new_2 and start from clean mappings.
     fake.calendar_exists = True
     _connect(client, fake)
     connection = store.get_connection(USER)
     assert connection.is_active
+    assert connection.google_calendar_id == "cal_new_2"
+    assert fake.created_calendars == 2
+    assert store.list_event_mappings(USER) == []
+
+
+def test_active_reconsent_reuses_calendar(tmp_path: Path) -> None:
+    """Re-running the connect flow WITHOUT disconnecting (grant never
+    revoked, calendar still listed) keeps the same calendar — no duplicate."""
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)  # creates cal_new_1
+    fake.calendar_exists = True
+    _connect(client, fake)  # still active → probe → reuse
+    connection = store.get_connection(USER)
     assert connection.google_calendar_id == "cal_new_1"
-    assert fake.created_calendars == 1  # never duplicated
+    assert fake.created_calendars == 1
+
+
+def _stub_schedule_sync(monkeypatch) -> None:
+    """Keep mapping-cleanup assertions free of background-sync races."""
+    monkeypatch.setattr(
+        "constitution_memorizer.calendar_sync.routes.schedule_sync",
+        lambda _request, _user_id: None,
+    )
+
+
+def test_reconnect_bulk_deletes_many_stale_mappings(tmp_path: Path, monkeypatch) -> None:
+    """Disconnect → reconnect must drop many old mappings in one bulk DELETE."""
+    _stub_schedule_sync(monkeypatch)
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)  # creates cal_new_1
+    assert store.delete_all_event_mappings_calls == 0
+    for i in range(10):
+        store.upsert_event_mapping(
+            USER,
+            local_date=date(2026, 8, 19) + timedelta(days=i),
+            google_event_id=f"ev-old-{i}",
+            content_hash="h",
+        )
+    csrf = client.cookies.get("rtc_csrf")
+    resp = client.post(
+        "/calendar/google/disconnect",
+        data={"csrf_token": csrf},
+        follow_redirects=False,
+    )
+    assert resp.headers["location"] == "/settings?gcal=disconnected"
+    assert len(store.list_event_mappings(USER)) == 10
+    store.delete_all_event_mappings_calls = 0
+    store.delete_event_mapping_calls = 0
+    fake.calendar_exists = True
+    _connect(client, fake)
+    connection = store.get_connection(USER)
+    assert connection.is_active
+    assert connection.google_calendar_id == "cal_new_2"
+    assert fake.created_calendars == 2
+    assert store.list_event_mappings(USER) == []
+    assert store.delete_all_event_mappings_calls == 1
+    assert store.delete_event_mapping_calls == 0
+
+
+def test_reconnect_after_disconnect_records_two_writes(
+    tmp_path: Path, caplog: logging.LogCaptureFixture, monkeypatch
+) -> None:
+    _stub_schedule_sync(monkeypatch)
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    store.upsert_event_mapping(
+        USER, local_date=date(2026, 8, 19), google_event_id="ev-old", content_hash="h"
+    )
+    csrf = client.cookies.get("rtc_csrf")
+    client.post(
+        "/calendar/google/disconnect",
+        data={"csrf_token": csrf},
+        follow_redirects=False,
+    )
+    fake.calendar_exists = True
+    start = client.get("/calendar/google/connect", follow_redirects=False)
+    state = start.cookies.get("rtc_gcal_state")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        cb = client.get(
+            f"/calendar/google/callback?code=auth-code&state={state}",
+            follow_redirects=False,
+        )
+    assert cb.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_connection_write_n=2" in line
+
+
+def test_active_reconsent_preserves_event_mappings(tmp_path: Path) -> None:
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    store.upsert_event_mapping(
+        USER, local_date=date(2026, 8, 19), google_event_id="ev-keep", content_hash="h"
+    )
+    store.delete_all_event_mappings_calls = 0
+    store.delete_event_mapping_calls = 0
+    fake.calendar_exists = True
+    _connect(client, fake)
+    connection = store.get_connection(USER)
+    assert connection.google_calendar_id == "cal_new_1"
+    assert fake.created_calendars == 1
+    mappings = store.list_event_mappings(USER)
+    assert len(mappings) == 1
+    assert mappings[0].google_event_id == "ev-keep"
+    assert store.delete_all_event_mappings_calls == 0
+    assert store.delete_event_mapping_calls == 0
+
+
+def test_active_vanished_calendar_bulk_clears_mappings(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Active re-consent whose stored calendar 404s mints a replacement and
+    bulk-clears mappings that pointed at the vanished calendar."""
+    _stub_schedule_sync(monkeypatch)
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    for i in range(8):
+        store.upsert_event_mapping(
+            USER,
+            local_date=date(2026, 8, 19) + timedelta(days=i),
+            google_event_id=f"ev-gone-{i}",
+            content_hash="h",
+        )
+    store.delete_all_event_mappings_calls = 0
+    store.delete_event_mapping_calls = 0
+    fake.calendar_exists = False
+    _connect(client, fake)
+    connection = store.get_connection(USER)
+    assert connection.is_active
+    assert connection.google_calendar_id == "cal_new_2"
+    assert fake.created_calendars == 2
+    assert store.list_event_mappings(USER) == []
+    assert store.delete_all_event_mappings_calls == 1
+    assert store.delete_event_mapping_calls == 0
 
 
 def test_omitted_refresh_token_preserves_stored_one(tmp_path: Path) -> None:
@@ -366,3 +534,367 @@ def test_account_deletion_revokes_google_grant(tmp_path: Path) -> None:
     assert resp.status_code == 303
     assert fake.revoked_tokens, "revocation endpoint was never called"
     assert store.get_connection(USER) is None
+
+
+def _breakdown_line(caplog: logging.LogCaptureFixture) -> str:
+    messages = [
+        record.getMessage()
+        for record in caplog.records
+        if record.getMessage().startswith("request_breakdown ")
+    ]
+    assert len(messages) == 1
+    return messages[0]
+
+
+def test_settings_records_calendar_and_frequency_stages(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.get("/settings")
+    assert resp.status_code == 200
+    line = _breakdown_line(caplog)
+    assert "path=/settings" in line
+    assert "settings_frequency_n=1" in line
+    assert "news_setting_n=1" in line
+    assert "calendar_pending_retry_n=1" in line
+    assert "calendar_connection_n=1" in line
+    assert "calendar_prefs_n=1" in line
+
+
+def test_preferences_post_records_write_and_schedule(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.post(
+            "/calendar/google/preferences",
+            data={
+                "csrf_token": csrf,
+                "user_timezone": "Asia/Kolkata",
+                "revision_time": "21:30",
+                "session_minutes": "45",
+            },
+            follow_redirects=False,
+        )
+    assert resp.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_pref_write_n=1" in line
+    assert "calendar_sync_schedule_n=1" in line
+
+
+def test_inactive_schedule_sync_still_records_stage(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    client.post(
+        "/calendar/google/disconnect",
+        data={"csrf_token": csrf},
+        follow_redirects=False,
+    )
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.post(
+            "/calendar/google/preferences",
+            data={
+                "csrf_token": csrf,
+                "user_timezone": "Asia/Kolkata",
+                "revision_time": "20:00",
+                "session_minutes": "30",
+            },
+            follow_redirects=False,
+        )
+    assert resp.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_pref_write_n=1" in line
+    assert "calendar_sync_schedule_n=1" in line
+
+
+def test_disabled_gcal_schedule_sync_does_not_time(tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    from constitution_memorizer.calendar_sync.routes import schedule_sync
+    from constitution_memorizer.web.request_context import (
+        begin_request_timings,
+        reset_request_timings,
+        snapshot_request_timings,
+    )
+
+    client, _store, _fake, _repo = _client(tmp_path, gcal=False)
+    request = SimpleNamespace(app=client.app)
+    token = begin_request_timings()
+    try:
+        schedule_sync(request, USER)
+        snap = snapshot_request_timings()
+    finally:
+        reset_request_timings(token)
+    assert "calendar_sync_schedule" not in snap
+
+
+def test_connect_records_timezone_pref_stages(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, _fake, _repo = _client(tmp_path)
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.get(
+            "/calendar/google/connect?tz=Asia/Kolkata", follow_redirects=False
+        )
+    assert resp.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_prefs_n=1" in line
+    assert "calendar_pref_write_n=1" in line
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        client.get("/calendar/google/connect?tz=Europe/London", follow_redirects=False)
+    line = _breakdown_line(caplog)
+    assert "calendar_prefs_n=1" in line
+    assert "calendar_pref_write_" not in line
+
+
+def test_callback_records_google_and_store_stages(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    start = client.get("/calendar/google/connect", follow_redirects=False)
+    state = start.cookies.get("rtc_gcal_state")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        cb = client.get(
+            f"/calendar/google/callback?code=auth-code&state={state}",
+            follow_redirects=False,
+        )
+    assert cb.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "google_token_exchange_n=1" in line
+    assert "calendar_connection_n=1" in line
+    assert "calendar_prefs_n=1" in line
+    assert "google_calendar_check_n=1" in line
+    assert "calendar_connection_write_n=1" in line
+    assert "calendar_sync_schedule_n=1" in line
+
+
+def test_callback_probe_then_create_counts_two_google_checks(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    """An ACTIVE re-consent probes the stored calendar; when Google says it
+    vanished the same callback creates a fresh one — two Google calls."""
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)  # creates cal_new_1, connection stays active
+    fake.calendar_exists = False  # the stored calendar has vanished
+    start = client.get("/calendar/google/connect", follow_redirects=False)
+    state = start.cookies.get("rtc_gcal_state")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        cb = client.get(
+            f"/calendar/google/callback?code=auth-code&state={state}",
+            follow_redirects=False,
+        )
+    assert cb.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "google_calendar_check_n=2" in line
+    assert "calendar_prefs_n=1" in line
+    assert "calendar_connection_write_n=2" in line
+
+
+def test_disconnect_records_revoke_and_tombstone(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.post(
+            "/calendar/google/disconnect",
+            data={"csrf_token": csrf},
+            follow_redirects=False,
+        )
+    assert resp.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_connection_n=1" in line
+    assert "google_token_revoke_n=1" in line
+    assert "calendar_connection_write_n=1" in line
+
+
+def _seed_split_projection(client: TestClient) -> list[int]:
+    """Give projection a letter-split unit so background sync loads split prefs."""
+    engine = client.app.state.engine.for_user(USER)
+    engine.mark_all_modes_seen("clause-2")
+    engine.mark_done("clause-2", require_all_modes=False)
+    engine.set_split_preference("clause-2", "letters")
+    split_calls = [0]
+    inner = engine.repo.list_split_preferences
+
+    def _counting(user_id):
+        split_calls[0] += 1
+        return inner(user_id)
+
+    engine.repo.list_split_preferences = _counting  # type: ignore[method-assign]
+    return split_calls
+
+
+def test_background_sync_does_not_record_split_prefs_on_asyncio_run(
+    tmp_path: Path,
+) -> None:
+    from types import SimpleNamespace
+
+    from constitution_memorizer.calendar_sync.routes import schedule_sync
+    from constitution_memorizer.web.request_context import (
+        begin_request_timings,
+        reset_request_timings,
+        snapshot_request_timings,
+    )
+
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    split_calls = _seed_split_projection(client)
+    request = SimpleNamespace(app=client.app)
+    token = begin_request_timings()
+    try:
+        schedule_sync(request, USER)
+        snap = snapshot_request_timings()
+    finally:
+        reset_request_timings(token)
+    assert split_calls[0] >= 1
+    assert snap["calendar_sync_schedule"][1] == 1
+    assert "split_prefs" not in snap
+    assert "progress_preload" not in snap
+    assert "theme" not in snap
+
+
+def test_background_sync_does_not_record_split_prefs_on_create_task(
+    tmp_path: Path,
+) -> None:
+    import asyncio
+    from types import SimpleNamespace
+
+    from constitution_memorizer.calendar_sync.routes import schedule_sync
+    from constitution_memorizer.web.request_context import (
+        begin_request_timings,
+        reset_request_timings,
+        snapshot_request_timings,
+    )
+
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    split_calls = _seed_split_projection(client)
+    request = SimpleNamespace(app=client.app)
+    client.app.state.gcal_tasks = set()
+
+    async def _exercise() -> dict[str, tuple[float, int]]:
+        token = begin_request_timings()
+        try:
+            schedule_sync(request, USER)
+            pending = list(getattr(client.app.state, "gcal_tasks", set()) or [])
+            if pending:
+                await asyncio.gather(*pending)
+            return snapshot_request_timings()
+        finally:
+            reset_request_timings(token)
+
+    snap = asyncio.run(_exercise())
+    assert split_calls[0] >= 1
+    assert snap["calendar_sync_schedule"][1] == 1
+    assert "split_prefs" not in snap
+    assert "progress_preload" not in snap
+    assert "theme" not in snap
+
+
+def test_reminder_popup_shown_until_cadence_chosen(tmp_path: Path) -> None:
+    client, _store, fake, repo = _client(tmp_path)
+    fake.calendar_exists = False
+    location = _connect(client, fake)  # → /settings?gcal=connected
+    html = client.get(location).text
+    assert "gcal-reminder-modal" in html
+    # A plain settings view (no post-connect redirect) never prompts.
+    assert "gcal-reminder-modal" not in client.get("/settings").text
+    # Choosing a cadence persists it and silences the prompt for good.
+    csrf = client.cookies.get("rtc_csrf")
+    resp = client.post(
+        "/calendar/google/preferences",
+        data={"csrf_token": csrf, "reminder_cadence": "twice"},
+        follow_redirects=False,
+    )
+    assert resp.headers["location"] == "/settings?gcal=saved"
+    assert repo.get_setting(USER, "gcal_reminder_cadence") == "twice"
+    assert "gcal-reminder-modal" not in client.get("/settings?gcal=connected").text
+    # The Settings grid shows the stored choice.
+    assert 'value="twice" selected' in client.get("/settings").text
+
+
+def test_invalid_cadence_rejected(tmp_path: Path) -> None:
+    client, _store, fake, repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    resp = client.post(
+        "/calendar/google/preferences",
+        data={"csrf_token": csrf, "reminder_cadence": "hourly"},
+        follow_redirects=False,
+    )
+    assert "why=cadence" in resp.headers["location"]
+    assert repo.get_setting(USER, "gcal_reminder_cadence") is None
+
+
+def test_partial_preference_post_keeps_other_fields(tmp_path: Path) -> None:
+    """The popup posts ONLY the cadence — it must never clobber the rest."""
+    client, _store, fake, repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    client.post(
+        "/calendar/google/preferences",
+        data={
+            "csrf_token": csrf,
+            "user_timezone": "Asia/Kolkata",
+            "revision_time": "21:30",
+            "session_minutes": "45",
+        },
+        follow_redirects=False,
+    )
+    resp = client.post(
+        "/calendar/google/preferences",
+        data={"csrf_token": csrf, "reminder_cadence": "thrice"},
+        follow_redirects=False,
+    )
+    assert resp.headers["location"] == "/settings?gcal=saved"
+    assert repo.get_setting(USER, "gcal_reminder_cadence") == "thrice"
+    assert repo.get_setting(USER, "user_timezone") == "Asia/Kolkata"
+    assert repo.get_setting(USER, "gcal_revision_time") == "21:30"
+    assert repo.get_setting(USER, "gcal_session_minutes") == "45"
+
+
+def test_multiuser_settings_drop_study_reminders(tmp_path: Path) -> None:
+    """Multiuser accounts get calendar reminders instead of the local
+    LaunchAgent radios; saving without the radios must still work."""
+    client, _store, _fake, _repo = _client(tmp_path)
+    html = client.get("/settings").text
+    assert "Study reminders" not in html
+    assert "notification_frequency" not in html
+    resp = client.post(
+        "/settings", data={"news_articles": "19, 21"}, follow_redirects=False
+    )
+    assert resp.status_code == 303
+    # An explicitly invalid frequency is still rejected, not ignored.
+    bad = client.post(
+        "/settings",
+        data={"notification_frequency": "bogus", "news_articles": ""},
+        follow_redirects=False,
+    )
+    assert bad.status_code == 400

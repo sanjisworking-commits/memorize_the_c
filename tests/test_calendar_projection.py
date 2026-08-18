@@ -36,21 +36,22 @@ def test_full_remaining_ladder_is_projected(tmp_path: Path) -> None:
     engine = _engine(tmp_path)
     _complete(engine, "clause-1", date(2026, 8, 18))
     projection = build_projection(engine, today=date(2026, 8, 18))
-    # 19 (+1) → 22 (+3) → 29 (+7) → 13 Sep (+15) → 13 Oct (+30);
-    # the +60 rung (12 Dec) falls beyond the 90-day horizon.
+    # 19 (+1) → 22 (+3) → 29 (+7) → 13 Sep (+15) → 13 Oct (+30) →
+    # 12 Dec (+60): the 120-day horizon draws the ENTIRE ladder at once.
     assert sorted(projection) == [
         date(2026, 8, 19),
         date(2026, 8, 22),
         date(2026, 8, 29),
         date(2026, 9, 13),
         date(2026, 10, 13),
+        date(2026, 12, 12),
     ]
     first = projection[date(2026, 8, 19)]
     assert first.count == 1
     assert first.items[0].unit_id == "clause-1"
     assert first.items[0].label.endswith("— Day 1")
     assert projection[date(2026, 8, 22)].items[0].label.endswith("— Day 3")
-    assert projection[date(2026, 10, 13)].items[0].label.endswith("— Day 30")
+    assert projection[date(2026, 12, 12)].items[0].label.endswith("— Day 60")
 
 
 def test_overdue_rolls_into_today_and_past_rungs_stay_dead(tmp_path: Path) -> None:
@@ -64,6 +65,7 @@ def test_overdue_rolls_into_today_and_past_rungs_stay_dead(tmp_path: Path) -> No
         today,
         date(2026, 8, 27),   # +15 from the missed 12 Aug rung
         date(2026, 9, 26),   # +30
+        date(2026, 11, 25),  # +60 — inside the 120-day horizon
     ]
     assert projection[today].items[0].label.endswith("— Day 1")
 

@@ -34,11 +34,16 @@
   }
   [data-reveal][data-shown="1"]{opacity:1 !important;transform:none !important}
   [data-l]{transition:color .55s ease}
-  @media (max-width:1180px),(max-height:740px){
-    [data-marker]{display:none !important}
-  }
   @media (max-width:900px){
     [data-navlinks]{display:none !important}
+  }
+  /* Smaller header + hero CTAs on small screens. */
+  @media (max-width:640px){
+    [data-hdrbar]{padding-top:10px !important;padding-bottom:10px !important;gap:12px !important}
+    [data-hdr]{gap:6px !important}
+    [data-hdr] a.j-ghost,[data-hdr] a.j-ink{padding:8px 12px !important;font-size:13px !important}
+    [data-hdr] #landing-theme-toggle{width:34px !important;height:34px !important}
+    [data-herocta] a{padding:13px 20px !important;font-size:14.5px !important}
   }
   @media (prefers-reduced-motion:reduce){
     *{animation:none !important}
@@ -57,18 +62,13 @@
   <canvas data-brain="1" data-v="2" style="width:100%;height:100%;display:block"></canvas>
 </div>
 
-<div data-marker="1" style="position:fixed;right:clamp(20px,3vw,44px);bottom:26px;z-index:40;display:flex;align-items:baseline;justify-content:flex-end;gap:14px;pointer-events:none;max-width:min(38ch,32vw);text-align:right;background:#0b0b0b;border:1px solid rgba(244,241,234,0.14);padding:10px 16px">
-  <span style="font-family:Fraunces,Georgia,serif;font-size:12px;font-weight:600;letter-spacing:0.14em;color:#8fd6c9;white-space:nowrap">01 / 05</span>
-  <span style="font-family:Fraunces,Georgia,serif;font-size:15px;font-style:italic;line-height:1.45;color:rgba(244,241,234,0.62);text-wrap:pretty">It begins with one line, held on purpose.</span>
-</div>
-
 <header style="position:sticky;top:0;z-index:60;background:rgba(11,11,11,0.82);backdrop-filter:saturate(1.2) blur(12px);border-bottom:1px solid rgba(244,241,234,0.12)">
-  <div style="max-width:1500px;margin:0 auto;padding:14px clamp(20px,3vw,44px);display:flex;align-items:center;justify-content:space-between;gap:20px">
+  <div data-hdrbar="1" style="max-width:1500px;margin:0 auto;padding:14px clamp(20px,3vw,44px);display:flex;align-items:center;justify-content:space-between;gap:20px">
     <a href="#top" style="display:inline-flex;align-items:center;gap:11px">
       <span style="width:31px;height:31px;display:grid;place-items:center;border:1.5px solid #f4f1ea;font-family:Fraunces,Georgia,serif;font-weight:700;font-size:17px;line-height:1">C</span>
       <span style="font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:700;letter-spacing:-0.02em">Recall the C</span>
     </a>
-    <div style="display:flex;align-items:center;gap:8px">
+    <div data-hdr="1" style="display:flex;align-items:center;gap:8px">
       <nav data-navlinks="1" style="display:flex;align-items:center;gap:2px;margin-right:10px">
         <a href="#arithmetic" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Arithmetic</a>
         <a href="#method" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Recall</a>
@@ -94,13 +94,13 @@
     <span style="width:30px;height:1px;background:#8fd6c9;display:inline-block"></span>A memory system for the Bare Act
   </p>
   <h1 style="font-family:Fraunces,Georgia,serif;font-size:clamp(46px,9.6vw,152px);line-height:0.92;letter-spacing:-0.045em;font-weight:700;margin:0 0 clamp(26px,3.4vh,44px);text-wrap:balance">Memorize the C.<br><span style="font-style:italic;font-weight:300;color:#8fd6c9">Verbatim.</span></h1>
-  <p style="margin:0 0 clamp(20px,2.4vh,30px);font-size:clamp(17px,1.5vw,21px);line-height:1.55;color:rgba(244,241,234,0.66);max-width:36ch;text-wrap:pretty">The exact wording of the Constitution, kept where you actually need it &mdash; in your head.</p>
-  <p style="margin:0 0 clamp(28px,3.6vh,44px);display:inline-flex;align-items:baseline;gap:14px;align-self:center;padding:10px 22px 12px;border:1px solid rgba(245,144,34,0.5);font-family:Fraunces,Georgia,serif">
-    <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;font-family:'Source Sans 3',system-ui,sans-serif;color:rgba(244,241,234,0.55)">In</span>
-    <span style="font-size:clamp(30px,3.4vw,48px);line-height:1;font-weight:700;letter-spacing:-0.03em;color:#F59022">180</span>
-    <span style="font-size:clamp(17px,1.6vw,23px);line-height:1;font-style:italic;font-weight:300;color:#f4f1ea">days</span>
+  <p style="margin:0 0 clamp(16px,2vh,24px);font-size:clamp(17px,1.5vw,21px);line-height:1.55;color:rgba(244,241,234,0.66);max-width:46ch;text-wrap:pretty">The exact wording of the Constitution, kept where you actually need it &mdash; in your head.</p>
+  <p style="margin:0 0 clamp(28px,3.6vh,44px);display:inline-flex;align-items:baseline;gap:9px;align-self:center;font-family:Fraunces,Georgia,serif">
+    <span style="font-size:clamp(15px,1.4vw,18px);font-style:italic;font-weight:300;color:rgba(244,241,234,0.6)">In</span>
+    <span style="font-size:clamp(21px,2.2vw,30px);line-height:1;font-weight:700;letter-spacing:-0.02em;color:#F59022">180</span>
+    <span style="font-size:clamp(15px,1.4vw,18px);font-style:italic;font-weight:300;color:rgba(244,241,234,0.6)">days</span>
   </p>
-  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center">
+  <div data-herocta="1" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center">
     <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:16px 32px;font-size:16px;font-weight:700" class="j-ink">Start learning</a>
     <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:16px 28px;font-size:15px;font-weight:600" class="j-ghost">Explore the Constitution &rarr;</a>
   </div>
@@ -120,7 +120,7 @@
     <!-- Scrim hugs only the text so the background animation shows through the empty space. -->
     <div style="max-width:760px;margin:0 auto clamp(40px,6vh,72px);padding:clamp(16px,3vh,34px) 28px;background:radial-gradient(ellipse 84% 108% at 50% 46%,rgba(11,11,11,0.9) 0%,rgba(11,11,11,0.72) 54%,rgba(11,11,11,0) 100%)">
       <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 auto clamp(22px,2.6vh,34px);max-width:15ch;text-align:center;text-wrap:balance">Three Articles a day.<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">Six months of them.</span></h2>
-      <p style="margin:0 auto;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:38ch;text-align:center;text-wrap:pretty">Nothing here asks for a heroic week. It asks for ordinary days, in a row.</p>
+      <p style="margin:0 auto;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:46ch;text-align:center;text-wrap:pretty">Nothing here asks for a heroic week. It asks for ordinary days, in a row.</p>
     </div>
 
     <div style="margin-bottom:0">
@@ -144,7 +144,7 @@
   </div>
   <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
     <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:16ch;text-wrap:balance">Rereading is recognition.<br><span style="font-style:italic;font-weight:300;color:#8fd6c9">Recall is knowledge.</span></h2>
-    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:40ch;text-wrap:pretty">Familiarity feels like knowing. The real question is whether the words are still there once the page is gone.</p>
+    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:58ch;text-wrap:pretty">Familiarity feels like knowing. The real question is whether the words are still there once the page is gone.</p>
 
     <div style="display:flex;flex-wrap:wrap;gap:1px;background:rgba(244,241,234,0.14);border:1px solid rgba(244,241,234,0.14)">
       <div data-onpage="1" style="flex:1 1 300px;min-width:0;padding:30px 30px;background:#0b0b0b">
@@ -171,7 +171,7 @@
   </div>
   <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
     <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:15ch;text-wrap:balance">Each mode takes<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">a little more away.</span></h2>
-    <p style="margin:0 0 clamp(32px,4vh,48px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:36ch;text-wrap:pretty">Understand the structure first. Then memorize the wording.</p>
+    <p style="margin:0 0 clamp(32px,4vh,48px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:48ch;text-wrap:pretty">Understand the structure first. Then memorize the wording.</p>
 
     <div data-circles="1" style="display:flex;align-items:center;justify-content:center;margin:0 auto;max-width:1100px">
       <div data-circ="0" style="position:relative;flex:1 1 0;min-width:0;aspect-ratio:1;border:1px solid rgba(244,241,234,0.14);border-radius:50%;display:grid;place-items:center;color:rgba(244,241,234,0.62);transition:color .6s ease,border-color .6s ease;font-family:Fraunces,Georgia,serif;font-size:clamp(13px,1.5vw,21px);text-align:center">
@@ -209,7 +209,7 @@
   </div>
   <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
     <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:16ch;text-wrap:balance">The Constitution<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">does not act alone.</span></h2>
-    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:40ch;text-wrap:pretty">The statutes that carry it into practice are next, each tied to the Articles it answers to.</p>
+    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:54ch;text-wrap:pretty">The statutes that carry it into practice are next, each tied to the Articles it answers to.</p>
     <div data-actgrid="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
       <article data-actcard="1" style="border:1px solid rgba(244,241,234,0.14);background:#131313;padding:24px 22px">
         <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#F59022">Evidence</p>

@@ -16,21 +16,13 @@
     !!(window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
-  var state = { stage: 0, lit: 0 };
+  var state = { lit: 0 };
   var scrollP = 0;
 
   var parts = null;
   var groups = null;
   var canvas = null;
   var ctx = null;
-
-  var LINES = [
-    "It begins with one line, held on purpose.",
-    "Ordinary days, in a row, are the whole method.",
-    "Recognition is borrowed. Recall is yours.",
-    "Ask it six ways and it stops being a habit.",
-    "Knowing the law is the first way of holding it.",
-  ];
 
   // ── Letter field → sphere → brain ─────────────────────────────
   function setupField() {
@@ -285,15 +277,6 @@
     });
   }
 
-  function renderMarker() {
-    var m = document.querySelector("[data-marker]");
-    if (!m) return;
-    var sp = m.querySelectorAll("span");
-    var stage = Math.min(state.stage, LINES.length - 1);
-    if (sp[0]) sp[0].textContent = "0" + (stage + 1) + " / 0" + LINES.length;
-    if (sp[1]) sp[1].textContent = LINES[stage];
-  }
-
   function measure() {
     var vh = window.innerHeight || 800;
     var doc = document.documentElement;
@@ -366,16 +349,6 @@
       });
     }
 
-    // Running-head marker builds one stage per section
-    var stage = 0;
-    Array.prototype.forEach.call(
-      document.querySelectorAll("[data-stage]"),
-      function (el) {
-        var n = parseInt(el.getAttribute("data-stage"), 10);
-        if (el.getBoundingClientRect().top < vh * 0.55 && n > stage) stage = n;
-      }
-    );
-
     // Closing statement lights line by line across its pinned scroll
     var lit = state.lit;
     var src = document.querySelector("[data-lit-src]");
@@ -410,10 +383,6 @@
       }
     }
 
-    if (stage !== state.stage) {
-      state.stage = stage;
-      renderMarker();
-    }
     if (lit !== state.lit) {
       state.lit = lit;
       var litHost = src && src.querySelector("[data-lit]");
@@ -458,7 +427,6 @@
 
   function boot() {
     wireThemeToggle();
-    renderMarker();
     raf = requestAnimationFrame(tick);
 
     measure();

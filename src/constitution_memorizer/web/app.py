@@ -2007,8 +2007,17 @@ def create_app(
             and settings_obj.gcal_configured
             and getattr(app.state, "calendar_store", None) is not None
         ):
+            from constitution_memorizer.calendar_sync.routes import (
+                retry_stale_pending,
+            )
             from constitution_memorizer.calendar_sync.sync import calendar_prefs
 
+            # A restart can strand sync_pending=1 with no task alive; viewing
+            # Settings restarts a stale one so "Syncing…" is never a lie.
+            try:
+                retry_stale_pending(request, user.id)
+            except Exception:  # noqa: BLE001 — settings must always render
+                logger.exception("stale-pending calendar retry failed")
             connection = app.state.calendar_store.get_connection(user.id)
             prefs = calendar_prefs(eng)
             gcal_ctx = {

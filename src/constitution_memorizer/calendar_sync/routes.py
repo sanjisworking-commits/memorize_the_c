@@ -122,9 +122,45 @@ def schedule_sync(request: Request, user_id) -> None:
         )
 
     try:
-        asyncio.get_running_loop().create_task(_run())
+        loop = asyncio.get_running_loop()
     except RuntimeError:  # no running loop (sync test contexts)
         asyncio.run(_run())
+        return
+    # Hold a strong reference — a bare create_task can be garbage-collected
+    # mid-flight, silently dropping the sync.
+    tasks = getattr(request.app.state, "gcal_tasks", None)
+    if tasks is None:
+        tasks = set()
+        request.app.state.gcal_tasks = tasks
+    task = loop.create_task(_run())
+    tasks.add(task)
+    task.add_done_callback(tasks.discard)
+
+
+# A pending flag older than this on a settings view means the original async
+# task never finished (crash/restart) — kick reconciliation again.
+STALE_PENDING_SECONDS = 60
+
+
+def retry_stale_pending(request: Request, user_id) -> None:
+    """Settings-view recovery: restart a sync whose durable flag went stale."""
+    if not _gcal_enabled(request):
+        return
+    store = request.app.state.calendar_store
+    try:
+        connection = store.get_connection(user_id)
+    except Exception:  # noqa: BLE001
+        return
+    if connection is None or not connection.is_active or not connection.sync_pending:
+        return
+    from datetime import datetime, timezone as _tz
+
+    requested = connection.sync_requested_at
+    if requested is not None:
+        age = (datetime.now(_tz.utc) - requested).total_seconds()
+        if age < STALE_PENDING_SECONDS:
+            return  # a task is plausibly still in flight — don't pile on
+    schedule_sync(request, user_id)
 
 
 @router.get("/calendar/google/connect")
@@ -137,6 +173,19 @@ async def gcal_connect(request: Request) -> RedirectResponse:
             url="/login?next=/settings&reason=default", status_code=303
         )
     settings = request.app.state.multiuser_settings
+    # Capture the browser timezone BEFORE OAuth starts (app.js appends ?tz=).
+    # Set-if-unset: an explicit Settings choice is never overwritten, but a
+    # first-time connect gets real local event times instead of a UTC default.
+    browser_tz = (request.query_params.get("tz") or "").strip()
+    if browser_tz:
+        repo = request.app.state.engine.repo
+        try:
+            ZoneInfo(browser_tz)
+        except (KeyError, ValueError):
+            pass
+        else:
+            if not (repo.get_setting(user.id, "user_timezone") or ""):
+                repo.set_setting(user.id, "user_timezone", browser_tz)
     state = secrets.token_urlsafe(24)
     params = {
         "client_id": settings.gcal_client_id,

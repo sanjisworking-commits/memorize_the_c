@@ -37,8 +37,11 @@ DEFAULT_REVISION_TIME = "20:00"
 DEFAULT_SESSION_MINUTES = 30
 VALID_SESSION_MINUTES = (15, 30, 45, 60)
 
-# One sync at a time per user within this process; harmless across processes
-# because reconciliation is idempotent.
+# One sync at a time per user WITHIN THIS PROCESS. Across processes there is
+# no coordination: two replicas could both see a date unmapped and both insert
+# an event. v1 therefore assumes a single calendar-syncing web replica (the
+# current Railway deployment) — documented in docs/google-calendar.md; a
+# DB-level claim would be needed before scaling out.
 _user_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 

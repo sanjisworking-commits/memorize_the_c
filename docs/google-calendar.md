@@ -121,6 +121,14 @@ Use the `http://localhost:8899/calendar/google/callback` redirect URI (added
 above) and a test-mode consent screen. Without the GCAL vars, local dev is
 completely unaffected — the section simply doesn't render.
 
+## Deployment assumption — one web replica
+
+Per-user sync serialization is in-process only. Two replicas syncing the same
+user could each insert the same day's event before either records the
+mapping. **v1 assumes a single calendar-syncing web replica** (the current
+Railway deployment). Add a DB-level claim (e.g. an outbox-style
+`ON CONFLICT` insert) before scaling the web service out.
+
 ## Scope note
 
 The Memory log is a single-user/local feature and is **out of scope for

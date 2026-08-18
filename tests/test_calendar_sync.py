@@ -253,7 +253,7 @@ def test_revoked_auth_marks_error_without_raising(tmp_path: Path) -> None:
     assert connection.last_error == "authorization revoked"
 
 
-def test_tombstone_disconnect_keeps_calendar_id(tmp_path: Path) -> None:
+def test_tombstone_disconnect_keeps_calendar_id_and_mappings(tmp_path: Path) -> None:
     engine, store, fake, client = _setup(tmp_path)
     store.upsert_connection(
         USER,
@@ -273,7 +273,9 @@ def test_tombstone_disconnect_keeps_calendar_id(tmp_path: Path) -> None:
     assert connection.google_calendar_id == CAL_ID  # preserved for reconnect
     assert connection.refresh_token_sealed is None
     assert connection.is_active is False
-    assert store.list_event_mappings(USER) == []
+    # Mappings SURVIVE disconnect — the events still exist in Google, and
+    # wiping the mappings would duplicate every event on reconnect.
+    assert len(store.list_event_mappings(USER)) == 1
     # A tombstoned connection never syncs.
     ok = asyncio.run(
         sync_user_calendar(
@@ -285,6 +287,32 @@ def test_tombstone_disconnect_keeps_calendar_id(tmp_path: Path) -> None:
         )
     )
     assert ok is False
+
+
+def test_reconnect_does_not_duplicate_events(tmp_path: Path) -> None:
+    """Blocker regression: disconnect → reconnect must PATCH, never re-insert."""
+    engine, store, fake, client = _setup(tmp_path)
+    _complete(engine, "clause-1", date(2026, 8, 18))  # → 19 Aug
+    store.upsert_connection(
+        USER,
+        google_calendar_id=CAL_ID,
+        refresh_token_sealed="sealed",
+        sync_status=SYNC_PENDING,
+    )
+    _reconcile(engine, store, client, date(2026, 8, 18))
+    assert len(fake.events) == 1
+
+    store.tombstone(USER)  # disconnect — Google events remain
+    store.upsert_connection(  # reconnect (same calendar id preserved)
+        USER,
+        google_calendar_id=CAL_ID,
+        refresh_token_sealed="sealed-2",
+        sync_status=SYNC_PENDING,
+    )
+    counts = _reconcile(engine, store, client, date(2026, 8, 18))
+    assert counts["created"] == 0  # ← the blocker: no re-insert
+    assert counts["unchanged"] == 1
+    assert len(fake.events) == 1  # still exactly one event in Google
 
 
 def test_delete_user_data_removes_everything(tmp_path: Path) -> None:

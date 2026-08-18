@@ -238,16 +238,19 @@ class SqliteCalendarStore:
         self._conn.commit()
 
     def tombstone(self, user_id: UUID | str) -> None:
-        """Disconnect: keep the row + calendar id, drop credentials + mappings."""
+        """Disconnect: keep the row, calendar id AND event mappings.
+
+        The events themselves remain in the user's Google calendar, so the
+        mappings must survive the disconnect — wiping them would make every
+        date look "missing" on reconnect and duplicate every event. Only
+        account deletion (delete_user_data) removes mappings.
+        """
         uid = as_user_id(user_id)
         self._conn.execute(
             "UPDATE google_calendar_connections SET refresh_token_sealed = NULL, "
             "sync_status = ?, sync_pending = 0, last_error = NULL, updated_at = ? "
             "WHERE user_id = ?",
             (SYNC_DISCONNECTED, _utcnow().isoformat(), uid),
-        )
-        self._conn.execute(
-            "DELETE FROM google_calendar_events WHERE user_id = ?", (uid,)
         )
         self._conn.commit()
 
@@ -461,6 +464,7 @@ class PostgresCalendarStore:
             )
 
     def tombstone(self, user_id: UUID | str) -> None:
+        """Disconnect keeps event mappings — see SqliteCalendarStore.tombstone."""
         uid = as_user_id(user_id)
         self._execute(
             [
@@ -470,7 +474,6 @@ class PostgresCalendarStore:
                     "updated_at = %s WHERE user_id = %s",
                     (SYNC_DISCONNECTED, _utcnow(), uid),
                 ),
-                ("DELETE FROM google_calendar_events WHERE user_id = %s", (uid,)),
             ]
         )
 

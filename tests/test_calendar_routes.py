@@ -33,6 +33,7 @@ class FakeGoogleAuth:
         self.refresh_token: str | None = "rt-1"
         self.calendar_exists = True
         self.created_calendars = 0
+        self.revoked_tokens: list[str] = []
 
     def transport(self) -> httpx.MockTransport:
         return httpx.MockTransport(self._handle)
@@ -48,6 +49,7 @@ class FakeGoogleAuth:
                 return httpx.Response(200, json=payload)
             return httpx.Response(200, json={"access_token": "at", "expires_in": 3600})
         if path == "/revoke":
+            self.revoked_tokens.append(str(request.url.params.get("token")))
             return httpx.Response(200)
         if request.method == "GET" and "/calendars/" in path:
             if self.calendar_exists:
@@ -301,3 +303,66 @@ def test_account_deletion_cleans_calendar_rows(tmp_path: Path) -> None:
     assert resp.status_code == 303
     assert store.get_connection(USER) is None
     assert store.list_event_mappings(USER) == []
+
+
+def test_connect_captures_browser_timezone_before_oauth(tmp_path: Path) -> None:
+    """Fix 2: ?tz= from the browser persists set-if-unset BEFORE Google runs,
+    so the first calendar + events use local time, never a UTC default."""
+    client, _store, _fake, repo = _client(tmp_path)
+    resp = client.get(
+        "/calendar/google/connect?tz=Asia/Kolkata", follow_redirects=False
+    )
+    assert resp.status_code == 303
+    assert repo.get_setting(USER, "user_timezone") == "Asia/Kolkata"
+    # An explicit existing choice is never overwritten.
+    client.get("/calendar/google/connect?tz=Europe/London", follow_redirects=False)
+    assert repo.get_setting(USER, "user_timezone") == "Asia/Kolkata"
+
+
+def test_connect_ignores_invalid_timezone(tmp_path: Path) -> None:
+    client, _store, _fake, repo = _client(tmp_path)
+    client.get("/calendar/google/connect?tz=Mars/Olympus", follow_redirects=False)
+    assert (repo.get_setting(USER, "user_timezone") or "") == ""
+
+
+def test_settings_view_restarts_stale_pending_sync(tmp_path: Path, monkeypatch) -> None:
+    """Fix 3: a stranded sync_pending (restart before the task ran) is
+    re-kicked by viewing Settings; a fresh pending is left alone."""
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        "constitution_memorizer.calendar_sync.routes.schedule_sync",
+        lambda _req, uid: calls.append(str(uid)),
+    )
+    # Fresh pending (sync_requested_at = now) → no re-kick.
+    store.mark_sync_pending(USER)
+    client.get("/settings")
+    assert calls == []
+    # Stale pending (backdate the request) → settings view restarts it.
+    conn = store._conn  # test-only backdating
+    conn.execute(
+        "UPDATE google_calendar_connections SET sync_requested_at = ? WHERE user_id = ?",
+        ("2020-01-01T00:00:00+00:00", str(USER)),
+    )
+    conn.commit()
+    client.get("/settings")
+    assert calls == [str(USER)]
+
+
+def test_account_deletion_revokes_google_grant(tmp_path: Path) -> None:
+    """Fix 6: deleting the account revokes the Google grant before wiping
+    the sealed token."""
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    resp = client.post(
+        "/profile",
+        data={"csrf_token": csrf, "action": "delete_account"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert fake.revoked_tokens, "revocation endpoint was never called"
+    assert store.get_connection(USER) is None

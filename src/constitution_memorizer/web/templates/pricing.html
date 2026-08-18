@@ -1,9 +1,120 @@
-{% extends "base.html" %}
-{% block title %}Pricing · {{ app_name|default('Recall the C') }}{% endblock %}
-{% block content %}
-<section class="panel pricing" data-pricing data-selected-days="{{ selected.days }}">
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ landing_theme|default('dark') }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricing · Recall the C</title>
+<meta name="description" content="Everything in Recall. Choose your duration — one product, no tiers, from a 3-day sprint to a full year.">
+<link rel="icon" type="image/png" href="/static/main_logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,500&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#0b0b0b;--ink:#f4f1ea;--muted:rgba(244,241,234,0.66);--faint:rgba(244,241,234,0.45);
+    --rule:rgba(244,241,234,0.14);--rule-strong:rgba(244,241,234,0.3);--card:#131313;--card-alt:#0f0f0f;
+    --accent:#8fd6c9;--btn-bg:#f4f1ea;--btn-fg:#0b0b0b;--btn-hover:#8fd6c9;--header-bg:rgba(11,11,11,0.82);
+  }
+  :root[data-theme="light"]{
+    --paper:#fdfcfa;--ink:#141414;--muted:#4a4744;--faint:#9d978d;
+    --rule:#e7e3db;--rule-strong:#d6d1c7;--card:#ffffff;--card-alt:#fbfaf7;
+    --accent:#0E7569;--btn-bg:#141414;--btn-fg:#fdfcfa;--btn-hover:#0E7569;--header-bg:rgba(253,252,250,0.94);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  a:hover{color:var(--accent)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 clamp(20px,4vw,44px)}
+
+  header.site{position:sticky;top:0;z-index:60;background:var(--header-bg);backdrop-filter:saturate(1.2) blur(12px);border-bottom:1px solid var(--rule)}
+  .site-inner{max-width:1080px;margin:0 auto;padding:14px clamp(20px,4vw,44px);display:flex;align-items:center;justify-content:space-between;gap:20px}
+  .brand{display:inline-flex;align-items:center;gap:11px}
+  .brand-c{width:31px;height:31px;display:grid;place-items:center;border:1.5px solid var(--ink);font-family:Fraunces,Georgia,serif;font-weight:700;font-size:17px;line-height:1}
+  .brand-name{font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:700;letter-spacing:-0.02em}
+  .header-actions{display:flex;align-items:center;gap:8px}
+  .back-link{font-size:14px;font-weight:600;color:var(--muted);padding:8px 11px}
+  .theme-toggle{display:grid;place-items:center;width:38px;height:38px;background:none;border:1px solid var(--rule-strong);color:var(--muted);font-size:15px;line-height:1;cursor:pointer;font-family:inherit}
+
+  .pricing{padding:clamp(48px,7vw,96px) 0 clamp(56px,8vw,104px)}
+  .eyebrow{margin:0 0 14px;font-size:11.5px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--accent)}
+  .pricing-title{margin:0 0 16px;font-family:Fraunces,Georgia,serif;font-size:clamp(32px,4.6vw,60px);line-height:1.03;letter-spacing:-0.04em;font-weight:700;max-width:20ch;text-wrap:balance}
+  .lede{margin:0 0 clamp(28px,4vw,44px);font-size:clamp(16px,1.4vw,19px);line-height:1.6;color:var(--muted);max-width:52ch;text-wrap:pretty}
+
+  .pricing-rail{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin-bottom:clamp(24px,3vw,36px)}
+  .pricing-pill{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:76px;padding:12px 16px;border:1px solid var(--rule-strong);background:transparent;color:var(--ink);cursor:pointer;transition:border-color .2s ease,background .2s ease,color .2s ease}
+  .pricing-pill:hover{border-color:var(--ink);color:var(--ink)}
+  .pricing-pill.is-selected{background:var(--btn-bg);border-color:var(--btn-bg);color:var(--btn-fg)}
+  .pricing-pill-days{font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:700;line-height:1}
+  .pricing-pill-unit{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--faint)}
+  .pricing-pill.is-selected .pricing-pill-unit{color:inherit;opacity:0.7}
+  .pricing-more-toggle{align-self:center;margin-left:4px;background:none;border:0;padding:8px 10px;font:inherit;font-size:13.5px;font-weight:600;color:var(--faint);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  .pricing-more-toggle:hover{color:var(--ink)}
+
+  .pricing-panel{display:flex;flex-wrap:wrap;border:1px solid var(--ink);margin-bottom:clamp(40px,6vw,72px)}
+  .pricing-panel-money{flex:1 1 260px;min-width:0;padding:28px 28px;border-right:1px solid var(--rule);background:var(--card-alt)}
+  .pricing-panel-days{margin:0 0 6px;font-size:11.5px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--faint)}
+  .pricing-panel-price{margin:0;font-family:Fraunces,Georgia,serif;font-size:clamp(44px,6vw,72px);line-height:0.95;font-weight:700;letter-spacing:-0.03em}
+  .pricing-panel-perday{margin:10px 0 0;font-size:14.5px;color:var(--muted)}
+  .pricing-panel-annotation{display:inline-block;margin:16px 0 0;padding:5px 11px;border:1px solid var(--accent);font-size:11.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent)}
+  .pricing-panel-argument{flex:1 1 320px;min-width:0;padding:28px 28px;background:var(--card)}
+  .pricing-panel-tagline{margin:0 0 18px;font-family:Fraunces,Georgia,serif;font-size:clamp(19px,1.9vw,24px);line-height:1.45;font-weight:500}
+  .pricing-journey{margin:0 0 22px}
+  .pricing-journey-ends{display:flex;justify-content:space-between;font-family:Fraunces,Georgia,serif;font-size:12.5px;font-weight:600;color:var(--faint)}
+  .pricing-journey-line{height:2px;margin:7px 0;background:linear-gradient(90deg,var(--accent),var(--rule))}
+  .pricing-journey-steps{margin:0;font-size:13.5px;color:var(--muted)}
+  .pricing-panel-cta{margin:0;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 30px;font-size:16px;font-weight:700;border:1px solid transparent;cursor:pointer}
+  .btn-accent{background:var(--btn-bg);color:var(--btn-fg);border-color:var(--btn-bg)}
+  .btn-accent:hover{background:var(--btn-hover);border-color:var(--btn-hover);color:var(--btn-fg)}
+  .btn-ghost{background:none;color:var(--ink);border-color:var(--rule-strong);font-size:15px;font-weight:600}
+  .btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+  .pricing-panel-billing{font-size:13px;color:var(--faint)}
+  .pricing-cta-note{margin:8px 0 0;font-size:13px;color:var(--faint)}
+
+  .section-title{margin:clamp(36px,5vw,56px) 0 18px;font-family:Fraunces,Georgia,serif;font-size:clamp(22px,2.6vw,32px);line-height:1.1;letter-spacing:-0.025em;font-weight:700}
+  .pricing-included{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+  .pricing-included p{margin:0;padding:16px 18px;background:var(--paper);font-size:14.5px;color:var(--muted)}
+  .pricing-features-note{margin:16px 0 0;font-size:14px;color:var(--faint);max-width:60ch}
+  .pricing-billing-terms{margin:0;font-size:15px;line-height:1.6;color:var(--muted);max-width:64ch;text-wrap:pretty}
+
+  .pricing-free{margin-top:clamp(36px,5vw,56px);border:1px solid var(--rule-strong);padding:28px 28px;background:var(--card-alt)}
+  .pricing-free-title{margin:0 0 10px;font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:700}
+  .pricing-free-body{margin:0 0 18px;font-size:15px;line-height:1.6;color:var(--muted);max-width:60ch;text-wrap:pretty}
+
+  footer.site{border-top:1px solid var(--rule);background:var(--paper)}
+  .footer-inner{max-width:1080px;margin:0 auto;padding:24px clamp(20px,4vw,44px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 28px}
+  .footer-tag{margin:0;font-family:Fraunces,Georgia,serif;font-style:italic;font-size:14.5px;color:var(--muted)}
+  .footer-note{margin:0;font-size:13px;color:var(--faint);max-width:420px}
+
+  @media (max-width:640px){
+    .pricing-panel-money{border-right:0;border-bottom:1px solid var(--rule)}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="site-inner">
+    <a class="brand" href="/">
+      <span class="brand-c">C</span>
+      <span class="brand-name">Recall the C</span>
+    </a>
+    <div class="header-actions">
+      <a class="back-link" href="/">&larr; Back</a>
+      <a class="btn btn-accent" style="padding:10px 18px;font-size:14px" href="/login">Start learning</a>
+      {% if landing_theme|default('dark') == 'light' %}
+      <button id="landing-theme-toggle" data-to="dark" type="button" aria-label="Switch to dark theme" title="Dark theme" class="theme-toggle">&#9789;</button>
+      {% else %}
+      <button id="landing-theme-toggle" data-to="light" type="button" aria-label="Switch to light theme" title="Light theme" class="theme-toggle">&#9788;</button>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+<section class="pricing" data-pricing data-selected-days="{{ selected.days }}">
   <p class="eyebrow">Pricing</p>
-  <h1 class="display pricing-title">Everything in Recall. Choose your duration.</h1>
+  <h1 class="pricing-title">Everything in Recall. Choose your duration.</h1>
   <p class="lede">Every Recall plan unlocks the complete experience. Only the duration changes.</p>
 
   {% set more_open = selected.days in more_days %}
@@ -86,4 +197,19 @@
 
   <script type="application/json" id="pricing-data">{{ pricing_data | tojson }}</script>
 </section>
-{% endblock %}
+</main>
+
+<footer class="site">
+  <div class="footer-inner">
+    <a class="brand" href="/">
+      <span class="brand-c" style="width:28px;height:28px;font-size:15px">C</span>
+      <span class="brand-name" style="font-size:17px">Recall the C</span>
+    </a>
+    <p class="footer-tag">Read it. See it. Recall it. Revisit it. Remember it.</p>
+    <p class="footer-note">A study aid, not an official legal source. Verify against an authoritative publication where it counts.</p>
+  </div>
+</footer>
+
+<script src="/static/pricing.js" defer></script>
+</body>
+</html>

@@ -47,7 +47,12 @@ def _settings(**overrides) -> MultiUserSettings:
     return MultiUserSettings(_env_file=None, **base)
 
 
-def _client(tmp_path: Path, provider: FakeAuthProvider | None = None) -> TestClient:
+def _client(
+    tmp_path: Path,
+    provider: FakeAuthProvider | None = None,
+    *,
+    pricing: bool = False,
+) -> TestClient:
     provider = provider or FakeAuthProvider()
     provider.seed_google_user(
         user_id=UUID("11111111-1111-4111-8111-111111111111"),
@@ -58,7 +63,7 @@ def _client(tmp_path: Path, provider: FakeAuthProvider | None = None) -> TestCli
         units_path=MINI_UNITS,
         db_path=tmp_path / "progress.db",
         multiuser=True,
-        multiuser_settings=_settings(),
+        multiuser_settings=_settings(PRICING_ENABLED="true" if pricing else "false"),
         auth_provider=provider,
         session_store=InMemorySessionStore(),
     )
@@ -95,12 +100,15 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert "brain-path.js" in html
     # Section markers of the brain-canvas landing
     assert "Six modes" in html
-    assert "The schedule" in html
-    # Revision ladder (Article 32 card shows the early stops verbatim)
-    assert "Day 1" in html
-    assert "Day 3" in html
-    assert "Day 7" in html
-    assert "Day 14" in html
+    assert "The arithmetic" in html
+    # §04 "The schedule" section was removed
+    assert 'id="revision"' not in html
+    assert "You never decide" not in html
+    assert "Eleven provisions due" not in html
+    # §01 day blocks removed — the timeline ruler stands alone
+    assert "data-daycards" not in html
+    # Persisted dark/light theme toggle
+    assert 'id="landing-theme-toggle"' in html
     assert "landing.js" in html
     assert "family=Fraunces" in html
     assert "@keyframes hintDrift" in html
@@ -122,6 +130,45 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert learn.status_code == 200
     assert "learning as a guest" in learn.text.lower()
     assert "guest-signin-modal" in learn.text
+
+
+def test_landing_light_theme_cookie(tmp_path: Path):
+    """The rtc_landing_theme=light cookie serves the light split landing."""
+    client = _client(tmp_path)
+    client.cookies.set("rtc_landing_theme", "light")
+    home = client.get("/", follow_redirects=False)
+    assert home.status_code == 200
+    html = home.text
+    # Light landing signatures (orbit-rings figure + mode switcher + ruler).
+    assert "data-fig" in html
+    assert "data-modes" in html
+    assert "data-fill" in html
+    assert "Article 32(1)" in html
+    assert "Understand the structure" in html
+    assert 'id="landing-theme-toggle"' in html
+    assert "landing-light.js" in html
+    # It is not the dark brain-canvas page.
+    assert "data-brain" not in html
+    assert "brain-path.js" not in html
+    # §04 schedule removed here too.
+    assert 'id="revision"' not in html
+    # Standalone marketing page — no app chrome.
+    assert "{% extends" not in html
+    assert 'class="nav-link">Home' not in html
+
+
+def test_landing_pricing_nav_when_enabled(tmp_path: Path):
+    """With pricing on, both landings link the Pricing nav to /pricing, no teaser."""
+    client = _client(tmp_path, pricing=True)
+    dark = client.get("/", follow_redirects=False).text
+    assert 'href="/pricing"' in dark
+    # The inline in-page pricing teaser was removed.
+    assert 'id="pricing"' not in dark
+
+    client.cookies.set("rtc_landing_theme", "light")
+    light = client.get("/", follow_redirects=False).text
+    assert 'href="/pricing"' in light
+    assert "data-fig" in light  # confirm the light template rendered
 
 
 def test_landing_only_when_multiuser_guest(tmp_path: Path):

@@ -25,7 +25,6 @@
     [data-circles]{display:grid !important;grid-template-columns:repeat(3,1fr)}
   }
   @media (max-width:620px){
-    [data-daycards]{display:none !important}
     [data-onpage]{display:none !important}
     [data-actmeta]{display:none !important}
     [data-actgrid]{grid-template-columns:repeat(3,1fr) !important;gap:8px !important}
@@ -35,11 +34,31 @@
   }
   [data-reveal][data-shown="1"]{opacity:1 !important;transform:none !important}
   [data-l]{transition:color .55s ease}
-  @media (max-width:1180px),(max-height:740px){
-    [data-marker]{display:none !important}
-  }
+  [data-lbl-short]{display:none}
   @media (max-width:900px){
     [data-navlinks]{display:none !important}
+  }
+  /* Compact header + hero CTAs and tighter spacing on small screens. */
+  @media (max-width:640px){
+    [data-hdrbar]{padding-top:9px !important;padding-bottom:9px !important;gap:12px !important}
+    [data-brand]{gap:8px !important}
+    [data-brand] > span:first-child{width:27px !important;height:27px !important;font-size:15px !important}
+    [data-brand] > span:last-child{font-size:16px !important}
+    [data-hdr]{gap:6px !important}
+    [data-hdr] a.j-ghost,[data-hdr] a.j-ink{padding:8px 12px !important;font-size:13px !important}
+    [data-hdr] #landing-theme-toggle{width:34px !important;height:34px !important}
+    [data-lbl-full]{display:none}
+    [data-lbl-short]{display:inline}
+    [data-herocta] a{padding:13px 20px !important;font-size:14.5px !important}
+    /* Cut the dead space: shorten the pinned closing block and trim section padding. */
+    [data-lit-src]{height:140vh !important}
+    main > section:not(#top){padding-top:clamp(44px,7vh,72px) !important;padding-bottom:clamp(44px,7vh,72px) !important}
+    /* Closing scrim: a band behind the statement that fades top and bottom so
+       the brain shows above and below it on phones. */
+    [data-closescrim]{background:linear-gradient(180deg,rgba(11,11,11,0) 0%,rgba(11,11,11,0.92) 26%,rgba(11,11,11,0.92) 74%,rgba(11,11,11,0) 100%) !important}
+    /* §02 / §03: drop the subtext and shrink the heading so each line fits. */
+    [data-lede-hide]{display:none !important}
+    [data-fit]{font-size:clamp(22px,6.2vw,30px) !important;line-height:1.14 !important;max-width:none !important}
   }
   @media (prefers-reduced-motion:reduce){
     *{animation:none !important}
@@ -58,29 +77,24 @@
   <canvas data-brain="1" data-v="2" style="width:100%;height:100%;display:block"></canvas>
 </div>
 
-<div data-marker="1" style="position:fixed;right:clamp(20px,3vw,44px);bottom:26px;z-index:40;display:flex;align-items:baseline;justify-content:flex-end;gap:14px;pointer-events:none;max-width:min(38ch,32vw);text-align:right;background:#0b0b0b;border:1px solid rgba(244,241,234,0.14);padding:10px 16px">
-  <span style="font-family:Fraunces,Georgia,serif;font-size:12px;font-weight:600;letter-spacing:0.14em;color:#8fd6c9;white-space:nowrap">01 / 06</span>
-  <span style="font-family:Fraunces,Georgia,serif;font-size:15px;font-style:italic;line-height:1.45;color:rgba(244,241,234,0.62);text-wrap:pretty">It begins with one line, held on purpose.</span>
-</div>
-
 <header style="position:sticky;top:0;z-index:60;background:rgba(11,11,11,0.82);backdrop-filter:saturate(1.2) blur(12px);border-bottom:1px solid rgba(244,241,234,0.12)">
-  <div style="max-width:1500px;margin:0 auto;padding:14px clamp(20px,3vw,44px);display:flex;align-items:center;justify-content:space-between;gap:20px">
-    <a href="#top" style="display:inline-flex;align-items:center;gap:11px">
+  <div data-hdrbar="1" style="max-width:1500px;margin:0 auto;padding:14px clamp(20px,3vw,44px);display:flex;align-items:center;justify-content:space-between;gap:20px">
+    <a href="#top" data-brand="1" style="display:inline-flex;align-items:center;gap:11px">
       <span style="width:31px;height:31px;display:grid;place-items:center;border:1.5px solid #f4f1ea;font-family:Fraunces,Georgia,serif;font-weight:700;font-size:17px;line-height:1">C</span>
-      <span style="font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:700;letter-spacing:-0.02em">Recall the C</span>
+      <span style="font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:700;letter-spacing:-0.02em;white-space:nowrap">Recall the C</span>
     </a>
-    <div style="display:flex;align-items:center;gap:8px">
+    <div data-hdr="1" style="display:flex;align-items:center;gap:8px">
       <nav data-navlinks="1" style="display:flex;align-items:center;gap:2px;margin-right:10px">
         <a href="#arithmetic" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Arithmetic</a>
         <a href="#method" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Recall</a>
         <a href="#learn" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Modes</a>
-        <a href="#revision" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Schedule</a>
         {% if pricing_enabled|default(false) %}
-        <a href="#pricing" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Pricing</a>
+        <a href="/pricing" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Pricing</a>
         {% endif %}
       </nav>
-      <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:9px 16px;font-size:14px;font-weight:600" class="j-ghost">Explore as guest</a>
-      <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:10px 18px;font-size:14px;font-weight:700" class="j-ink">Start learning</a>
+      <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:9px 16px;font-size:14px;font-weight:600;white-space:nowrap" class="j-ghost"><span data-lbl-full>Explore as guest</span><span data-lbl-short>Explore</span></a>
+      <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:10px 18px;font-size:14px;font-weight:700;white-space:nowrap" class="j-ink"><span data-lbl-full>Start learning</span><span data-lbl-short>Learn</span></a>
+      <button id="landing-theme-toggle" data-to="light" type="button" aria-label="Switch to light theme" title="Light theme" style="display:grid;place-items:center;width:38px;height:38px;background:none;border:1px solid rgba(244,241,234,0.3);color:rgba(244,241,234,0.7);font-size:15px;line-height:1;cursor:pointer;font-family:inherit">&#9788;</button>
     </div>
   </div>
 </header>
@@ -95,13 +109,13 @@
     <span style="width:30px;height:1px;background:#8fd6c9;display:inline-block"></span>A memory system for the Bare Act
   </p>
   <h1 style="font-family:Fraunces,Georgia,serif;font-size:clamp(46px,9.6vw,152px);line-height:0.92;letter-spacing:-0.045em;font-weight:700;margin:0 0 clamp(26px,3.4vh,44px);text-wrap:balance">Memorize the C.<br><span style="font-style:italic;font-weight:300;color:#8fd6c9">Verbatim.</span></h1>
-  <p style="margin:0 0 clamp(20px,2.4vh,30px);font-size:clamp(17px,1.5vw,21px);line-height:1.55;color:rgba(244,241,234,0.66);max-width:36ch;text-wrap:pretty">The exact wording of the Constitution, kept where you actually need it &mdash; in your head.</p>
-  <p style="margin:0 0 clamp(28px,3.6vh,44px);display:inline-flex;align-items:baseline;gap:14px;align-self:center;padding:10px 22px 12px;border:1px solid rgba(245,144,34,0.5);font-family:Fraunces,Georgia,serif">
-    <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;font-family:'Source Sans 3',system-ui,sans-serif;color:rgba(244,241,234,0.55)">In</span>
-    <span style="font-size:clamp(30px,3.4vw,48px);line-height:1;font-weight:700;letter-spacing:-0.03em;color:#F59022">180</span>
-    <span style="font-size:clamp(17px,1.6vw,23px);line-height:1;font-style:italic;font-weight:300;color:#f4f1ea">days</span>
+  <p style="margin:0 0 clamp(16px,2vh,24px);font-size:clamp(17px,1.5vw,21px);line-height:1.55;color:rgba(244,241,234,0.66);max-width:46ch;text-wrap:pretty">The exact wording of the Constitution, kept where you actually need it &mdash; in your head.</p>
+  <p style="margin:0 0 clamp(28px,3.6vh,44px);display:inline-flex;align-items:baseline;gap:9px;align-self:center;font-family:Fraunces,Georgia,serif">
+    <span style="font-size:clamp(15px,1.4vw,18px);font-style:italic;font-weight:300;color:rgba(244,241,234,0.6)">In</span>
+    <span style="font-size:clamp(21px,2.2vw,30px);line-height:1;font-weight:700;letter-spacing:-0.02em;color:#F59022">180</span>
+    <span style="font-size:clamp(15px,1.4vw,18px);font-style:italic;font-weight:300;color:rgba(244,241,234,0.6)">days</span>
   </p>
-  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center">
+  <div data-herocta="1" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center">
     <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:16px 32px;font-size:16px;font-weight:700" class="j-ink">Start learning</a>
     <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:16px 28px;font-size:15px;font-weight:600" class="j-ghost">Explore the Constitution &rarr;</a>
   </div>
@@ -113,41 +127,24 @@
 
 <!-- ══ § 01 THE ARITHMETIC ══ -->
 <section id="arithmetic" data-stage="1" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
-  <div data-scrim="1" aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:-1;pointer-events:none;opacity:0;background:linear-gradient(180deg,rgba(11,11,11,0) 0,rgba(11,11,11,0.93) 96px,rgba(11,11,11,0.93) calc(100% - 96px),rgba(11,11,11,0) 100%)"></div>
   <div data-reveal="1" style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;border-bottom:1px solid rgba(244,241,234,0.24);margin-bottom:clamp(30px,4vh,52px);opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease">
     <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700">The arithmetic</span>
     <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;01</span>
   </div>
   <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
-    <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 auto clamp(22px,2.6vh,34px);max-width:15ch;text-align:center;text-wrap:balance">Three Articles a day.<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">Six months of them.</span></h2>
-    <p style="margin:0 auto clamp(40px,6vh,72px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:38ch;text-align:center;text-wrap:pretty">Nothing here asks for a heroic week. It asks for ordinary days, in a row.</p>
+    <!-- Scrim hugs only the text so the background animation shows through the empty space. -->
+    <div style="max-width:760px;margin:0 auto clamp(40px,6vh,72px);padding:clamp(16px,3vh,34px) 28px;background:radial-gradient(ellipse 84% 108% at 50% 46%,rgba(11,11,11,0.9) 0%,rgba(11,11,11,0.72) 54%,rgba(11,11,11,0) 100%)">
+      <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 auto clamp(22px,2.6vh,34px);max-width:15ch;text-align:center;text-wrap:balance">Three Articles a day.<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">Six months of them.</span></h2>
+      <p style="margin:0 auto;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:46ch;text-align:center;text-wrap:pretty">Nothing here asks for a heroic week. It asks for ordinary days, in a row.</p>
+    </div>
 
-    <div style="margin-bottom:clamp(34px,4.5vh,54px)">
+    <div style="margin-bottom:0">
       <div style="position:relative;height:34px;border-bottom:1px solid rgba(244,241,234,0.4)">
         <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(90deg,rgba(244,241,234,0.18) 0 1px,transparent 1px 1.6666%),repeating-linear-gradient(90deg,rgba(244,241,234,0.5) 0 1px,transparent 1px 16.666%);background-position:bottom;background-size:100% 10px,100% 22px;background-repeat:repeat-x"></div>
         <div data-ruler="1" style="position:absolute;left:0;bottom:0;width:0;height:22px;background:#8fd6c9;opacity:0.22"></div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:9px;font-family:Fraunces,Georgia,serif;font-size:12.5px;font-weight:600;color:rgba(244,241,234,0.42)">
         <span>000</span><span>030</span><span>060</span><span>090</span><span>120</span><span>150</span><span>180</span>
-      </div>
-    </div>
-
-    <div data-daycards="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:rgba(244,241,234,0.14);border:1px solid rgba(244,241,234,0.14)">
-      <div style="background:#0b0b0b;padding:26px 22px">
-        <p style="margin:0 0 10px;font-family:Fraunces,Georgia,serif;font-size:26px;font-weight:700">Day 001</p>
-        <p style="margin:0;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.58)">One provision, read properly and recalled once.</p>
-      </div>
-      <div style="background:#0b0b0b;padding:26px 22px">
-        <p style="margin:0 0 10px;font-family:Fraunces,Georgia,serif;font-size:26px;font-weight:700">Day 030</p>
-        <p style="margin:0;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.58)">Part II behind you, and week one already coming back.</p>
-      </div>
-      <div style="background:#0b0b0b;padding:26px 22px">
-        <p style="margin:0 0 10px;font-family:Fraunces,Georgia,serif;font-size:26px;font-weight:700">Day 090</p>
-        <p style="margin:0;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.58)">Halfway, and nothing so far has been lost.</p>
-      </div>
-      <div style="background:#131313;padding:26px 22px;box-shadow:inset 0 0 0 1px #8fd6c9">
-        <p style="margin:0 0 10px;font-family:Fraunces,Georgia,serif;font-size:26px;font-weight:700;color:#8fd6c9">Day 180</p>
-        <p style="margin:0;font-size:14.5px;line-height:1.5;color:rgba(244,241,234,0.78)">The document, verbatim.</p>
       </div>
     </div>
   </div>
@@ -161,8 +158,8 @@
     <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;02</span>
   </div>
   <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
-    <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:16ch;text-wrap:balance">Rereading is recognition.<br><span style="font-style:italic;font-weight:300;color:#8fd6c9">Recall is knowledge.</span></h2>
-    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:40ch;text-wrap:pretty">Familiarity feels like knowing. The real question is whether the words are still there once the page is gone.</p>
+    <h2 data-fit="1" style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:16ch;text-wrap:balance">Rereading is recognition.<br><span style="font-style:italic;font-weight:300;color:#8fd6c9">Recall is knowledge.</span></h2>
+    <p data-lede-hide="1" style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:58ch;text-wrap:pretty">Familiarity feels like knowing. The real question is whether the words are still there once the page is gone.</p>
 
     <div style="display:flex;flex-wrap:wrap;gap:1px;background:rgba(244,241,234,0.14);border:1px solid rgba(244,241,234,0.14)">
       <div data-onpage="1" style="flex:1 1 300px;min-width:0;padding:30px 30px;background:#0b0b0b">
@@ -188,8 +185,8 @@
     <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;03</span>
   </div>
   <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
-    <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:15ch;text-wrap:balance">Each mode takes<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">a little more away.</span></h2>
-    <p style="margin:0 0 clamp(32px,4vh,48px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:36ch;text-wrap:pretty">Understand the structure first. Then memorize the wording.</p>
+    <h2 data-fit="1" style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:15ch;text-wrap:balance">Each mode takes<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">a little more away.</span></h2>
+    <p data-lede-hide="1" style="margin:0 0 clamp(32px,4vh,48px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:48ch;text-wrap:pretty">Understand the structure first. Then memorize the wording.</p>
 
     <div data-circles="1" style="display:flex;align-items:center;justify-content:center;margin:0 auto;max-width:1100px">
       <div data-circ="0" style="position:relative;flex:1 1 0;min-width:0;aspect-ratio:1;border:1px solid rgba(244,241,234,0.14);border-radius:50%;display:grid;place-items:center;color:rgba(244,241,234,0.62);transition:color .6s ease,border-color .6s ease;font-family:Fraunces,Georgia,serif;font-size:clamp(13px,1.5vw,21px);text-align:center">
@@ -218,54 +215,8 @@
   </div>
 </section>
 
-<!-- ══ § 04 THE SCHEDULE ══ -->
-<section id="revision" data-stage="4" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
-  <div data-scrim="1" aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:-1;pointer-events:none;opacity:0;background:linear-gradient(180deg,rgba(11,11,11,0) 0,rgba(11,11,11,0.93) 96px,rgba(11,11,11,0.93) calc(100% - 96px),rgba(11,11,11,0) 100%)"></div>
-  <div data-reveal="1" style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;border-bottom:1px solid rgba(244,241,234,0.24);margin-bottom:clamp(30px,4vh,52px);opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease">
-    <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700">The schedule</span>
-    <span style="font-family:Fraunces,Georgia,serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:rgba(244,241,234,0.42)">&sect;&thinsp;04</span>
-  </div>
-  <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
-    <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:15ch;text-wrap:balance">You never decide<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">what to revise.</span></h2>
-    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:40ch;text-wrap:pretty">Everything you learn joins one widening schedule, and comes back the day before it would have slipped.</p>
-
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-      <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.16em;font-weight:700;color:rgba(244,241,234,0.42)">Learn</span>
-      <span style="flex:1;height:1px;background:linear-gradient(90deg,#F59022,rgba(244,241,234,0.16))"></span>
-      <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.16em;font-weight:700;color:rgba(244,241,234,0.42)">Held</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;margin-bottom:32px">
-      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">1</span></div>
-      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">3</span></div>
-      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">7</span></div>
-      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">14</span></div>
-      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">30</span></div>
-      <div style="border:1px solid rgba(244,241,234,0.18);padding:18px 6px;text-align:center"><span style="display:block;font-size:11px;font-weight:700;letter-spacing:0.06em;color:#F59022;margin-bottom:6px">Day</span><span style="font-family:Fraunces,Georgia,serif;font-size:clamp(20px,2vw,28px);font-weight:700">60</span></div>
-    </div>
-
-    <div style="display:flex;flex-wrap:wrap;gap:16px">
-      <article style="flex:1 1 260px;min-width:0;background:#131313;border:1px solid rgba(244,241,234,0.14);padding:24px 22px">
-        <h3 style="margin:0 0 14px;font-size:12.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700">Article 32 <span style="color:#8fd6c9;font-size:11px;margin-left:6px">In schedule</span></h3>
-        <p style="margin:0 0 6px;font-size:14px;color:rgba(244,241,234,0.6)">&#10003; Day 1 &mdash; recalled</p>
-        <p style="margin:0 0 6px;font-size:14px;color:rgba(244,241,234,0.6)">&#10003; Day 3 &mdash; recalled</p>
-        <p style="margin:0 0 6px;font-size:14px;color:rgba(244,241,234,0.6)">&#10003; Day 7 &mdash; recalled</p>
-        <p style="margin:16px 0 0;padding-top:14px;border-top:1px solid rgba(244,241,234,0.14);font-size:11.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#F59022">Next &mdash; Day 14</p>
-      </article>
-      <article style="flex:1 1 260px;min-width:0;background:#131313;border:1px solid rgba(244,241,234,0.14);padding:24px 22px">
-        <h3 style="margin:0 0 16px;font-size:12.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700">This week</h3>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
-          <i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i>
-          <i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i>
-          <i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i><i style="display:block;aspect-ratio:1;background:#F59022"></i><i style="display:block;aspect-ratio:1;background:rgba(244,241,234,0.1)"></i>
-        </div>
-        <p style="margin:16px 0 0;font-size:13.5px;color:rgba(244,241,234,0.5)">Eleven provisions due. The queue is already built.</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-<!-- ══ § 05 RELEVANT LAWS ══ -->
-<section data-stage="5" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
+<!-- ══ § 04 RELEVANT LAWS ══ -->
+<section data-stage="4" style="position:relative;border-top:1px solid rgba(244,241,234,0.12);padding:clamp(70px,11vh,150px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
   <div data-scrim="1" aria-hidden="true" style="position:absolute;top:0;bottom:0;left:50%;margin-left:-50vw;width:100vw;z-index:-1;pointer-events:none;opacity:0;background:linear-gradient(90deg,rgba(11,11,11,0.93) 0,rgba(11,11,11,0.93) 46%,rgba(11,11,11,0.42) 72%,rgba(11,11,11,0.3) 100%);mask-image:linear-gradient(180deg,transparent 0,#000 96px,#000 calc(100% - 96px),transparent 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 96px,#000 calc(100% - 96px),transparent 100%)"></div>
   <div data-reveal="1" style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:10px;border-bottom:1px solid rgba(244,241,234,0.24);margin-bottom:clamp(30px,4vh,52px);opacity:0;transform:translateY(10px);transition:opacity .6s ease,transform .6s ease">
     <span style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;color:#F59022">Coming soon &middot; Relevant laws</span>
@@ -273,7 +224,7 @@
   </div>
   <div data-reveal="1" data-delay="90" style="opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease">
     <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(34px,6.6vw,104px);line-height:0.98;letter-spacing:-0.04em;font-weight:700;margin:0 0 clamp(22px,2.6vh,34px);max-width:16ch;text-wrap:balance">The Constitution<br><span style="font-style:italic;font-weight:300;color:rgba(244,241,234,0.55)">does not act alone.</span></h2>
-    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:40ch;text-wrap:pretty">The statutes that carry it into practice are next, each tied to the Articles it answers to.</p>
+    <p style="margin:0 0 clamp(36px,5vh,60px);font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:54ch;text-wrap:pretty">The statutes that carry it into practice are next, each tied to the Articles it answers to.</p>
     <div data-actgrid="1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
       <article data-actcard="1" style="border:1px solid rgba(244,241,234,0.14);background:#131313;padding:24px 22px">
         <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#F59022">Evidence</p>
@@ -310,20 +261,6 @@
     </p>
   </div>
 </div>
-
-{% if pricing_enabled|default(false) %}
-<!-- ══ PRICING — one product, choose a duration ══ -->
-<section id="pricing" style="border-top:1px solid rgba(244,241,234,0.12);padding:clamp(60px,9vh,120px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
-  <p style="margin:0 0 14px;font-size:11.5px;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;color:rgba(244,241,234,0.42)">Pricing</p>
-  <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(28px,3.6vw,52px);line-height:1.06;letter-spacing:-0.035em;font-weight:700;margin:0 0 20px;max-width:22ch;text-wrap:balance">Everything in Recall. Choose your duration.</h2>
-  <p style="margin:0 0 14px;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:rgba(244,241,234,0.62);max-width:44ch;text-wrap:pretty">One product, no tiers — every plan unlocks the complete experience, from a 3-day sprint to a full year. Only the duration changes.</p>
-  <p style="margin:0 0 34px;font-size:14.5px;line-height:1.6;color:rgba(244,241,234,0.45);max-width:44ch">Exploring is free: browse the whole Constitution and keep your first 3 Articles — clauses, progress and scheduled revisions — permanently.</p>
-  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
-    <a href="/pricing" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:16px 32px;font-size:16px;font-weight:700" class="j-ink">See pricing →</a>
-    <span style="font-size:14px;color:rgba(244,241,234,0.45)">3 · 7 · 15 · 30 · 60 · 180 · 365 days</span>
-  </div>
-</section>
-{% endif %}
 
 <section style="border-top:1px solid rgba(244,241,234,0.12);padding:clamp(60px,9vh,120px) clamp(20px,4vw,80px);max-width:1500px;margin:0 auto">
   <h2 style="font-family:Fraunces,Georgia,serif;font-size:clamp(28px,3.6vw,52px);line-height:1.06;letter-spacing:-0.035em;font-weight:700;margin:0 0 24px;max-width:18ch;text-wrap:balance">Start with one Article.</h2>

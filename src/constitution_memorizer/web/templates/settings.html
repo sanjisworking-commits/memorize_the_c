@@ -22,44 +22,52 @@
     Keep your Recall the C revision schedule automatically synced with Google Calendar.
   </p>
 
-  {% if gcal.status_param == 'connected' or gcal.status_param == 'syncing' %}
-  <p class="settings-saved" role="status">
-    Google Calendar connected — syncing your revision schedule…
-  </p>
+  {# Post-redirect notices (design 02): one left-ruled block per outcome. #}
+  {% if gcal.status_param in ('connected', 'syncing') %}
+  <div class="gcal-notice is-ok" role="status">
+    <p>Google Calendar connected — syncing your revision schedule…</p>
+  </div>
   {% elif gcal.status_param == 'saved' %}
-  <p class="settings-saved" role="status">Calendar preferences saved.</p>
+  <div class="gcal-notice is-ok" role="status"><p>Calendar preferences saved.</p></div>
   {% elif gcal.status_param == 'disconnected' %}
-  <p class="settings-saved" role="status">
-    Google Calendar disconnected. The calendar itself stays in your Google
-    account — remove it there if you no longer want it.
-  </p>
-  {% elif gcal.status_param.startswith('error') or gcal.status_param == 'error' %}
-  <p class="gcal-error" role="alert">
-    Something went wrong talking to Google. Your Recall the C progress is safe — try again.
-  </p>
+  <div class="gcal-notice is-quiet" role="status">
+    <p>Google Calendar disconnected. The calendar itself stays in your Google
+    account — remove it there if you no longer want it.</p>
+  </div>
+  {% elif gcal.status_param == 'error' %}
+  <div class="gcal-notice is-error" role="alert">
+    <p>Something went wrong talking to Google. Your Recall the C progress is safe — try again.</p>
+  </div>
   {% endif %}
 
   {% if gcal.connected %}
-  <div class="gcal-status-row">
-    <p class="gcal-status">
-      Google Calendar
+  <div class="gcal-connected-head">
+    <div class="gcal-status-line">
+      <p class="gcal-status">Google Calendar</p>
       {% if gcal.connection.sync_status == 'error' %}
       <span class="gcal-badge is-error">⚠ Sync issue</span>
+      {% elif gcal.connection.sync_pending %}
+      <span class="gcal-badge is-syncing">Syncing</span>
       {% else %}
       <span class="gcal-badge is-ok">✓ Connected</span>
       {% endif %}
-    </p>
+    </div>
     <p class="gcal-calendar-name">Recall the C — Revision Schedule</p>
     {% if gcal.connection.sync_status == 'error' %}
-    <p class="settings-note">Your Recall the C progress is safe.</p>
-    <form method="post" action="/calendar/google/retry" class="gcal-inline-form">
-      <input type="hidden" name="csrf_token" value="{{ gcal.csrf_token }}">
-      <button type="submit" class="btn btn-ghost">Try again</button>
-    </form>
+    <p class="gcal-sync-note is-error">
+      Google refused the last update. Your Recall the C progress is safe.
+    </p>
+    <div class="gcal-retry-row">
+      <form method="post" action="/calendar/google/retry" class="gcal-inline-form">
+        <input type="hidden" name="csrf_token" value="{{ gcal.csrf_token }}">
+        <button type="submit" class="btn btn-ghost">Try again</button>
+      </form>
+      <span class="gcal-retry-aside">Nothing was lost — the next completion retries on its own.</span>
+    </div>
     {% elif gcal.connection.sync_pending %}
-    <p class="settings-note">Syncing your revision schedule…</p>
+    <p class="gcal-sync-note">Syncing your revision schedule…</p>
     {% elif gcal.connection.last_synced_at %}
-    <p class="settings-note">
+    <p class="gcal-sync-note">
       Updates automatically as you learn and complete revisions.
       Last synced {{ gcal.connection.last_synced_at.strftime('%d %b, %H:%M') }} UTC.
     </p>
@@ -68,6 +76,7 @@
 
   <form method="post" action="/calendar/google/preferences" class="gcal-prefs-form" data-gcal-prefs>
     <input type="hidden" name="csrf_token" value="{{ gcal.csrf_token }}">
+    <p class="gcal-prefs-eyebrow">Event preferences</p>
     <div class="gcal-pref-grid">
       <label class="gcal-pref">
         <span class="gcal-pref-label">Revision time</span>
@@ -83,27 +92,32 @@
       </label>
       <label class="gcal-pref">
         <span class="gcal-pref-label">Timezone</span>
-        <input type="text" name="user_timezone" value="{{ gcal.prefs.timezone }}"
-               placeholder="Asia/Kolkata" data-gcal-timezone>
+        <input type="text" name="user_timezone" class="gcal-tz-input" value="{{ gcal.prefs.timezone }}"
+               placeholder="Asia/Kolkata" spellcheck="false" data-gcal-timezone>
       </label>
     </div>
+    <p class="gcal-prefs-hint">Prefilled from this browser. Changing any of the three moves every future event.</p>
     <div class="gcal-actions">
       <button type="submit" class="btn btn-accent">Save calendar preferences</button>
       <a class="btn btn-ghost" href="https://calendar.google.com/" target="_blank" rel="noopener">Open Google Calendar</a>
+      <button type="submit" class="gcal-disconnect" form="gcal-disconnect-form">Disconnect</button>
     </div>
   </form>
-  <form method="post" action="/calendar/google/disconnect" class="gcal-inline-form"
+  <form method="post" action="/calendar/google/disconnect" id="gcal-disconnect-form"
+        class="gcal-hidden-form"
         onsubmit="return confirm('Disconnect Google Calendar? Your Recall progress is untouched; the calendar stays in Google.');">
     <input type="hidden" name="csrf_token" value="{{ gcal.csrf_token }}">
-    <button type="submit" class="link-reset">Disconnect</button>
   </form>
 
   {% else %}
   <div class="gcal-connect-row">
-    <p class="settings-note">
+    <p class="gcal-connect-body">
       Recall the C creates its own “Recall the C — Revision Schedule” calendar and
       keeps one event per day in sync with your upcoming revisions. It never
       touches your personal calendars.
+    </p>
+    <p class="gcal-permission-line">
+      Google asks for one permission: <span>calendars created by this app</span>
     </p>
     <a class="btn btn-accent" href="/calendar/google/connect" data-gcal-connect>Connect Google Calendar</a>
   </div>

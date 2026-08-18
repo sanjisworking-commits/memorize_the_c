@@ -17,6 +17,7 @@ from datetime import date, timedelta
 
 from constitution_memorizer.learning.schemas import LearningUnitType
 from constitution_memorizer.progress.scheduler import ReminderEngine
+from constitution_memorizer.web.calendar_view import remaining_review_schedule
 from constitution_memorizer.web.service import unit_visible_for_preference
 
 # The ladder's longest rung is 60 days; 90 covers every reachable future date.
@@ -57,11 +58,14 @@ def build_projection(
     today: date,
     horizon_days: int = PROJECTION_HORIZON_DAYS,
 ) -> dict[date, DayProjection]:
-    """Group upcoming (and overdue) revisions by their stored local date.
+    """Group each unit's FULL remaining revision ladder by local date.
 
-    Overdue revisions (stored date < today) roll INTO today — that mirrors the
-    dashboard's due list, which surfaces everything due-or-overdue now. Dates
-    beyond the horizon are ignored (nothing reachable lives there).
+    Mirrors the in-app month calendar exactly, via the same
+    ``remaining_review_schedule`` helper: the unit's pending revision plus
+    every later rung assuming on-time completion (1→3→7→15→30→60). The
+    pending rung rolls INTO today when due/overdue — matching the dashboard —
+    while later rungs that would land in the past are skipped, never
+    re-materialized. Dates beyond the horizon are ignored.
     """
     end = today + timedelta(days=horizon_days)
     buckets: dict[date, list[DayItem]] = {}
@@ -73,15 +77,26 @@ def build_projection(
             continue
         if not unit_visible_for_preference(engine, unit):
             continue
-        target = record.next_revision if record.next_revision > today else today
-        if target > end:
-            continue
-        buckets.setdefault(target, []).append(
-            DayItem(
-                unit_id=record.learning_unit_id,
-                label=_day_label(unit.display_title, record.interval_days),
+        for index, (rung_date, rung) in enumerate(
+            remaining_review_schedule(record)
+        ):
+            if index == 0:
+                # The pending revision: due/overdue rolls into today.
+                target = rung_date if rung_date > today else today
+            elif rung_date <= today:
+                # Hypothetical intermediate rungs already in the past are
+                # skipped — they re-anchor when the pending one completes.
+                continue
+            else:
+                target = rung_date
+            if target > end:
+                break  # schedule is ascending; nothing later fits either
+            buckets.setdefault(target, []).append(
+                DayItem(
+                    unit_id=record.learning_unit_id,
+                    label=_day_label(unit.display_title, rung),
+                )
             )
-        )
     return {
         d: DayProjection(local_date=d, items=sorted(items, key=lambda i: i.label))
         for d, items in buckets.items()

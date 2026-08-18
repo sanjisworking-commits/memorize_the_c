@@ -34,16 +34,25 @@
   }
   [data-reveal][data-shown="1"]{opacity:1 !important;transform:none !important}
   [data-l]{transition:color .55s ease}
+  [data-lbl-short]{display:none}
   @media (max-width:900px){
     [data-navlinks]{display:none !important}
   }
-  /* Smaller header + hero CTAs on small screens. */
+  /* Compact header + hero CTAs and tighter spacing on small screens. */
   @media (max-width:640px){
-    [data-hdrbar]{padding-top:10px !important;padding-bottom:10px !important;gap:12px !important}
+    [data-hdrbar]{padding-top:9px !important;padding-bottom:9px !important;gap:12px !important}
+    [data-brand]{gap:8px !important}
+    [data-brand] > span:first-child{width:27px !important;height:27px !important;font-size:15px !important}
+    [data-brand] > span:last-child{font-size:16px !important}
     [data-hdr]{gap:6px !important}
     [data-hdr] a.j-ghost,[data-hdr] a.j-ink{padding:8px 12px !important;font-size:13px !important}
     [data-hdr] #landing-theme-toggle{width:34px !important;height:34px !important}
+    [data-lbl-full]{display:none}
+    [data-lbl-short]{display:inline}
     [data-herocta] a{padding:13px 20px !important;font-size:14.5px !important}
+    /* Cut the dead space: shorten the pinned closing block and trim section padding. */
+    [data-lit-src]{height:140vh !important}
+    main > section:not(#top){padding-top:clamp(44px,7vh,72px) !important;padding-bottom:clamp(44px,7vh,72px) !important}
   }
   @media (prefers-reduced-motion:reduce){
     *{animation:none !important}
@@ -64,9 +73,9 @@
 
 <header style="position:sticky;top:0;z-index:60;background:rgba(11,11,11,0.82);backdrop-filter:saturate(1.2) blur(12px);border-bottom:1px solid rgba(244,241,234,0.12)">
   <div data-hdrbar="1" style="max-width:1500px;margin:0 auto;padding:14px clamp(20px,3vw,44px);display:flex;align-items:center;justify-content:space-between;gap:20px">
-    <a href="#top" style="display:inline-flex;align-items:center;gap:11px">
+    <a href="#top" data-brand="1" style="display:inline-flex;align-items:center;gap:11px">
       <span style="width:31px;height:31px;display:grid;place-items:center;border:1.5px solid #f4f1ea;font-family:Fraunces,Georgia,serif;font-weight:700;font-size:17px;line-height:1">C</span>
-      <span style="font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:700;letter-spacing:-0.02em">Recall the C</span>
+      <span style="font-family:Fraunces,Georgia,serif;font-size:19px;font-weight:700;letter-spacing:-0.02em;white-space:nowrap">Recall the C</span>
     </a>
     <div data-hdr="1" style="display:flex;align-items:center;gap:8px">
       <nav data-navlinks="1" style="display:flex;align-items:center;gap:2px;margin-right:10px">
@@ -77,8 +86,8 @@
         <a href="/pricing" style="padding:8px 11px;font-size:14px;font-weight:600;color:rgba(244,241,234,0.6)">Pricing</a>
         {% endif %}
       </nav>
-      <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:9px 16px;font-size:14px;font-weight:600" class="j-ghost">Explore as guest</a>
-      <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:10px 18px;font-size:14px;font-weight:700" class="j-ink">Start learning</a>
+      <a href="/browse" style="border:1px solid rgba(244,241,234,0.3);padding:9px 16px;font-size:14px;font-weight:600;white-space:nowrap" class="j-ghost"><span data-lbl-full>Explore as guest</span><span data-lbl-short>Explore</span></a>
+      <a href="/login" style="background:#f4f1ea;color:#0b0b0b;border:1px solid #f4f1ea;padding:10px 18px;font-size:14px;font-weight:700;white-space:nowrap" class="j-ink"><span data-lbl-full>Start learning</span><span data-lbl-short>Learn</span></a>
       <button id="landing-theme-toggle" data-to="light" type="button" aria-label="Switch to light theme" title="Light theme" style="display:grid;place-items:center;width:38px;height:38px;background:none;border:1px solid rgba(244,241,234,0.3);color:rgba(244,241,234,0.7);font-size:15px;line-height:1;cursor:pointer;font-family:inherit">&#9788;</button>
     </div>
   </div>

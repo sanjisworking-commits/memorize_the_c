@@ -121,9 +121,16 @@ Use the `http://localhost:8899/calendar/google/callback` redirect URI (added
 above) and a test-mode consent screen. Without the GCAL vars, local dev is
 completely unaffected — the section simply doesn't render.
 
+## Scope note
+
+The Memory log is a single-user/local feature and is **out of scope for
+multiuser** (production runs `MEMORY_LOG_ENABLED=false`). The calendar
+projection therefore covers Constitution units only, by design — not as a
+deferral.
+
 ## Future considerations (deliberately NOT implemented)
 
-Memory-log entries in the daily event; "✅ Complete" for finished days (needs
-authoritative `last_completed == today` evidence, not an empty projection);
+"✅ Complete" for finished days (needs authoritative
+`last_completed == today` evidence, not an empty projection);
 keep-vs-remove calendar choice on disconnect; a notifications-side consumer
 of the same projection; ICS/Apple Calendar; per-day duration estimates.

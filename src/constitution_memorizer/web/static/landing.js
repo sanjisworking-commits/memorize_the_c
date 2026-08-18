@@ -400,7 +400,7 @@
         var on = cp * 6.4 > i + 0.15;
         el.style.color = on ? "#f4f1ea" : "rgba(244,241,234,0.62)";
         el.style.borderColor = on
-          ? "rgba(143,214,201,0.5)"
+          ? "rgba(110,130,200,0.5)"
           : "rgba(244,241,234,0.14)";
       });
     }

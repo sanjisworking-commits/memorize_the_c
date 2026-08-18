@@ -170,11 +170,20 @@ def test_callback_rejects_state_mismatch(tmp_path: Path) -> None:
     assert store.get_connection(USER) is None
 
 
-def test_reconnect_reuses_tombstoned_calendar(tmp_path: Path) -> None:
+def test_reconnect_after_disconnect_mints_fresh_calendar(tmp_path: Path) -> None:
+    """Disconnect revokes the grant, which DELISTS the app-created calendar
+    from the user's Google UI (Calendars.get still 200s, but our scope has no
+    calendarList.insert to re-list it) — so a reconnect must create a fresh,
+    visible calendar and drop mappings that point at the old one's events."""
     client, store, fake, _repo = _client(tmp_path)
     fake.calendar_exists = False
     _connect(client, fake)  # creates cal_new_1
-    # Disconnect (tombstone).
+    from datetime import date as _date
+
+    store.upsert_event_mapping(
+        USER, local_date=_date(2026, 8, 19), google_event_id="ev-old", content_hash="h"
+    )
+    # Disconnect (tombstone + remote revoke).
     csrf = client.cookies.get("rtc_csrf")
     resp = client.post(
         "/calendar/google/disconnect",
@@ -183,13 +192,28 @@ def test_reconnect_reuses_tombstoned_calendar(tmp_path: Path) -> None:
     )
     assert resp.headers["location"] == "/settings?gcal=disconnected"
     assert store.get_connection(USER).is_active is False
-    # Reconnect: Calendars.get(cal_new_1) → 200 → reuse, no second calendar.
+    # Reconnect: even though cal_new_1 still answers Calendars.get, it was
+    # delisted by the revoke → mint cal_new_2 and start from clean mappings.
     fake.calendar_exists = True
     _connect(client, fake)
     connection = store.get_connection(USER)
     assert connection.is_active
+    assert connection.google_calendar_id == "cal_new_2"
+    assert fake.created_calendars == 2
+    assert store.list_event_mappings(USER) == []
+
+
+def test_active_reconsent_reuses_calendar(tmp_path: Path) -> None:
+    """Re-running the connect flow WITHOUT disconnecting (grant never
+    revoked, calendar still listed) keeps the same calendar — no duplicate."""
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)  # creates cal_new_1
+    fake.calendar_exists = True
+    _connect(client, fake)  # still active → probe → reuse
+    connection = store.get_connection(USER)
     assert connection.google_calendar_id == "cal_new_1"
-    assert fake.created_calendars == 1  # never duplicated
+    assert fake.created_calendars == 1
 
 
 def test_omitted_refresh_token_preserves_stored_one(tmp_path: Path) -> None:
@@ -518,19 +542,15 @@ def test_callback_records_google_and_store_stages(
     assert "calendar_sync_schedule_n=1" in line
 
 
-def test_callback_reuse_then_create_counts_two_google_checks(
+def test_callback_probe_then_create_counts_two_google_checks(
     tmp_path: Path, caplog: logging.LogCaptureFixture
 ) -> None:
+    """An ACTIVE re-consent probes the stored calendar; when Google says it
+    vanished the same callback creates a fresh one — two Google calls."""
     client, _store, fake, _repo = _client(tmp_path)
     fake.calendar_exists = False
-    _connect(client, fake)
-    csrf = client.cookies.get("rtc_csrf")
-    client.post(
-        "/calendar/google/disconnect",
-        data={"csrf_token": csrf},
-        follow_redirects=False,
-    )
-    fake.calendar_exists = False
+    _connect(client, fake)  # creates cal_new_1, connection stays active
+    fake.calendar_exists = False  # the stored calendar has vanished
     start = client.get("/calendar/google/connect", follow_redirects=False)
     state = start.cookies.get("rtc_gcal_state")
     with caplog.at_level(logging.INFO, logger="uvicorn.error"):

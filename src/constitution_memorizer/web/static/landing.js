@@ -215,9 +215,9 @@
         ctx.lineWidth = gi === 0 ? 1.5 : grp.major ? 1.2 : 0.9;
         ctx.strokeStyle =
           gi === 0
-            ? "rgba(245,144,34," + la.toFixed(3) + ")"
+            ? "rgba(110,130,200," + la.toFixed(3) + ")"
             : grp.major
-            ? "rgba(245,144,34," + (la * 0.8).toFixed(3) + ")"
+            ? "rgba(110,130,200," + (la * 0.8).toFixed(3) + ")"
             : "rgba(244,241,234," + (la * 0.72).toFixed(3) + ")";
         ctx.beginPath();
         var ix = grp.idx;
@@ -248,7 +248,7 @@
           lastFont = f;
         }
         ctx.fillStyle = qc.accent
-          ? "rgba(245,144,34," + Math.min(1, a * 1.2).toFixed(3) + ")"
+          ? "rgba(110,130,200," + Math.min(1, a * 1.2).toFixed(3) + ")"
           : "rgba(244,241,234," + a.toFixed(3) + ")";
         ctx.fillText(qc.ch, qc.x, qc.y);
       }

@@ -29,7 +29,6 @@
     "Ordinary days, in a row, are the whole method.",
     "Recognition is borrowed. Recall is yours.",
     "Ask it six ways and it stops being a habit.",
-    "What you carry, you never have to go looking for.",
     "Knowing the law is the first way of holding it.",
   ];
 
@@ -290,8 +289,8 @@
     var m = document.querySelector("[data-marker]");
     if (!m) return;
     var sp = m.querySelectorAll("span");
-    var stage = Math.min(state.stage, 5);
-    if (sp[0]) sp[0].textContent = "0" + (stage + 1) + " / 06";
+    var stage = Math.min(state.stage, LINES.length - 1);
+    if (sp[0]) sp[0].textContent = "0" + (stage + 1) + " / 0" + LINES.length;
     if (sp[1]) sp[1].textContent = LINES[stage];
   }
 
@@ -444,7 +443,21 @@
     drawField();
   }
 
+  // Persisted dark/light landing toggle: set the cookie the server reads to
+  // pick the template, then reload so the other landing is served.
+  function wireThemeToggle() {
+    var btn = document.getElementById("landing-theme-toggle");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var to = btn.getAttribute("data-to") || "light";
+      document.cookie =
+        "rtc_landing_theme=" + to + "; path=/; max-age=31536000; samesite=lax";
+      location.reload();
+    });
+  }
+
   function boot() {
+    wireThemeToggle();
     renderMarker();
     raf = requestAnimationFrame(tick);
 

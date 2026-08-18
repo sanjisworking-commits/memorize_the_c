@@ -696,9 +696,17 @@ def create_app(
     async def home(request: Request) -> HTMLResponse:
         if app.state.multiuser_enabled:
             if getattr(request.state, "current_user", None) is None:
+                # Persisted marketing-landing theme (default dark). The toggle
+                # in the header sets this cookie and reloads; each theme is a
+                # separate, structurally different template.
+                landing_template = (
+                    "landing_light.html"
+                    if request.cookies.get("rtc_landing_theme") == "light"
+                    else "landing.html"
+                )
                 return templates.TemplateResponse(
                     request,
-                    "landing.html",
+                    landing_template,
                     {
                         "landing_review_days": list(INTERVAL_LADDER),
                     },
@@ -1769,6 +1777,13 @@ def create_app(
                 "free_href": "/login" if is_guest else "/browse",
                 "cta_href": (
                     "/login" if is_guest else "/subscribe/confirm"
+                ),
+                # Standalone marketing pricing page follows the same persisted
+                # landing theme (default dark) as the / landing.
+                "landing_theme": (
+                    "light"
+                    if request.cookies.get("rtc_landing_theme") == "light"
+                    else "dark"
                 ),
             },
         )

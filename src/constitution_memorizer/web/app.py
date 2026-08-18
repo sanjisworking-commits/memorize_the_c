@@ -1558,7 +1558,14 @@ def create_app(
         m = month if month is not None else today.month
         if m < 1 or m > 12 or y < 1 or y > 9999:
             raise HTTPException(status_code=400, detail="Invalid year or month")
-        view = build_calendar_month(_engine(), year=y, month=m, today=today)
+        eng = _engine()
+        is_guest = bool(
+            app.state.multiuser_enabled
+            and getattr(request.state, "current_user", None) is None
+        )
+        if not is_guest:
+            eng.bootstrap_request()
+        view = build_calendar_month(eng, year=y, month=m, today=today)
         return templates.TemplateResponse(
             request,
             "calendar.html",
@@ -2018,8 +2025,12 @@ def create_app(
                 retry_stale_pending(request, user.id)
             except Exception:  # noqa: BLE001 — settings must always render
                 logger.exception("stale-pending calendar retry failed")
+            started = time.perf_counter()
             connection = app.state.calendar_store.get_connection(user.id)
+            record_request_timing("calendar_connection", started)
+            started = time.perf_counter()
             prefs = calendar_prefs(eng)
+            record_request_timing("calendar_prefs", started)
             gcal_ctx = {
                 "connection": connection,
                 "connected": bool(connection is not None and connection.is_active),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from uuid import UUID
 
@@ -366,6 +367,289 @@ def test_account_deletion_revokes_google_grant(tmp_path: Path) -> None:
     assert resp.status_code == 303
     assert fake.revoked_tokens, "revocation endpoint was never called"
     assert store.get_connection(USER) is None
+
+
+def _breakdown_line(caplog: logging.LogCaptureFixture) -> str:
+    messages = [
+        record.getMessage()
+        for record in caplog.records
+        if record.getMessage().startswith("request_breakdown ")
+    ]
+    assert len(messages) == 1
+    return messages[0]
+
+
+def test_settings_records_calendar_and_frequency_stages(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.get("/settings")
+    assert resp.status_code == 200
+    line = _breakdown_line(caplog)
+    assert "path=/settings" in line
+    assert "settings_frequency_n=1" in line
+    assert "news_setting_n=1" in line
+    assert "calendar_pending_retry_n=1" in line
+    assert "calendar_connection_n=1" in line
+    assert "calendar_prefs_n=1" in line
+
+
+def test_preferences_post_records_write_and_schedule(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.post(
+            "/calendar/google/preferences",
+            data={
+                "csrf_token": csrf,
+                "user_timezone": "Asia/Kolkata",
+                "revision_time": "21:30",
+                "session_minutes": "45",
+            },
+            follow_redirects=False,
+        )
+    assert resp.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_pref_write_n=1" in line
+    assert "calendar_sync_schedule_n=1" in line
+
+
+def test_inactive_schedule_sync_still_records_stage(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    client.post(
+        "/calendar/google/disconnect",
+        data={"csrf_token": csrf},
+        follow_redirects=False,
+    )
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.post(
+            "/calendar/google/preferences",
+            data={
+                "csrf_token": csrf,
+                "user_timezone": "Asia/Kolkata",
+                "revision_time": "20:00",
+                "session_minutes": "30",
+            },
+            follow_redirects=False,
+        )
+    assert resp.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_pref_write_n=1" in line
+    assert "calendar_sync_schedule_n=1" in line
+
+
+def test_disabled_gcal_schedule_sync_does_not_time(tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    from constitution_memorizer.calendar_sync.routes import schedule_sync
+    from constitution_memorizer.web.request_context import (
+        begin_request_timings,
+        reset_request_timings,
+        snapshot_request_timings,
+    )
+
+    client, _store, _fake, _repo = _client(tmp_path, gcal=False)
+    request = SimpleNamespace(app=client.app)
+    token = begin_request_timings()
+    try:
+        schedule_sync(request, USER)
+        snap = snapshot_request_timings()
+    finally:
+        reset_request_timings(token)
+    assert "calendar_sync_schedule" not in snap
+
+
+def test_connect_records_timezone_pref_stages(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, _fake, _repo = _client(tmp_path)
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.get(
+            "/calendar/google/connect?tz=Asia/Kolkata", follow_redirects=False
+        )
+    assert resp.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_prefs_n=1" in line
+    assert "calendar_pref_write_n=1" in line
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        client.get("/calendar/google/connect?tz=Europe/London", follow_redirects=False)
+    line = _breakdown_line(caplog)
+    assert "calendar_prefs_n=1" in line
+    assert "calendar_pref_write_" not in line
+
+
+def test_callback_records_google_and_store_stages(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    start = client.get("/calendar/google/connect", follow_redirects=False)
+    state = start.cookies.get("rtc_gcal_state")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        cb = client.get(
+            f"/calendar/google/callback?code=auth-code&state={state}",
+            follow_redirects=False,
+        )
+    assert cb.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "google_token_exchange_n=1" in line
+    assert "calendar_connection_n=1" in line
+    assert "calendar_prefs_n=1" in line
+    assert "google_calendar_check_n=1" in line
+    assert "calendar_connection_write_n=1" in line
+    assert "calendar_sync_schedule_n=1" in line
+
+
+def test_callback_reuse_then_create_counts_two_google_checks(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    client.post(
+        "/calendar/google/disconnect",
+        data={"csrf_token": csrf},
+        follow_redirects=False,
+    )
+    fake.calendar_exists = False
+    start = client.get("/calendar/google/connect", follow_redirects=False)
+    state = start.cookies.get("rtc_gcal_state")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        cb = client.get(
+            f"/calendar/google/callback?code=auth-code&state={state}",
+            follow_redirects=False,
+        )
+    assert cb.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "google_calendar_check_n=2" in line
+    assert "calendar_prefs_n=1" in line
+
+
+def test_disconnect_records_revoke_and_tombstone(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+) -> None:
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    csrf = client.cookies.get("rtc_csrf")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.post(
+            "/calendar/google/disconnect",
+            data={"csrf_token": csrf},
+            follow_redirects=False,
+        )
+    assert resp.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_connection_n=1" in line
+    assert "google_token_revoke_n=1" in line
+    assert "calendar_connection_write_n=1" in line
+
+
+def _seed_split_projection(client: TestClient) -> list[int]:
+    """Give projection a letter-split unit so background sync loads split prefs."""
+    engine = client.app.state.engine.for_user(USER)
+    engine.mark_all_modes_seen("clause-2")
+    engine.mark_done("clause-2", require_all_modes=False)
+    engine.set_split_preference("clause-2", "letters")
+    split_calls = [0]
+    inner = engine.repo.list_split_preferences
+
+    def _counting(user_id):
+        split_calls[0] += 1
+        return inner(user_id)
+
+    engine.repo.list_split_preferences = _counting  # type: ignore[method-assign]
+    return split_calls
+
+
+def test_background_sync_does_not_record_split_prefs_on_asyncio_run(
+    tmp_path: Path,
+) -> None:
+    from types import SimpleNamespace
+
+    from constitution_memorizer.calendar_sync.routes import schedule_sync
+    from constitution_memorizer.web.request_context import (
+        begin_request_timings,
+        reset_request_timings,
+        snapshot_request_timings,
+    )
+
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    split_calls = _seed_split_projection(client)
+    request = SimpleNamespace(app=client.app)
+    token = begin_request_timings()
+    try:
+        schedule_sync(request, USER)
+        snap = snapshot_request_timings()
+    finally:
+        reset_request_timings(token)
+    assert split_calls[0] >= 1
+    assert snap["calendar_sync_schedule"][1] == 1
+    assert "split_prefs" not in snap
+    assert "progress_preload" not in snap
+    assert "theme" not in snap
+
+
+def test_background_sync_does_not_record_split_prefs_on_create_task(
+    tmp_path: Path,
+) -> None:
+    import asyncio
+    from types import SimpleNamespace
+
+    from constitution_memorizer.calendar_sync.routes import schedule_sync
+    from constitution_memorizer.web.request_context import (
+        begin_request_timings,
+        reset_request_timings,
+        snapshot_request_timings,
+    )
+
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    split_calls = _seed_split_projection(client)
+    request = SimpleNamespace(app=client.app)
+    client.app.state.gcal_tasks = set()
+
+    async def _exercise() -> dict[str, tuple[float, int]]:
+        token = begin_request_timings()
+        try:
+            schedule_sync(request, USER)
+            pending = list(getattr(client.app.state, "gcal_tasks", set()) or [])
+            if pending:
+                await asyncio.gather(*pending)
+            return snapshot_request_timings()
+        finally:
+            reset_request_timings(token)
+
+    snap = asyncio.run(_exercise())
+    assert split_calls[0] >= 1
+    assert snap["calendar_sync_schedule"][1] == 1
+    assert "split_prefs" not in snap
+    assert "progress_preload" not in snap
+    assert "theme" not in snap
 
 
 def test_reminder_popup_shown_until_cadence_chosen(tmp_path: Path) -> None:

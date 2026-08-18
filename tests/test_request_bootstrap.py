@@ -306,6 +306,66 @@ def test_blank_profile_still_redirects_to_welcome(tmp_path: Path):
     assert repo.load_request_bootstrap_calls == 1
 
 
+def test_signed_in_calendar_one_bootstrap(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+):
+    client, repo = _counting_client(tmp_path)
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.get("/calendar")
+    assert resp.status_code == 200
+    assert repo.load_request_bootstrap_calls == 1
+    assert repo.list_all_progress_calls == 0
+    assert repo.get_theme_calls == 0
+    line = _breakdown_messages(caplog)[0]
+    assert "path=/calendar" in line
+    assert "request_bootstrap_n=1" in line
+    assert "progress_preload_" not in line
+    assert "theme_" not in line
+
+
+def test_guest_calendar_redirects_without_bootstrap(tmp_path: Path):
+    conn = open_progress_db(tmp_path / "progress.db")
+    repo = CountingProgressRepo(ProgressRepository(conn))
+    app = create_app(
+        units_path=MINI_UNITS,
+        db_path=tmp_path / "unused.db",
+        multiuser=True,
+        multiuser_settings=_settings(),
+        auth_provider=FakeAuthProvider(),
+        session_store=InMemorySessionStore(),
+        progress_repo=repo,
+    )
+    client = TestClient(app)
+    resp = client.get("/calendar", follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"].startswith("/login")
+    assert repo.load_request_bootstrap_calls == 0
+
+
+def test_single_user_calendar_bootstraps(
+    tmp_path: Path, caplog: logging.LogCaptureFixture
+):
+    conn = open_progress_db(tmp_path / "progress.db")
+    repo = CountingProgressRepo(ProgressRepository(conn))
+    app = create_app(
+        units_path=MINI_UNITS,
+        db_path=tmp_path / "unused.db",
+        progress_repo=repo,
+    )
+    client = TestClient(app)
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        resp = client.get("/calendar")
+    assert resp.status_code == 200
+    assert repo.load_request_bootstrap_calls == 1
+    assert repo.list_all_progress_calls == 0
+    line = _breakdown_messages(caplog)[0]
+    assert "request_bootstrap_n=1" in line
+    assert "progress_preload_" not in line
+    assert "theme_" not in line
+
+
 def test_dashboard_browse_breakdown_has_single_bootstrap(
     tmp_path: Path, caplog: logging.LogCaptureFixture
 ):

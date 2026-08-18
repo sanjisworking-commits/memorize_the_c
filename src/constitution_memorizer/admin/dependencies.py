@@ -14,6 +14,7 @@ Three paths with different staleness guarantees:
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from time import perf_counter
 
 from fastapi import HTTPException, Request
 
@@ -21,6 +22,12 @@ from constitution_memorizer.admin.store import AccessOverride
 from constitution_memorizer.auth.models import AuthenticatedUser
 
 _UNSET = object()
+
+
+def _record_timing(stage: str, started: float) -> None:
+    from constitution_memorizer.web.request_context import record_request_timing
+
+    record_request_timing(stage, started)
 
 
 def resolve_is_admin(request: Request) -> bool:
@@ -54,9 +61,11 @@ def resolve_access_override(request: Request) -> AccessOverride:
     ):
         override = AccessOverride()
     else:
+        started = perf_counter()
         override = store.resolve_access_override(
             user.id, datetime.now(timezone.utc)
         )
+        _record_timing("access_override", started)
     request.state.access_override = override
     # The authoritative bit came along for free; share the memo.
     if getattr(request.state, "is_admin", None) is None:
@@ -78,7 +87,14 @@ def admin_hint(request: Request) -> bool:
         or cache is None
     ):
         return False
-    return cache.get(user.id, lambda: store.is_admin(user.id))
+
+    def _load() -> bool:
+        started = perf_counter()
+        value = store.is_admin(user.id)
+        _record_timing("admin_hint", started)
+        return value
+
+    return cache.get(user.id, _load)
 
 
 def require_admin(request: Request) -> AuthenticatedUser:

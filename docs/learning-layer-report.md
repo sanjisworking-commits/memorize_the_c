@@ -74,7 +74,7 @@ split_preference(
 );
 ```
 
-Interval ladder: `1 → 3 → 7 → 14 → 30 → 60` days, then `mastered`.
+Interval ladder: `1 → 3 → 7 → 15 → 30 → 60` days, then `mastered`.
 
 ## 6. Example learning paths
 

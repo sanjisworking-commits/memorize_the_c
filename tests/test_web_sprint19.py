@@ -50,7 +50,7 @@ def test_calendar_page_renders_month_grid(client: TestClient):
     assert 'href="/calendar?year=2026&amp;month=6"' in html
     assert 'href="/calendar?year=2026&amp;month=8"' in html
     assert "/static/styles.css?" in html
-    assert "app.js?v=main23" in html
+    assert "app.js?v=main24" in html
 
 
 def test_calendar_invalid_month_returns_400(client: TestClient):
@@ -98,13 +98,13 @@ def test_build_calendar_future_scheduled_chip(engine: ReminderEngine):
     engine.mark_done("clause-1", as_of=date(2026, 7, 5))
     view = build_calendar_month(engine, year=2026, month=7, today=today)
     # Full remaining ladder in July after memorize on the 5th:
-    # +1 → 6, +3 → 9, +7 → 16, +14 → 30 (30-day and 60-day fall in later months)
+    # +1 → 6, +3 → 9, +7 → 16, +15 → 31 (30-day and 60-day fall in later months)
     assert view.scheduled_count == 4
     expected = {
         6: "1-day review",
         9: "3-day review",
         16: "7-day review",
-        30: "14-day review",
+        31: "15-day review",
     }
     for day_num, tip_part in expected.items():
         day = next(d for d in view.days if d.day == day_num)
@@ -121,14 +121,14 @@ def test_remaining_ladder_projects_full_intervals(engine: ReminderEngine):
     row = engine.get_progress("clause-1")
     assert row is not None
     schedule = remaining_review_schedule(row)
-    assert [rung for _, rung in schedule] == [1, 3, 7, 14, 30, 60]
+    assert [rung for _, rung in schedule] == [1, 3, 7, 15, 30, 60]
     assert [d for d, _ in schedule] == [
         date(2026, 7, 6),
         date(2026, 7, 9),
         date(2026, 7, 16),
-        date(2026, 7, 30),
-        date(2026, 8, 29),
-        date(2026, 10, 28),
+        date(2026, 7, 31),
+        date(2026, 8, 30),
+        date(2026, 10, 29),
     ]
 
 
@@ -142,7 +142,7 @@ def test_ladder_after_review_starts_at_next_rung(engine: ReminderEngine):
     row = engine.get_progress("clause-1")
     assert row is not None
     schedule = remaining_review_schedule(row)
-    assert [rung for _, rung in schedule] == [3, 7, 14, 30, 60]
+    assert [rung for _, rung in schedule] == [3, 7, 15, 30, 60]
     assert schedule[0][0] == date(2026, 7, 9)
 
 

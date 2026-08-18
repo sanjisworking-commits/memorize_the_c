@@ -81,7 +81,7 @@ def remaining_review_schedule(row: ProgressRecord) -> list[tuple[date, int]]:
 
     Starts at ``next_revision`` (current rung = ``interval_days``), then assumes
     on-time completion for each later step of ``INTERVAL_LADDER``
-    (1 → 3 → 7 → 14 → 30 → 60).
+    (1 → 3 → 7 → 15 → 30 → 60).
     """
     if row.next_revision is None or row.status not in ("review", "mastered"):
         return []

@@ -120,6 +120,31 @@ CREATE TABLE IF NOT EXISTS billing_orders (
 
 CREATE INDEX IF NOT EXISTS idx_billing_orders_user ON billing_orders(user_id);
 
+CREATE TABLE IF NOT EXISTS google_calendar_connections (
+    user_id TEXT PRIMARY KEY,
+    google_calendar_id TEXT,
+    refresh_token_sealed TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (sync_status IN ('ok', 'error', 'pending', 'disconnected')),
+    sync_pending INTEGER NOT NULL DEFAULT 0,
+    sync_requested_at TEXT,
+    last_synced_at TEXT,
+    last_error TEXT,
+    connected_at TEXT,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS google_calendar_events (
+    user_id TEXT NOT NULL,
+    local_date TEXT NOT NULL,
+    google_event_id TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    last_synced_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, local_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_gcal_events_user ON google_calendar_events(user_id);
+
 CREATE TABLE IF NOT EXISTS admin_audit_log (
     id TEXT PRIMARY KEY,
     admin_user_id TEXT NOT NULL,
@@ -344,7 +369,43 @@ def _migrate_legacy(conn: sqlite3.Connection) -> None:
     # Must run before this function's own commit — init_db returns right
     # after _migrate_legacy, so a later call would be left uncommitted.
     _invalidate_legacy_gated_modes(conn)
+    _migrate_ladder_day15(conn)
     conn.commit()
+
+
+_LADDER_DAY15_MARKER_KEY = "ladder_day15_migrated_v1"
+
+
+def _migrate_ladder_day15(conn: sqlite3.Connection) -> None:
+    """Re-slot interval_days 14 → 15 (idempotent, one-shot).
+
+    The Constitution ladder's fourth rung was corrected from Day 14 to Day 15.
+    Without this, ``advance_interval(14)`` would round a unit UP to the new 15
+    rung — repeating the two-week interval instead of advancing to 30. Stored
+    ``next_revision`` dates are deliberately untouched: already-scheduled
+    reviews keep their dates. Postgres gets the same UPDATE via alembic.
+    """
+    marker = conn.execute(
+        "SELECT 1 FROM app_settings WHERE user_id = ? AND key = ?",
+        (str(LOCAL_USER_ID), _LADDER_DAY15_MARKER_KEY),
+    ).fetchone()
+    if marker is not None:
+        return
+    conn.execute(
+        "UPDATE learning_unit_progress SET interval_days = 15 WHERE interval_days = 14"
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO app_settings (user_id, key, value, updated_at)
+        VALUES (?, ?, '1', ?)
+        """,
+        (
+            str(LOCAL_USER_ID),
+            _LADDER_DAY15_MARKER_KEY,
+            datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        ),
+    )
+    logger.info("Re-slotted interval_days 14 -> 15 (ladder day-15 correction)")
 
 
 def _invalidate_legacy_gated_modes(conn: sqlite3.Connection) -> None:
@@ -557,6 +618,7 @@ def init_db(conn: sqlite3.Connection) -> None:
         _ensure_profile_identity_columns(conn)
         conn.executescript(SCHEMA_SQL)
         _invalidate_legacy_gated_modes(conn)
+        _migrate_ladder_day15(conn)
     finally:
         conn.execute("PRAGMA foreign_keys = ON")
     conn.commit()

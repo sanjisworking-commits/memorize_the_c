@@ -148,7 +148,7 @@ def test_nav_and_footnote_gated_when_flags_false(tmp_path: Path):
     assert 'href="/laws"' not in html
     assert 'href="/memory"' not in html
     assert "Memory log 1→3→7→14→30" not in html
-    assert "Constitution 1→3→7→14→30→60" in html
+    assert "Constitution 1→3→7→15→30→60" in html
 
 
 def test_home_launcher_cards_gated(tmp_path: Path):

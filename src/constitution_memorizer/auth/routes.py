@@ -509,7 +509,48 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         eng = request.app.state.engine.for_user(user.id)
         if action == "delete_account":
             # Soft delete for this phase: clear personal data + session.
+            # Orchestration lives HERE, not in the progress domain — the
+            # revision engine stays ignorant of Google Calendar.
             eng.reset_all_personal_data()
+            calendar_store = getattr(request.app.state, "calendar_store", None)
+            if calendar_store is not None:
+                try:
+                    # Revoke the Google grant BEFORE deleting the sealed token —
+                    # afterwards Recall no longer holds the credential, and the
+                    # user's Google account shouldn't keep listing us.
+                    mu_settings = getattr(
+                        request.app.state, "multiuser_settings", None
+                    )
+                    connection = calendar_store.get_connection(user.id)
+                    if (
+                        connection is not None
+                        and connection.refresh_token_sealed
+                        and mu_settings is not None
+                        and mu_settings.gcal_configured
+                    ):
+                        from constitution_memorizer.calendar_sync.crypto import (
+                            TokenSealError,
+                            TokenSealer,
+                        )
+                        from constitution_memorizer.calendar_sync.google_client import (
+                            revoke_token,
+                        )
+
+                        try:
+                            token = TokenSealer(mu_settings.gcal_token_key).unseal(
+                                connection.refresh_token_sealed
+                            )
+                            await revoke_token(
+                                token,
+                                transport=getattr(
+                                    request.app.state, "gcal_transport", None
+                                ),
+                            )
+                        except TokenSealError:
+                            pass  # rotated key — nothing to revoke remotely
+                    calendar_store.delete_user_data(user.id)
+                except Exception:  # noqa: BLE001 — deletion must not 500
+                    logger.exception("calendar cleanup failed during account delete")
             session_id = request.cookies.get(SESSION_COOKIE_NAME)
             if session_id:
                 request.app.state.session_store.delete(session_id)

@@ -2428,6 +2428,32 @@
     learn.insertBefore(band, learn.firstChild);
   }
 
+  function initGcalTimezone() {
+    let tz = "";
+    try {
+      tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    } catch (_e) {
+      tz = "";
+    }
+    // Prefill the Settings field when empty.
+    const field = document.querySelector("[data-gcal-timezone]");
+    if (field && !field.value.trim() && tz) {
+      field.value = tz;
+    }
+    // Carry the browser timezone INTO the connect flow so the very first
+    // calendar + events use local time, not UTC (server stores set-if-unset).
+    const connect = document.querySelector("[data-gcal-connect]");
+    if (connect && tz) {
+      try {
+        const target = new URL(connect.getAttribute("href"), window.location.origin);
+        target.searchParams.set("tz", tz);
+        connect.setAttribute("href", target.pathname + target.search);
+      } catch (_e) {
+        /* keep the plain href */
+      }
+    }
+  }
+
   function initGuestStrip() {
     const strip = document.querySelector("[data-guest-strip]");
     if (!strip) {
@@ -2467,6 +2493,7 @@
     initSlotsWhy();
     initCheckout();
     initFirstPaidSession();
+    initGcalTimezone();
   }
 
   if (document.readyState === "loading") {

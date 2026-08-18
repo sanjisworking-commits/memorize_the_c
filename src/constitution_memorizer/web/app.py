@@ -7,6 +7,7 @@ import time
 from urllib.parse import urlencode
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from uuid import uuid4
 from pathlib import Path
 
@@ -259,6 +260,8 @@ def create_app(
     progress_repo=None,
     access_store=None,
     admin_repo=None,
+    calendar_store=None,
+    gcal_transport=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -566,6 +569,24 @@ def create_app(
             SqliteAccessStore(_sqlite_conn) if _sqlite_conn is not None else None
         )
 
+    # Google Calendar projection store (domain-owned, dual-backend). The
+    # feature also needs GCAL_CLIENT_ID/SECRET/TOKEN_KEY — routes check both.
+    from constitution_memorizer.calendar_sync.store import (
+        PostgresCalendarStore,
+        SqliteCalendarStore,
+    )
+
+    if calendar_store is not None:
+        app.state.calendar_store = calendar_store
+    elif use_postgres:
+        app.state.calendar_store = PostgresCalendarStore(_ensure_pool())
+    else:
+        _sqlite_conn = getattr(engine.repo, "conn", None)
+        app.state.calendar_store = (
+            SqliteCalendarStore(_sqlite_conn) if _sqlite_conn is not None else None
+        )
+    app.state.gcal_transport = gcal_transport
+
     if admin_repo is not None:
         app.state.admin_repo = admin_repo
     elif use_postgres:
@@ -638,6 +659,10 @@ def create_app(
 
     app.include_router(create_auth_router(templates))
     app.include_router(create_admin_router(templates))
+
+    from constitution_memorizer.calendar_sync.routes import router as gcal_router
+
+    app.include_router(gcal_router)
 
     def _engine() -> ReminderEngine:
         bound = bound_engine.get()
@@ -1103,6 +1128,35 @@ def create_app(
         payload["persisted"] = True
         return JSONResponse(payload)
 
+    def _user_today(request: Request, eng: ReminderEngine) -> date:
+        """The user's local calendar date for schedule anchoring.
+
+        With a stored IANA ``user_timezone`` the revision ladder anchors on
+        the USER'S today, not the server's — a 00:30 IST completion lands on
+        the IST date even though Railway's clock still reads yesterday (UTC).
+        Unset/invalid → the historical server-local behavior.
+        """
+        tz_name = ""
+        try:
+            tz_name = eng.repo.get_setting(eng.user_id, "user_timezone") or ""
+        except Exception:  # noqa: BLE001 — anchoring must never break Done
+            pass
+        if tz_name:
+            try:
+                return datetime.now(ZoneInfo(tz_name)).date()
+            except (KeyError, ValueError):
+                pass
+        return date.today()
+
+    def _schedule_calendar_sync(request: Request, eng: ReminderEngine) -> None:
+        """Fire-and-forget Google Calendar reconciliation after a state change."""
+        try:
+            from constitution_memorizer.calendar_sync.routes import schedule_sync
+
+            schedule_sync(request, eng.user_id)
+        except Exception:  # noqa: BLE001 — projection must never break core flow
+            logger.exception("calendar sync scheduling failed")
+
     @app.post("/learn/{unit_id}/done")
     async def learn_done(request: Request, unit_id: str):
         eng = _engine()
@@ -1190,12 +1244,13 @@ def create_app(
                 try:
                     result = eng.mark_done(
                         unit_id,
-                        as_of=date.today(),
+                        as_of=_user_today(request, eng),
                         require_all_modes=False,
                         claim_article=claim_key,
                     )
                 except ModesIncompleteError:
                     return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
+                _schedule_calendar_sync(request, eng)
                 if wants_json(request):
                     return JSONResponse(
                         done_json_payload(
@@ -1223,7 +1278,7 @@ def create_app(
         try:
             result = eng.mark_done(
                 unit_id,
-                as_of=date.today(),
+                as_of=_user_today(request, eng),
                 required_modes=frozenset(done_required),
             )
         except ModesIncompleteError:
@@ -1233,6 +1288,7 @@ def create_app(
                     status_code=409,
                 )
             return RedirectResponse(url=f"/learn/{unit_id}", status_code=303)
+        _schedule_calendar_sync(request, eng)
         if wants_json(request):
             return JSONResponse(
                 done_json_payload(
@@ -1249,12 +1305,13 @@ def create_app(
         )
 
     @app.post("/learn/{unit_id}/again")
-    async def learn_again(unit_id: str) -> RedirectResponse:
+    async def learn_again(request: Request, unit_id: str) -> RedirectResponse:
         """Defer this unit until tomorrow, then advance to the next unit."""
         eng = _engine()
         if eng.get_unit(unit_id) is None:
             raise HTTPException(status_code=404, detail="Learning unit not found")
-        result = eng.defer_until_tomorrow(unit_id, as_of=date.today())
+        result = eng.defer_until_tomorrow(unit_id, as_of=_user_today(request, eng))
+        _schedule_calendar_sync(request, eng)
         return _redirect_after_learn(eng, result.next_unit_id)
 
     def _redirect_after_learn(
@@ -1312,6 +1369,7 @@ def create_app(
 
     @app.post("/learn/{clause_id}/choose")
     async def choose_post(
+        request: Request,
         clause_id: str,
         mode: str = Form(...),
     ) -> RedirectResponse:
@@ -1325,11 +1383,13 @@ def create_app(
             raise HTTPException(status_code=400, detail="mode must be whole or letters")
         chosen: SplitMode = mode  # type: ignore[assignment]
         eng.set_split_preference(clause_id, chosen)
+        _schedule_calendar_sync(request, eng)
         target = eng.next_to_learn_from_clause(clause_id, mode=chosen) or clause_id
         return RedirectResponse(url=f"/learn/{target}", status_code=303)
 
     @app.post("/learn/{unit_id}/reset")
     async def reset_unit(
+        request: Request,
         unit_id: str,
         mode: str = Query(default="read"),
     ) -> RedirectResponse:
@@ -1338,6 +1398,7 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
         eng.delete_progress(unit_id)
         eng.clear_modes_seen(unit_id)
+        _schedule_calendar_sync(request, eng)
         if mode == "card":  # compatibility alias for the retired mode key
             mode = "test"
         learn_mode = mode if mode in LEARN_MODES else "read"
@@ -1346,10 +1407,11 @@ def create_app(
         return RedirectResponse(url=f"/learn/{unit_id}{suffix}", status_code=303)
 
     @app.post("/reset")
-    async def reset_all() -> RedirectResponse:
+    async def reset_all(request: Request) -> RedirectResponse:
         """Clear this user's progress and preferences (study reset)."""
         eng = _engine()
         eng.reset_all_personal_data()
+        _schedule_calendar_sync(request, eng)
         return RedirectResponse(url="/", status_code=303)
 
     @app.get("/browse", response_class=HTMLResponse)
@@ -1930,8 +1992,41 @@ def create_app(
     async def settings_page(
         request: Request,
         saved: int | None = Query(default=None),
+        gcal: str | None = Query(default=None),
     ) -> HTMLResponse:
         eng = _engine()
+        # Revision-calendar section context: shown only when the feature is
+        # configured AND the viewer is a signed-in multiuser account.
+        gcal_ctx: dict[str, object] | None = None
+        settings_obj = getattr(app.state, "multiuser_settings", None)
+        user = getattr(request.state, "current_user", None)
+        if (
+            app.state.multiuser_enabled
+            and user is not None
+            and settings_obj is not None
+            and settings_obj.gcal_configured
+            and getattr(app.state, "calendar_store", None) is not None
+        ):
+            from constitution_memorizer.calendar_sync.routes import (
+                retry_stale_pending,
+            )
+            from constitution_memorizer.calendar_sync.sync import calendar_prefs
+
+            # A restart can strand sync_pending=1 with no task alive; viewing
+            # Settings restarts a stale one so "Syncing…" is never a lie.
+            try:
+                retry_stale_pending(request, user.id)
+            except Exception:  # noqa: BLE001 — settings must always render
+                logger.exception("stale-pending calendar retry failed")
+            connection = app.state.calendar_store.get_connection(user.id)
+            prefs = calendar_prefs(eng)
+            gcal_ctx = {
+                "connection": connection,
+                "connected": bool(connection is not None and connection.is_active),
+                "prefs": prefs,
+                "status_param": gcal or "",
+                "csrf_token": request.cookies.get("rtc_csrf") or "",
+            }
         return templates.TemplateResponse(
             request,
             "settings.html",
@@ -1940,6 +2035,7 @@ def create_app(
                 "news_articles": eng.get_news_articles_raw(),
                 "saved": bool(saved),
                 "access": access_summary(request, eng),
+                "gcal": gcal_ctx,
             },
         )
 

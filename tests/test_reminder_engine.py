@@ -107,11 +107,11 @@ def test_interval_ladder_and_mastered_sentinel():
     assert advance_interval(0) == 1
     assert advance_interval(1) == 3
     assert advance_interval(3) == 7
-    assert advance_interval(7) == 14
-    assert advance_interval(14) == 30
+    assert advance_interval(7) == 15
+    assert advance_interval(15) == 30
     assert advance_interval(30) == 60
     assert advance_interval(60) is None
-    assert INTERVAL_LADDER == (1, 3, 7, 14, 30, 60)
+    assert INTERVAL_LADDER == (1, 3, 7, 15, 30, 60)
 
 
 def test_defer_until_tomorrow_does_not_advance_ladder(engine: ReminderEngine):
@@ -146,8 +146,8 @@ def test_mark_done_advances_new_to_review_intervals(engine: ReminderEngine):
 
 def test_mark_done_reaches_mastered_after_top_rung(engine: ReminderEngine):
     day = date(2026, 1, 1)
-    # Climb 1→3→7→14→30→60 then one more completion masters.
-    for expected in (1, 3, 7, 14, 30, 60):
+    # Climb 1→3→7→15→30→60 then one more completion masters.
+    for expected in (1, 3, 7, 15, 30, 60):
         engine.mark_all_modes_seen("clause-1")
         result = engine.mark_done("clause-1", as_of=day)
         assert result.progress.status == "review"

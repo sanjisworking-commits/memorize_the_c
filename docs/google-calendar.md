@@ -12,7 +12,7 @@ no progress is ever affected.
 - `calendar_sync/projection.py` — projects each unit's FULL remaining
   revision ladder (pending rung plus every later rung assuming on-time
   completion, via the same `remaining_review_schedule` helper as the in-app
-  month calendar) into per-day workload. 90-day horizon; the pending rung
+  month calendar) into per-day workload. 120-day horizon (the entire ladder, Day 60 included, from the first sync); the pending rung
   rolls into today when due/overdue; past hypothetical rungs are never
   re-materialized; split preferences and Part Overviews filtered exactly
   like the dashboard.

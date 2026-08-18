@@ -126,10 +126,10 @@ def test_initial_sync_creates_events_and_mappings(tmp_path: Path) -> None:
     engine, store, fake, client = _setup(tmp_path)
     _complete(engine, "clause-1", date(2026, 8, 18))  # → 19 Aug
     counts = _reconcile(engine, store, client, date(2026, 8, 18))
-    # Full remaining ladder inside the 90-day horizon: 19/22/29 Aug, 13 Sep, 13 Oct.
-    assert counts == {"created": 5, "patched": 0, "deleted": 0, "unchanged": 0}
-    assert len(store.list_event_mappings(USER)) == 5
-    assert len(fake.events) == 5
+    # Full ladder inside the 120-day horizon: 19/22/29 Aug, 13 Sep, 13 Oct, 12 Dec.
+    assert counts == {"created": 6, "patched": 0, "deleted": 0, "unchanged": 0}
+    assert len(store.list_event_mappings(USER)) == 6
+    assert len(fake.events) == 6
 
 
 def test_double_run_is_idempotent_zero_api_calls(tmp_path: Path) -> None:
@@ -138,9 +138,9 @@ def test_double_run_is_idempotent_zero_api_calls(tmp_path: Path) -> None:
     _reconcile(engine, store, client, date(2026, 8, 18))
     fake.calls.clear()
     counts = _reconcile(engine, store, client, date(2026, 8, 18))
-    assert counts == {"created": 0, "patched": 0, "deleted": 0, "unchanged": 5}
+    assert counts == {"created": 0, "patched": 0, "deleted": 0, "unchanged": 6}
     assert fake.calls == []  # unchanged days = no Google traffic at all
-    assert len(fake.events) == 5
+    assert len(fake.events) == 6
 
 
 def test_changed_day_patches_event(tmp_path: Path) -> None:
@@ -151,8 +151,8 @@ def test_changed_day_patches_event(tmp_path: Path) -> None:
     _complete(engine, "clause-2", date(2026, 8, 18))
     counts = _reconcile(engine, store, client, date(2026, 8, 18))
     # Both units share the same ladder dates → every day gains a revision.
-    assert counts["patched"] == 5 and counts["created"] == 0
-    assert len(fake.events) == 5
+    assert counts["patched"] == 6 and counts["created"] == 0
+    assert len(fake.events) == 6
     assert all("2 revisions" in body["summary"] for body in fake.events.values())
 
 
@@ -167,15 +167,16 @@ def test_zero_work_date_deletes_event(tmp_path: Path) -> None:
     _complete(engine, "clause-1", date(2026, 8, 19))
     counts = _reconcile(engine, store, client, date(2026, 8, 19))
     assert counts["deleted"] == 1 and counts["created"] == 0
-    assert counts["unchanged"] == 4
+    assert counts["unchanged"] == 5
     dates = sorted(m.local_date for m in store.list_event_mappings(USER))
     assert dates == [
         date(2026, 8, 22),
         date(2026, 8, 29),
         date(2026, 9, 13),
         date(2026, 10, 13),
+        date(2026, 12, 12),
     ]
-    assert len(fake.events) == 4
+    assert len(fake.events) == 5
 
 
 def test_vanished_event_is_recreated_on_patch(tmp_path: Path) -> None:
@@ -185,8 +186,8 @@ def test_vanished_event_is_recreated_on_patch(tmp_path: Path) -> None:
     fake.events.clear()  # user deleted the events inside Google
     _complete(engine, "clause-2", date(2026, 8, 18))  # dirty every hash
     counts = _reconcile(engine, store, client, date(2026, 8, 18))
-    assert counts["patched"] == 5  # patch path, recreated internally
-    assert len(fake.events) == 5
+    assert counts["patched"] == 6  # patch path, recreated internally
+    assert len(fake.events) == 6
 
 
 def test_sync_pending_cleared_on_success_kept_on_failure(tmp_path: Path) -> None:
@@ -308,7 +309,7 @@ def test_reconnect_does_not_duplicate_events(tmp_path: Path) -> None:
         sync_status=SYNC_PENDING,
     )
     _reconcile(engine, store, client, date(2026, 8, 18))
-    assert len(fake.events) == 5
+    assert len(fake.events) == 6
 
     store.tombstone(USER)  # disconnect — Google events remain
     store.upsert_connection(  # reconnect (same calendar id preserved)
@@ -319,8 +320,8 @@ def test_reconnect_does_not_duplicate_events(tmp_path: Path) -> None:
     )
     counts = _reconcile(engine, store, client, date(2026, 8, 18))
     assert counts["created"] == 0  # ← the blocker: no re-insert
-    assert counts["unchanged"] == 5
-    assert len(fake.events) == 5  # still exactly one event per day in Google
+    assert counts["unchanged"] == 6
+    assert len(fake.events) == 6  # still exactly one event per day in Google
 
 
 def test_delete_user_data_removes_everything(tmp_path: Path) -> None:

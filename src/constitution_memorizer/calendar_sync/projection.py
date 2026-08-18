@@ -20,8 +20,10 @@ from constitution_memorizer.progress.scheduler import ReminderEngine
 from constitution_memorizer.web.calendar_view import remaining_review_schedule
 from constitution_memorizer.web.service import unit_visible_for_preference
 
-# The ladder's longest rung is 60 days; 90 covers every reachable future date.
-PROJECTION_HORIZON_DAYS = 90
+# A freshly memorized unit's ladder ends ~116 days out
+# (1+3+7+15+30+60 cumulative), so 120 draws the ENTIRE ladder — Day 60
+# included — from the very first sync.
+PROJECTION_HORIZON_DAYS = 120
 # Cap description lines so a heavy day doesn't produce an unwieldy event.
 MAX_DESCRIPTION_ITEMS = 15
 

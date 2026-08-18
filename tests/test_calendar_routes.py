@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import date, timedelta
 from pathlib import Path
 from uuid import UUID
 
@@ -64,6 +65,26 @@ class FakeGoogleAuth:
         return httpx.Response(404)
 
 
+class ProbeCalendarStore:
+    """Counts mapping-delete calls used by the OAuth callback cleanup."""
+
+    def __init__(self, inner: SqliteCalendarStore) -> None:
+        self._inner = inner
+        self.delete_all_event_mappings_calls = 0
+        self.delete_event_mapping_calls = 0
+
+    def __getattr__(self, name: str):
+        return getattr(self._inner, name)
+
+    def delete_all_event_mappings(self, user_id):
+        self.delete_all_event_mappings_calls += 1
+        return self._inner.delete_all_event_mappings(user_id)
+
+    def delete_event_mapping(self, user_id, local_date):
+        self.delete_event_mapping_calls += 1
+        return self._inner.delete_event_mapping(user_id, local_date)
+
+
 def _settings(*, gcal: bool = True) -> MultiUserSettings:
     return MultiUserSettings(
         _env_file=None,
@@ -88,6 +109,7 @@ def _client(tmp_path: Path, *, gcal: bool = True, signed_in: bool = True):
     provider = FakeAuthProvider()
     provider.seed_google_user(user_id=USER, email="a@example.com", display_name="T")
     fake = FakeGoogleAuth()
+    store = ProbeCalendarStore(SqliteCalendarStore(conn))
     app = create_app(
         units_path=MINI_UNITS,
         db_path=tmp_path / "unused.db",
@@ -96,7 +118,7 @@ def _client(tmp_path: Path, *, gcal: bool = True, signed_in: bool = True):
         auth_provider=provider,
         session_store=InMemorySessionStore(),
         progress_repo=repo,
-        calendar_store=SqliteCalendarStore(conn),
+        calendar_store=store,
         gcal_transport=fake.transport(),
     )
     client = TestClient(app)
@@ -108,7 +130,7 @@ def _client(tmp_path: Path, *, gcal: bool = True, signed_in: bool = True):
             follow_redirects=False,
         )
         assert cb.status_code == 303
-    return client, SqliteCalendarStore(conn), fake, repo
+    return client, store, fake, repo
 
 
 def _connect(client: TestClient, fake: FakeGoogleAuth) -> str:
@@ -178,10 +200,8 @@ def test_reconnect_after_disconnect_mints_fresh_calendar(tmp_path: Path) -> None
     client, store, fake, _repo = _client(tmp_path)
     fake.calendar_exists = False
     _connect(client, fake)  # creates cal_new_1
-    from datetime import date as _date
-
     store.upsert_event_mapping(
-        USER, local_date=_date(2026, 8, 19), google_event_id="ev-old", content_hash="h"
+        USER, local_date=date(2026, 8, 19), google_event_id="ev-old", content_hash="h"
     )
     # Disconnect (tombstone + remote revoke).
     csrf = client.cookies.get("rtc_csrf")
@@ -214,6 +234,129 @@ def test_active_reconsent_reuses_calendar(tmp_path: Path) -> None:
     connection = store.get_connection(USER)
     assert connection.google_calendar_id == "cal_new_1"
     assert fake.created_calendars == 1
+
+
+def _stub_schedule_sync(monkeypatch) -> None:
+    """Keep mapping-cleanup assertions free of background-sync races."""
+    monkeypatch.setattr(
+        "constitution_memorizer.calendar_sync.routes.schedule_sync",
+        lambda _request, _user_id: None,
+    )
+
+
+def test_reconnect_bulk_deletes_many_stale_mappings(tmp_path: Path, monkeypatch) -> None:
+    """Disconnect → reconnect must drop many old mappings in one bulk DELETE."""
+    _stub_schedule_sync(monkeypatch)
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)  # creates cal_new_1
+    assert store.delete_all_event_mappings_calls == 0
+    for i in range(10):
+        store.upsert_event_mapping(
+            USER,
+            local_date=date(2026, 8, 19) + timedelta(days=i),
+            google_event_id=f"ev-old-{i}",
+            content_hash="h",
+        )
+    csrf = client.cookies.get("rtc_csrf")
+    resp = client.post(
+        "/calendar/google/disconnect",
+        data={"csrf_token": csrf},
+        follow_redirects=False,
+    )
+    assert resp.headers["location"] == "/settings?gcal=disconnected"
+    assert len(store.list_event_mappings(USER)) == 10
+    store.delete_all_event_mappings_calls = 0
+    store.delete_event_mapping_calls = 0
+    fake.calendar_exists = True
+    _connect(client, fake)
+    connection = store.get_connection(USER)
+    assert connection.is_active
+    assert connection.google_calendar_id == "cal_new_2"
+    assert fake.created_calendars == 2
+    assert store.list_event_mappings(USER) == []
+    assert store.delete_all_event_mappings_calls == 1
+    assert store.delete_event_mapping_calls == 0
+
+
+def test_reconnect_after_disconnect_records_two_writes(
+    tmp_path: Path, caplog: logging.LogCaptureFixture, monkeypatch
+) -> None:
+    _stub_schedule_sync(monkeypatch)
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    store.upsert_event_mapping(
+        USER, local_date=date(2026, 8, 19), google_event_id="ev-old", content_hash="h"
+    )
+    csrf = client.cookies.get("rtc_csrf")
+    client.post(
+        "/calendar/google/disconnect",
+        data={"csrf_token": csrf},
+        follow_redirects=False,
+    )
+    fake.calendar_exists = True
+    start = client.get("/calendar/google/connect", follow_redirects=False)
+    state = start.cookies.get("rtc_gcal_state")
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        caplog.clear()
+        cb = client.get(
+            f"/calendar/google/callback?code=auth-code&state={state}",
+            follow_redirects=False,
+        )
+    assert cb.status_code == 303
+    line = _breakdown_line(caplog)
+    assert "calendar_connection_write_n=2" in line
+
+
+def test_active_reconsent_preserves_event_mappings(tmp_path: Path) -> None:
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    store.upsert_event_mapping(
+        USER, local_date=date(2026, 8, 19), google_event_id="ev-keep", content_hash="h"
+    )
+    store.delete_all_event_mappings_calls = 0
+    store.delete_event_mapping_calls = 0
+    fake.calendar_exists = True
+    _connect(client, fake)
+    connection = store.get_connection(USER)
+    assert connection.google_calendar_id == "cal_new_1"
+    assert fake.created_calendars == 1
+    mappings = store.list_event_mappings(USER)
+    assert len(mappings) == 1
+    assert mappings[0].google_event_id == "ev-keep"
+    assert store.delete_all_event_mappings_calls == 0
+    assert store.delete_event_mapping_calls == 0
+
+
+def test_active_vanished_calendar_bulk_clears_mappings(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Active re-consent whose stored calendar 404s mints a replacement and
+    bulk-clears mappings that pointed at the vanished calendar."""
+    _stub_schedule_sync(monkeypatch)
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    for i in range(8):
+        store.upsert_event_mapping(
+            USER,
+            local_date=date(2026, 8, 19) + timedelta(days=i),
+            google_event_id=f"ev-gone-{i}",
+            content_hash="h",
+        )
+    store.delete_all_event_mappings_calls = 0
+    store.delete_event_mapping_calls = 0
+    fake.calendar_exists = False
+    _connect(client, fake)
+    connection = store.get_connection(USER)
+    assert connection.is_active
+    assert connection.google_calendar_id == "cal_new_2"
+    assert fake.created_calendars == 2
+    assert store.list_event_mappings(USER) == []
+    assert store.delete_all_event_mappings_calls == 1
+    assert store.delete_event_mapping_calls == 0
 
 
 def test_omitted_refresh_token_preserves_stored_one(tmp_path: Path) -> None:
@@ -563,6 +706,7 @@ def test_callback_probe_then_create_counts_two_google_checks(
     line = _breakdown_line(caplog)
     assert "google_calendar_check_n=2" in line
     assert "calendar_prefs_n=1" in line
+    assert "calendar_connection_write_n=2" in line
 
 
 def test_disconnect_records_revoke_and_tombstone(

@@ -332,12 +332,11 @@ async def gcal_callback(request: Request) -> RedirectResponse:
             # The fresh calendar starts empty: stored mappings point at the
             # old calendar's events and would suppress re-inserts — drop them
             # so the initial sync repopulates cleanly (no duplicates possible
-            # in a brand-new calendar).
-            stale_mappings = store.list_event_mappings(user.id)
-            if stale_mappings:
+            # in a brand-new calendar). Only a replacement calendar can have
+            # stale mappings; first-ever connect (existing is None) skips this.
+            if existing is not None:
                 started = perf_counter()
-                for mapping in stale_mappings:
-                    store.delete_event_mapping(user.id, mapping.local_date)
+                store.delete_all_event_mappings(user.id)
                 _record_timing("calendar_connection_write", started)
     except GoogleApiError:
         return _fail("calendar")

@@ -30,23 +30,42 @@ def test_empty_projection(tmp_path: Path) -> None:
     assert build_projection(engine, today=date(2026, 8, 18)) == {}
 
 
-def test_single_revision_grouped_on_stored_date(tmp_path: Path) -> None:
+def test_full_remaining_ladder_is_projected(tmp_path: Path) -> None:
+    """Every future rung appears (on-time assumption), matching the in-app
+    month calendar — not just the single next revision date."""
     engine = _engine(tmp_path)
     _complete(engine, "clause-1", date(2026, 8, 18))
     projection = build_projection(engine, today=date(2026, 8, 18))
-    assert list(projection) == [date(2026, 8, 19)]  # +1 day rung
-    day = projection[date(2026, 8, 19)]
-    assert day.count == 1
-    assert day.items[0].unit_id == "clause-1"
-    assert day.items[0].label.endswith("— Day 1")
+    # 19 (+1) → 22 (+3) → 29 (+7) → 13 Sep (+15) → 13 Oct (+30);
+    # the +60 rung (12 Dec) falls beyond the 90-day horizon.
+    assert sorted(projection) == [
+        date(2026, 8, 19),
+        date(2026, 8, 22),
+        date(2026, 8, 29),
+        date(2026, 9, 13),
+        date(2026, 10, 13),
+    ]
+    first = projection[date(2026, 8, 19)]
+    assert first.count == 1
+    assert first.items[0].unit_id == "clause-1"
+    assert first.items[0].label.endswith("— Day 1")
+    assert projection[date(2026, 8, 22)].items[0].label.endswith("— Day 3")
+    assert projection[date(2026, 10, 13)].items[0].label.endswith("— Day 30")
 
 
-def test_overdue_rolls_into_today(tmp_path: Path) -> None:
+def test_overdue_rolls_into_today_and_past_rungs_stay_dead(tmp_path: Path) -> None:
     engine = _engine(tmp_path)
     _complete(engine, "clause-1", date(2026, 8, 1))  # due 2 Aug
     today = date(2026, 8, 18)
     projection = build_projection(engine, today=today)
-    assert list(projection) == [today]
+    # Pending rung (2 Aug) rolls into today; hypothetical rungs that already
+    # passed (5 Aug, 12 Aug) are never re-materialized; future rungs appear.
+    assert sorted(projection) == [
+        today,
+        date(2026, 8, 27),   # +15 from the missed 12 Aug rung
+        date(2026, 9, 26),   # +30
+    ]
+    assert projection[today].items[0].label.endswith("— Day 1")
 
 
 def test_mastered_and_horizon_excluded(tmp_path: Path) -> None:
@@ -66,7 +85,7 @@ def test_stored_date_is_timezone_invariant(tmp_path: Path) -> None:
     engine = _engine(tmp_path)
     _complete(engine, "clause-1", date(2026, 8, 19))  # → due 20 Aug
     projection = build_projection(engine, today=date(2026, 8, 19))
-    assert list(projection) == [date(2026, 8, 20)]
+    assert min(projection) == date(2026, 8, 20)
 
     day = projection[date(2026, 8, 20)]
     for tz in ("Asia/Kolkata", "America/New_York"):

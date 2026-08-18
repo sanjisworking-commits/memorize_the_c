@@ -9,9 +9,13 @@ no progress is ever affected.
 
 ## How it works (implementation map)
 
-- `calendar_sync/projection.py` — groups persisted `next_revision` dates into
-  per-day workload (90-day horizon; overdue rolls into today; split
-  preferences and Part Overviews filtered exactly like the dashboard).
+- `calendar_sync/projection.py` — projects each unit's FULL remaining
+  revision ladder (pending rung plus every later rung assuming on-time
+  completion, via the same `remaining_review_schedule` helper as the in-app
+  month calendar) into per-day workload. 90-day horizon; the pending rung
+  rolls into today when due/overdue; past hypothetical rungs are never
+  re-materialized; split preferences and Part Overviews filtered exactly
+  like the dashboard.
 - `calendar_sync/sync.py` — idempotent reconciliation: create missing events,
   patch changed days (full payload hash: items + time + duration + timezone +
   link), delete zero-work days. Runs async after state changes; a durable

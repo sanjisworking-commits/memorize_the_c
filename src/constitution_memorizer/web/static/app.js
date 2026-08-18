@@ -2477,6 +2477,24 @@
         modal.close ? modal.close() : modal.removeAttribute("open");
       });
     }
+    // The save round-trips the server (settings write + sync flag + reload),
+    // which can take a few seconds on production — acknowledge the click
+    // immediately so it never feels like nothing happened.
+    modal.querySelectorAll("form").forEach(function (form) {
+      form.addEventListener("submit", function () {
+        modal.querySelectorAll("button").forEach(function (b) {
+          b.disabled = true;
+        });
+        const btn = form.querySelector(".gcal-cadence-btn");
+        if (btn) {
+          btn.classList.add("is-saving");
+          const name = btn.querySelector(".gcal-cadence-name");
+          if (name) {
+            name.textContent = "Saving\u2026";
+          }
+        }
+      });
+    });
   }
 
   function initGuestStrip() {

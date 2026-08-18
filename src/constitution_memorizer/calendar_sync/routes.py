@@ -295,9 +295,19 @@ async def gcal_callback(request: Request) -> RedirectResponse:
         refresh_token=refresh_token,
         transport=transport,
     )
-    # Reuse the app-created calendar across disconnects (tombstoned id +
-    # Calendars.get) — never CalendarList.list, never a duplicate calendar.
-    calendar_id = existing.google_calendar_id if existing else None
+    # Reuse the app-created calendar only while the connection stayed ACTIVE
+    # (a re-consent without disconnecting). Our disconnect flow revokes the
+    # grant, and revoking removes an app-created calendar from the user's
+    # calendar LIST: Calendars.get still answers 200 for the re-authorised
+    # app, but the user can't see the calendar, and the narrow
+    # calendar.app.created scope has no calendarList.insert to re-list it.
+    # Reusing after a disconnect would sync into an invisible calendar, so a
+    # reconnect mints a fresh one (creation re-lists it automatically).
+    calendar_id = (
+        existing.google_calendar_id
+        if existing is not None and existing.is_active
+        else None
+    )
     try:
         if calendar_id:
             started = perf_counter()
@@ -319,6 +329,16 @@ async def gcal_callback(request: Request) -> RedirectResponse:
                 calendar_id = await client.create_calendar(timezone_id=tz)
             finally:
                 _record_timing("google_calendar_check", started)
+            # The fresh calendar starts empty: stored mappings point at the
+            # old calendar's events and would suppress re-inserts — drop them
+            # so the initial sync repopulates cleanly (no duplicates possible
+            # in a brand-new calendar).
+            stale_mappings = store.list_event_mappings(user.id)
+            if stale_mappings:
+                started = perf_counter()
+                for mapping in stale_mappings:
+                    store.delete_event_mapping(user.id, mapping.local_date)
+                _record_timing("calendar_connection_write", started)
     except GoogleApiError:
         return _fail("calendar")
 

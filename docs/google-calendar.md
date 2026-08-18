@@ -110,8 +110,11 @@ in-request-triggered async tasks; there is no worker service and no cron).
 5. Change revision time/duration/timezone in Settings → future events move.
    Open any synced event → its notification list shows a 10-minute popup (or
    your chosen cadence — see below).
-6. Disconnect → syncing stops, calendar stays in Google; Reconnect → the SAME
-   calendar is reused (no duplicate calendar).
+6. Disconnect → syncing stops AND the app's Google grant is revoked; Google
+   then removes the app-created calendar from your calendar list. Reconnect →
+   a FRESH "Recall the C — Revision Schedule" calendar appears, fully
+   repopulated (the old, delisted one cannot be re-listed under the
+   calendar.app.created scope — calendarList.insert needs broader scopes).
 7. Break connectivity (e.g. temporarily wrong client secret) → completing a
    revision still works; Settings shows "⚠ Sync issue · Try again".
 

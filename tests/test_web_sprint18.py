@@ -39,7 +39,7 @@ def test_recite_panel_has_voice_and_map_markup(client: TestClient):
     assert "data-recite-check" in html
     assert "Check accuracy" in html
     assert "recall_align.js?v=sprint22" in html
-    assert "app.js?v=main25" in html
+    assert "app.js?v=main26" in html
 
 
 def test_recite_css_map_and_listening_styles(client: TestClient):

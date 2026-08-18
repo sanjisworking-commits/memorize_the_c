@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
+from contextvars import Context
 from time import perf_counter
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
@@ -134,15 +135,17 @@ def schedule_sync(request: Request, user_id) -> None:
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:  # no running loop (sync test contexts)
-        asyncio.run(_run())
+        # Fresh Context so asyncio.run does not inherit the HTTP timing collector.
+        Context().run(asyncio.run, _run())
         return
     # Hold a strong reference — a bare create_task can be garbage-collected
-    # mid-flight, silently dropping the sync.
+    # mid-flight, silently dropping the sync. Launch in a fresh Context so
+    # the background reconciliation cannot record into this request's timings.
     tasks = getattr(request.app.state, "gcal_tasks", None)
     if tasks is None:
         tasks = set()
         request.app.state.gcal_tasks = tasks
-    task = loop.create_task(_run())
+    task = Context().run(loop.create_task, _run())
     tasks.add(task)
     task.add_done_callback(tasks.discard)
 

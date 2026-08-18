@@ -564,3 +564,89 @@ def test_disconnect_records_revoke_and_tombstone(
     assert "calendar_connection_n=1" in line
     assert "google_token_revoke_n=1" in line
     assert "calendar_connection_write_n=1" in line
+
+
+def _seed_split_projection(client: TestClient) -> list[int]:
+    """Give projection a letter-split unit so background sync loads split prefs."""
+    engine = client.app.state.engine.for_user(USER)
+    engine.mark_all_modes_seen("clause-2")
+    engine.mark_done("clause-2", require_all_modes=False)
+    engine.set_split_preference("clause-2", "letters")
+    split_calls = [0]
+    inner = engine.repo.list_split_preferences
+
+    def _counting(user_id):
+        split_calls[0] += 1
+        return inner(user_id)
+
+    engine.repo.list_split_preferences = _counting  # type: ignore[method-assign]
+    return split_calls
+
+
+def test_background_sync_does_not_record_split_prefs_on_asyncio_run(
+    tmp_path: Path,
+) -> None:
+    from types import SimpleNamespace
+
+    from constitution_memorizer.calendar_sync.routes import schedule_sync
+    from constitution_memorizer.web.request_context import (
+        begin_request_timings,
+        reset_request_timings,
+        snapshot_request_timings,
+    )
+
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    split_calls = _seed_split_projection(client)
+    request = SimpleNamespace(app=client.app)
+    token = begin_request_timings()
+    try:
+        schedule_sync(request, USER)
+        snap = snapshot_request_timings()
+    finally:
+        reset_request_timings(token)
+    assert split_calls[0] >= 1
+    assert snap["calendar_sync_schedule"][1] == 1
+    assert "split_prefs" not in snap
+    assert "progress_preload" not in snap
+    assert "theme" not in snap
+
+
+def test_background_sync_does_not_record_split_prefs_on_create_task(
+    tmp_path: Path,
+) -> None:
+    import asyncio
+    from types import SimpleNamespace
+
+    from constitution_memorizer.calendar_sync.routes import schedule_sync
+    from constitution_memorizer.web.request_context import (
+        begin_request_timings,
+        reset_request_timings,
+        snapshot_request_timings,
+    )
+
+    client, _store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    split_calls = _seed_split_projection(client)
+    request = SimpleNamespace(app=client.app)
+    client.app.state.gcal_tasks = set()
+
+    async def _exercise() -> dict[str, tuple[float, int]]:
+        token = begin_request_timings()
+        try:
+            schedule_sync(request, USER)
+            pending = list(getattr(client.app.state, "gcal_tasks", set()) or [])
+            if pending:
+                await asyncio.gather(*pending)
+            return snapshot_request_timings()
+        finally:
+            reset_request_timings(token)
+
+    snap = asyncio.run(_exercise())
+    assert split_calls[0] >= 1
+    assert snap["calendar_sync_schedule"][1] == 1
+    assert "split_prefs" not in snap
+    assert "progress_preload" not in snap
+    assert "theme" not in snap

@@ -108,10 +108,37 @@ in-request-triggered async tasks; there is no worker service and no cron).
 4. Complete revisions → today's event updates to the remaining count; when
    zero remain, today's event disappears; future dates shift, no duplicates.
 5. Change revision time/duration/timezone in Settings → future events move.
+   Open any synced event → its notification list shows a 10-minute popup (or
+   your chosen cadence — see below).
 6. Disconnect → syncing stops, calendar stays in Google; Reconnect → the SAME
    calendar is reused (no duplicate calendar).
 7. Break connectivity (e.g. temporarily wrong client secret) → completing a
    revision still works; Settings shows "⚠ Sync issue · Try again".
+
+## Notifications (reminder cadence)
+
+A fresh app-created secondary calendar has **no default notifications**, so
+every synced event carries explicit per-event popup overrides
+(`reminders.useDefault=false`) — allowed under the `calendar.app.created`
+scope because reminders are part of the event resource.
+
+After the first successful connect, Settings shows a one-time popup asking
+how many reminders per revision day:
+
+| Cadence | Popups (minutes before the event) |
+| --- | --- |
+| Once (default) | 10 min |
+| Twice | morning 08:00 + 10 min |
+| Thrice | 8 h, 4 h and 10 min — evenly spaced |
+
+Dismissing the popup keeps the **Once** default, so nobody ends up
+notification-free. Offsets that would cross into the previous day are
+dropped automatically for early revision times (a 07:00 revision degrades
+Twice to a single 10-minute popup). The choice is stored as the
+`gcal_reminder_cadence` app-setting and is changeable any time from the
+"Reminders" select in Settings → Event preferences; because the offsets are
+part of each event's content hash, a cadence change repatches every future
+event on the next sync.
 
 ## Local development
 

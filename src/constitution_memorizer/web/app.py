@@ -2041,13 +2041,19 @@ def create_app(
 
     @app.post("/settings")
     async def settings_save(
-        notification_frequency: str = Form(...),
+        notification_frequency: str | None = Form(None),
         news_articles: str = Form(""),
     ) -> RedirectResponse:
-        if notification_frequency not in VALID_NOTIFICATION_FREQUENCIES:
-            raise HTTPException(status_code=400, detail="Invalid notification frequency")
+        # Optional: the multiuser Settings form no longer includes the study
+        # reminder radios (calendar reminders replaced them); the single-user
+        # form still posts a value, and an invalid one is still rejected.
         eng = _engine()
-        eng.set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
+        if notification_frequency is not None:
+            if notification_frequency not in VALID_NOTIFICATION_FREQUENCIES:
+                raise HTTPException(
+                    status_code=400, detail="Invalid notification frequency"
+                )
+            eng.set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
         eng.set_news_articles_raw(news_articles)
         return RedirectResponse(url="/settings?saved=1", status_code=303)
 

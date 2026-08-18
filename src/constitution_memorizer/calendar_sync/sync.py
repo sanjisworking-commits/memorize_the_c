@@ -28,6 +28,7 @@ from constitution_memorizer.calendar_sync.google_client import (
 from constitution_memorizer.calendar_sync.projection import (
     build_event_content,
     build_projection,
+    reminder_minutes_for,
 )
 from constitution_memorizer.calendar_sync.store import CalendarStore
 
@@ -47,6 +48,11 @@ _user_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 def calendar_prefs(engine) -> dict:
     """Read the user's calendar preferences with defaults."""
+    from constitution_memorizer.calendar_sync.projection import (
+        DEFAULT_REMINDER_CADENCE,
+        VALID_REMINDER_CADENCES,
+    )
+
     repo = engine.repo
     uid = engine.user_id
     tz = repo.get_setting(uid, "user_timezone") or ""
@@ -57,7 +63,20 @@ def calendar_prefs(engine) -> dict:
         minutes = DEFAULT_SESSION_MINUTES
     if minutes not in VALID_SESSION_MINUTES:
         minutes = DEFAULT_SESSION_MINUTES
-    return {"timezone": tz, "revision_time": time_pref, "session_minutes": minutes}
+    cadence_raw = repo.get_setting(uid, "gcal_reminder_cadence") or ""
+    cadence = (
+        cadence_raw if cadence_raw in VALID_REMINDER_CADENCES
+        else DEFAULT_REMINDER_CADENCE
+    )
+    return {
+        "timezone": tz,
+        "revision_time": time_pref,
+        "session_minutes": minutes,
+        "reminder_cadence": cadence,
+        # Popup visibility: absent = never explicitly chosen (dismiss keeps
+        # the once default without marking it chosen).
+        "cadence_chosen": bool(cadence_raw),
+    }
 
 
 def user_local_today(engine) -> date:
@@ -88,6 +107,9 @@ async def reconcile_user_calendar(
     tz = prefs["timezone"] or "UTC"
     anchor = today or user_local_today(engine)
     projection = build_projection(engine, today=anchor)
+    reminders = reminder_minutes_for(
+        prefs["reminder_cadence"], prefs["revision_time"]
+    )
     expected: dict[date, tuple[str, dict]] = {}
     for local_date, day in projection.items():
         content = build_event_content(
@@ -96,6 +118,7 @@ async def reconcile_user_calendar(
             session_minutes=prefs["session_minutes"],
             timezone=tz,
             dashboard_url=dashboard_url,
+            reminder_minutes=reminders,
         )
         expected[local_date] = (content.payload_hash(), content.__dict__)
 
@@ -110,6 +133,7 @@ async def reconcile_user_calendar(
             "start_time": content["start_time"],
             "duration_minutes": content["duration_minutes"],
             "timezone_id": content["timezone"],
+            "reminder_minutes": tuple(content["reminder_minutes"]),
         }
         mapping = mapped.get(local_date)
         if mapping is None:

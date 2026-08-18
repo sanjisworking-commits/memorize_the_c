@@ -25,9 +25,9 @@ from constitution_memorizer.calendar_sync.google_client import (
     exchange_code,
     revoke_token,
 )
+from constitution_memorizer.calendar_sync.projection import VALID_REMINDER_CADENCES
 from constitution_memorizer.calendar_sync.store import SYNC_PENDING
 from constitution_memorizer.calendar_sync.sync import (
-    DEFAULT_REVISION_TIME,
     VALID_SESSION_MINUTES,
     sync_user_calendar,
 )
@@ -344,10 +344,16 @@ async def gcal_retry(
 async def gcal_preferences(
     request: Request,
     csrf_token: str = Form(...),
-    user_timezone: str = Form(""),
-    revision_time: str = Form(DEFAULT_REVISION_TIME),
-    session_minutes: str = Form("30"),
+    user_timezone: str | None = Form(None),
+    revision_time: str | None = Form(None),
+    session_minutes: str | None = Form(None),
+    reminder_cadence: str | None = Form(None),
 ) -> RedirectResponse:
+    """Persist whichever preference fields the form supplied.
+
+    Absent fields are left untouched — the post-connect reminder popup posts
+    ONLY ``reminder_cadence``, while the Settings grid posts the full set.
+    """
     if not _gcal_enabled(request):
         return _not_found()
     user = _current_user(request)
@@ -357,34 +363,47 @@ async def gcal_preferences(
         return RedirectResponse(url="/settings?gcal=error&why=csrf", status_code=303)
     repo = request.app.state.engine.repo
 
-    tz = user_timezone.strip()
-    if tz:
+    if user_timezone is not None:
+        tz = user_timezone.strip()
+        if tz:
+            try:
+                ZoneInfo(tz)
+            except (KeyError, ValueError):
+                return RedirectResponse(
+                    url="/settings?gcal=error&why=timezone", status_code=303
+                )
+            repo.set_setting(user.id, "user_timezone", tz)
+
+    if revision_time is not None:
+        time_pref = revision_time.strip()
         try:
-            ZoneInfo(tz)
-        except (KeyError, ValueError):
+            hour, minute = (int(p) for p in time_pref.split(":", 1))
+            assert 0 <= hour <= 23 and 0 <= minute <= 59
+        except (ValueError, AssertionError):
             return RedirectResponse(
-                url="/settings?gcal=error&why=timezone", status_code=303
+                url="/settings?gcal=error&why=time", status_code=303
             )
-        repo.set_setting(user.id, "user_timezone", tz)
+        repo.set_setting(user.id, "gcal_revision_time", f"{hour:02d}:{minute:02d}")
 
-    time_pref = revision_time.strip()
-    try:
-        hour, minute = (int(p) for p in time_pref.split(":", 1))
-        assert 0 <= hour <= 23 and 0 <= minute <= 59
-    except (ValueError, AssertionError):
-        return RedirectResponse(url="/settings?gcal=error&why=time", status_code=303)
-    repo.set_setting(user.id, "gcal_revision_time", f"{hour:02d}:{minute:02d}")
+    if session_minutes is not None:
+        try:
+            minutes = int(session_minutes)
+        except ValueError:
+            minutes = 0
+        if minutes not in VALID_SESSION_MINUTES:
+            return RedirectResponse(
+                url="/settings?gcal=error&why=duration", status_code=303
+            )
+        repo.set_setting(user.id, "gcal_session_minutes", str(minutes))
 
-    try:
-        minutes = int(session_minutes)
-    except ValueError:
-        minutes = 0
-    if minutes not in VALID_SESSION_MINUTES:
-        return RedirectResponse(
-            url="/settings?gcal=error&why=duration", status_code=303
-        )
-    repo.set_setting(user.id, "gcal_session_minutes", str(minutes))
+    if reminder_cadence is not None:
+        cadence = reminder_cadence.strip()
+        if cadence not in VALID_REMINDER_CADENCES:
+            return RedirectResponse(
+                url="/settings?gcal=error&why=cadence", status_code=303
+            )
+        repo.set_setting(user.id, "gcal_reminder_cadence", cadence)
 
-    # Prefs change event times → resync.
+    # Prefs change event times/notifications → resync.
     schedule_sync(request, user.id)
     return RedirectResponse(url="/settings?gcal=saved", status_code=303)

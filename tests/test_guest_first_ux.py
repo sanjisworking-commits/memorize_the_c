@@ -86,7 +86,7 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert home.status_code == 200
     html = home.text
     assert "Recall the C" in html
-    # Hero headline (design variant B) — no eyebrow, no sub-heading.
+    # Existing visual tagline stays; the product name is now the <h1>.
     assert "The whole document." in html
     assert "In your memory." in html
     assert "A memory system for the Bare Act" not in html
@@ -154,6 +154,29 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert learn.status_code == 200
     assert "learning as a guest" in learn.text.lower()
     assert "guest-signin-modal" in learn.text
+
+
+def test_landing_product_name_and_purpose_are_crawlable(tmp_path: Path):
+    """Google branding review needs the app name and purpose in the HTML."""
+    client = _client(tmp_path)
+    home = client.get("/", follow_redirects=False)
+    assert home.status_code == 200
+    html = home.text
+    assert "<title>Recall the C — Learn the Constitution of India</title>" in html
+    assert 'name="description" content="Recall the C is an educational platform for learning, recalling and revising the Constitution of India through structured learning methods, visual explanations, progress tracking and spaced repetition."' in html
+    assert 'property="og:site_name" content="Recall the C"' in html
+    assert html.count("<h1") == 1
+    assert ">Recall the C</h1>" in html
+    assert (
+        "Recall the C is an educational platform for learning, recalling and revising the Constitution of India through structured learning methods, visual explanations, progress tracking and spaced repetition."
+        in html
+    )
+    assert "Independent educational product · Study aid only — not legal advice." in html
+    assert "Constitution of India" in html
+    assert 'href="/privacy"' in html
+    assert 'href="/terms"' in html
+    assert 'href="/grievance"' in html
+    assert 'data-reveal' not in html.split('id="top"', 1)[1].split('id="arithmetic"', 1)[0]
 
 
 def test_light_theme_switch_disabled(tmp_path: Path):

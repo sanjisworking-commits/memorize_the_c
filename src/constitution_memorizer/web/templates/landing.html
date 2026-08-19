@@ -3,8 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Recall the C — Memorize the Constitution, verbatim</title>
-<meta name="description" content="Recall the C — memorize the Bare Act of the Constitution of India, the exact wording, kept in your head, in 180 days.">
+<title>Recall the C — Learn the Constitution of India</title>
+<meta name="description" content="Recall the C is an educational platform for learning, recalling and revising the Constitution of India through structured learning methods, visual explanations, progress tracking and spaced repetition.">
+<meta property="og:site_name" content="Recall the C">
+<meta property="og:title" content="Recall the C — Learn the Constitution of India">
+<meta property="og:description" content="Recall the C is an educational platform for learning, recalling and revising the Constitution of India through structured learning methods, visual explanations, progress tracking and spaced repetition.">
 <link rel="icon" type="image/png" href="/static/main_logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -140,6 +143,32 @@
     *{animation:none !important}
     html{scroll-behavior:auto}
   }
+  /* Crawlable product name + purpose in the hero. Visible HTML text; no JS,
+     SVG, or reveal-on-scroll. Keep the existing visual tagline as the punch. */
+  .landing-brand{
+    font-family:Fraunces,Georgia,serif;
+    font-size:clamp(28px,3.8vw,46px);
+    line-height:1.08;
+    letter-spacing:-0.03em;
+    font-weight:700;
+    margin:0 0 16px;
+  }
+  .landing-purpose{
+    margin:0 auto clamp(14px,1.8vh,22px);
+    max-width:38em;
+    font-size:clamp(15.5px,1.3vw,18px);
+    line-height:1.55;
+    color:rgba(244,241,234,0.72);
+    text-wrap:pretty;
+  }
+  .landing-purpose-note{
+    margin:0 auto clamp(26px,3.4vh,44px);
+    max-width:38em;
+    font-size:13.5px;
+    line-height:1.45;
+    font-weight:600;
+    color:rgba(244,241,234,0.5);
+  }
 </style>
 </head>
 <body>
@@ -187,8 +216,10 @@
   
 
   
-  <h1 style="font-size:clamp(38px,7.4vw,118px);line-height:0.94;margin:0 0 clamp(26px,3.4vh,44px);text-wrap:balance;font-family:Fraunces,Georgia,serif;letter-spacing:-0.042em;font-weight:700">The whole document.<br><span style="color:#6E82C8">In your memory.</span></h1>
-  
+  <h1 class="landing-brand">Recall the C</h1>
+  <p class="landing-visual" style="font-size:clamp(38px,7.4vw,118px);line-height:0.94;margin:0 0 clamp(22px,2.8vh,36px);text-wrap:balance;font-family:Fraunces,Georgia,serif;letter-spacing:-0.042em;font-weight:700">The whole document.<br><span style="color:#6E82C8">In your memory.</span></p>
+  <p class="landing-purpose">Recall the C is an educational platform for learning, recalling and revising the Constitution of India through structured learning methods, visual explanations, progress tracking and spaced repetition.</p>
+  <p class="landing-purpose-note">Independent educational product · Study aid only — not legal advice.</p>
 
   
 

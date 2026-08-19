@@ -1,7 +1,0 @@
-{% macro field(item) -%}
-{%- if item.set -%}{{ item.value }}{%- else -%}<span class="legal-placeholder">{{ item.placeholder }}</span>{%- endif -%}
-{%- endmacro %}
-
-{% macro email(item) -%}
-{%- if item.set -%}<a href="mailto:{{ item.value }}">{{ item.value }}</a>{%- else -%}<span class="legal-placeholder">{{ item.placeholder }}</span>{%- endif -%}
-{%- endmacro %}

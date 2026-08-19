@@ -15,15 +15,19 @@ from constitution_memorizer.calendar_sync.routes import GCAL_SCOPE
 from constitution_memorizer.multiuser.settings import MultiUserSettings, clear_settings_cache
 from constitution_memorizer.web.app import create_app
 from constitution_memorizer.web.legal import (
-    DEFAULT_GRIEVANCE_EMAIL,
-    DEFAULT_PRIVACY_EMAIL,
-    DEFAULT_SUPPORT_EMAIL,
     GOOGLE_CALENDAR_SCOPE,
     LEGAL_PATHS,
+    UNCONFIGURED,
+    missing_legal_configuration,
 )
 
 MINI_UNITS = Path(__file__).parent / "fixtures" / "learning" / "mini_units.json"
 GCAL_TOKEN_KEY = Fernet.generate_key().decode()
+CALENDAR_DISCLOSURE = (
+    "Recall the C will create and manage a separate revision calendar for "
+    "your Recall the C study schedule. It will not access your unrelated "
+    "personal calendars."
+)
 
 
 @pytest.fixture(autouse=True)
@@ -50,7 +54,6 @@ def _settings(**overrides) -> MultiUserSettings:
 
 
 def _guest_client(tmp_path: Path, **overrides) -> TestClient:
-    clear_settings_cache()
     return TestClient(
         create_app(
             units_path=MINI_UNITS,
@@ -65,9 +68,8 @@ def _guest_client(tmp_path: Path, **overrides) -> TestClient:
 
 def _signed_in_client(tmp_path: Path, **overrides) -> TestClient:
     provider = FakeAuthProvider()
-    user_id = UUID("11111111-1111-4111-8111-111111111111")
     provider.seed_google_user(
-        user_id=user_id,
+        user_id=UUID("11111111-1111-4111-8111-111111111111"),
         email="a@example.com",
         display_name="User A",
     )
@@ -90,6 +92,24 @@ def _signed_in_client(tmp_path: Path, **overrides) -> TestClient:
     return client
 
 
+def test_missing_legal_configuration_lists_empty_fields() -> None:
+    empty = _settings()
+    missing = missing_legal_configuration(empty)
+    assert "LEGAL_ENTITY_NAME" in missing
+    assert "LEGAL_SUPPORT_EMAIL" in missing
+    assert "LEGAL_GRIEVANCE_OFFICER" in missing
+    filled = _settings(
+        LEGAL_ENTITY_NAME="Example",
+        LEGAL_BUSINESS_ADDRESS="1 Street",
+        LEGAL_JURISDICTION="Mumbai, Maharashtra, India",
+        LEGAL_SUPPORT_EMAIL="support@example.test",
+        LEGAL_PRIVACY_EMAIL="privacy@example.test",
+        LEGAL_GRIEVANCE_EMAIL="grievance@example.test",
+        LEGAL_GRIEVANCE_OFFICER="Asha Rao",
+    )
+    assert missing_legal_configuration(filled) == []
+
+
 def test_legal_pages_are_public(tmp_path: Path) -> None:
     client = _guest_client(tmp_path)
     assert LEGAL_PATHS == ("/terms", "/privacy", "/grievance")
@@ -102,13 +122,20 @@ def test_legal_pages_are_public(tmp_path: Path) -> None:
         assert resp.status_code == 200
         html = resp.text
         assert title in html
-        assert "Effective Date: 19 August 2026" in html
-        assert "family=Fraunces" in html
+        assert "Effective 20 August 2026" in html
+        assert "Last updated 20 August 2026" in html
         assert 'href="/terms"' in html
         assert 'href="/privacy"' in html
         assert 'href="/grievance"' in html
-        assert "A study aid, not an official legal source" in html
-        assert "{% extends" not in html
+        assert "noindex" not in html.lower()
+        assert UNCONFIGURED in html
+        assert "support@recall-the-c.in" not in html
+
+
+def test_privacy_does_not_redirect_to_login(tmp_path: Path) -> None:
+    resp = _guest_client(tmp_path).get("/privacy", follow_redirects=False)
+    assert resp.status_code == 200
+    assert "/login" not in (resp.headers.get("location") or "")
 
 
 def test_legal_pages_work_without_multiuser(tmp_path: Path) -> None:
@@ -124,86 +151,101 @@ def test_privacy_explains_google_user_data(tmp_path: Path) -> None:
     html = _guest_client(tmp_path).get("/privacy").text
     assert GOOGLE_CALENDAR_SCOPE in html
     assert GOOGLE_CALENDAR_SCOPE == GCAL_SCOPE
-    assert "Google API Services User Data Policy" in html
-    assert "Limited Use requirements" in html
-    assert "does not receive your Google password" in html
+    assert "calendar" != GCAL_SCOPE.split("/")[-1]
+    assert "does not receive the user’s Google password" in html
     assert "does not sell Google user data" in html
-    assert "does not use Google Calendar data to train general-purpose" in html
-    assert "unrelated personal calendars" in html
+    assert "Google Calendar access is optional" in html
+    assert "Managing your Google data" in html
+    assert "Google Workspace APIs" in html
+    assert "Limited Use requirements" in html
+    assert "use and transfer to any other app" not in html
     assert 'href="/profile"' in html
-    assert DEFAULT_PRIVACY_EMAIL in html
     assert "aged 18 years" in html
+    assert "extends base.html" not in html
 
 
 def test_terms_keep_calendar_scope_narrow(tmp_path: Path) -> None:
     html = _guest_client(tmp_path).get("/terms").text
     assert "calendar.app.created" in html
     assert "not legal advice" in html.lower()
-    assert "aged 18 years or above" in html
-    assert DEFAULT_SUPPORT_EMAIL in html
+    assert "study aid" in html.lower()
     assert "not affiliated with" in html
+    assert "1 → 3 → 7 → 14 → 30 → 60" in html
 
 
-def test_grievance_keeps_officer_placeholder(tmp_path: Path) -> None:
+def test_grievance_uses_aims_not_statutory_deadline(tmp_path: Path) -> None:
     html = _guest_client(tmp_path).get("/grievance").text
-    assert "legal-placeholder" in html
-    assert "[FULL NAME]" in html
-    assert "[LEGAL ENTITY / PROPRIETOR NAME]" in html
-    assert DEFAULT_GRIEVANCE_EMAIL in html
-    assert "within 24 hours" in html
-    assert "within seven days" in html
+    assert "Grievance" in html
+    assert "aims to acknowledge a valid grievance within 24 hours" in html
+    assert "Under the DPDP Act" not in html
+    assert "Never send us passwords" in html
+    assert UNCONFIGURED in html
 
 
-def test_operator_env_fills_placeholders(tmp_path: Path) -> None:
+def test_operator_fields_are_escaped(tmp_path: Path) -> None:
+    payload = "<script>alert(1)</script>"
     html = _guest_client(
         tmp_path,
-        LEGAL_ENTITY_NAME="Example Proprietor",
-        LEGAL_BUSINESS_ADDRESS="1 Example Street, Example City",
+        LEGAL_ENTITY_NAME=payload,
+        LEGAL_BUSINESS_ADDRESS="1 Example Street",
         LEGAL_JURISDICTION="Mumbai, Maharashtra, India",
         LEGAL_GRIEVANCE_OFFICER="Asha Rao",
+        LEGAL_SUPPORT_EMAIL="support@example.test",
+        LEGAL_PRIVACY_EMAIL="privacy@example.test",
+        LEGAL_GRIEVANCE_EMAIL="grievance@example.test",
+        LEGAL_PRIVACY_CONTACT="Privacy Contact",
     ).get("/grievance").text
-    assert "Example Proprietor" in html
-    assert "1 Example Street, Example City" in html
+    assert payload not in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
     assert "Asha Rao" in html
-    assert "[FULL NAME]" not in html
-    assert "[LEGAL ENTITY / PROPRIETOR NAME]" not in html
+    assert UNCONFIGURED not in html
 
 
-def test_landing_and_login_link_legal_pages(tmp_path: Path) -> None:
+def test_landing_login_and_browse_link_legal_pages(tmp_path: Path) -> None:
     client = _guest_client(tmp_path)
     landing = client.get("/", follow_redirects=False).text
-    assert 'aria-label="Legal"' in landing
     assert 'href="/terms"' in landing
     assert 'href="/privacy"' in landing
-    assert 'href="/grievance"' in landing
     login = client.get("/login").text
     assert 'href="/terms"' in login
     assert 'href="/privacy"' in login
-    assert "By continuing you agree" in login
+    assert "By continuing, you agree to the" in login
+    assert "acknowledge the" in login
+    legal_nav = login.split('aria-label="Legal"')[1].split("</nav>")[0]
+    assert "/terms" in legal_nav
+    assert "/privacy" in legal_nav
+    assert "/grievance" in legal_nav
+    assert "/tables" not in legal_nav
+    browse = client.get("/browse").text
+    footer = browse.split('aria-label="Legal"')[1].split("</nav>")[0]
+    assert "/terms" in footer
+    tools = browse.split('aria-label="Tools"')[1].split("</nav>")[0]
+    assert "/terms" not in tools
 
 
-def test_settings_calendar_disclosure_and_legal_links(tmp_path: Path) -> None:
+def test_signed_in_privacy_uses_app_chrome(tmp_path: Path) -> None:
+    client = _signed_in_client(tmp_path)
+    resp = client.get("/privacy", follow_redirects=False)
+    assert resp.status_code == 200
+    html = resp.text
+    assert "Privacy Policy" in html
+    assert "is-authed" in html
+    assert "Learning as guest" not in html
+    assert 'href="/dashboard"' in html
+
+
+def test_settings_calendar_disclosure_precedes_connect(tmp_path: Path) -> None:
     client = _signed_in_client(
         tmp_path,
         GCAL_CLIENT_ID="cid",
         GCAL_CLIENT_SECRET="csecret",
         GCAL_TOKEN_KEY=GCAL_TOKEN_KEY,
     )
-    settings = client.get("/settings")
-    assert settings.status_code == 200
-    html = settings.text
-    assert "Connect Google Calendar:" in html
-    assert "It will not access your unrelated personal calendars." in html
-    assert 'href="/terms"' in html
-    assert 'href="/privacy"' in html
-    assert 'href="/grievance"' in html
-
-
-def test_in_app_footer_has_legal_nav(tmp_path: Path) -> None:
-    html = _guest_client(tmp_path).get("/browse").text
-    footer = html.split('aria-label="Legal"')[1].split("</nav>")[0]
-    assert "/terms" in footer
-    assert "/privacy" in footer
-    assert "/grievance" in footer
-    tools = html.split('aria-label="Tools"')[1].split("</nav>")[0]
-    assert "/terms" not in tools
+    html = client.get("/settings").text
+    assert CALENDAR_DISCLOSURE in html
+    assert "/privacy#google-calendar" in html
+    assert "Learn how we use Google data" in html
+    disc = html.index(CALENDAR_DISCLOSURE)
+    btn = html.index("Connect Google Calendar")
+    learn = html.index("/privacy#google-calendar")
+    assert disc < learn < btn

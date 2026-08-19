@@ -36,19 +36,13 @@ no progress is ever affected.
 2. **APIs & Services → Library** → search "Google Calendar API" → **Enable**.
 3. **APIs & Services → OAuth consent screen**:
    - User type: **External** → Create.
-3. **Google Auth Platform → Branding** (Sign-In) and **OAuth consent screen**
-   (Calendar client):
-   - App name: **Recall the C**
-   - Homepage: `https://recall-the-c.in/`
-   - Privacy Policy: `https://recall-the-c.in/privacy`
-   - Terms of Service: `https://recall-the-c.in/terms`
-   - Authorised domains must be domains you own and have verified.
+   - Fill app name ("Recall the C"), support email, developer email. Save.
    - **Scopes** → Add or remove scopes → paste
      `https://www.googleapis.com/auth/calendar.app.created` → Update. Save.
      Do not add `calendar` or `calendar.events`.
    - **Test users** → add your own Google account(s). Save.
-   Public pages also live at `/grievance` (not required by Google branding,
-   required for the DPDP/IT Rules grievance mechanism).
+   Production homepage, Privacy, and Terms URLs are listed in
+   `docs/GOOGLE_OAUTH_PRODUCTION.md`.
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
    - Application type: **Web application**.
    - Name: `Recall the C — Calendar` (a **dedicated client — do NOT reuse the

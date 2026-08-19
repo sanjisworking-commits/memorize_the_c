@@ -160,6 +160,13 @@
     // 1 = the resting field.
     var intro = introMs > 0 ? clamp((Date.now() - t0) / introMs) : 1;
 
+    // Scatter spread. The vertical spread is height-based, so on a portrait
+    // phone the gathered field stretches into an upright oval void; cap the
+    // vertical spread to the horizontal there so it stays circular.
+    var spreadX = w * 0.5;
+    var spreadY = hgt * 0.5;
+    if (spreadY > spreadX) spreadY = spreadX;
+
     for (var i = 0; i < parts.length; i++) {
       var q = parts[i];
       var g = gEase(clamp((gp - q.delay) / (1 - q.delay)));
@@ -174,8 +181,8 @@
       var push = 1 + (1 - ai) * 2.4;
       q.introA = ai;
 
-      var spaceX = cx + q.ox * w * 0.5 * push;
-      var spaceY = cy + q.oy * hgt * 0.5 * push;
+      var spaceX = cx + q.ox * spreadX * push;
+      var spaceY = cy + q.oy * spreadY * push;
 
       var x = spaceX + (sphX - spaceX) * g;
       var y = spaceY + (sphY - spaceY) * g;

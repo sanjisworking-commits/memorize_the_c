@@ -6,6 +6,7 @@ import json
 import logging
 from datetime import date, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import UUID
 
 import httpx
@@ -72,9 +73,14 @@ class ProbeCalendarStore:
         self._inner = inner
         self.delete_all_event_mappings_calls = 0
         self.delete_event_mapping_calls = 0
+        self.get_connection_calls = 0
 
     def __getattr__(self, name: str):
         return getattr(self._inner, name)
+
+    def get_connection(self, user_id):
+        self.get_connection_calls += 1
+        return self._inner.get_connection(user_id)
 
     def delete_all_event_mappings(self, user_id):
         self.delete_all_event_mappings_calls += 1
@@ -558,11 +564,10 @@ def test_settings_records_calendar_and_frequency_stages(
     assert resp.status_code == 200
     line = _breakdown_line(caplog)
     assert "path=/settings" in line
-    assert "settings_frequency_n=1" in line
-    assert "news_setting_n=1" in line
-    assert "calendar_pending_retry_n=1" in line
+    assert "request_bootstrap_n=1" in line
     assert "calendar_connection_n=1" in line
     assert "calendar_prefs_n=1" in line
+    assert "calendar_pending_retry_" not in line
 
 
 def test_preferences_post_records_write_and_schedule(
@@ -898,3 +903,72 @@ def test_multiuser_settings_drop_study_reminders(tmp_path: Path) -> None:
         follow_redirects=False,
     )
     assert bad.status_code == 400
+
+
+def test_settings_get_connection_once_when_active(tmp_path: Path) -> None:
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    store.get_connection_calls = 0
+    assert client.get("/settings").status_code == 200
+    assert store.get_connection_calls == 1
+
+
+def test_settings_get_connection_once_when_missing(tmp_path: Path) -> None:
+    client, store, _fake, _repo = _client(tmp_path)
+    store.get_connection_calls = 0
+    assert client.get("/settings").status_code == 200
+    assert store.get_connection_calls == 1
+
+
+def test_settings_get_connection_once_when_fresh_pending(tmp_path: Path) -> None:
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    store.mark_sync_pending(USER)
+    store.get_connection_calls = 0
+    assert client.get("/settings").status_code == 200
+    assert store.get_connection_calls == 1
+
+
+def test_retry_stale_pending_does_not_reload_supplied_connection(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from constitution_memorizer.calendar_sync.routes import retry_stale_pending
+
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    connection = store.get_connection(USER)
+    store.get_connection_calls = 0
+    request = SimpleNamespace(app=client.app)
+    retry_stale_pending(request, USER, connection=connection)
+    assert store.get_connection_calls == 0
+    retry_stale_pending(request, USER)
+    assert store.get_connection_calls == 1
+
+
+def test_settings_stale_pending_allows_schedule_sync_lookup(
+    tmp_path: Path, monkeypatch
+) -> None:
+    client, store, fake, _repo = _client(tmp_path)
+    fake.calendar_exists = False
+    _connect(client, fake)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        "constitution_memorizer.calendar_sync.routes.schedule_sync",
+        lambda _req, uid: calls.append(str(uid)),
+    )
+    conn = store._conn
+    conn.execute(
+        "UPDATE google_calendar_connections SET sync_pending = 1, "
+        "sync_requested_at = ? WHERE user_id = ?",
+        ("2020-01-01T00:00:00+00:00", str(USER)),
+    )
+    conn.commit()
+    store.get_connection_calls = 0
+    assert client.get("/settings").status_code == 200
+    assert calls == [str(USER)]
+    # Settings-owned lookup is once; schedule_sync is stubbed so it does not
+    # add a durable get_connection in this test.
+    assert store.get_connection_calls == 1

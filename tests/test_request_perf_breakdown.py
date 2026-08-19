@@ -69,11 +69,9 @@ class CountingProgressRepo:
         self.get_split_preference_calls += 1
         return self.inner.get_split_preference(user_id, parent_clause_id)
 
-    def load_request_bootstrap(self, user_id, *, include_profile=False, include_news=False):
+    def load_request_bootstrap(self, user_id, **kwargs):
         self.load_request_bootstrap_calls += 1
-        return self.inner.load_request_bootstrap(
-            user_id, include_profile=include_profile, include_news=include_news
-        )
+        return self.inner.load_request_bootstrap(user_id, **kwargs)
 
     def reset_counts(self) -> None:
         self.get_progress_calls = 0

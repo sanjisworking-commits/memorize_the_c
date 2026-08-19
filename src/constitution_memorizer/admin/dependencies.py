@@ -88,6 +88,10 @@ def admin_hint(request: Request) -> bool:
     ):
         return False
 
+    resolved = getattr(request.state, "is_admin", None)
+    if resolved is not None:
+        return bool(resolved)
+
     def _load() -> bool:
         started = perf_counter()
         value = store.is_admin(user.id)

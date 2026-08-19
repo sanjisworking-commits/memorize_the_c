@@ -163,3 +163,47 @@ def test_admin_hint_cache_hit_does_not_time_again():
         assert store.is_admin_calls == 1
     finally:
         reset_request_timings(token)
+
+
+def test_admin_hint_uses_request_state_memo_after_gates():
+    store = CountingAdminStore()
+    cache = AdminHintCache()
+    request = SimpleNamespace(
+        state=SimpleNamespace(
+            current_user=SimpleNamespace(id=USER),
+            is_admin=True,
+        ),
+        app=SimpleNamespace(
+            state=SimpleNamespace(
+                admin_enabled=True,
+                multiuser_enabled=True,
+                access_store=store,
+                admin_hint_cache=cache,
+            )
+        ),
+    )
+    assert admin_hint(request) is True
+    assert store.is_admin_calls == 0
+    request.state.is_admin = False
+    assert admin_hint(request) is False
+    assert store.is_admin_calls == 0
+
+
+def test_admin_hint_ignores_state_memo_when_admin_disabled():
+    store = CountingAdminStore()
+    request = SimpleNamespace(
+        state=SimpleNamespace(
+            current_user=SimpleNamespace(id=USER),
+            is_admin=True,
+        ),
+        app=SimpleNamespace(
+            state=SimpleNamespace(
+                admin_enabled=False,
+                multiuser_enabled=True,
+                access_store=store,
+                admin_hint_cache=AdminHintCache(),
+            )
+        ),
+    )
+    assert admin_hint(request) is False
+    assert store.is_admin_calls == 0

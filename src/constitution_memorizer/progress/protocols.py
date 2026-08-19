@@ -194,6 +194,8 @@ class ReminderRepositoryProtocol(Protocol):
         *,
         include_profile: bool = False,
         include_news: bool = False,
+        include_modes: bool = False,
+        include_account: bool = False,
     ) -> RequestBootstrap: ...
 
     def load_completion_state(

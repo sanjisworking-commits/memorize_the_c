@@ -18,10 +18,14 @@ from constitution_memorizer.progress.repository import (
     THEME_KEY,
     VALID_NOTIFICATION_FREQUENCIES,
     VALID_THEMES,
+    AccountBootstrap,
     BillingOrder,
     CompletionProgress,
     CompletionState,
     _billing_order_from_row,
+    _modes_by_unit_from_rows,
+    _news_from_raw,
+    _theme_from_raw,
     NotificationFrequency,
     ProgressRecord,
     ProgressStatus,
@@ -70,14 +74,6 @@ def _row_profile(row: Any) -> dict[str, str | None]:
     }
 
 
-def _theme_from_raw(raw: str | None) -> ThemePreference:
-    return raw if raw in VALID_THEMES else DEFAULT_THEME  # type: ignore[return-value]
-
-
-def _news_from_raw(raw: str | None) -> str:
-    return DEFAULT_NEWS_ARTICLES if raw is None else raw
-
-
 def _pipeline_supported() -> bool:
     from psycopg import Pipeline
 
@@ -95,12 +91,23 @@ ORDER BY learning_unit_id ASC
 _BOOTSTRAP_SPLIT_SQL = (
     "SELECT parent_clause_id, mode FROM split_preference WHERE user_id = %s"
 )
-_BOOTSTRAP_SETTING_SQL = (
-    "SELECT value FROM app_settings WHERE user_id = %s AND key = %s"
+_BOOTSTRAP_SETTINGS_SQL = (
+    "SELECT key, value FROM app_settings WHERE user_id = %s"
 )
 _BOOTSTRAP_PROFILE_SQL = """
 SELECT user_id, display_name, avatar_url, created_at, updated_at
 FROM user_profile WHERE user_id = %s
+"""
+_BOOTSTRAP_MODES_SQL = (
+    "SELECT learning_unit_id, mode FROM unit_modes_seen WHERE user_id = %s"
+)
+_BOOTSTRAP_CLAIMS_SQL = (
+    "SELECT article_number FROM user_free_articles WHERE user_id = %s"
+)
+_BOOTSTRAP_BILLING_SQL = """
+SELECT * FROM billing_orders
+WHERE user_id = %s AND status = 'paid'
+ORDER BY paid_at DESC LIMIT 1
 """
 _COMPLETION_PROGRESS_SQL = """
 SELECT * FROM learning_unit_progress
@@ -745,6 +752,8 @@ class PostgresProgressRepository:
         *,
         include_profile: bool = False,
         include_news: bool = False,
+        include_modes: bool = False,
+        include_account: bool = False,
     ) -> RequestBootstrap:
         uid = as_user_id(user_id)
         with self._pool.connection() as conn:
@@ -753,26 +762,42 @@ class PostgresProgressRepository:
                     conn.cursor(row_factory=self._dict_row)
                 )
                 split_cur = stack.enter_context(conn.cursor(row_factory=self._dict_row))
-                theme_cur = stack.enter_context(conn.cursor(row_factory=self._dict_row))
-                news_cur = (
-                    stack.enter_context(conn.cursor(row_factory=self._dict_row))
-                    if include_news
-                    else None
+                settings_cur = stack.enter_context(
+                    conn.cursor(row_factory=self._dict_row)
                 )
                 profile_cur = (
                     stack.enter_context(conn.cursor(row_factory=self._dict_row))
                     if include_profile
                     else None
                 )
+                modes_cur = (
+                    stack.enter_context(conn.cursor(row_factory=self._dict_row))
+                    if include_modes
+                    else None
+                )
+                claims_cur = (
+                    stack.enter_context(conn.cursor(row_factory=self._dict_row))
+                    if include_account
+                    else None
+                )
+                billing_cur = (
+                    stack.enter_context(conn.cursor(row_factory=self._dict_row))
+                    if include_account
+                    else None
+                )
 
                 def _queue() -> None:
                     progress_cur.execute(_BOOTSTRAP_PROGRESS_SQL, (uid,))
                     split_cur.execute(_BOOTSTRAP_SPLIT_SQL, (uid,))
-                    theme_cur.execute(_BOOTSTRAP_SETTING_SQL, (uid, THEME_KEY))
-                    if news_cur is not None:
-                        news_cur.execute(_BOOTSTRAP_SETTING_SQL, (uid, NEWS_ARTICLES_KEY))
+                    settings_cur.execute(_BOOTSTRAP_SETTINGS_SQL, (uid,))
                     if profile_cur is not None:
                         profile_cur.execute(_BOOTSTRAP_PROFILE_SQL, (uid,))
+                    if modes_cur is not None:
+                        modes_cur.execute(_BOOTSTRAP_MODES_SQL, (uid,))
+                    if claims_cur is not None:
+                        claims_cur.execute(_BOOTSTRAP_CLAIMS_SQL, (uid,))
+                    if billing_cur is not None:
+                        billing_cur.execute(_BOOTSTRAP_BILLING_SQL, (uid,))
 
                 if _pipeline_supported():
                     with conn.pipeline():
@@ -782,24 +807,48 @@ class PostgresProgressRepository:
 
                 progress_rows = progress_cur.fetchall()
                 split_rows = split_cur.fetchall()
-                theme_row = theme_cur.fetchone()
-                news_row = news_cur.fetchone() if news_cur is not None else None
+                settings_rows = settings_cur.fetchall()
                 profile_row = (
                     profile_cur.fetchone() if profile_cur is not None else None
                 )
+                mode_rows = modes_cur.fetchall() if modes_cur is not None else None
+                claim_rows = claims_cur.fetchall() if claims_cur is not None else None
+                billing_row = (
+                    billing_cur.fetchone() if billing_cur is not None else None
+                )
 
-        theme_raw = None if theme_row is None else str(theme_row["value"])
-        news_raw = None if news_row is None else str(news_row["value"])
+        settings = {str(row["key"]): str(row["value"]) for row in settings_rows}
+        account = None
+        if include_account:
+            claimed = frozenset(
+                str(row["article_number"]) for row in (claim_rows or [])
+            )
+            order = (
+                _billing_order_from_row(billing_row)
+                if billing_row is not None
+                else None
+            )
+            account = AccountBootstrap(
+                claimed_articles=claimed,
+                latest_paid_billing_order=order,
+            )
         return RequestBootstrap(
             progress=[_row_progress(r) for r in progress_rows],
             split_preferences={
                 str(r["parent_clause_id"]): r["mode"] for r in split_rows
             },
-            theme=_theme_from_raw(theme_raw),
-            news_articles_raw=_news_from_raw(news_raw) if include_news else None,
+            theme=_theme_from_raw(settings.get(THEME_KEY)),
+            news_articles_raw=(
+                _news_from_raw(settings.get(NEWS_ARTICLES_KEY)) if include_news else None
+            ),
             profile=_row_profile(profile_row)
             if include_profile and profile_row is not None
             else None,
+            settings=settings,
+            modes_seen_by_unit=(
+                _modes_by_unit_from_rows(mode_rows) if mode_rows is not None else None
+            ),
+            account=account,
         )
 
     def load_completion_state(

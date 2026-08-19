@@ -117,6 +117,7 @@ from constitution_memorizer.web.entitlements import (
     PREVIEW_STATES,
     access_summary,
     article_key,
+    entitlements_active,
     preview_state,
     resolve_learn_access,
 )
@@ -2018,6 +2019,11 @@ def create_app(
         gcal_ctx: dict[str, object] | None = None
         settings_obj = getattr(app.state, "multiuser_settings", None)
         user = getattr(request.state, "current_user", None)
+        if user is not None:
+            eng.bootstrap_request(
+                include_news=True,
+                include_account=entitlements_active(request),
+            )
         if (
             app.state.multiuser_enabled
             and user is not None
@@ -2030,15 +2036,15 @@ def create_app(
             )
             from constitution_memorizer.calendar_sync.sync import calendar_prefs
 
-            # A restart can strand sync_pending=1 with no task alive; viewing
-            # Settings restarts a stale one so "Syncing…" is never a lie.
-            try:
-                retry_stale_pending(request, user.id)
-            except Exception:  # noqa: BLE001 — settings must always render
-                logger.exception("stale-pending calendar retry failed")
             started = time.perf_counter()
             connection = app.state.calendar_store.get_connection(user.id)
             record_request_timing("calendar_connection", started)
+            # A restart can strand sync_pending=1 with no task alive; viewing
+            # Settings restarts a stale one so "Syncing…" is never a lie.
+            try:
+                retry_stale_pending(request, user.id, connection=connection)
+            except Exception:  # noqa: BLE001 — settings must always render
+                logger.exception("stale-pending calendar retry failed")
             started = time.perf_counter()
             prefs = calendar_prefs(eng)
             record_request_timing("calendar_prefs", started)

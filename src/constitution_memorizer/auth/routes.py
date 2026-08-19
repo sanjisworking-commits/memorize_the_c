@@ -31,7 +31,11 @@ from constitution_memorizer.auth.sessions import (
     new_csrf_token,
 )
 from constitution_memorizer.web.completion import build_completion, caught_up_quote
-from constitution_memorizer.web.entitlements import access_summary, subscription_status
+from constitution_memorizer.web.entitlements import (
+    access_summary,
+    entitlements_active,
+    subscription_status,
+)
 from constitution_memorizer.web.request_context import record_request_timing
 
 logger = logging.getLogger(__name__)
@@ -384,7 +388,11 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         eng = getattr(request.state, "bound_engine", None) or request.app.state.engine.for_user(
             user.id
         )
-        bundle = eng.bootstrap_request(include_profile=True)
+        bundle = eng.bootstrap_request(
+            include_profile=True,
+            include_modes=True,
+            include_account=entitlements_active(request),
+        )
         profile = bundle.profile
         if profile is None or not (profile.get("display_name") or "").strip():
             return RedirectResponse(url="/welcome", status_code=303)

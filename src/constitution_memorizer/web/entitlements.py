@@ -624,16 +624,20 @@ def subscription_status(
     user = getattr(getattr(request, "state", None), "current_user", None)
     if user is None:
         return None
-    getter = getattr(
-        getattr(engine, "repo", None), "latest_paid_billing_order", None
-    )
-    if getter is None:
-        return None
-    from constitution_memorizer.web.request_context import record_request_timing
+    engine_getter = getattr(engine, "latest_paid_billing_order", None)
+    if engine_getter is not None:
+        order = engine_getter()
+    else:
+        repo_getter = getattr(
+            getattr(engine, "repo", None), "latest_paid_billing_order", None
+        )
+        if repo_getter is None:
+            return None
+        from constitution_memorizer.web.request_context import record_request_timing
 
-    started = perf_counter()
-    order = getter(getattr(engine, "user_id", None))
-    record_request_timing("billing_status", started)
+        started = perf_counter()
+        order = repo_getter(getattr(engine, "user_id", None))
+        record_request_timing("billing_status", started)
     if order is None or order.paid_at is None:
         return None
     return status_from_paid_order(

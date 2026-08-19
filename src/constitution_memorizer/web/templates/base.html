@@ -177,6 +177,11 @@
           {% endif %}
           {% endif %}
         </nav>
+        <nav class="footer-nav footer-legal-nav" aria-label="Legal">
+          <a href="/terms" class="footer-link{% if path == '/terms' %} is-active{% endif %}">Terms</a>
+          <a href="/privacy" class="footer-link{% if path == '/privacy' %} is-active{% endif %}">Privacy</a>
+          <a href="/grievance" class="footer-link{% if path == '/grievance' %} is-active{% endif %}">Grievance</a>
+        </nav>
         <button
           type="button"
           class="theme-toggle"

@@ -19,6 +19,9 @@ GUEST_PUBLIC_PREFIXES = (
     "/welcome",
     "/session-expired",
     "/signed-out",
+    "/terms",
+    "/privacy",
+    "/grievance",
     "/profile",  # GET redirects to login in handler; POST requires auth
 )
 
@@ -66,6 +69,9 @@ def requires_auth(path: str, method: str) -> bool:
         "/health",
         "/signed-out",
         "/session-expired",
+        "/terms",
+        "/privacy",
+        "/grievance",
     }:
         return False
     if any(path == p or path.startswith(p + "/") for p in AUTH_REQUIRED_PREFIXES):

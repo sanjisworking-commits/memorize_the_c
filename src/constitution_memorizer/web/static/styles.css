@@ -3142,6 +3142,10 @@ code {
   color: var(--ink);
 }
 
+.footer-legal-nav {
+  margin-left: auto;
+}
+
 .reference-tools {
   margin-top: 36px;
 }
@@ -3820,6 +3824,18 @@ html[data-theme="dark"] {
 
 .auth-foot {
   margin-top: 28px;
+}
+
+.auth-legal {
+  margin: 18px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 36ch;
+}
+
+.auth-legal a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .auth-transition {
@@ -7533,7 +7549,7 @@ body.is-admin-previewing { padding-top: 40px; }
 }
 
 .gcal-permission-line {
-  margin: 0 0 18px;
+  margin: 0 0 14px;
   font-family: var(--font-mono);
   font-size: 11.5px;
   line-height: 1.6;
@@ -7543,6 +7559,20 @@ body.is-admin-previewing { padding-top: 40px; }
 
 .gcal-permission-line span {
   color: var(--muted);
+}
+
+.gcal-connect-disclosure {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--ink);
+  background: var(--paper);
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.gcal-connect-disclosure strong {
+  font-weight: 700;
 }
 
 /* Post-connect reminder-cadence popup ---------------------------------- */

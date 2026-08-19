@@ -671,7 +671,15 @@ def install_auth_middleware(app) -> None:
             raw_cookie
             and user is None
             and method == "GET"
-            and path not in {"/session-expired", "/login", "/signed-out", "/health"}
+            and path not in {
+                "/session-expired",
+                "/login",
+                "/signed-out",
+                "/health",
+                "/terms",
+                "/privacy",
+                "/grievance",
+            }
             and not path.startswith("/static/")
             and not path.startswith("/auth/")
         ):

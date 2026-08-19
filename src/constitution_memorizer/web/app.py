@@ -122,6 +122,7 @@ from constitution_memorizer.web.entitlements import (
     resolve_learn_access,
 )
 from constitution_memorizer.web.gloss import gloss_placeholder_for, load_gloss_placeholders
+from constitution_memorizer.web.legal import PAGES, legal_page_context
 from constitution_memorizer.web.pricing import (
     DEFAULT_DAYS,
     MORE_DAYS,
@@ -1754,6 +1755,20 @@ def create_app(
         storage_key = f"{as_user_id(mem.user_id)}/{dest_name}"
         mem.set_photo(entry_id, storage_key)
         return RedirectResponse(url=f"/memory/{entry_id}", status_code=303)
+
+    @app.get("/terms", response_class=HTMLResponse)
+    @app.get("/privacy", response_class=HTMLResponse)
+    @app.get("/grievance", response_class=HTMLResponse)
+    async def legal_page(request: Request) -> HTMLResponse:
+        """Public Terms, Privacy and Grievance pages for Google OAuth branding."""
+        slug = request.url.path.strip("/")
+        if slug not in PAGES:
+            raise HTTPException(status_code=404, detail="Not found")
+        return templates.TemplateResponse(
+            request,
+            "legal.html",
+            legal_page_context(slug, settings),
+        )
 
     @app.get("/pricing", response_class=HTMLResponse)
     async def pricing_page(

@@ -139,6 +139,26 @@ class MultiUserSettings(BaseSettings):
     gcal_client_secret: str = Field(default="", alias="GCAL_CLIENT_SECRET")
     gcal_token_key: str = Field(default="", alias="GCAL_TOKEN_KEY")
 
+    # Public legal pages (/terms, /privacy, /grievance). Emails default to the
+    # production recall-the-c.in mailboxes. Identity fields stay empty so we
+    # do not invent a registered business name, address or Grievance Officer.
+    legal_entity_name: str = Field(default="", alias="LEGAL_ENTITY_NAME")
+    legal_business_address: str = Field(default="", alias="LEGAL_BUSINESS_ADDRESS")
+    legal_jurisdiction: str = Field(default="", alias="LEGAL_JURISDICTION")
+    legal_support_email: str = Field(
+        default="support@recall-the-c.in", alias="LEGAL_SUPPORT_EMAIL"
+    )
+    legal_privacy_email: str = Field(
+        default="privacy@recall-the-c.in", alias="LEGAL_PRIVACY_EMAIL"
+    )
+    legal_grievance_email: str = Field(
+        default="grievance@recall-the-c.in", alias="LEGAL_GRIEVANCE_EMAIL"
+    )
+    legal_grievance_officer: str = Field(default="", alias="LEGAL_GRIEVANCE_OFFICER")
+    legal_privacy_contact: str = Field(
+        default="Privacy Contact", alias="LEGAL_PRIVACY_CONTACT"
+    )
+
     @property
     def gcal_configured(self) -> bool:
         return bool(

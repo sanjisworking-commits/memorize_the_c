@@ -35,6 +35,9 @@
   }
   [data-reveal][data-shown="1"]{opacity:1 !important;transform:none !important}
   [data-l]{transition:color .55s ease}
+  /* Part squares: lift the fill off the near-black page and add a hairline so
+     the blocks read (the raw #151517-on-#0b0b0b was near-invisible). */
+  [data-pcard]{background:#1e1e24 !important;border:1px solid rgba(244,241,234,0.16)}
   [data-lbl-short]{display:none}
   @media (max-width:900px){
     [data-navlinks]{display:none !important}

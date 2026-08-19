@@ -469,10 +469,16 @@
       if (released === 'down' && (y > last + vh * 0.45 || y < last - vh * 0.3)) released = null;
       if (released) { prevY = y; return; }
       if (!active) {
-        // Arriving at either gateway: turning snapping on lets the browser
-        // settle onto the nearest screen — §02 coming down, §05 coming up.
-        var enterDown = down && y >= first - vh * 0.25 && y < last + vh * 0.5;
-        var enterUp = !down && y <= last + vh * 0.35 && y > first - vh * 0.2;
+        // Engage snapping only right at the gateway being entered — §02 coming
+        // down, §05 coming up — so the browser settles onto that screen. The
+        // window must NOT reach across the whole corridor: a fast flick (or a
+        // browser that coalesces scroll events through momentum, e.g. Safari)
+        // can make the first handled position already deep inside, and turning
+        // mandatory snapping on there grabs the NEAREST snap point — which read
+        // as §01 jumping straight to §05. Overshoot past the gateway simply
+        // free-scrolls this pass instead of yanking to a far section.
+        var enterDown = down && y >= first - vh * 0.25 && y < first + vh * 0.5;
+        var enterUp = !down && y <= last + vh * 0.25 && y > last - vh * 0.5;
         if (enterDown || enterUp) { root.classList.add('snap-active'); active = true; }
       } else if (y < first - 24) release('up');
       else if (y > last + vh * 0.6) release('down');

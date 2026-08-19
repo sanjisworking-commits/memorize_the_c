@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block meta_description %}{{ page.description }}{% endblock %}
+{% block content %}
+<section class="legal-page">
+  <header class="legal-header">
+    <p class="legal-kicker">Recall the C · Legal</p>
+    <nav class="legal-switch" aria-label="Legal pages">
+      {% for item in pages %}
+      <a href="{{ item.path }}"{% if item.slug == page.slug %} class="is-current" aria-current="page"{% endif %}>{{ item.eyebrow }}</a>
+      {% endfor %}
+    </nav>
+    <h1 class="legal-title">{{ page.title }}</h1>
+    <p class="legal-lede">{{ page.lede }}</p>
+    <p class="legal-meta">Effective {{ effective_date }} · Last updated {{ last_updated }}</p>
+  </header>
+
+  <div class="legal-layout">
+    <nav class="legal-toc" aria-label="On this page">
+      <p class="legal-toc-label">On this page</p>
+      {% for anchor, nn, label in page.toc %}
+      <a href="#{{ anchor }}"><span class="legal-toc-nn">{{ nn }}</span> {{ label }}</a>
+      {% endfor %}
+    </nav>
+    <article class="legal-article">
+      {% block legal_body %}{% endblock %}
+      <p class="legal-end">
+        Related:
+        <a href="/terms">Terms</a> ·
+        <a href="/privacy">Privacy Policy</a> ·
+        <a href="/grievance">Grievance Redressal</a>
+      </p>
+    </article>
+  </div>
+</section>
+{% endblock %}

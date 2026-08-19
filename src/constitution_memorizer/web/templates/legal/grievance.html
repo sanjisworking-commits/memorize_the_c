@@ -1,0 +1,162 @@
+{% extends "legal/base.html" %}
+{% from "legal/_macros.html" import field, email %}
+{% block legal_body %}
+<p>Recall the C is committed to providing users with a clear and accessible mechanism for raising concerns relating to the Service, personal data, accounts, content, payments or connected services.</p>
+
+<section class="legal-section" id="officer">
+<h2>1. Grievance Officer</h2>
+<p>
+  <strong>Grievance Officer:</strong> {{ field(op.grievance_officer) }}<br>
+  <strong>Designation:</strong> Grievance Officer — Recall the C<br>
+  <strong>Email:</strong> {{ email(op.grievance_email) }}<br>
+  <strong>Business Address:</strong> {{ field(op.address) }}<br>
+  <strong>Country:</strong> India
+</p>
+<p>For privacy-specific matters, you may also contact:</p>
+<p>
+  <strong>Privacy Contact:</strong> {{ field(op.privacy_contact) }}<br>
+  <strong>Email:</strong> {{ email(op.privacy_email) }}
+</p>
+</section>
+
+<section class="legal-section" id="what">
+<h2>2. What You Can Report</h2>
+<p>You may use this mechanism to raise a grievance concerning matters including:</p>
+<ul>
+  <li>your Recall the C account;</li>
+  <li>access to or deletion of your account;</li>
+  <li>your personal data;</li>
+  <li>correction or updating of personal data;</li>
+  <li>withdrawal of consent;</li>
+  <li>Google Sign-In;</li>
+  <li>Google Calendar connection or disconnection;</li>
+  <li>suspected unauthorised access;</li>
+  <li>security concerns;</li>
+  <li>subscription or payment issues;</li>
+  <li>technical problems;</li>
+  <li>inaccurate educational material;</li>
+  <li>intellectual-property concerns;</li>
+  <li>misuse of the Service;</li>
+  <li>an issue report that has not been resolved; or</li>
+  <li>another matter relating to Recall the C.</li>
+</ul>
+</section>
+
+<section class="legal-section" id="how">
+<h2>3. How to Submit a Grievance</h2>
+<div class="legal-callout">
+  <p>Never send us passwords, OTPs, access tokens, CVVs or banking PINs.</p>
+</div>
+<p>You may submit a grievance by emailing {{ email(op.grievance_email) }}. Signed-in users may also use the in-app <strong>Contact us</strong> control.</p>
+<p>Please use the subject line:</p>
+<p><strong>Grievance — Recall the C</strong></p>
+<p>To help us investigate your grievance efficiently, please provide:</p>
+<ol>
+  <li>your name;</li>
+  <li>the email address or mobile number associated with your Recall the C account, where applicable;</li>
+  <li>a clear description of the issue;</li>
+  <li>the relevant page, feature, transaction or event;</li>
+  <li>screenshots or supporting information, if useful;</li>
+  <li>the action you would like us to consider; and</li>
+  <li>any previous Recall the C support or issue-report reference number.</li>
+</ol>
+</section>
+
+<section class="legal-section" id="timelines">
+<h2>4. Acknowledgment and Resolution</h2>
+<p>Recall the C aims to acknowledge a valid grievance within 24 hours and aims to resolve ordinary grievances within seven days where reasonably possible. Where applicable law prescribes another timeframe, that timeframe will apply.</p>
+<p>Some matters may require additional time because of their complexity, identity-verification requirements, involvement of an external service provider, legal obligations or investigation of a security incident.</p>
+<p>If additional time is required, we will endeavour to keep you informed of the status of the grievance.</p>
+</section>
+
+<section class="legal-section" id="privacy-requests">
+<h2>5. Privacy and Personal Data Requests</h2>
+<p>If your grievance concerns personal data, you may request, subject to applicable law:</p>
+<ul>
+  <li>information about personal data processed about you;</li>
+  <li>access to relevant personal data;</li>
+  <li>correction of inaccurate information;</li>
+  <li>completion or updating of information;</li>
+  <li>deletion or erasure of personal data;</li>
+  <li>withdrawal of consent; or</li>
+  <li>information about relevant processing activities.</li>
+</ul>
+<p>We may ask you to provide sufficient information to verify your identity before acting on a request.</p>
+</section>
+
+<section class="legal-section" id="google">
+<h2>6. Google Account and Calendar Complaints</h2>
+<p>For grievances concerning Google integration, please specify whether the issue relates to:</p>
+<ul>
+  <li>Google Sign-In;</li>
+  <li>connecting Google Calendar;</li>
+  <li>a Recall the C-created Calendar;</li>
+  <li>revision events;</li>
+  <li>revoking Google access; or</li>
+  <li>deletion of stored Google authorisation information.</li>
+</ul>
+<p>Recall the C will investigate matters concerning data within its control. See also <a href="/privacy#managing-google-data">Managing your Google data</a>.</p>
+<p>You may independently revoke Recall the C’s access through your Google Account settings.</p>
+<p>Calendar events or calendars already stored in your Google Account may also be managed directly through Google Calendar.</p>
+</section>
+
+<section class="legal-section" id="security">
+<h2>7. Security Incidents</h2>
+<p>If you believe that your account or personal data has been compromised, please state:</p>
+<p><strong>URGENT — SECURITY</strong></p>
+<p>in the subject line of your communication.</p>
+<p>Do not send passwords, OTPs, access tokens, private authentication credentials or full payment information.</p>
+<p>We may prioritise such reports according to the apparent security risk.</p>
+</section>
+
+<section class="legal-section" id="content">
+<h2>8. Content Accuracy and Corrections</h2>
+<p>Recall the C welcomes reports concerning possible errors in constitutional text, amendment information, explanations, visual material or other educational content.</p>
+<p>Content complaints will be reviewed against appropriate source material.</p>
+<p>Recall the C is an educational platform and does not adjudicate legal disputes or provide authoritative legal interpretations.</p>
+</section>
+
+<section class="legal-section" id="payments">
+<h2>9. Payment and Subscription Grievances</h2>
+<p>For payment-related matters, please provide the transaction reference number, date and account identifier where available.</p>
+<p>Do not provide your full card number, CVV, UPI PIN, banking password or OTP.</p>
+<p>Where payment processing is performed by a third-party payment provider, we may need to coordinate with that provider to investigate the transaction.</p>
+</section>
+
+<section class="legal-section" id="escalation">
+<h2>10. Escalation</h2>
+<p>If you believe that your grievance has not been appropriately addressed, you may request an internal escalation by replying to the grievance response and stating:</p>
+<p><strong>Request for Escalation</strong></p>
+<p>Where applicable law provides a right to approach a regulatory authority, statutory board, Grievance Appellate Committee, court or other authority after completion of the internal grievance process, nothing in this policy restricts that right.</p>
+</section>
+
+<section class="legal-section" id="abuse">
+<h2>11. Abuse of the Grievance Mechanism</h2>
+<p>Please submit genuine grievances and provide accurate information.</p>
+<p>Recall the C may take appropriate measures against automated spam, impersonation, deliberately false claims, harassment or misuse of grievance and reporting mechanisms.</p>
+<p>This does not prevent any person from raising a genuine concern in good faith.</p>
+</section>
+
+<section class="legal-section" id="confidentiality">
+<h2>12. Confidentiality</h2>
+<p>Information submitted through the grievance process will be used for investigating, resolving, documenting and, where necessary, complying with legal obligations relating to the grievance.</p>
+<p>Personal information submitted during this process will be handled in accordance with the Recall the C <a href="/privacy">Privacy Policy</a>.</p>
+</section>
+
+<section class="legal-section" id="contact">
+<h2>13. Contact Details</h2>
+<p>
+  <strong>Recall the C</strong><br>
+  Operated by: {{ field(op.entity) }}
+</p>
+<p>
+  <strong>Grievance Officer:</strong> {{ field(op.grievance_officer) }}<br>
+  <strong>Email:</strong> {{ email(op.grievance_email) }}<br>
+  <strong>Address:</strong> {{ field(op.address) }}
+</p>
+<p>
+  <strong>Privacy Contact:</strong> {{ field(op.privacy_contact) }}<br>
+  <strong>Email:</strong> {{ email(op.privacy_email) }}
+</p>
+</section>
+{% endblock %}

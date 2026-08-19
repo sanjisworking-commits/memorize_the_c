@@ -39,7 +39,10 @@ no progress is ever affected.
    - Fill app name ("Recall the C"), support email, developer email. Save.
    - **Scopes** → Add or remove scopes → paste
      `https://www.googleapis.com/auth/calendar.app.created` → Update. Save.
+     Do not add `calendar` or `calendar.events`.
    - **Test users** → add your own Google account(s). Save.
+   Production homepage, Privacy, and Terms URLs are listed in
+   `docs/GOOGLE_OAUTH_PRODUCTION.md`.
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
    - Application type: **Web application**.
    - Name: `Recall the C — Calendar` (a **dedicated client — do NOT reuse the

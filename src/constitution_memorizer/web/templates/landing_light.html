@@ -324,9 +324,14 @@
       <span style="font-family:Fraunces,Georgia,serif;font-size:17px;font-weight:700;letter-spacing:-0.02em">Recall the C</span>
     </a>
     <p style="margin:0;font-family:Fraunces,Georgia,serif;font-style:italic;font-size:14.5px;color:#6f6a63">Read it. See it. Recall it. Revisit it. Remember it.</p>
-    {% if pricing_enabled|default(false) %}
-    <a href="/pricing" style="font-size:13.5px;font-weight:600;color:#6f6a63">Pricing</a>
-    {% endif %}
+    <nav aria-label="Legal" style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13.5px;font-weight:600">
+      <a href="/terms" style="color:#6f6a63">Terms</a>
+      <a href="/privacy" style="color:#6f6a63">Privacy</a>
+      <a href="/grievance" style="color:#6f6a63">Grievance</a>
+      {% if pricing_enabled|default(false) %}
+      <a href="/pricing" style="color:#6f6a63">Pricing</a>
+      {% endif %}
+    </nav>
     <p style="margin:0;font-size:13px;color:#9d978d;max-width:420px">A study aid, not an official legal source. Verify against an authoritative publication where it counts.</p>
   </div>
 </footer>

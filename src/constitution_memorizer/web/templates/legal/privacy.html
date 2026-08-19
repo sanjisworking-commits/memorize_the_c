@@ -1,0 +1,299 @@
+{% extends "legal/base.html" %}
+{% from "legal/_macros.html" import field, email %}
+{% block legal_body %}
+<p>This Privacy Policy explains how <strong>{{ field(op.entity) }}</strong>, doing business as <strong>Recall the C</strong> (“Recall the C”, “we”, “us” or “our”), collects, uses, stores and protects personal data when you use Recall the C.</p>
+<p>It also explains how Recall the C handles information received from Google APIs.</p>
+
+<section class="legal-section" id="scope">
+<h2>1. Scope</h2>
+<p>This Privacy Policy applies to the Recall the C website, application, account system, learning tools, progress tracking, revision scheduling, Google Calendar integration and related services.</p>
+</section>
+
+<section class="legal-section" id="collect">
+<h2>2. Information We May Collect</h2>
+<h3>Account information</h3>
+<p>Depending on how you register or sign in, we may process information such as:</p>
+<ul>
+  <li>your name;</li>
+  <li>email address;</li>
+  <li>mobile number;</li>
+  <li>account identifier;</li>
+  <li>authentication-provider identifier;</li>
+  <li>profile information supplied through an authorised sign-in provider; and</li>
+  <li>account creation and last-sign-in information.</li>
+</ul>
+<h3>Learning and progress information</h3>
+<p>When you use Recall the C, we may process information including:</p>
+<ul>
+  <li>learning units or articles you access;</li>
+  <li>learning activities you complete;</li>
+  <li>progress and completion status;</li>
+  <li>revision history;</li>
+  <li>next scheduled revision date;</li>
+  <li>revision interval;</li>
+  <li>learning preferences; and</li>
+  <li>other settings necessary to provide your learning experience.</li>
+</ul>
+<h3>Technical information</h3>
+<p>We may automatically process limited technical information necessary to operate and secure the Service, such as:</p>
+<ul>
+  <li>IP address;</li>
+  <li>browser and device information;</li>
+  <li>timestamps;</li>
+  <li>session information;</li>
+  <li>security and authentication logs;</li>
+  <li>error information; and</li>
+  <li>activity necessary to detect abuse or maintain the Service.</li>
+</ul>
+<h3>Information you submit</h3>
+<p>If you send an issue report, correction, support request or grievance, we may process the information contained in your submission and the contact details necessary to respond.</p>
+<p>Please avoid including unnecessary sensitive personal information.</p>
+</section>
+
+<section class="legal-section" id="google-signin">
+<h2>3. Google Sign-In</h2>
+<p>If you choose to sign in using Google, Google may provide Recall the C with information that you have authorised Google to share with us, such as:</p>
+<ul>
+  <li>Google account identifier;</li>
+  <li>name;</li>
+  <li>email address; and</li>
+  <li>profile information supplied through the authorised authentication flow.</li>
+</ul>
+<p>We use this information to:</p>
+<ul>
+  <li>authenticate you;</li>
+  <li>create or identify your Recall the C account;</li>
+  <li>maintain your signed-in session;</li>
+  <li>protect your account; and</li>
+  <li>provide account-related functionality.</li>
+</ul>
+<p>Recall the C does not receive the user’s Google password.</p>
+</section>
+
+<section class="legal-section" id="google-calendar">
+<h2>4. Google Calendar Data</h2>
+<div class="legal-callout">
+  <p>Google Calendar access is optional.</p>
+</div>
+<p>If you choose to connect it, Recall the C may request the Google Calendar permission:</p>
+<p><code>{{ google_calendar_scope }}</code></p>
+<p>This permission enables Recall the C to create a secondary Google Calendar specifically for a user’s Recall the C revision schedule and to create, update or delete revision events on calendars created by Recall the C.</p>
+<p>Recall the C does not use this permission to access your unrelated personal calendars.</p>
+<h3>What Recall the C accesses</h3>
+<p>When you enable this feature, Recall the C may process:</p>
+<ul>
+  <li>the identifier of a Google Calendar created by Recall the C;</li>
+  <li>identifiers of revision events created by Recall the C;</li>
+  <li>event dates and information required to create your revision schedule;</li>
+  <li>synchronisation status;</li>
+  <li>information indicating whether your Google Calendar account is connected; and</li>
+  <li>OAuth authorisation credentials necessary to maintain the authorised connection.</li>
+</ul>
+<h3>Why we use Google Calendar data</h3>
+<p>Google Calendar access is used solely to provide user-facing revision scheduling and calendar synchronisation functionality requested by you.</p>
+<p>For example, Recall the C may create a secondary calendar named for the Recall the C revision schedule and add revision events corresponding to dates calculated by your learning schedule.</p>
+<h3>What Recall the C does not do</h3>
+<div class="legal-callout">
+  <p>We do not sell Google user data.</p>
+</div>
+<ul>
+  <li>Recall the C does not use this Calendar permission to access your unrelated personal calendars.</li>
+  <li>Recall the C does not use Google Calendar information for advertising.</li>
+  <li>Recall the C does not sell Google user data.</li>
+  <li>Recall the C does not build advertising profiles from Google Calendar information.</li>
+  <li>Recall the C does not use Google Calendar information to train general-purpose AI models.</li>
+</ul>
+<div class="legal-callout">
+  <p>Recall the C’s use of information received from Google Workspace APIs will adhere to the <a href="{{ google_user_data_policy_url }}">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+</div>
+</section>
+
+<section class="legal-section" id="oauth-tokens">
+<h2>5. OAuth Tokens and Google Authorisation Credentials</h2>
+<p>When Calendar access is authorised, Recall the C may store authorisation credentials, such as access or refresh credentials, that are required to maintain the connection authorised by you.</p>
+<p>Such credentials are used only for the authorised Google integration. Recall the C applies appropriate technical and organisational safeguards to authorisation credentials.</p>
+<p>They are not sold or used for advertising.</p>
+</section>
+
+<section class="legal-section" id="use">
+<h2>6. How We Use Personal Data</h2>
+<p>We may process personal data to:</p>
+<ul>
+  <li>create and maintain your account;</li>
+  <li>authenticate users;</li>
+  <li>provide learning functionality;</li>
+  <li>store your learning progress;</li>
+  <li>calculate revision schedules;</li>
+  <li>provide reminders and calendar functionality;</li>
+  <li>provide and administer paid services where applicable;</li>
+  <li>respond to support requests and issue reports;</li>
+  <li>maintain the security and integrity of the Service;</li>
+  <li>prevent fraud, abuse and unauthorised access;</li>
+  <li>troubleshoot and improve the Service;</li>
+  <li>comply with applicable legal obligations; and</li>
+  <li>establish, exercise or defend legal rights where permitted by law.</li>
+</ul>
+<p>We seek to collect and process only information reasonably necessary for these purposes.</p>
+</section>
+
+<section class="legal-section" id="consent">
+<h2>7. Consent and Your Choices</h2>
+<p>Where our processing relies on your consent, you may withdraw that consent using the relevant account, integration or privacy controls.</p>
+<p>Withdrawing consent does not affect processing that was lawfully carried out before withdrawal.</p>
+<p>Connecting Google Calendar is optional.</p>
+<p>Refusing or withdrawing Google Calendar permission will not prevent you from using unrelated Recall the C functionality, although Calendar synchronisation will no longer work.</p>
+</section>
+
+<section class="legal-section" id="disconnect">
+<h2>8. Disconnecting Google Calendar</h2>
+<p>You may disconnect Recall the C from Google Calendar using the controls provided in Settings and/or revoke Recall the C’s access through your Google Account.</p>
+<p>After disconnection:</p>
+<ul>
+  <li>Recall the C will stop making new Calendar API requests on your behalf;</li>
+  <li>stored Google authorisation credentials associated with the connection will be deleted or invalidated in accordance with our retention and security procedures; and</li>
+  <li>revision events or secondary calendars already created within your Google Calendar may remain in your Google account unless they are separately deleted.</li>
+</ul>
+<p>You may delete such calendars or events using Google Calendar.</p>
+</section>
+
+<section class="legal-section" id="managing-google-data">
+<h2>9. Managing your Google data</h2>
+<p>You can disconnect Google Calendar from Recall the C in Settings.</p>
+<p>You can also revoke Recall the C’s Google access from your Google Account.</p>
+<p>Calendars or events already created in your Google account may remain after disconnection unless they are separately deleted. You can manage or delete them directly in Google Calendar.</p>
+<p>You can delete your Recall the C account from <a href="{{ account_deletion_path }}">Profile</a>.</p>
+</section>
+
+<section class="legal-section" id="sharing">
+<h2>10. Sharing of Personal Data</h2>
+<p>We do not sell your personal data.</p>
+<p>We may disclose limited information to service providers where reasonably necessary to operate Recall the C, such as providers supporting:</p>
+<ul>
+  <li>cloud hosting;</li>
+  <li>database infrastructure;</li>
+  <li>authentication;</li>
+  <li>email delivery;</li>
+  <li>security and anti-abuse systems;</li>
+  <li>payment processing; and</li>
+  <li>Google authentication or Google Calendar functionality.</li>
+</ul>
+<p>Such providers should receive only information necessary for the relevant service and process it subject to appropriate contractual or legal safeguards.</p>
+<p>We may also disclose information where required by applicable law, court order or lawful governmental request, or where reasonably necessary to protect the security or legal rights of Recall the C or its users.</p>
+</section>
+
+<section class="legal-section" id="google-sharing">
+<h2>11. Google User Data Sharing</h2>
+<p>Information obtained through Google APIs is not sold.</p>
+<p>We do not transfer Google user data to third parties except:</p>
+<ul>
+  <li>where necessary to provide or secure the functionality expressly requested by the user;</li>
+  <li>to service providers acting on our behalf where permitted by applicable Google policies and law;</li>
+  <li>when required by applicable law; or</li>
+  <li>with the user’s explicit consent.</li>
+</ul>
+<p>Google user data is not transferred for personalised advertising, advertising measurement or sale to data brokers.</p>
+</section>
+
+<section class="legal-section" id="cookies">
+<h2>12. Cookies and Sessions</h2>
+<p>Recall the C may use cookies or similar technologies that are necessary to:</p>
+<ul>
+  <li>keep users signed in;</li>
+  <li>maintain sessions;</li>
+  <li>protect against security threats;</li>
+  <li>remember preferences; and</li>
+  <li>operate core Service functionality.</li>
+</ul>
+<p>If we introduce non-essential analytics, advertising or similar tracking technologies that legally require additional consent, appropriate notice or consent controls will be provided.</p>
+</section>
+
+<section class="legal-section" id="retention">
+<h2>13. Data Retention</h2>
+<p>We retain personal data only for as long as reasonably necessary for the purpose for which it was processed, including providing your account and learning history, maintaining security, resolving disputes and complying with applicable legal obligations.</p>
+<p>Different categories of information may have different retention periods.</p>
+<p>When information is no longer required, we will delete, anonymise or otherwise appropriately dispose of it, subject to legal retention requirements.</p>
+</section>
+
+<section class="legal-section" id="deletion">
+<h2>14. Account Deletion</h2>
+<p>You may request deletion of your Recall the C account through <a href="{{ account_deletion_path }}">Profile → Delete account</a> or by contacting {{ email(op.privacy_email) }}.</p>
+<p>Following a valid deletion request, we will delete or anonymise personal data that is no longer required, subject to:</p>
+<ul>
+  <li>legal retention obligations;</li>
+  <li>security and fraud-prevention requirements;</li>
+  <li>dispute-resolution requirements; and</li>
+  <li>other lawful reasons for continued retention.</li>
+</ul>
+<p>Deleting your Recall the C account does not necessarily delete information independently held in your Google Account, including Calendar events already created there.</p>
+</section>
+
+<section class="legal-section" id="rights">
+<h2>15. Your Privacy Rights</h2>
+<p>Subject to applicable law, you may request to:</p>
+<ul>
+  <li>obtain information about personal data processed about you;</li>
+  <li>access personal data associated with your account;</li>
+  <li>correct inaccurate or incomplete information;</li>
+  <li>update your information;</li>
+  <li>request erasure of personal data;</li>
+  <li>withdraw consent where processing is based on consent; and</li>
+  <li>raise a grievance concerning our processing of your personal data.</li>
+</ul>
+<p>We may need to verify your identity before processing certain requests.</p>
+<p>Instructions for exercising these rights are available through our <a href="/grievance">Grievance Redressal</a> page or by contacting {{ email(op.privacy_email) }}.</p>
+</section>
+
+<section class="legal-section" id="security">
+<h2>16. Security</h2>
+<p>We use reasonable technical and organisational safeguards designed to protect personal data against unauthorised access, alteration, disclosure, loss or misuse.</p>
+<p>Measures may include, as appropriate:</p>
+<ul>
+  <li>access controls;</li>
+  <li>secure transport;</li>
+  <li>restricted administrative access;</li>
+  <li>logging and monitoring;</li>
+  <li>backups;</li>
+  <li>secret-management practices; and</li>
+  <li>security review of relevant systems.</li>
+</ul>
+<p>No internet-based service can guarantee absolute security.</p>
+</section>
+
+<section class="legal-section" id="breaches">
+<h2>17. Personal Data Breaches</h2>
+<p>If we become aware of a personal-data breach, we will investigate it and take appropriate remedial action.</p>
+<p>Affected users and competent authorities will be informed where and within the time required by applicable law.</p>
+</section>
+
+<section class="legal-section" id="international">
+<h2>18. International Processing</h2>
+<p>Some service providers used by Recall the C or its users, including Google and cloud-service providers, may process information using infrastructure located outside India.</p>
+<p>Where personal data is transferred internationally, Recall the C will seek to do so in accordance with applicable law and applicable restrictions on cross-border processing.</p>
+</section>
+
+<section class="legal-section" id="children">
+<h2>19. Children’s Privacy</h2>
+<p>Recall the C account and connected-data features are currently intended for persons aged 18 years and above.</p>
+<p>We do not knowingly seek to create accounts for children where doing so would require a parental-consent mechanism that Recall the C has not implemented.</p>
+<p>If you believe that personal data relating to a child has been processed contrary to applicable law, please contact {{ email(op.privacy_email) }}.</p>
+</section>
+
+<section class="legal-section" id="changes">
+<h2>20. Changes to This Privacy Policy</h2>
+<p>We may update this Privacy Policy where our Service, data practices, service providers or legal obligations change.</p>
+<p>Material changes will be communicated through reasonable means where appropriate.</p>
+<p>The effective date at the top of this Policy indicates the latest revision.</p>
+</section>
+
+<section class="legal-section" id="contact">
+<h2>21. Privacy Contact</h2>
+<p>For questions or requests concerning personal data:</p>
+<p>
+  <strong>Recall the C</strong><br>
+  Data/privacy contact: <strong>{{ field(op.privacy_contact) }}</strong><br>
+  Email: {{ email(op.privacy_email) }}<br>
+  Business address: <strong>{{ field(op.address) }}</strong>
+</p>
+<p>You may also use our <a href="/grievance">Grievance Redressal</a> mechanism. Related: <a href="/terms">Terms</a>.</p>
+</section>
+{% endblock %}

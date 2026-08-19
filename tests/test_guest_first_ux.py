@@ -95,26 +95,47 @@ def test_guest_landing_and_browse_learn(tmp_path: Path):
     assert 'href="/login"' in html
     assert 'href="/browse"' in html
     assert "Explore as guest" in html
-    assert "On the page" in html
+    # §02 interactive cloze card ("From memory") + its heading
+    assert "Recognition is not" in html
     assert "From memory" in html
     # Signature of the brain-canvas landing: the letter-field canvas + data file
     assert "data-brain" in html
     assert "brain-path.js" in html
-    # §01 rebuilt to the 13 Part squares (pinned)
-    assert "The arithmetic" in html
+    # §01 rebuilt to the 13 Part squares over a 600vh pin
+    assert "Three Articles a day." in html
+    assert "height:600vh" in html
     assert 'data-pin="1"' in html
-    assert "data-pcard" in html
     assert "Fundamental Rights" in html
-    assert "Six modes" in html
+    # Exactly the 13 Part squares render (not 12, not 14).
+    assert html.count('data-pcard="1"') == 13
+    # §03 "Learning modes" (six hover-fill circles)
+    assert "Learning modes" in html
+    assert "data-circles" in html
+    # §05 relevant-laws section + "and many more"
+    assert "does not act alone" in html
+    assert "and many more" in html
+    # Closing scrubbed block
+    assert "Start with one Article." in html
     # Old §01 bits removed (ruler + day blocks); §04 schedule already gone
     assert "data-ruler" not in html
     assert "data-daycards" not in html
     assert 'id="revision"' not in html
-    # Light-landing switch disabled — no theme toggle in the header
+    # Running-head marker removed; light-landing switch disabled (no toggle)
+    assert "data-marker" not in html
     assert 'id="landing-theme-toggle"' not in html
     assert "landing.js" in html
     assert "family=Fraunces" in html
     assert "@keyframes hintDrift" in html
+    # Scroll-snap corridor hooks: the JS toggles html.snap-active; the CSS snaps.
+    assert "scroll-snap-align" in html
+    # The motion script carries the corridor + reversible mobile mode-intro.
+    landing_js = (
+        Path(__file__).resolve().parents[1]
+        / "src/constitution_memorizer/web/static/landing.js"
+    ).read_text()
+    assert "snap-active" in landing_js
+    assert "setupModeIntro" in landing_js
+    assert "data-cloze" in landing_js
     # Standalone page: no app chrome from base.html
     assert "Learning as guest" not in html
     assert 'class="nav-link">Home' not in html

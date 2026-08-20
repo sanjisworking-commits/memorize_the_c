@@ -74,6 +74,7 @@ def _settings(port: int = 8898):
         GCAL_CLIENT_ID=_env("GCAL_CLIENT_ID"),
         GCAL_CLIENT_SECRET=_env("GCAL_CLIENT_SECRET"),
         GCAL_TOKEN_KEY=_env("GCAL_TOKEN_KEY"),
+        DEEPGRAM_API_KEY=_env("DEEPGRAM_API_KEY"),
     )
 
 

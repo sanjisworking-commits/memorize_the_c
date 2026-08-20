@@ -335,11 +335,16 @@ def test_recite_audio_omits_alignment(tmp_path: Path) -> None:
     assert "alignment" not in resp.json()
 
 
-def test_app_starts_without_deepgram_key(tmp_path: Path) -> None:
+def test_app_starts_without_deepgram_key(tmp_path: Path, monkeypatch) -> None:
     from constitution_memorizer.speech.provider import UnavailableSpeechProvider
 
+    # Hermetic: a real DEEPGRAM_API_KEY in the developer's .env must not
+    # leak into this assertion (env vars override the .env file).
+    monkeypatch.setenv("DEEPGRAM_API_KEY", "")
+    clear_settings_cache()
     app = create_app(units_path=MINI_UNITS, db_path=tmp_path / "progress.db")
     assert isinstance(app.state.speech_provider, UnavailableSpeechProvider)
+    clear_settings_cache()
 
 
 def test_speech_align_js_is_not_shipped() -> None:
@@ -347,3 +352,150 @@ def test_speech_align_js_is_not_shipped() -> None:
     assert not (
         root / "src" / "constitution_memorizer" / "web" / "static" / "speech_align.js"
     ).exists()
+
+
+# --------------------------------------------------------------------- #
+# Live word-by-word Letters over WebSocket                               #
+# --------------------------------------------------------------------- #
+
+import asyncio
+import json as _json
+
+from constitution_memorizer.speech.provider import (
+    LiveTranscriptEvent,
+    UnavailableSpeechProvider,
+)
+
+
+class FakeLiveSession:
+    """Scripted live session: waits for audio, plays events, waits for stop."""
+
+    def __init__(self, scripted: list[LiveTranscriptEvent]) -> None:
+        self._scripted = list(scripted)
+        self.audio_chunks: list[bytes] = []
+        self._got_audio = asyncio.Event()
+        self._finished = asyncio.Event()
+        self.closed = False
+
+    async def send_audio(self, chunk: bytes) -> None:
+        self.audio_chunks.append(chunk)
+        self._got_audio.set()
+
+    async def finish(self) -> None:
+        self._finished.set()
+
+    async def close(self) -> None:
+        self.closed = True
+        self._got_audio.set()
+        self._finished.set()
+
+    async def events(self):
+        await self._got_audio.wait()
+        for event in self._scripted:
+            yield event
+        await self._finished.wait()
+
+
+class FakeLiveProvider(FakeSpeechProvider):
+    def __init__(self, scripted: list[LiveTranscriptEvent]) -> None:
+        super().__init__()
+        self.scripted = scripted
+        self.sessions: list[FakeLiveSession] = []
+        self.live_keyterms: list[list[str]] = []
+
+    async def live_connect(self, *, keyterms=()):
+        self.live_keyterms.append(list(keyterms))
+        session = FakeLiveSession(self.scripted)
+        self.sessions.append(session)
+        return session
+
+
+def test_live_letters_streams_alignment_word_by_word(tmp_path: Path) -> None:
+    """Interim results paint matches BEFORE the phrase is finished."""
+    provider = FakeLiveProvider(
+        [
+            LiveTranscriptEvent(text="no person", is_final=False),
+            LiveTranscriptEvent(text="no person shall be", is_final=True),
+        ]
+    )
+    client = _guest_client(tmp_path, provider)
+    with client.websocket_connect(
+        "/learn/clause-1/speech/live?mode=letters&from_index=0"
+    ) as ws:
+        assert _json.loads(ws.receive_text())["type"] == "ready"
+        ws.send_bytes(b"\x01\x02\x03")
+
+        first = _json.loads(ws.receive_text())
+        assert first["type"] == "alignment"
+        assert first["final"] is False
+        interim_hits = {r["index"]: r["status"] for r in first["alignment"]}
+        # "no person" already matches display indexes 1 and 2 (0 is "(1)").
+        assert interim_hits[1] == "match"
+        assert interim_hits[2] == "match"
+
+        second = _json.loads(ws.receive_text())
+        assert second["final"] is True
+        final_hits = {r["index"]: r["status"] for r in second["alignment"]}
+        assert final_hits[3] == "match"
+        assert final_hits[4] == "match"
+        assert second["transcript"] == "no person shall be"
+
+        ws.send_text(_json.dumps({"type": "stop"}))
+        assert _json.loads(ws.receive_text())["type"] == "done"
+
+    session = provider.sessions[0]
+    assert session.audio_chunks == [b"\x01\x02\x03"]
+    assert session.closed
+    # Keyterms come from the unit text, same shortlist as the HTTP route.
+    assert provider.live_keyterms and isinstance(provider.live_keyterms[0], list)
+
+
+def test_live_rejects_non_letters_mode(tmp_path: Path) -> None:
+    client = _guest_client(tmp_path, FakeLiveProvider([]))
+    with client.websocket_connect(
+        "/learn/clause-1/speech/live?mode=recite"
+    ) as ws:
+        payload = _json.loads(ws.receive_text())
+        assert payload == {"type": "error", "error": "invalid_mode"}
+
+
+def test_live_unknown_unit(tmp_path: Path) -> None:
+    client = _guest_client(tmp_path, FakeLiveProvider([]))
+    with client.websocket_connect(
+        "/learn/no-such-unit/speech/live?mode=letters"
+    ) as ws:
+        payload = _json.loads(ws.receive_text())
+        assert payload == {"type": "error", "error": "not_found"}
+
+
+def test_live_unavailable_without_key(tmp_path: Path) -> None:
+    client = _guest_client(tmp_path, UnavailableSpeechProvider())
+    with client.websocket_connect(
+        "/learn/clause-1/speech/live?mode=letters"
+    ) as ws:
+        payload = _json.loads(ws.receive_text())
+        assert payload == {"type": "error", "error": "unavailable"}
+
+
+def test_live_provider_without_live_support(tmp_path: Path) -> None:
+    """A transcribe-only provider degrades to the unavailable error frame."""
+    client = _guest_client(tmp_path, FakeSpeechProvider())
+    with client.websocket_connect(
+        "/learn/clause-1/speech/live?mode=letters"
+    ) as ws:
+        payload = _json.loads(ws.receive_text())
+        assert payload == {"type": "error", "error": "unavailable"}
+
+
+def test_live_rate_limited(tmp_path: Path) -> None:
+    provider = FakeLiveProvider([])
+    client = _guest_client(tmp_path, provider)
+    limiter = client.app.state.speech_rate_limiter
+    while limiter.allow("ip:testclient"):
+        pass  # drain the guest bucket
+    with client.websocket_connect(
+        "/learn/clause-1/speech/live?mode=letters"
+    ) as ws:
+        payload = _json.loads(ws.receive_text())
+        assert payload == {"type": "error", "error": "rate_limited"}
+    assert provider.sessions == []

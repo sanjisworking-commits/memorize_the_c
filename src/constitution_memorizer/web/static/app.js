@@ -281,6 +281,7 @@
     const cueState = words.map(() => "neutral");
     let completed = false;
     let recording = null;
+    let live = null;
     let inFlight = false;
     let abortController = null;
 
@@ -501,6 +502,44 @@
       }
     }
 
+    function enterListeningUi(label, hint) {
+      markListeningWindow();
+      showStatus(hint, "listening");
+      if (speakBtn) {
+        speakBtn.classList.add("is-active");
+        speakBtn.textContent = "Listening…";
+      }
+      if (checkBtn) {
+        checkBtn.textContent = label;
+      }
+      setHidden(checkBtn, false);
+      renderCues();
+    }
+
+    function exitListeningUi() {
+      if (speakBtn) {
+        speakBtn.classList.remove("is-active");
+        speakBtn.textContent = "▸ Start";
+      }
+      if (checkBtn) {
+        checkBtn.textContent = "Check phrase";
+      }
+      setHidden(checkBtn, true);
+    }
+
+    async function startLegacySpeak() {
+      try {
+        recording = await speech.startRecording();
+        enterListeningUi(
+          "Check phrase",
+          "Listening… speak a short phrase, then check.",
+        );
+      } catch (_err) {
+        recording = null;
+        failInfra("Microphone permission is needed for spoken Letters.");
+      }
+    }
+
     async function startSpeak() {
       if (!speech || !speech.isSupported()) {
         failInfra("Microphone permission is needed for spoken Letters.");
@@ -509,23 +548,69 @@
         }
         return;
       }
-      try {
-        recording = await speech.startRecording();
-        markListeningWindow();
-        showStatus("Listening… speak a short phrase, then check.", "listening");
-        if (speakBtn) {
-          speakBtn.classList.add("is-active");
-          speakBtn.textContent = "Listening…";
+      // Live word-by-word mode first: letters turn blue as you speak.
+      if (typeof speech.startLive === "function" && unitId) {
+        try {
+          live = await speech.startLive({
+            unitId,
+            fromIndex: earliestUnresolvedIndex(),
+            onUpdate(payload) {
+              clearListening();
+              applyAlignment(payload.alignment || []);
+              markListeningWindow();
+              renderCues();
+            },
+            onEnd(code) {
+              live = null;
+              clearListening();
+              exitListeningUi();
+              renderCues();
+              if (code && code !== "cancelled") {
+                showStatus(
+                  "Live listening ended — press Start to continue, or use the fallback.",
+                  "error",
+                );
+                showFallback(true);
+              } else {
+                showStatus(
+                  completed
+                    ? "All letters recalled."
+                    : "Continue from the first letter that is not yet blue.",
+                  null,
+                );
+              }
+            },
+          });
+          enterListeningUi(
+            "Stop",
+            "Listening — correct letters turn blue as you speak.",
+          );
+          return;
+        } catch (err) {
+          live = null;
+          const code = err && err.code ? err.code : "";
+          if (code === "mode_locked" || code === "rate_limited") {
+            failInfra("Speech recognition is temporarily unavailable. Try again or use the fallback.");
+            return;
+          }
+          // Mic granted but live plumbing failed → quietly fall back to
+          // the record-then-check flow (unavailable/socket/unsupported).
         }
-        setHidden(checkBtn, false);
-        renderCues();
-      } catch (_err) {
-        recording = null;
-        failInfra("Microphone permission is needed for spoken Letters.");
       }
+      await startLegacySpeak();
     }
 
     async function checkPhrase() {
+      if (live) {
+        // Live mode: Stop just ends the stream; alignment already painted.
+        const session = live;
+        try {
+          session.stop();
+        } catch (_err) {
+          /* ignore */
+        }
+        return;
+      }
       if (!recording || inFlight) {
         return;
       }
@@ -625,6 +710,14 @@
             /* ignore */
           }
           recording = null;
+        }
+        if (live) {
+          try {
+            live.cancel();
+          } catch (_err) {
+            /* ignore */
+          }
+          live = null;
         }
         inFlight = false;
         full = false;

@@ -33,6 +33,13 @@ class DeepgramSpeechProvider:
         self._client = client
         self._timeout = timeout
 
+    async def live_connect(self, *, keyterms: Sequence[str] = ()):
+        from constitution_memorizer.speech.deepgram_live import (
+            deepgram_live_connect,
+        )
+
+        return await deepgram_live_connect(self._api_key, keyterms=keyterms)
+
     async def transcribe(
         self,
         audio: bytes,

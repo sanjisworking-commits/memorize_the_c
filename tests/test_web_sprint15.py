@@ -37,8 +37,8 @@ def test_learn_enables_letters_tab_and_panel_markup(client: TestClient):
     assert "Show full text" in html
     assert "Check phrase" in html
     assert "Use the first letters." in html
-    assert "speech_client.js?v=speech1" in html
-    assert "app.js?v=main28" in html
+    assert "speech_client.js?v=speech2" in html
+    assert "app.js?v=main29" in html
     assert "speech_align.js" not in html
 
 

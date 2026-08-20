@@ -100,6 +100,180 @@
       };
     },
 
+    /*
+     * Live word-by-word recognition. Streams MediaRecorder chunks over a
+     * WebSocket; the server relays to the speech provider and pushes
+     * alignment frames back while the user is still speaking.
+     *
+     * Resolves to a handle {stop(), cancel()} once the server says "ready".
+     * Rejects (after releasing the mic) if the socket or provider fails to
+     * start, so callers can fall back to the record-then-check flow.
+     */
+    async startLive(options) {
+      if (!this.isSupported() || !global.WebSocket) {
+        const err = new Error("live-unsupported");
+        err.code = "unsupported";
+        throw err;
+      }
+      const unitId = options.unitId || "";
+      const fromIndex = typeof options.fromIndex === "number" ? options.fromIndex : 0;
+      const onUpdate = options.onUpdate || function () {};
+      const onEnd = options.onEnd || function () {};
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      function stopTracks() {
+        stream.getTracks().forEach((track) => {
+          try {
+            track.stop();
+          } catch (_err) {
+            /* ignore */
+          }
+        });
+      }
+
+      const scheme = global.location.protocol === "https:" ? "wss://" : "ws://";
+      const url =
+        scheme +
+        global.location.host +
+        "/learn/" +
+        encodeURIComponent(unitId) +
+        "/speech/live?mode=letters&from_index=" +
+        encodeURIComponent(String(fromIndex));
+
+      return new Promise((resolve, reject) => {
+        let ws;
+        try {
+          ws = new WebSocket(url);
+        } catch (err) {
+          stopTracks();
+          reject(err);
+          return;
+        }
+        ws.binaryType = "arraybuffer";
+        let recorder = null;
+        let settled = false;
+        let ended = false;
+
+        function cleanup() {
+          if (recorder && recorder.state !== "inactive") {
+            try {
+              recorder.stop();
+            } catch (_err) {
+              /* ignore */
+            }
+          }
+          recorder = null;
+          stopTracks();
+        }
+
+        function finish(code) {
+          if (ended) {
+            return;
+          }
+          ended = true;
+          cleanup();
+          try {
+            ws.close();
+          } catch (_err) {
+            /* ignore */
+          }
+          onEnd(code || null);
+        }
+
+        ws.addEventListener("message", (event) => {
+          let payload;
+          try {
+            payload = JSON.parse(event.data);
+          } catch (_err) {
+            return;
+          }
+          if (payload.type === "ready") {
+            const mime = preferredMime();
+            try {
+              recorder = mime
+                ? new MediaRecorder(stream, { mimeType: mime })
+                : new MediaRecorder(stream);
+            } catch (err) {
+              settled = true;
+              finish("recorder-error");
+              reject(err);
+              return;
+            }
+            recorder.addEventListener("dataavailable", (evt) => {
+              if (evt.data && evt.data.size && ws.readyState === WebSocket.OPEN) {
+                evt.data.arrayBuffer().then((buf) => {
+                  if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(buf);
+                  }
+                });
+              }
+            });
+            recorder.start(250);
+            settled = true;
+            resolve({
+              stop() {
+                if (recorder && recorder.state !== "inactive") {
+                  try {
+                    recorder.requestData();
+                    recorder.stop();
+                  } catch (_err) {
+                    /* ignore */
+                  }
+                }
+                stopTracks();
+                // Give the last chunk a beat to flush before CloseStream.
+                setTimeout(() => {
+                  if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "stop" }));
+                  }
+                }, 120);
+              },
+              cancel() {
+                finish("cancelled");
+              },
+            });
+          } else if (payload.type === "alignment") {
+            onUpdate(payload);
+          } else if (payload.type === "done") {
+            finish(null);
+          } else if (payload.type === "error") {
+            const code = payload.error || "provider_error";
+            if (!settled) {
+              settled = true;
+              cleanup();
+              const err = new Error("live-failed");
+              err.code = code;
+              reject(err);
+            } else {
+              finish(code);
+            }
+          }
+        });
+        ws.addEventListener("error", () => {
+          if (!settled) {
+            settled = true;
+            cleanup();
+            const err = new Error("live-failed");
+            err.code = "socket";
+            reject(err);
+          } else {
+            finish("socket");
+          }
+        });
+        ws.addEventListener("close", () => {
+          if (!settled) {
+            settled = true;
+            cleanup();
+            const err = new Error("live-failed");
+            err.code = "socket";
+            reject(err);
+          } else {
+            finish(null);
+          }
+        });
+      });
+    },
+
     async transcribe(options) {
       const unitId = options.unitId || "";
       const body = new FormData();

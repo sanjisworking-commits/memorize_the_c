@@ -57,7 +57,7 @@ def test_all_six_mode_tabs_keep_fallback_hrefs(tmp_path: Path):
         assert f'href="/learn/clause-1?mode={mode}"' in html
         assert 'role="tab"' in html
     assert 'data-modes-seen="' in html
-    assert "app.js?v=main26" in html
+    assert "app.js?v=main27" in html
 
 
 def test_direct_get_mode_query_still_server_renders(tmp_path: Path):
@@ -213,8 +213,8 @@ def test_app_js_resets_destination_and_stops_recite():
 
 def test_app_js_gates_modes_on_completed_attempts():
     source = APP_JS.read_text(encoding="utf-8")
-    # Canonical partition mirror: read/letters/test mark on tab visit.
-    assert 'AUTO_SEEN_MODES = new Set(["read", "letters", "test"])' in source
+    # Canonical partition mirror: only Read marks on tab visit.
+    assert 'AUTO_SEEN_MODES = new Set(["read"])' in source
     learn_src = source.split("function initLearn()", 1)[1].split(
         "function initBrowseArticle()", 1
     )[0]

@@ -46,45 +46,75 @@ def repo(tmp_path: Path) -> ProgressRepository:
 def test_mode_partition_is_exhaustive_and_disjoint():
     assert AUTO_SEEN_MODES_SET | GATED_MODES_SET == LEARN_MODES_SET
     assert AUTO_SEEN_MODES_SET & GATED_MODES_SET == set()
-    assert AUTO_SEEN_MODES_SET == {"read", "letters", "test"}
-    assert GATED_MODES_SET == {"cloze", "type", "recite"}
+    assert AUTO_SEEN_MODES_SET == {"read"}
+    assert GATED_MODES_SET == {"cloze", "letters", "type", "recite", "test"}
     assert set(ent.OPEN_MODES) | set(ent.SUBSCRIBER_ONLY_MODES) == LEARN_MODES_SET
     assert set(ent.ALL_MODES) == LEARN_MODES_SET
 
 
-def test_test_visit_marks_seen_without_quiz(
+def test_js_contracts_letters_speech_and_quiz_only_test():
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "constitution_memorizer"
+        / "web"
+        / "static"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+    assert 'AUTO_SEEN_MODES = new Set(["read"])' in source
+    assert 'markModeAttempted("letters")' in source
+    assert 'markModeAttempted("test")' not in source
+    assert "webkitSpeechRecognition" not in source
+    assert "SpeechRecognition" not in source
+    assert "RecallSpeech" in source
+    assert 'mode: "recite"' in source
+    assert "[data-recite-toggle]" in source
+    assert "[data-recite-peek]" in source
+    assert "[data-recite-fallback]" in source
+    assert "recite.reset()" in source
+    assert "abortForServiceFailure" in source
+
+
+def test_test_visit_does_not_mark_without_quiz(
     client: TestClient, repo: ProgressRepository
 ):
     client.get("/learn/clause-1?mode=test")
-    assert "test" in repo.modes_seen(UID, "clause-1")
+    assert "test" not in repo.modes_seen(UID, "clause-1")
     client.get("/learn/clause-1")  # read
     client.get("/learn/clause-1?mode=letters")
-    for mode in ("cloze", "type", "recite"):
+    for mode in ("cloze", "letters", "type", "recite"):
         client.post("/learn/clause-1/seen", data={"mode": mode})
+    submit_quiz(client, MINI_UNITS, "clause-1")
     resp = client.post("/learn/clause-1/done", follow_redirects=False)
     assert resp.status_code == 303
     assert resp.headers["location"].startswith("/learn/")
     progress = repo.get_progress(UID, "clause-1")
     assert progress is not None and progress.times_completed == 1
+
+
 def test_gated_mode_gets_mark_nothing(client: TestClient, repo: ProgressRepository):
-    for mode in ("cloze", "type", "recite"):
+    for mode in ("cloze", "letters", "type", "recite", "test"):
         client.get(f"/learn/clause-1?mode={mode}")
     assert repo.modes_seen(UID, "clause-1") == set()
-    # Auto-seen modes still mark on open.
     client.get("/learn/clause-1?mode=read")
-    client.get("/learn/clause-1?mode=letters")
-    client.get("/learn/clause-1?mode=test")
-    assert repo.modes_seen(UID, "clause-1") == {"read", "letters", "test"}
+    assert repo.modes_seen(UID, "clause-1") == {"read"}
 
 
 # --------------------------------------------------------------------------- #
 # /seen contract                                                               #
 # --------------------------------------------------------------------------- #
 def test_seen_accepts_client_trusted_modes(client: TestClient):
-    for mode in ("cloze", "type", "recite", "test"):
+    for mode in ("cloze", "letters", "type", "recite"):
         resp = client.post("/learn/clause-1/seen", data={"mode": mode})
         assert resp.status_code == 200
         assert mode in resp.json()["seen"]
+
+
+def test_seen_rejects_test_with_quiz_required(client: TestClient, repo: ProgressRepository):
+    resp = client.post("/learn/clause-1/seen", data={"mode": "test"})
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "quiz_required"
+    assert "test" not in repo.modes_seen(UID, "clause-1")
 
 
 def test_seen_rejects_legacy_card(client: TestClient, repo: ProgressRepository):
@@ -240,10 +270,11 @@ def test_impossible_quiz_and_cloze_omitted_from_required(tmp_path: Path):
     assert "Nothing to quiz here yet" in page
     assert "data-quiz-form" not in page
     assert 'data-required-modes="read,letters,type,recite"' in page
-    # Visiting Test still checks it (auto-seen), even though it is not required.
-    assert repo.modes_seen(UID, "tiny-1") == {"test"}
+    # Visiting Test no longer checks it; it is omitted from required, so Done
+    # does not need a quiz.
+    assert repo.modes_seen(UID, "tiny-1") == set()
     client.get("/learn/tiny-1?mode=cloze")
-    assert repo.modes_seen(UID, "tiny-1") == {"test"}
+    assert repo.modes_seen(UID, "tiny-1") == set()
     cloze_page = client.get("/learn/tiny-1?mode=cloze").text
     assert "No cloze exercise available for this text." in cloze_page
 
@@ -254,8 +285,7 @@ def test_impossible_quiz_and_cloze_omitted_from_required(tmp_path: Path):
 
     # Done stays reachable with the remaining modes.
     client.get("/learn/tiny-1?mode=read")
-    client.get("/learn/tiny-1?mode=letters")
-    for mode in ("type", "recite"):
+    for mode in ("letters", "type", "recite"):
         client.post("/learn/tiny-1/seen", data={"mode": mode})
     resp = client.post("/learn/tiny-1/done", follow_redirects=False)
     assert resp.status_code == 303

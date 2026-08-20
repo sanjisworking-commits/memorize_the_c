@@ -156,9 +156,27 @@
     data-letters-full="false"
   >
     <p class="learn-letters-text is-initials" data-letters-display></p>
+    <p class="learn-letters-status" data-letters-status hidden></p>
     <div class="learn-letters-controls">
+      <button type="button" class="learn-letters-speak" data-letters-speak>▸ Start</button>
+      <button type="button" class="learn-letters-check" data-letters-check hidden>Check phrase</button>
       <button type="button" class="learn-letters-btn" data-letters-toggle>Show full text</button>
-      <span class="learn-letters-hint">Recite from the initials, then check yourself.</span>
+      <span class="learn-letters-hint">Use the first letters. Speak the exact words — correct cues turn blue.</span>
+    </div>
+    <div class="learn-letters-fallback" data-letters-fallback hidden>
+      <p class="learn-letters-fallback-lede">Speech recognition is temporarily unavailable. Type the next words, then check.</p>
+      <label class="visually-hidden" for="learn-letters-manual">What you said</label>
+      <textarea
+        id="learn-letters-manual"
+        class="learn-letters-manual"
+        data-letters-manual
+        rows="2"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+      ></textarea>
+      <button type="button" class="learn-letters-check-text" data-letters-check-text>Check typed words</button>
     </div>
     <noscript>
       <article class="unit-text learn-read-text">{{ unit.text }}</article>

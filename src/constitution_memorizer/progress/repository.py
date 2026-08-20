@@ -35,10 +35,11 @@ LEARN_MODES_SET: frozenset[str] = frozenset(LEARN_MODES)
 # Canonical partition of the learn modes (this module is the single owner;
 # web/ modules and app.js mirror these — keep them in sync).
 # Auto-seen: marked complete just by opening the tab / GET.
-AUTO_SEEN_MODES: tuple[str, ...] = ("read", "letters", "test")
+AUTO_SEEN_MODES: tuple[str, ...] = ("read",)
 AUTO_SEEN_MODES_SET: frozenset[str] = frozenset(AUTO_SEEN_MODES)
 # Gated: require a completed in-mode attempt before they count.
-GATED_MODES: tuple[str, ...] = ("cloze", "type", "recite")
+# Test is gated via POST /quiz only — /seen must reject it.
+GATED_MODES: tuple[str, ...] = ("cloze", "letters", "type", "recite", "test")
 GATED_MODES_SET: frozenset[str] = frozenset(GATED_MODES)
 
 

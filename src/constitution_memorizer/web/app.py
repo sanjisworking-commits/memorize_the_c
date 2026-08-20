@@ -268,6 +268,7 @@ def create_app(
     admin_repo=None,
     calendar_store=None,
     gcal_transport=None,
+    speech_provider=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -593,6 +594,18 @@ def create_app(
         )
     app.state.gcal_transport = gcal_transport
 
+    from constitution_memorizer.speech.deepgram import DeepgramSpeechProvider
+    from constitution_memorizer.speech.limits import SpeechRateLimiter
+    from constitution_memorizer.speech.provider import UnavailableSpeechProvider
+
+    if speech_provider is not None:
+        app.state.speech_provider = speech_provider
+    elif (settings.deepgram_api_key or "").strip():
+        app.state.speech_provider = DeepgramSpeechProvider(settings.deepgram_api_key)
+    else:
+        app.state.speech_provider = UnavailableSpeechProvider()
+    app.state.speech_rate_limiter = SpeechRateLimiter()
+
     if admin_repo is not None:
         app.state.admin_repo = admin_repo
     elif use_postgres:
@@ -667,8 +680,10 @@ def create_app(
     app.include_router(create_admin_router(templates))
 
     from constitution_memorizer.calendar_sync.routes import router as gcal_router
+    from constitution_memorizer.speech.routes import router as speech_router
 
     app.include_router(gcal_router)
+    app.include_router(speech_router)
 
     def _engine() -> ReminderEngine:
         bound = bound_engine.get()
@@ -888,8 +903,8 @@ def create_app(
         else:
             # Locked modes are never recorded as seen; unclaimed Articles keep
             # mode visits provisional (client-tracked) until claimed on Done.
-            # Gated modes (cloze/type/recite) are never marked by a GET —
-            # they report their completed attempt via /seen.
+            # Gated modes are never marked by a GET — they report via /seen
+            # (or /quiz for Test).
             if (
                 mode_locked
                 or not learn_lock.can_persist_modes_seen
@@ -1033,11 +1048,14 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
         if mode not in LEARN_MODES:
             raise HTTPException(status_code=400, detail="Invalid learn mode")
-        # Trust model: for cloze/type/recite the client reports a completed
-        # attempt and the server takes its word (no leaderboard, nothing to
-        # win by cheating; recall_align.py exists if server-side verification
-        # is ever wanted). Test is auto-seen on tab visit (like Read/Letters);
-        # a graded /quiz submit may also mark it, which is idempotent.
+        if mode == "test":
+            return JSONResponse(
+                {"ok": False, "error": "quiz_required", "mode": "test"},
+                status_code=400,
+            )
+        # Trust model: for cloze/letters/type/recite the client reports a
+        # completed attempt and the server takes its word (no leaderboard).
+        # Test is /quiz-only — never recorded here.
         # Locked modes must never be recorded as seen (UI lock is not trusted).
         access = resolve_learn_access(request, eng, unit.article_number)
         if access.is_locked(mode):
@@ -1059,7 +1077,7 @@ def create_app(
 
     @app.post("/learn/{unit_id}/quiz")
     async def learn_quiz(request: Request, unit_id: str) -> JSONResponse:
-        """Grade a Test-mode submission. Test is also auto-seen on tab visit."""
+        """Grade a Test-mode submission. Test is marked only through this route."""
         eng = _engine()
         unit = eng.get_unit(unit_id)
         if unit is None:

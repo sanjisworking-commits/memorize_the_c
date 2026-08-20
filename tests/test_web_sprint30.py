@@ -38,7 +38,7 @@ def test_brand_and_how_to_use(client: TestClient):
     assert "Read the Bare Act wording twice, verbatim." in html
     assert "Answer a short auto-made quiz — new questions each revision." in html
     assert "theme-toggle" in html
-    assert "styles.css?v=main26" in html
+    assert "styles.css?v=main27" in html
 
 
 def test_dashboard_surfaces_use_theme_tokens():
@@ -151,11 +151,12 @@ def test_learn_marks_read_and_locks_done(client: TestClient):
 
 def test_seen_endpoint_unlocks_done(client: TestClient):
     client.get("/learn/clause-1")  # marks read
-    for mode in ("cloze", "letters", "type", "recite", "test"):
+    for mode in ("cloze", "letters", "type", "recite"):
         resp = client.post("/learn/clause-1/seen", data={"mode": mode})
         assert resp.status_code == 200
-        if mode != "test":
-            assert resp.json()["done"]["unlocked"] is False
+        assert resp.json()["done"]["unlocked"] is False
+    from tests.quiz_helpers import submit_quiz
+    resp = submit_quiz(client, MINI_UNITS, "clause-1")
     data = resp.json()
     assert data["done"]["unlocked"] is True
     assert data["done"]["label"] == "Done — next unit"
@@ -169,7 +170,7 @@ def test_seen_endpoint_unlocks_done(client: TestClient):
 
 def test_gated_mode_get_does_not_mark(client: TestClient):
     # Opening a gated tab (cloze/type/recite) never earns a check.
-    for mode in ("cloze", "type", "recite"):
+    for mode in ("cloze", "letters", "type", "recite"):
         client.get(f"/learn/clause-1?mode={mode}")
     html = client.get("/learn/clause-1?mode=cloze").text
     assert "btn-done-locked" in html
@@ -188,9 +189,11 @@ def test_done_blocked_until_six_modes(client: TestClient):
 
 
 def test_done_advances_after_all_modes(client: TestClient):
+    from tests.quiz_helpers import submit_quiz
     client.get("/learn/clause-1")
-    for mode in ("cloze", "letters", "type", "recite", "test"):
+    for mode in ("cloze", "letters", "type", "recite"):
         client.post("/learn/clause-1/seen", data={"mode": mode})
+    submit_quiz(client, MINI_UNITS, "clause-1")
     resp = client.post("/learn/clause-1/done", follow_redirects=False)
     assert resp.status_code == 303
     assert resp.headers["location"].startswith("/learn/")

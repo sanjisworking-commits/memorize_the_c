@@ -157,7 +157,7 @@ def test_audio_success_uses_provider(tmp_path: Path) -> None:
     )
     assert resp.status_code == 200
     assert provider.calls
-    assert provider.calls[0]["nbytes"] == 9
+    assert provider.calls[0]["nbytes"] == 10
     assert "the" not in provider.calls[0]["keyterms"]
     assert resp.json()["alignment"]
 
@@ -231,15 +231,18 @@ def test_guest_recite_audio_does_not_call_provider(tmp_path: Path) -> None:
     assert provider.calls == []
 
 
-def test_signed_in_recite_locked(tmp_path: Path) -> None:
+def test_signed_in_claimable_recite_omits_alignment(tmp_path: Path) -> None:
+    """Free accounts with remaining slots may Recite; alignment is Letters-only."""
     provider = FakeSpeechProvider()
     client = _signed_in_client(tmp_path, provider)
     resp = client.post(
         "/learn/clause-1/speech/transcribe",
         data={"mode": "recite", "text": "No person shall"},
     )
-    assert resp.status_code == 403
-    assert resp.json()["error"] == "mode_locked"
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ok"] is True
+    assert "alignment" not in body
     assert provider.calls == []
 
 

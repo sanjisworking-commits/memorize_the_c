@@ -86,6 +86,16 @@ def test_align_repeated_words_uses_from_index_window() -> None:
     assert [h.index for h in second if h.status == "match"] == [3, 4]
 
 
+def test_align_short_utterance_stays_at_from_index() -> None:
+    hits = align_text(
+        "(1) No person shall be convicted of any offence except for violation of a law in force.",
+        "will",
+        from_index=3,
+    )
+    by_index = {h.index: h.status for h in hits}
+    assert by_index == {3: "substitute"}
+
+
 def test_align_prefix_delete_does_not_cascade() -> None:
     hits = align_text(
         "all citizens shall have the right",

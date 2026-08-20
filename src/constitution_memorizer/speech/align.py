@@ -166,8 +166,19 @@ def align_tokens(
             insert = dp[i][j - 1] + _GAP_COST
             dp[i][j] = min(diag, delete, insert)
 
+    # Prefix alignment: all heard tokens must be consumed, but trailing
+    # expected words (not yet spoken) are free. That keeps a short utterance
+    # from substituting against the last word of a long window.
+    best_cost = dp[0][m]
+    best_i = 0
+    for i in range(1, n + 1):
+        cost = dp[i][m]
+        if cost < best_cost or (cost == best_cost and i > best_i):
+            best_cost = cost
+            best_i = i
+
     hits: list[AlignmentHit] = []
-    i, j = n, m
+    i, j = best_i, m
     while i > 0 or j > 0:
         if (
             i > 0

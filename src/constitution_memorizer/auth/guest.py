@@ -87,7 +87,9 @@ def requires_auth(path: str, method: str) -> bool:
     if path.startswith("/learn/") and m == "POST":
         # /quiz only grades server-side; nothing persists for guests, and
         # guests need the graded result to complete the Test gate locally.
-        if path.endswith("/quiz"):
+        # /speech/transcribe is the same for spoken Letters (and returns
+        # 403 mode_locked for Recite so it cannot proxy Deepgram).
+        if path.endswith("/quiz") or path.endswith("/speech/transcribe"):
             return False
         return True
     if path.startswith("/memory") and m == "POST":

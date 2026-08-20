@@ -78,7 +78,7 @@ def test_letters_js_builds_initials_like_prototype(client: TestClient):
     assert "applyAlignment" in text
     assert "Back to initials" in text
     assert "Show full text" in text
-    assert "Check phrase" in text
+    assert "Checking…" in text
     assert "RecallSpeech" in text
     assert "webkitSpeechRecognition" not in text
     assert "SpeechRecognition" not in text

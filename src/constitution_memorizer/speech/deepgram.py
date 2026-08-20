@@ -47,7 +47,7 @@ class DeepgramSpeechProvider:
 
         params: list[tuple[str, str]] = [
             ("model", "nova-3"),
-            ("language", "en"),
+            ("language", "en-IN"),
             ("smart_format", "false"),
             ("mip_opt_out", "true"),
         ]

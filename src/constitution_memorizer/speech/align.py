@@ -2,6 +2,10 @@
 
 Needleman–Wunsch on normalized tokens. The browser never implements this;
 it only paints ``{index, status}`` pairs returned by the speech route.
+
+Letters completion uses *speakable* targets: clause numbering and
+punctuation-only tokens are ignored. Blue/correct requires an exact
+normalized match — no generic fuzzy substitutions.
 """
 
 from __future__ import annotations
@@ -46,6 +50,23 @@ _FUNCTION_WORDS = frozenset(
     }
 )
 
+# Clause/sub-clause markers and punctuation-only tokens. Keep in sync with
+# isStructuralLettersToken in app.js.
+_STRUCTURAL_RE = re.compile(
+    r"""
+    ^
+    (?:
+        [\(\[]?\d+[A-Za-z]?[\)\]]?\.?   # (1), 1., (1a), 12A
+      | \(\d+\)\([A-Za-z]\)             # (1)(a)
+      | \([A-Za-z]\)                    # (a)
+      | \([ivxlcdmIVXLCDM]+\)           # (i), (iv), (iii)
+      | [-–—−•·.,;:()/\[\]]+            # punctuation-only
+    )
+    $
+    """,
+    re.VERBOSE,
+)
+
 LETTERS_ALIGN_WINDOW = 16
 KEYTERM_MAX = 100
 KEYTERM_MIN_LEN = 7
@@ -66,47 +87,32 @@ def tokenize(text: str) -> list[str]:
     return stripped.split()
 
 
-def _levenshtein_at_most_one(left: str, right: str) -> bool:
-    if left == right:
+def is_structural_token(token: str) -> bool:
+    """True for numbering / punctuation the learner is not asked to speak."""
+    raw = (token or "").strip()
+    if not raw:
         return True
-    n, m = len(left), len(right)
-    if abs(n - m) > 1:
-        return False
-    if n > m:
-        left, right = right, left
-        n, m = m, n
-    # Insertion or substitution only (n <= m, m - n <= 1).
-    i = j = diffs = 0
-    while i < n and j < m:
-        if left[i] == right[j]:
-            i += 1
-            j += 1
-            continue
-        diffs += 1
-        if diffs > 1:
-            return False
-        if n == m:
-            i += 1
-            j += 1
-        else:
-            j += 1
-    return diffs + (m - j) <= 1
+    if _STRUCTURAL_RE.match(raw):
+        return True
+    return re.search(r"[A-Za-z]", raw) is None
+
+
+def speakable_targets(source_text: str) -> list[tuple[int, str]]:
+    """Display-index + token for whitespace words that must be spoken."""
+    return [
+        (index, token)
+        for index, token in enumerate(tokenize(source_text))
+        if not is_structural_token(token)
+    ]
 
 
 def words_match(expected: str, heard: str) -> bool:
-    """Exact normalized match, then a very conservative STT fuzz.
-
-    Never treats synonyms as equal (shall ≠ will).
-    """
+    """Exact normalized match only. shall ≠ will; promulgation ≠ promulgaton."""
     left = norm_word(expected)
     right = norm_word(heard)
     if not left or not right:
         return False
-    if left == right:
-        return True
-    if min(len(left), len(right)) < 6:
-        return False
-    return _levenshtein_at_most_one(left, right)
+    return left == right
 
 
 def keyterm_shortlist(source_text: str, *, limit: int = KEYTERM_MAX) -> list[str]:
@@ -114,6 +120,8 @@ def keyterm_shortlist(source_text: str, *, limit: int = KEYTERM_MAX) -> list[str
     seen: set[str] = set()
     out: list[str] = []
     for token in tokenize(source_text):
+        if is_structural_token(token):
+            continue
         normalized = norm_word(token)
         if not normalized or normalized in _FUNCTION_WORDS:
             continue
@@ -140,12 +148,30 @@ def align_tokens(
     *,
     from_index: int = 0,
     window: int = LETTERS_ALIGN_WINDOW,
+    index_map: list[int] | None = None,
 ) -> list[AlignmentHit]:
-    """Align ``heard`` against a bounded window of ``expected`` from ``from_index``."""
+    """Align ``heard`` against a bounded window of ``expected`` from ``from_index``.
+
+    ``from_index`` and returned ``index`` values are *display* indexes when
+    ``index_map`` is omitted (identity). Pass ``index_map`` when ``expected``
+    is already a speakable slice whose display indexes differ from 0..n.
+    """
     if not expected:
         return []
-    start = max(0, min(from_index, len(expected)))
-    slice_expected = expected[start : start + max(1, window)]
+    display = index_map if index_map is not None else list(range(len(expected)))
+    if len(display) != len(expected):
+        display = list(range(len(expected)))
+
+    start_pos = 0
+    for pos, display_index in enumerate(display):
+        if display_index >= from_index:
+            start_pos = pos
+            break
+    else:
+        return []
+
+    slice_expected = expected[start_pos : start_pos + max(1, window)]
+    slice_display = display[start_pos : start_pos + max(1, window)]
     if not slice_expected:
         return []
     n = len(slice_expected)
@@ -186,7 +212,7 @@ def align_tokens(
             and words_match(slice_expected[i - 1], heard[j - 1])
             and dp[i][j] == dp[i - 1][j - 1] + _MATCH_COST
         ):
-            hits.append(AlignmentHit(index=start + i - 1, status="match"))
+            hits.append(AlignmentHit(index=slice_display[i - 1], status="match"))
             i -= 1
             j -= 1
         elif (
@@ -194,7 +220,7 @@ def align_tokens(
             and j > 0
             and dp[i][j] == dp[i - 1][j - 1] + _SUB_COST
         ):
-            hits.append(AlignmentHit(index=start + i - 1, status="substitute"))
+            hits.append(AlignmentHit(index=slice_display[i - 1], status="substitute"))
             i -= 1
             j -= 1
         elif i > 0 and dp[i][j] == dp[i - 1][j] + _GAP_COST:
@@ -214,9 +240,11 @@ def align_text(
     from_index: int = 0,
     window: int = LETTERS_ALIGN_WINDOW,
 ) -> list[AlignmentHit]:
+    targets = speakable_targets(expected_text)
     return align_tokens(
-        tokenize(expected_text),
+        [word for _index, word in targets],
         tokenize(heard_text),
         from_index=from_index,
         window=window,
+        index_map=[index for index, _word in targets],
     )

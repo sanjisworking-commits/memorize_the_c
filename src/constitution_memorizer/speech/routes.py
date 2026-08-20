@@ -5,7 +5,6 @@ from __future__ import annotations
 from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse
 
-from constitution_memorizer.auth.sessions import SESSION_COOKIE_NAME
 from constitution_memorizer.speech.align import (
     AlignmentHit,
     align_text,
@@ -39,12 +38,14 @@ def _engine(request: Request):
 
 
 def _rate_key(request: Request) -> str:
+    """Guest buckets are the TCP peer IP, not a cookie or X-Forwarded-For.
+
+    A client-supplied session cookie or spoofed forwarded header must not
+    mint a fresh limiter bucket.
+    """
     user = getattr(request.state, "current_user", None)
     if user is not None:
         return f"user:{user.id}"
-    session = request.cookies.get(SESSION_COOKIE_NAME) or ""
-    if session:
-        return f"session:{session[:48]}"
     host = request.client.host if request.client is not None else "unknown"
     return f"ip:{host}"
 
@@ -102,13 +103,7 @@ async def transcribe_utterance(
             return _error("empty", 400)
         content_type = audio.content_type or ""
         if not mime_allowed(content_type):
-            filename = (audio.filename or "").lower()
-            suffix_ok = filename.endswith(
-                (".webm", ".mp4", ".m4a", ".wav", ".ogg", ".mp3")
-            )
-            if not suffix_ok:
-                return _error("unsupported_type", 400)
-            content_type = content_type or "audio/webm"
+            return _error("unsupported_type", 400)
         try:
             audio_bytes = await read_upload_limited(audio)
         except SpeechTooLarge:

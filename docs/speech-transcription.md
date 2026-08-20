@@ -25,7 +25,7 @@ can be added later on the same route.
 
 ```text
 model=nova-3
-language=en
+language=en-IN
 smart_format=false
 mip_opt_out=true
 ```
@@ -33,7 +33,12 @@ mip_opt_out=true
 Keyterms are a jargon shortlist derived from `unit.text` (not `the` / `of` /
 every word). Cap 100.
 
-The browser never sends expected words. The server tokenizes the unit.
+The browser never sends expected words. The server tokenizes the unit into
+*speakable* targets: clause numbering such as `(1)` / `(a)` / `(iv)` and
+punctuation-only tokens are ignored for alignment and completion.
+
+Blue/correct requires an exact normalized match. Generic fuzzy edits
+(`promulgation` ≈ `promulgaton`) do not count as correct.
 
 ## Entitlement
 
@@ -43,9 +48,11 @@ The browser never sends expected words. The server tokenizes the unit.
 ## Limits
 
 - 2 MB streaming cap (chunked read; not an unbounded `read()`)
-- MIME allowlist
-- Process-local per-user / session / IP rate limit (20 / 60s). Multi-instance
-  Railway is best-effort.
+- Exact MIME allowlist (no filename or prefix fallback)
+- Process-local rate limit (20 / 60s). Signed-in keys are `user:{id}`.
+  Guests are keyed by the TCP peer IP — not a cookie and not
+  `X-Forwarded-For`, which a client can spoof. Expired buckets are
+  garbage-collected. Multi-instance Railway is best-effort.
 
 Missing `DEEPGRAM_API_KEY`: the app still starts. The route returns
 `unavailable` and the UI offers typed fallback. Typed fallback uses the same

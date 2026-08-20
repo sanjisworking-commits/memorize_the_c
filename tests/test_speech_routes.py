@@ -114,7 +114,12 @@ def test_guest_letters_typed_alignment(tmp_path: Path) -> None:
     body = resp.json()
     assert body["ok"] is True
     assert body["transcript"] == "No person shall be"
-    assert body["alignment"]
+    hits = {row["index"]: row["status"] for row in body["alignment"]}
+    assert 0 not in hits
+    assert hits[1] == "match"
+    assert hits[2] == "match"
+    assert hits[3] == "match"
+    assert hits[4] == "match"
     assert provider.calls == []  # typed fallback skips Deepgram
     assert "expected" not in body
 
@@ -173,6 +178,28 @@ def test_unsupported_mime(tmp_path: Path) -> None:
     assert resp.json()["error"] == "unsupported_type"
 
 
+def test_filename_suffix_does_not_bypass_mime(tmp_path: Path) -> None:
+    client = _guest_client(tmp_path)
+    resp = client.post(
+        "/learn/clause-1/speech/transcribe",
+        data={"mode": "letters"},
+        files={"audio": ("utt.webm", BytesIO(b"fake-bytes"), "")},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "unsupported_type"
+
+
+def test_mime_prefix_is_rejected(tmp_path: Path) -> None:
+    client = _guest_client(tmp_path)
+    resp = client.post(
+        "/learn/clause-1/speech/transcribe",
+        data={"mode": "letters"},
+        files={"audio": ("utt.webm", BytesIO(b"fake-bytes"), "audio/webm-evil")},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "unsupported_type"
+
+
 def test_too_large(tmp_path: Path) -> None:
     client = _guest_client(tmp_path)
     payload = b"x" * (MAX_AUDIO_BYTES + 1)
@@ -213,6 +240,30 @@ def test_rate_limited(tmp_path: Path) -> None:
     second = client.post(
         "/learn/clause-1/speech/transcribe",
         data={"mode": "letters", "text": "person"},
+    )
+    assert second.status_code == 429
+    assert second.json()["error"] == "rate_limited"
+
+
+def test_guest_rate_limit_ignores_spoofed_cookie_and_forwarded_for(
+    tmp_path: Path,
+) -> None:
+    client = _guest_client(tmp_path)
+    client.app.state.speech_rate_limiter = SpeechRateLimiter(
+        window_seconds=60, max_hits=1
+    )
+    first = client.post(
+        "/learn/clause-1/speech/transcribe",
+        data={"mode": "letters", "text": "No"},
+        headers={"X-Forwarded-For": "203.0.113.10"},
+        cookies={"rtc_session": "forged-one"},
+    )
+    assert first.status_code == 200
+    second = client.post(
+        "/learn/clause-1/speech/transcribe",
+        data={"mode": "letters", "text": "person"},
+        headers={"X-Forwarded-For": "198.51.100.20"},
+        cookies={"rtc_session": "forged-two"},
     )
     assert second.status_code == 429
     assert second.json()["error"] == "rate_limited"

@@ -1,12 +1,14 @@
-"""Normalization, conservative fuzzy match, and Needleman–Wunsch alignment."""
+"""Normalization, speakable targets, exact match, and Needleman–Wunsch alignment."""
 
 from __future__ import annotations
 
 from constitution_memorizer.speech.align import (
     align_text,
     align_tokens,
+    is_structural_token,
     keyterm_shortlist,
     norm_word,
+    speakable_targets,
     tokenize,
     words_match,
 )
@@ -25,9 +27,26 @@ def test_words_match_rejects_synonyms() -> None:
     assert words_match("Legislature", "legislature") is True
 
 
-def test_conservative_fuzzy_only_for_long_tokens() -> None:
-    assert words_match("promulgation", "promulgaton") is True
+def test_words_match_is_exact_only() -> None:
+    assert words_match("promulgation", "promulgaton") is False
     assert words_match("the", "tha") is False
+    assert words_match("citizens,", "citizens") is True
+
+
+def test_structural_numbering_and_punctuation() -> None:
+    for token in ("(1)", "(2)", "(a)", "(b)", "(i)", "(iv)", "(iii)", "1.", "(1)(a)", "—", ",", ";"):
+        assert is_structural_token(token), token
+    for token in ("No", "person", "shall", "Citizens,", "Article"):
+        assert not is_structural_token(token), token
+
+
+def test_speakable_targets_skip_clause_number() -> None:
+    targets = speakable_targets(
+        "(1) No person shall be convicted of any offence except for violation of a law in force."
+    )
+    assert targets[0] == (1, "No")
+    assert 0 not in {index for index, _word in targets}
+    assert "shall" in {word for _index, word in targets}
 
 
 def test_align_exact_sentence() -> None:
@@ -50,6 +69,27 @@ def test_align_substitution_shall_will() -> None:
     assert by_index[3] == "match"
     assert by_index[4] == "match"
     assert by_index[5] == "match"
+
+
+def test_align_ignores_leading_clause_number() -> None:
+    hits = align_text(
+        "(1) No person shall be convicted",
+        "No person shall be convicted",
+    )
+    by_index = {h.index: h.status for h in hits}
+    assert 0 not in by_index
+    assert by_index[1] == "match"
+    assert by_index[2] == "match"
+    assert by_index[3] == "match"
+    assert by_index[4] == "match"
+    assert by_index[5] == "match"
+
+
+def test_align_fuzzy_edit_is_substitute_not_match() -> None:
+    hits = align_text("the promulgation of an ordinance", "the promulgaton of an ordinance")
+    by_index = {h.index: h.status for h in hits}
+    assert by_index[1] == "substitute"
+    assert by_index[0] == "match"
 
 
 def test_align_insertion_does_not_shift_later_matches() -> None:

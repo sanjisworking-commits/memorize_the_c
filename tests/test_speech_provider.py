@@ -44,7 +44,7 @@ def test_missing_api_key_raises() -> None:
 def test_successful_transcription() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.params["model"] == "nova-3"
-        assert request.url.params["language"] == "en"
+        assert request.url.params["language"] == "en-IN"
         assert request.url.params["smart_format"] == "false"
         assert request.url.params["mip_opt_out"] == "true"
         assert "the" not in request.url.params.get_list("keyterm")

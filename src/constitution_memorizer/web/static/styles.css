@@ -1167,6 +1167,11 @@ html[data-theme="dark"] .theme-toggle {
   font-weight: 700;
 }
 
+.learn-letters-cue.is-structural {
+  color: var(--muted);
+  font-weight: inherit;
+}
+
 .learn-letters-status {
   margin: 12px 0 0;
   font-size: 13px;

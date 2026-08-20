@@ -284,8 +284,34 @@
     let inFlight = false;
     let abortController = null;
 
+    function isStructuralLettersToken(word) {
+      const raw = String(word || "").trim();
+      if (!raw) {
+        return true;
+      }
+      if (/^[\(\[]?\d+[A-Za-z]?[\)\]]?\.?$/.test(raw)) {
+        return true;
+      }
+      if (/^\(\d+\)\([A-Za-z]\)$/.test(raw)) {
+        return true;
+      }
+      if (/^\([A-Za-z]\)$/.test(raw)) {
+        return true;
+      }
+      if (/^\([ivxlcdmIVXLCDM]+\)$/.test(raw)) {
+        return true;
+      }
+      if (/^[-–—−•·.,;:()/\[\]]+$/.test(raw)) {
+        return true;
+      }
+      return !/[A-Za-z]/.test(raw);
+    }
+
     function earliestUnresolvedIndex() {
       for (let i = 0; i < words.length; i += 1) {
+        if (isStructuralLettersToken(words[i])) {
+          continue;
+        }
         if (!correctWordIndexes.has(i)) {
           return i;
         }
@@ -315,6 +341,9 @@
     }
 
     function cueClass(index) {
+      if (isStructuralLettersToken(words[index])) {
+        return "learn-letters-cue is-structural";
+      }
       if (cueState[index] === "correct") {
         return "learn-letters-cue is-correct";
       }
@@ -367,15 +396,33 @@
 
     function markListeningWindow() {
       const start = earliestUnresolvedIndex();
-      for (let i = start; i < Math.min(words.length, start + 8); i += 1) {
+      let marked = 0;
+      for (let i = start; i < words.length && marked < 8; i += 1) {
+        if (isStructuralLettersToken(words[i])) {
+          continue;
+        }
         if (cueState[i] !== "correct") {
           cueState[i] = "listening";
         }
+        marked += 1;
       }
     }
 
     function maybeComplete() {
-      if (completed || correctWordIndexes.size !== words.length || !words.length) {
+      if (completed || !words.length) {
+        return;
+      }
+      let speakable = 0;
+      for (let i = 0; i < words.length; i += 1) {
+        if (isStructuralLettersToken(words[i])) {
+          continue;
+        }
+        speakable += 1;
+        if (!correctWordIndexes.has(i)) {
+          return;
+        }
+      }
+      if (!speakable) {
         return;
       }
       completed = true;
@@ -391,6 +438,9 @@
       alignment.forEach((item) => {
         const index = item && typeof item.index === "number" ? item.index : -1;
         if (index < 0 || index >= words.length) {
+          return;
+        }
+        if (isStructuralLettersToken(words[index])) {
           return;
         }
         if (correctWordIndexes.has(index)) {

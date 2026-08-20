@@ -38,7 +38,7 @@ def test_learn_enables_letters_tab_and_panel_markup(client: TestClient):
     assert "Check phrase" in html
     assert "Use the first letters." in html
     assert "speech_client.js?v=speech1" in html
-    assert "app.js?v=main27" in html
+    assert "app.js?v=main28" in html
     assert "speech_align.js" not in html
 
 
@@ -64,6 +64,7 @@ def test_letters_css_drives_panel_and_initials_styles(client: TestClient):
     assert ".learn-letters-cue.is-correct" in text
     assert ".learn-letters-cue.is-wrong" in text
     assert ".learn-letters-cue.is-listening" in text
+    assert ".learn-letters-cue.is-structural" in text
     assert "--letters-correct" in text
     assert "prefers-reduced-motion" in text
 
@@ -88,6 +89,8 @@ def test_letters_js_builds_initials_like_prototype(client: TestClient):
     assert "is-correct" in text
     assert "is-wrong" in text
     assert "is-listening" in text
+    assert "isStructuralLettersToken" in text
+    assert "is-structural" in text
     assert r"/^[A-Za-z]/" in text or "/^[A-Za-z]/" in text
 
 

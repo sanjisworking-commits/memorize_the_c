@@ -73,6 +73,7 @@ def test_js_contracts_letters_speech_and_quiz_only_test():
     assert "[data-recite-fallback]" in source
     assert "recite.reset()" in source
     assert "abortForServiceFailure" in source
+    assert "isStructuralLettersToken" in source
 
 
 def test_test_visit_does_not_mark_without_quiz(

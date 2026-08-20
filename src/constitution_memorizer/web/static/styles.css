@@ -1250,6 +1250,33 @@ html[data-theme="dark"] .theme-toggle {
   margin-top: 20px;
 }
 
+/* Voice vs plain-view switch (Speak it / Just read) */
+.learn-letters-viewswitch {
+  display: inline-flex;
+  gap: 0;
+  margin: 0 0 14px;
+  border: 1px solid var(--hairline);
+}
+
+.learn-letters-view-btn {
+  padding: 6px 14px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.learn-letters-view-btn + .learn-letters-view-btn {
+  border-left: 1px solid var(--hairline);
+}
+
+.learn-letters-view-btn.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 .learn-letters-btn {
   background: none;
   border: 1px solid var(--hairline);
@@ -5746,6 +5773,22 @@ html.rtc-anim .rtc-not-confirmed {
 .settings-access-line a {
   color: inherit;
   text-decoration: underline;
+}
+
+/* Getting-started tour replay (shown once the tour is skipped/completed) */
+.settings-tour-replay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+}
+
+.settings-tour-replay-label {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .access-block {

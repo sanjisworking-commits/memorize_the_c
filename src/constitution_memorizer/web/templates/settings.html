@@ -20,6 +20,17 @@
   </p>
   {% endif %}
 
+  {% if multiuser_enabled|default(false) and current_user and onboarding_status|default('') in ('skipped', 'completed') %}
+  <form method="post" action="/onboarding/state" class="settings-tour-replay">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="status" value="active">
+    <span class="settings-tour-replay-label">
+      {% if onboarding_status == 'skipped' %}You skipped the getting-started tour.{% else %}Want a refresher on the Recall loop?{% endif %}
+    </span>
+    <button type="submit" class="btn btn-ghost">Replay the tour</button>
+  </form>
+  {% endif %}
+
   {% if gcal %}
   <h2 class="section-title">Revision calendar</h2>
   <p class="settings-note">

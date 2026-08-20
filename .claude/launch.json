@@ -20,6 +20,16 @@
         "8899"
       ],
       "port": 8899
+    },
+    {
+      "name": "onboarding-dev",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": [
+        "scripts/dev_entitlements_server.py",
+        "--port",
+        "8901"
+      ],
+      "port": 8901
     }
   ]
 }

@@ -499,3 +499,87 @@ def test_live_rate_limited(tmp_path: Path) -> None:
         payload = _json.loads(ws.receive_text())
         assert payload == {"type": "error", "error": "rate_limited"}
     assert provider.sessions == []
+
+
+def test_live_anchor_slides_across_segments(tmp_path: Path) -> None:
+    """Speaking continues past the first pause without a stop/start."""
+    provider = FakeLiveProvider(
+        [
+            LiveTranscriptEvent(
+                text="no person accused of any offence shall be", is_final=True
+            ),
+            LiveTranscriptEvent(
+                text="compelled to be a witness against himself", is_final=True
+            ),
+        ]
+    )
+    client = _guest_client(tmp_path, provider)
+    with client.websocket_connect(
+        "/learn/clause-2/speech/live?mode=letters&from_index=0"
+    ) as ws:
+        assert _json.loads(ws.receive_text())["type"] == "ready"
+        ws.send_bytes(b"\x00")
+        first = _json.loads(ws.receive_text())
+        first_matches = {
+            r["index"] for r in first["alignment"] if r["status"] == "match"
+        }
+        second = _json.loads(ws.receive_text())
+        second_matches = {
+            r["index"] for r in second["alignment"] if r["status"] == "match"
+        }
+        ws.send_text(_json.dumps({"type": "stop"}))
+        _json.loads(ws.receive_text())  # done
+    assert first_matches, "first segment matched nothing"
+    # The second segment must keep matching PAST everything the first
+    # segment covered — the frozen-anchor bug made this empty.
+    assert second_matches
+    assert min(second_matches) > max(first_matches)
+
+
+def test_live_single_long_utterance_outruns_fixed_window(tmp_path: Path) -> None:
+    """One unbroken utterance longer than LETTERS_ALIGN_WINDOW fully matches."""
+    from constitution_memorizer.speech.align import (
+        LETTERS_ALIGN_WINDOW,
+        speakable_targets,
+    )
+
+    units = _json.loads(MINI_UNITS.read_text())["units"]
+    text = next(u["text"] for u in units if u["id"] == "clause-2")
+    targets = speakable_targets(text)
+    assert len(targets) > LETTERS_ALIGN_WINDOW, "fixture too short for this test"
+    spoken = " ".join(word for _index, word in targets)
+
+    provider = FakeLiveProvider([LiveTranscriptEvent(text=spoken, is_final=False)])
+    client = _guest_client(tmp_path, provider)
+    with client.websocket_connect(
+        "/learn/clause-2/speech/live?mode=letters&from_index=0"
+    ) as ws:
+        assert _json.loads(ws.receive_text())["type"] == "ready"
+        ws.send_bytes(b"\x00")
+        frame = _json.loads(ws.receive_text())
+        matches = {r["index"] for r in frame["alignment"] if r["status"] == "match"}
+        ws.send_text(_json.dumps({"type": "stop"}))
+    expected = {index for index, _word in targets}
+    # Every speakable word matches in ONE frame — the fixed 16-target window
+    # used to cap this mid-sentence.
+    assert matches == expected
+
+
+def test_live_interim_reports_substitute_for_wrong_word(tmp_path: Path) -> None:
+    """The 'red instantly' feed: interim frames carry substitute hits."""
+    provider = FakeLiveProvider(
+        [LiveTranscriptEvent(text="no dolphin shall be", is_final=False)]
+    )
+    client = _guest_client(tmp_path, provider)
+    with client.websocket_connect(
+        "/learn/clause-1/speech/live?mode=letters&from_index=0"
+    ) as ws:
+        assert _json.loads(ws.receive_text())["type"] == "ready"
+        ws.send_bytes(b"\x00")
+        frame = _json.loads(ws.receive_text())
+        ws.send_text(_json.dumps({"type": "stop"}))
+    assert frame["final"] is False
+    hits = {r["index"]: r["status"] for r in frame["alignment"]}
+    assert hits[1] == "match"       # "no"
+    assert hits[2] == "substitute"  # "dolphin" ≠ "person" → red
+    assert hits[3] == "match"       # "shall"

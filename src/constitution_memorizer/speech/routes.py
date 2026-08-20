@@ -12,9 +12,11 @@ from fastapi.responses import JSONResponse
 from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from constitution_memorizer.speech.align import (
+    LETTERS_ALIGN_WINDOW,
     AlignmentHit,
     align_text,
     keyterm_shortlist,
+    speakable_targets,
     tokenize,
 )
 from constitution_memorizer.speech.limits import (
@@ -253,7 +255,14 @@ async def live_letters(websocket: WebSocket, unit_id: str) -> None:
 
     await _live_send(websocket, {"type": "ready"})
 
-    committed: list[str] = []
+    # Sliding alignment anchor. The aligner's window is deliberately small
+    # (prefix-alignment quality), so a live session must move the anchor as
+    # finals commit matches — a frozen from_index stalls after ~one window
+    # of speech. Interims are aligned per segment with a window sized to the
+    # segment, so one long unbroken utterance can't out-run it either.
+    matched: set[int] = set()
+    anchor = start
+    speakable_indexes = [index for index, _word in speakable_targets(unit.text)]
     started_at = time.monotonic()
 
     async def pump_browser_audio() -> None:
@@ -289,27 +298,35 @@ async def live_letters(websocket: WebSocket, unit_id: str) -> None:
 
     pump_task = asyncio.create_task(pump_browser_audio())
     try:
-        interim = ""
         async for event in session.events():
-            if event.is_final:
-                if event.text:
-                    committed.append(event.text)
-                interim = ""
-            else:
-                interim = event.text
-            transcript = " ".join(committed + ([interim] if interim else []))
-            if not transcript:
+            if not event.text:
                 continue
-            hits = align_text(unit.text, transcript, from_index=start)
+            heard = tokenize(event.text)
+            hits = align_text(
+                unit.text,
+                event.text,
+                from_index=anchor,
+                window=len(heard) + LETTERS_ALIGN_WINDOW,
+            )
             await _live_send(
                 websocket,
                 {
                     "type": "alignment",
                     "final": event.is_final,
-                    "transcript": transcript,
+                    "transcript": event.text,
                     "alignment": _alignment_payload(hits),
                 },
             )
+            if event.is_final:
+                matched.update(
+                    hit.index for hit in hits if hit.status == "match"
+                )
+                for index in speakable_indexes:
+                    if index >= start and index not in matched:
+                        anchor = index
+                        break
+                else:
+                    anchor = start
         await _live_send(websocket, {"type": "done"})
     except WebSocketDisconnect:
         pass

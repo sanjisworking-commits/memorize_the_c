@@ -29,6 +29,14 @@ VALID_THEMES: frozenset[str] = frozenset(("auto", "dark", "light"))
 NEWS_ARTICLES_KEY = "news_articles"
 DEFAULT_NEWS_ARTICLES = "19"
 
+# First-login onboarding tour. Absent = never offered (pre-existing accounts);
+# "active" is set once, when /welcome first saves a display name.
+ONBOARDING_KEY = "onboarding_status"
+OnboardingStatus = Literal["active", "skipped", "completed"]
+VALID_ONBOARDING_STATUSES: frozenset[str] = frozenset(
+    ("active", "skipped", "completed")
+)
+
 LEARN_MODES: tuple[str, ...] = ("read", "cloze", "letters", "type", "recite", "test")
 LEARN_MODES_SET: frozenset[str] = frozenset(LEARN_MODES)
 

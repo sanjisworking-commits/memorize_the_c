@@ -30,6 +30,7 @@ from constitution_memorizer.auth.sessions import (
     SESSION_COOKIE_NAME,
     new_csrf_token,
 )
+from constitution_memorizer.progress.repository import ONBOARDING_KEY
 from constitution_memorizer.web.completion import build_completion, caught_up_quote
 from constitution_memorizer.web.entitlements import (
     access_summary,
@@ -369,11 +370,17 @@ def create_auth_router(templates: Jinja2Templates) -> APIRouter:
         name = display_name.strip()
         if not name:
             return RedirectResponse(url="/welcome?error=name", status_code=303)
-        request.app.state.engine.repo.upsert_profile(
+        repo = request.app.state.engine.repo
+        first_welcome = repo.needs_welcome(user.id)
+        repo.upsert_profile(
             user.id,
             display_name=name,
             avatar_url=user.avatar_url,
         )
+        # First name save on a fresh account starts the onboarding tour.
+        # Later /welcome visits (name edits) never restart or downgrade it.
+        if first_welcome and repo.get_setting(user.id, ONBOARDING_KEY) is None:
+            repo.set_setting(user.id, ONBOARDING_KEY, "active")
         return RedirectResponse(url="/dashboard", status_code=303)
 
     @router.get("/dashboard", response_class=HTMLResponse)

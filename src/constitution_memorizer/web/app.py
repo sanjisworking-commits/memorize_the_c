@@ -67,7 +67,9 @@ from constitution_memorizer.progress.repository import (
     AUTO_SEEN_MODES_SET,
     LEARN_MODES,
     LEARN_MODES_SET,
+    ONBOARDING_KEY,
     VALID_NOTIFICATION_FREQUENCIES,
+    VALID_ONBOARDING_STATUSES,
     VALID_THEMES,
     SplitMode,
 )
@@ -411,6 +413,18 @@ def create_app(
         bound = getattr(request.state, "bound_engine", None) or app.state.engine
         return bound.get_theme()
 
+    def _onboarding_for_request(request: Request) -> str:
+        # Tour is a signed-in, multiuser surface only. Absent setting = "".
+        if not app.state.multiuser_enabled:
+            return ""
+        if getattr(request.state, "current_user", None) is None:
+            return ""
+        bound = getattr(request.state, "bound_engine", None)
+        if bound is None:
+            return ""
+        value = bound.get_setting(ONBOARDING_KEY) or ""
+        return value if value in VALID_ONBOARDING_STATUSES else ""
+
     def _due_for_request(request: Request) -> int:
         if getattr(request.state, "is_guest", False) or getattr(
             request.state, "current_user", None
@@ -429,6 +443,7 @@ def create_app(
             lambda request: {
                 "app_name": "Recall the C",
                 "theme_preference": _theme_for_request(request),
+                "onboarding_status": _onboarding_for_request(request),
                 "browse_due_total": _due_for_request(request),
                 "current_user": getattr(request.state, "current_user", None),
                 "is_guest": bool(
@@ -2130,6 +2145,55 @@ def create_app(
             eng.set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
         eng.set_news_articles_raw(news_articles)
         return RedirectResponse(url="/settings?saved=1", status_code=303)
+
+    @app.get("/onboarding/state")
+    async def onboarding_state_get(request: Request) -> JSONResponse:
+        """Current tour status — lets a stale cached page (back button) check
+        whether the tour is really still active before booting the layer."""
+        if not app.state.multiuser_enabled:
+            raise HTTPException(status_code=404, detail="Not Found")
+        user = getattr(request.state, "current_user", None)
+        if user is None:
+            return JSONResponse(
+                {"ok": False, "error": "sign_in_required"}, status_code=401
+            )
+        value = _engine().get_setting(ONBOARDING_KEY) or ""
+        if value not in VALID_ONBOARDING_STATUSES:
+            value = ""
+        return JSONResponse({"ok": True, "status": value})
+
+    @app.post("/onboarding/state")
+    async def onboarding_state(
+        request: Request,
+        status: str = Form(...),
+        csrf_token: str = Form(""),
+    ):
+        """Advance or replay the first-login tour (signed-in, multiuser only).
+
+        The tour layer (onboarding.js) posts skipped/completed as same-origin
+        XHR; the Settings "Replay the tour" form posts active with CSRF.
+        """
+        if not app.state.multiuser_enabled:
+            raise HTTPException(status_code=404, detail="Not Found")
+        user = getattr(request.state, "current_user", None)
+        if user is None:
+            if wants_json(request):
+                return JSONResponse(
+                    {"ok": False, "error": "sign_in_required"}, status_code=401
+                )
+            return RedirectResponse(url="/login?next=/settings", status_code=303)
+        if status not in VALID_ONBOARDING_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid onboarding status")
+        if not wants_json(request) and (
+            request.cookies.get("rtc_csrf") != csrf_token
+        ):
+            return RedirectResponse(url="/settings", status_code=303)
+        _engine().set_setting(ONBOARDING_KEY, status)
+        if wants_json(request):
+            return JSONResponse({"ok": True, "status": status})
+        # Replaying from Settings lands where the tour starts.
+        dest = "/dashboard" if status == "active" else "/settings"
+        return RedirectResponse(url=dest, status_code=303)
 
     @app.get("/api/explainers/{article_id}")
     async def explainer_svg(request: Request, article_id: str) -> FileResponse:

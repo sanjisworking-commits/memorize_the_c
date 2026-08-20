@@ -402,7 +402,9 @@
         if (isStructuralLettersToken(words[i])) {
           continue;
         }
-        if (cueState[i] !== "correct") {
+        // Never clobber a red (wrong) cue — it stays red until the word
+        // is finally spoken correctly and the match flips it blue.
+        if (cueState[i] !== "correct" && cueState[i] !== "wrong") {
           cueState[i] = "listening";
         }
         marked += 1;
@@ -667,6 +669,89 @@
       }
     }
 
+    // Voice vs plain view: "Speak it" is the interactive spoken test;
+    // "Just read" restores the original passive first-letter recall (no
+    // mic). The choice sticks per browser and plain view still counts the
+    // method (server trust model: client reports letters attempts).
+    const viewButtons = Array.from(
+      panel.querySelectorAll("[data-letters-view-set]"),
+    );
+    const hintEl = panel.querySelector(".learn-letters-hint");
+    const VIEW_KEY = "cm-letters-view";
+    let view = "voice";
+    try {
+      if (localStorage.getItem(VIEW_KEY) === "plain") {
+        view = "plain";
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+    let plainCounted = false;
+
+    function applyView() {
+      const plain = view === "plain";
+      panel.setAttribute("data-letters-view", view);
+      if (plain) {
+        if (live) {
+          try {
+            live.cancel();
+          } catch (_e) {
+            /* ignore */
+          }
+          live = null;
+        }
+        if (recording) {
+          try {
+            recording.cancel();
+          } catch (_e) {
+            /* ignore */
+          }
+          recording = null;
+        }
+        clearListening();
+        exitListeningUi();
+        showStatus("", null);
+        showFallback(false);
+        renderCues();
+        if (!plainCounted && onComplete) {
+          plainCounted = true;
+          onComplete();
+        }
+      }
+      setHidden(speakBtn, plain);
+      if (plain) {
+        setHidden(checkBtn, true);
+      }
+      if (hintEl) {
+        hintEl.textContent = plain
+          ? "Recall each word from its first letter. Show full text to verify."
+          : "Use the first letters. Speak the words — correct letters turn blue as you go.";
+      }
+      viewButtons.forEach((btn) => {
+        const active = btn.getAttribute("data-letters-view-set") === view;
+        btn.classList.toggle("is-active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+
+    viewButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = btn.getAttribute("data-letters-view-set") === "plain"
+          ? "plain"
+          : "voice";
+        if (next === view) {
+          return;
+        }
+        view = next;
+        try {
+          localStorage.setItem(VIEW_KEY, view);
+        } catch (_e) {
+          /* ignore */
+        }
+        applyView();
+      });
+    });
+
     if (toggle) {
       toggle.addEventListener("click", () => {
         full = !full;
@@ -696,6 +781,7 @@
     }
 
     renderCues();
+    applyView();
 
     return {
       reset() {
@@ -2380,6 +2466,14 @@
       btn.classList.remove("is-rtc-saving");
       btn.classList.add("is-rtc-saved");
       btn.textContent = "Saved";
+      // First-login tour: the guide narrates this moment and immediately
+      // leads on to Calendar → Settings, so the quote affirmation would
+      // block the remaining steps. Skip it; a brief "Saved" beat is enough.
+      if (document.body.getAttribute("data-onboarding") === "active") {
+        await wait(motionEnabled() ? 350 : 60);
+        window.location.assign(cleanDoneParam(payload.next_url));
+        return;
+      }
       const soundP = soundEnabled() ? playCompletionSound() : Promise.resolve();
       await wait(motionEnabled() ? 120 : 0);
       const modal = buildAffirmationEl(payload);

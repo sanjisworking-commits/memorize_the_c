@@ -99,6 +99,49 @@
     return window.matchMedia && window.matchMedia("(max-width: 820px)").matches;
   }
 
+  /* ── audio cues ────────────────────────────────────────────────────
+     Two voices cut from the same source, so they read as siblings:
+       tick — 250ms, -9 dBFS: an onboarding action landed.
+       move — 200ms, -15 dBFS: just moving through the learning modes.
+     Silent until the learner's first click, because browsers block audio
+     before a gesture and an unprompted noise on load is startling. */
+  var CUES = {
+    tick: "/static/onboarding-tick.m4a",
+    move: "/static/onboarding-move.m4a",
+  };
+  var cueEls = {};
+  var cueAt = 0;
+  var gestured = false;
+
+  function cue(name) {
+    if (!gestured) return;
+    // One cue per beat: a single action can trip several observers at once.
+    var now = Date.now();
+    if (now - cueAt < 150) return;
+    cueAt = now;
+    var src = CUES[name] || CUES.tick;
+    try {
+      if (!cueEls[name]) {
+        cueEls[name] = new Audio(src);
+        cueEls[name].preload = "auto";
+      }
+      cueEls[name].currentTime = 0;
+      var p = cueEls[name].play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {
+      /* a missing or blocked cue must never break the tour */
+    }
+  }
+
+  // Any click inside the tour counts as the unlocking gesture.
+  document.addEventListener(
+    "click",
+    function () {
+      gestured = true;
+    },
+    true
+  );
+
   function postState(status) {
     var fd = new FormData();
     fd.append("status", status);
@@ -239,6 +282,15 @@
     return "Step " + Math.min(doneCount() + 1, 4) + " of 4";
   }
 
+  // Sound the cue as the action fires, before any navigation it triggers.
+  function withCue(fn) {
+    return function (ev) {
+      gestured = true;
+      cue("tick");
+      fn(ev);
+    };
+  }
+
   function renderContent(g) {
     content.textContent = "";
     var head = el("div", "ob-head");
@@ -264,19 +316,19 @@
       if (g.back) {
         var back = el("button", "ob-btn-back", "Back");
         back.type = "button";
-        back.addEventListener("click", g.back);
+        back.addEventListener("click", withCue(g.back));
         actions.appendChild(back);
       }
       if (g.primary) {
         var primary = el("button", "ob-btn-primary", g.primaryLabel);
         primary.type = "button";
-        primary.addEventListener("click", g.primary);
+        primary.addEventListener("click", withCue(g.primary));
         actions.appendChild(primary);
       }
       if (g.secondary) {
         var secondary = el("button", "ob-btn-secondary", g.secondaryLabel);
         secondary.type = "button";
-        secondary.addEventListener("click", g.secondary);
+        secondary.addEventListener("click", withCue(g.secondary));
         actions.appendChild(secondary);
       }
       content.appendChild(actions);
@@ -601,6 +653,7 @@
     save();
     postState("completed");
     setFinishedFlag();
+    cue("tick");
     clearTarget();
     guide.remove();
     removeChecklist();
@@ -831,6 +884,8 @@
     );
   }
 
+  var lastGoalCount = null;
+
   function gcalConnected() {
     return !!(
       document.querySelector(".gcal-connected-head") ||
@@ -845,6 +900,11 @@
       state.done = true;
       save();
     }
+    // A checklist goal ticking over is an onboarding action too — it is how
+    // Done, the Calendar visit and calendar sync each register.
+    if (lastGoalCount !== null && doneCount() > lastGoalCount) cue("tick");
+    lastGoalCount = doneCount();
+
     guide.classList.remove("is-centered");
     var wantIntro = false;
     var g = null;
@@ -1048,8 +1108,11 @@
       var nowMode = learn.getAttribute("data-mode") || "read";
       if (newlyDone && newlyDone !== "read") {
         justDone = newlyDone;
+        cue("tick");
       } else if (nowMode !== lastMode) {
+        // Moving between modes is travel, not an achievement — softer voice.
         justDone = null;
+        cue("move");
       }
       lastSeen = nowSeen;
       lastMode = nowMode;

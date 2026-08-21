@@ -3706,6 +3706,9 @@ html[data-theme="dark"] {
 }
 
 .auth-rail-quote {
+  /* Pinned: Fraunces now ships a 400 instance for the phone
+     Bare Act text, and this rule wants the old semibold. */
+  font-weight: 500;
   margin: auto 0 0;
   padding: 0;
   border: 0;
@@ -3921,6 +3924,9 @@ html[data-theme="dark"] {
 }
 
 .otp-cell {
+  /* Pinned: Fraunces now ships a 400 instance for the phone
+     Bare Act text, and this rule wants the old semibold. */
+  font-weight: 500;
   width: 44px;
   height: 52px;
   text-align: center;

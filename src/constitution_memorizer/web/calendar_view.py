@@ -244,3 +244,142 @@ def build_calendar_month(
         review_done_count=review_done_count,
         scheduled_count=scheduled_count,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Mobile "Revisions" screen (design 19). Same data as the month grid, folded
+# into a week strip + today's list + the interval ladder, which is what fits
+# a 390 px phone without hiding anything the grid shows.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class RevisionWeekDay:
+    dow: str
+    day: int
+    iso: str
+    is_today: bool
+    has_revision: bool
+
+
+@dataclass(frozen=True)
+class RevisionRow:
+    unit_id: str
+    title: str
+    state: Literal["overdue", "due", "done"]
+    meta: str
+    href: str
+
+
+@dataclass(frozen=True)
+class RevisionLadderRung:
+    label: str
+    count: int
+    percent: int
+
+
+@dataclass(frozen=True)
+class RevisionsView:
+    month_label: str
+    week: list[RevisionWeekDay]
+    rows: list[RevisionRow]
+    today_label: str
+    ladder: list[RevisionLadderRung]
+
+
+def _rung_label(interval_days: int) -> str:
+    return f"Day {interval_days if interval_days > 0 else INTERVAL_LADDER[0]}"
+
+
+def build_revisions_view(
+    engine: ReminderEngine,
+    *,
+    today: date | None = None,
+) -> RevisionsView:
+    """Week strip, today's units and the ladder — the phone shape of /calendar."""
+    today = today or date.today()
+    rows_all = list(engine.list_all_progress())
+
+    # Week strip: yesterday through the next six days, so "today" sits second.
+    scheduled_days: set[date] = set()
+    for row in rows_all:
+        for when, _rung in remaining_review_schedule(row):
+            scheduled_days.add(when)
+
+    week: list[RevisionWeekDay] = []
+    for offset in range(-1, 6):
+        day = today + timedelta(days=offset)
+        week.append(
+            RevisionWeekDay(
+                dow=day.strftime("%a").upper(),
+                day=day.day,
+                iso=day.isoformat(),
+                is_today=day == today,
+                has_revision=day in scheduled_days and day != today,
+            )
+        )
+
+    rows: list[RevisionRow] = []
+    for row in rows_all:
+        unit = engine.get_unit(row.learning_unit_id)
+        if unit is None:
+            continue
+        rung = _rung_label(row.interval_days)
+        if row.next_revision is not None and row.next_revision <= today:
+            state: Literal["overdue", "due", "done"] = (
+                "overdue" if row.next_revision < today else "due"
+            )
+            overdue_days = (today - row.next_revision).days
+            meta = (
+                f"Overdue by {overdue_days} day{'s' if overdue_days != 1 else ''} · {rung}"
+                if state == "overdue"
+                else f"Due today · {rung}"
+            )
+        elif row.last_completed == today and row.times_completed > 0:
+            state = "done"
+            meta = f"Done · {rung}"
+        else:
+            continue
+        rows.append(
+            RevisionRow(
+                unit_id=row.learning_unit_id,
+                title=unit.display_title,
+                state=state,
+                meta=meta,
+                href=f"/learn/{row.learning_unit_id}",
+            )
+        )
+    order = {"overdue": 0, "due": 1, "done": 2}
+    rows.sort(key=lambda r: (order[r.state], r.title))
+
+    # Ladder: how many units sit on each rung of 1 → 3 → 7 → 15 → 30 → 60.
+    counts = {rung: 0 for rung in INTERVAL_LADDER}
+    for row in rows_all:
+        if row.status not in ("review", "mastered"):
+            continue
+        rung = row.interval_days if row.interval_days in counts else INTERVAL_LADDER[0]
+        counts[rung] += 1
+    peak = max(counts.values()) if counts else 0
+    ladder = [
+        RevisionLadderRung(
+            label=f"Day {rung}",
+            count=counts[rung],
+            percent=int(round(100 * counts[rung] / peak)) if peak else 0,
+        )
+        for rung in INTERVAL_LADDER
+    ]
+
+    pending = sum(1 for r in rows if r.state != "done")
+    if pending:
+        today_label = f"Today · {pending} unit{'s' if pending != 1 else ''}"
+    elif rows:
+        today_label = "Today · all done"
+    else:
+        today_label = "Today · nothing due"
+    return RevisionsView(
+        month_label=today.strftime("%B %Y"),
+        week=week,
+        rows=rows,
+        today_label=today_label,
+        ladder=ladder,
+    )

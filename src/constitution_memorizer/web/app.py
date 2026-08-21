@@ -92,16 +92,26 @@ from constitution_memorizer.web.request_context import (
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
+    article_phone_meta,
     BROWSE_MARKS_BY_KEY,
+    marks_for_article,
+    parse_news_articles,
     browse_due_total,
     browse_parts_sections,
+    find_part_section,
+    part_href,
+    part_progress_summary,
+    part_title_from_seed,
     present_browse_marks,
     build_article_view,
     list_article_numbers,
     load_reviewed_document,
 )
 from constitution_memorizer.web.explainers import explainer_asset_path, visual_explainer
-from constitution_memorizer.web.calendar_view import build_calendar_month
+from constitution_memorizer.web.calendar_view import (
+    build_calendar_month,
+    build_revisions_view,
+)
 from constitution_memorizer.web.completion import (
     build_completion,
     caught_up_quote,
@@ -1468,15 +1478,63 @@ def create_app(
         parts_source = "reviewed" if app.state.reviewed is not None else "units-seed"
         access = access_summary(request, eng)
         claimed = set(access.claimed_articles) if access.enabled else set()
+        # Phone Browse is Part-first (design 02): each Part card carries its own
+        # progress and due count, and opens a Part page instead of scrolling.
+        today = date.today()
+        cont_id = continue_unit_id(eng, as_of=today)
+        part_cards = [
+            {
+                "section": section,
+                "href": part_href(section.part_number),
+                "summary": part_progress_summary(
+                    eng, section, today=today, continue_id=cont_id
+                ),
+            }
+            for section in sections
+        ]
         started = time.perf_counter()
         response = templates.TemplateResponse(
             request,
             "browse_index.html",
             {
                 "sections": sections,
+                "part_cards": part_cards,
                 "has_reviewed": app.state.reviewed is not None,
                 "parts_source": parts_source,
                 "present_marks": present_browse_marks(sections),
+                "access": access,
+                "claimed_articles": claimed,
+            },
+        )
+        record_request_timing("template", started)
+        return response
+
+    @app.get("/browse/part/{part_slug}", response_class=HTMLResponse)
+    async def browse_part(request: Request, part_slug: str) -> HTMLResponse:
+        """One Part, Articles as rows (mobile designs 03 / 16 / 18)."""
+        eng = _engine()
+        if not getattr(request.state, "is_guest", False):
+            eng.bootstrap_request(include_news=True)
+        started = time.perf_counter()
+        sections = browse_parts_sections(eng, app.state.reviewed)
+        record_request_timing("browse_build", started)
+        section = find_part_section(sections, part_slug)
+        if section is None:
+            raise HTTPException(status_code=404, detail="Part not found")
+        access = access_summary(request, eng)
+        claimed = set(access.claimed_articles) if access.enabled else set()
+        today = date.today()
+        cont_id = continue_unit_id(eng, as_of=today)
+        started = time.perf_counter()
+        response = templates.TemplateResponse(
+            request,
+            "browse_part.html",
+            {
+                "section": section,
+                "summary": part_progress_summary(
+                    eng, section, today=today, continue_id=cont_id
+                ),
+                "present_marks": present_browse_marks([section]),
                 "access": access,
                 "claimed_articles": claimed,
             },
@@ -1520,6 +1578,23 @@ def create_app(
             notes=notes,
             unit_id=f"browse-article-{view.article_number}",
         )
+        # Phone header (design 04): the Part by name, the saved / progress /
+        # amendments meta line, and the Article's own marks in the top bar.
+        access = access_summary(request, eng)
+        claimed = set(access.claimed_articles) if access.enabled else set()
+        part_title = (
+            part_title_from_seed(view.part_number)
+            if str(view.part_number or "").upper() != "UNKNOWN"
+            else None
+        )
+        phone_meta = article_phone_meta(
+            view.learn_units,
+            saved=view.article_number in claimed,
+            amendment_count=len(view.amendments or ()),
+        )
+        in_news = view.article_number in parse_news_articles(
+            eng.get_news_articles_raw()
+        )
         record_request_timing("article_build", started)
         started = time.perf_counter()
         response = templates.TemplateResponse(
@@ -1534,6 +1609,12 @@ def create_app(
                 "judicial_evolution": judicial,
                 "annotated_text": annotated_text,
                 "has_text_annotations": bool(browse_anns),
+                "part_title": part_title,
+                "phone_meta": phone_meta,
+                "article_marks": marks_for_article(
+                    view.article_number, in_news=in_news
+                ),
+                "access": access,
             },
         )
         record_request_timing("template", started)
@@ -1609,10 +1690,17 @@ def create_app(
         if not is_guest:
             eng.bootstrap_request()
         view = build_calendar_month(eng, year=y, month=m, today=today)
+        # The phone shows this month's data as a week strip + today + ladder
+        # (design 19); only meaningful for the current month.
+        revisions = (
+            build_revisions_view(eng, today=today)
+            if (y, m) == (today.year, today.month)
+            else None
+        )
         return templates.TemplateResponse(
             request,
             "calendar.html",
-            {"calendar": view},
+            {"calendar": view, "revisions": revisions},
         )
 
     @app.get("/progress", response_class=HTMLResponse)

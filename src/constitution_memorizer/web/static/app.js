@@ -1672,23 +1672,6 @@
     const typePanel = learn.querySelector('[data-learn-panel="type"]');
     const recitePanel = learn.querySelector('[data-learn-panel="recite"]');
     const testPanel = learn.querySelector('[data-learn-panel="test"]');
-    // Gated modes report a completed attempt through markModeAttempted (or the
-    // graded quiz payload); auto-seen modes are marked on tab visit instead.
-    const cloze = initCloze(clozePanel, function () {
-      markModeAttempted("cloze");
-    });
-    const letters = initLetters(lettersPanel, function () {
-      markModeAttempted("letters");
-    });
-    const typeMode = initType(typePanel, function () {
-      markModeAttempted("type");
-    });
-    const recite = initRecite(recitePanel, function () {
-      markModeAttempted("recite");
-    });
-    const testMode = initTest(testPanel, function (payload) {
-      applyQuizPayload(payload);
-    });
     const doneBtn = document.getElementById("learn-done-btn");
 
     const MODE_LABELS = {
@@ -1763,6 +1746,29 @@
     }
     const inFlight = new Set();
     let serverDoneUnlocked = learn.dataset.doneUnlocked === "true";
+
+    // Gated modes report a completed attempt through markModeAttempted (or the
+    // graded quiz payload); auto-seen modes are marked on tab visit instead.
+    //
+    // These run last on purpose: initLetters fires its callback during init
+    // when the saved view is "Just read", and markModeAttempted reads the
+    // consts above. Constructed any earlier, that first callback throws a
+    // temporal-dead-zone error and takes the whole Learn page down.
+    const cloze = initCloze(clozePanel, function () {
+      markModeAttempted("cloze");
+    });
+    const letters = initLetters(lettersPanel, function () {
+      markModeAttempted("letters");
+    });
+    const typeMode = initType(typePanel, function () {
+      markModeAttempted("type");
+    });
+    const recite = initRecite(recitePanel, function () {
+      markModeAttempted("recite");
+    });
+    const testMode = initTest(testPanel, function (payload) {
+      applyQuizPayload(payload);
+    });
 
     function requiredVisitedCount(visited) {
       let count = 0;

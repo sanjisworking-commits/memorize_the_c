@@ -1,0 +1,2182 @@
+/* ============================================================================
+   Recall the C — phone layouts
+   Implements "Recall the C - Mobile Screens" (24 screens at 390 × 844).
+
+   Two rules hold this file together:
+
+   1. Everything is inside `@media (max-width: 560px)`. Desktop is untouched.
+   2. Everything is scoped to a `body[data-mscreen="…"]` value, set by the
+      template that has a phone design. Pages without one (Tables, Laws,
+      Pricing, Profile, Memory, Legal, Admin) keep the older responsive rules
+      in styles.css, header and footer included.
+
+   Colours come from the tokens already in styles.css — the design was drawn
+   from the same palette, so nothing is hard-coded here except a handful of
+   design-specific sizes.
+   ========================================================================== */
+
+@media (max-width: 560px) {
+  :root {
+    --m-gutter: 18px;
+    --m-tabbar: 56px;
+    --m-actionbar: 76px;
+  }
+
+  /* ── Shell ──────────────────────────────────────────────────────────────
+     Each phone screen carries its own header, so the desktop chrome goes. */
+  body[data-mscreen] .site-header,
+  body[data-mscreen] .site-footer,
+  body[data-mscreen] .sheet-footnote {
+    display: none;
+  }
+
+  body[data-mscreen] .page-wrap,
+  body[data-mscreen] .sheet {
+    background: var(--page);
+  }
+
+  body[data-mscreen] .panel {
+    max-width: none;
+    padding: 6px var(--m-gutter) calc(var(--m-tabbar) + 28px);
+    animation: none;
+  }
+
+  /* Sessions and reading surfaces sit on paper, not on the page wash. */
+  body[data-mscreen="article"] .page-wrap,
+  body[data-mscreen="article"] .sheet,
+  body[data-mscreen="part"] .page-wrap,
+  body[data-mscreen="part"] .sheet,
+  body[data-mscreen="search"] .page-wrap,
+  body[data-mscreen="search"] .sheet,
+  body[data-mscreen="learn"]:has(.learn[data-mobile-view="mode"]) .page-wrap,
+  body[data-mscreen="learn"]:has(.learn[data-mobile-view="mode"]) .sheet,
+  body[data-mscreen="learn"].is-mode-view .page-wrap,
+  body[data-mscreen="learn"].is-mode-view .sheet {
+    background: var(--paper);
+  }
+
+  body[data-mscreen="article"] .panel,
+  body[data-mscreen="learn"] .panel {
+    padding-bottom: calc(var(--m-actionbar) + 24px);
+  }
+
+
+  /* ── Tab bar (all designs that show one) ────────────────────────────────
+     Four tabs, ink top-rule on the active one — the design's only "selected"
+     signal, so it must survive dark mode; `currentColor` does that. */
+  body[data-mscreen] .mobile-tabbar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    background: var(--page);
+    border-top: 1px solid var(--hairline);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  body[data-mscreen] .mobile-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--m-tabbar);
+    border-top: 2px solid transparent;
+    font-size: 11.5px;
+    color: var(--mid);
+    text-decoration: none;
+  }
+
+  body[data-mscreen] .mobile-tab.is-active {
+    border-top-color: var(--ink);
+    color: var(--ink);
+    font-weight: 400;
+  }
+
+  /* Reading an Article is a destination, not a tab (design 04): the sticky
+     "Learn this Article" action takes the bottom of the screen instead. */
+  body[data-mscreen="article"] .mobile-tabbar {
+    display: none;
+  }
+
+  /* ── Shared phone furniture ─────────────────────────────────────────────*/
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    margin: 0 0 4px;
+  }
+
+  .mobile-back {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .mobile-topbar .mobile-back + * {
+    margin-left: auto;
+  }
+
+  .mobile-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font-size: 17px;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .mobile-chip-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 36px;
+    flex: 0 0 auto;
+    padding: 0 11px;
+    border: 1px solid var(--hairline);
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+
+  .mobile-chip-btn[aria-pressed="true"] {
+    border-color: var(--ink);
+  }
+
+  .mobile-screen-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0 12px;
+  }
+
+  .mobile-screen-title {
+    margin: 0 auto 0 0;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+  }
+
+  /* Fixed primary action (designs 04, 06, 08–13). */
+  .mobile-actionbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 25;
+    display: flex;
+    gap: 9px;
+    padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0));
+    background: var(--paper);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .mobile-action-primary {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  /* ── Bottom sheets (designs 15, 21) ─────────────────────────────────────*/
+  .mobile-sheet[hidden] {
+    display: none;
+  }
+
+  .mobile-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+  }
+
+  .mobile-sheet-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 20, 20, 0.32);
+  }
+
+  .mobile-sheet-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 16px var(--m-gutter) calc(26px + env(safe-area-inset-bottom, 0));
+    background: var(--paper);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .mobile-sheet-head {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+
+  .mobile-sheet-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 500;
+  }
+
+  .mobile-sheet-clear {
+    margin-left: auto;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--browse-due);
+    cursor: pointer;
+  }
+
+  .mobile-sheet-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    min-height: 56px;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--page);
+    background: none;
+    font: inherit;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .mobile-sheet-row-icon {
+    display: inline-flex;
+    color: var(--faint);
+  }
+
+  .mobile-sheet-row[aria-pressed="true"] .mobile-sheet-row-icon {
+    color: currentColor;
+  }
+
+  .mobile-sheet-row-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mobile-sheet-row-name {
+    font-size: 15px;
+  }
+
+  .mobile-sheet-row-desc {
+    font-size: 12px;
+    color: var(--mid);
+  }
+
+  .mobile-sheet-row-tick {
+    margin-left: auto;
+    font-size: 14px;
+    visibility: hidden;
+  }
+
+  .mobile-sheet-row[aria-pressed="true"] .mobile-sheet-row-tick {
+    visibility: visible;
+  }
+
+  .mobile-sheet-note {
+    margin: 14px 0 0;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--faint);
+    text-wrap: pretty;
+  }
+
+  .mobile-sheet-link {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 56px;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--page);
+    background: none;
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .mobile-sheet-link:last-child {
+    border-bottom: 0;
+  }
+
+  .mobile-sheet-link.is-destructive {
+    color: var(--destructive-text, var(--destructive));
+  }
+
+  .mobile-sheet-link-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--mid);
+  }
+
+  .mobile-sheet-link-icon {
+    display: inline-flex;
+    margin-left: auto;
+    color: var(--browse-mark-visualise);
+  }
+
+  body.mobile-sheet-open {
+    overflow: hidden;
+  }
+
+  /* ══ 01 / 22 / 23 / 24 · Today ═════════════════════════════════════════ */
+  body[data-mscreen="today"] .dash-greeting {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0 18px;
+    margin: 0;
+  }
+
+  body[data-mscreen="today"] .dash-greeting > div {
+    min-width: 0;
+  }
+
+  body[data-mscreen="today"] .dash-avatar-link {
+    flex: 0 0 auto;
+    line-height: 0;
+  }
+
+  body[data-mscreen="today"] .dash-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+  }
+
+  body[data-mscreen="today"] .dash-hello {
+    font-size: 15px;
+    font-weight: 500;
+    font-family: var(--font-body);
+    margin: 0;
+    letter-spacing: 0;
+  }
+
+  body[data-mscreen="today"] .dash-subtext {
+    margin: 1px 0 0;
+    font-size: 12px;
+    color: var(--mid);
+  }
+
+  body[data-mscreen="today"] .dash-greeting-search {
+    margin-left: auto;
+  }
+
+  body[data-mscreen="today"] .dash-access-chip {
+    flex: 1 0 100%;
+    margin-top: 8px;
+    font-size: 11.5px;
+  }
+
+  body[data-mscreen="today"] .dash-top,
+  body[data-mscreen="today"] .dash-bottom {
+    display: block;
+  }
+
+  body[data-mscreen="today"] .dash-card {
+    margin: 0 0 22px;
+  }
+
+  /* Due today: ink top-rule, oversized count, full-width CTA. */
+  body[data-mscreen="today"] .dash-due {
+    padding: 18px;
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    border-top: 2px solid var(--ink);
+  }
+
+  body[data-mscreen="today"] .dash-due .dash-card-head,
+  body[data-mscreen="today"] .dash-due .dash-card-body {
+    padding: 0;
+    border: 0;
+  }
+
+  body[data-mscreen="today"] .dash-eyebrow {
+    margin: 0 0 12px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  body[data-mscreen="today"] .dash-due-line {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin: 0 0 3px;
+  }
+
+  body[data-mscreen="today"] .dash-due-count {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  body[data-mscreen="today"] .dash-due-units {
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+
+  body[data-mscreen="today"] .dash-load {
+    margin: 0 0 14px;
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+
+  body[data-mscreen="today"] .dash-chips {
+    gap: 6px;
+    margin: 0 0 16px;
+  }
+
+  body[data-mscreen="today"] .dash-chip {
+    padding: 4px 9px;
+    border: 1px solid var(--hairline);
+    font-size: 12px;
+  }
+
+  body[data-mscreen="today"] .dash-due .actions {
+    margin: 0;
+  }
+
+  body[data-mscreen="today"] .dash-btn-full,
+  body[data-mscreen="today"] .dash-btn-outline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 48px;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  body[data-mscreen="today"] .dash-due-empty-title {
+    margin: 0 0 6px;
+    font-family: var(--font-display);
+    font-size: 23px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  /* Continue / Recent / Explore: eyebrow above, hairline card below. */
+  body[data-mscreen="today"] .dash-continue,
+  body[data-mscreen="today"] .dash-secondary {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  body[data-mscreen="today"] .dash-continue .dash-card-head,
+  body[data-mscreen="today"] .dash-secondary .dash-card-head {
+    padding: 0;
+    border: 0;
+  }
+
+  body[data-mscreen="today"] .dash-secondary + .dash-secondary {
+    margin-top: 22px;
+  }
+
+  body[data-mscreen="today"] .dash-continue .dash-card-body,
+  body[data-mscreen="today"] .dash-secondary .dash-card-body {
+    padding: 14px 16px;
+    border: 1px solid var(--hairline);
+    background: var(--paper);
+  }
+
+  body[data-mscreen="today"] .dash-continue-title {
+    margin: 0 0 5px;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+  }
+
+  body[data-mscreen="today"] .dash-continue-meta,
+  body[data-mscreen="today"] .dash-continue-mode {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Progress: one horizontal rail with hairline dividers (design 01). */
+  body[data-mscreen="today"] .dash-strip {
+    display: flex;
+    gap: 0;
+    margin: 0 calc(var(--m-gutter) * -1) 4px;
+    padding: 0 var(--m-gutter);
+    border: 0;
+    background: transparent;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body[data-mscreen="today"] .dash-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-mscreen="today"] .dash-strip-cell {
+    flex: 0 0 auto;
+    min-width: 92px;
+    padding: 0 16px 0 0;
+    margin-right: 16px;
+    border: 0;
+    border-right: 1px solid var(--hairline);
+  }
+
+  body[data-mscreen="today"] .dash-strip-cell:last-child {
+    border-right: 0;
+    margin-right: 0;
+  }
+
+  body[data-mscreen="today"] .dash-strip-num {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 23px;
+    font-weight: 500;
+    line-height: 1.1;
+  }
+
+  body[data-mscreen="today"] .dash-strip-label {
+    margin: 2px 0 0;
+    font-size: 11.5px;
+    color: var(--mid);
+  }
+
+  .dash-upcoming {
+    margin: 24px 0 26px;
+  }
+
+  .dash-upcoming-head {
+    display: flex;
+    align-items: baseline;
+    margin: 0 0 9px;
+  }
+
+  .dash-upcoming-head .dash-eyebrow {
+    margin: 0;
+  }
+
+  .dash-upcoming-all {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--browse-due);
+    text-decoration: none;
+  }
+
+  .dash-upcoming-rail {
+    display: flex;
+    gap: 10px;
+    margin: 0 calc(var(--m-gutter) * -1);
+    padding: 0 var(--m-gutter);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .dash-upcoming-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dash-upcoming-card {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 132px;
+    padding: 12px 13px;
+    border: 1px solid var(--hairline);
+    background: var(--paper);
+    scroll-snap-align: start;
+    text-decoration: none;
+    color: var(--ink);
+  }
+
+  .dash-upcoming-when {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  .dash-upcoming-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .dash-upcoming-rung {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* 24 · error — left rule marks the failure without shouting. */
+  body[data-mscreen="today"] .dash-error {
+    padding: 20px 18px;
+    border: 1px solid var(--hairline);
+    border-left: 2px solid var(--destructive);
+    background: var(--paper);
+  }
+
+  body[data-mscreen="today"] .dash-error-mark {
+    display: none;
+  }
+
+  body[data-mscreen="today"] .dash-error-title {
+    margin: 0 0 8px;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.25;
+  }
+
+  /* ══ 02 · Browse — Parts ═══════════════════════════════════════════════ */
+  body[data-mscreen="browse"] .browse > .display,
+  body[data-mscreen="browse"] .browse > .lede,
+  body[data-mscreen="browse"] .browse-legend,
+  body[data-mscreen="browse"] .browse-part {
+    display: none;
+  }
+
+  /* 17 · the guest note is one left-ruled line, not a panel. */
+  body[data-mscreen="browse"] .guest-strip {
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 11px 12px;
+    margin: 0 0 12px;
+    border-left: 2px solid var(--ink);
+  }
+
+  body[data-mscreen="browse"] .guest-strip p {
+    flex: 1 1 auto;
+    font-size: 12.5px;
+    line-height: 1.45;
+    text-wrap: pretty;
+  }
+
+  body[data-mscreen="browse"] .guest-strip-signin {
+    flex: 0 0 auto;
+    padding: 6px 11px;
+    font-size: 12.5px;
+    font-weight: 400;
+  }
+
+  .browse-part-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .part-card {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 15px 13px;
+    border: 1px solid var(--hairline);
+    background: var(--paper);
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .part-card.has-due {
+    border-color: var(--ink);
+  }
+
+  .part-card.is-mark-hidden {
+    display: none;
+  }
+
+  .part-card-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .part-card-roman {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  .part-card-due {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--browse-due);
+  }
+
+  .part-card-dot {
+    display: block;
+    width: 5px;
+    height: 5px;
+    background: var(--browse-due);
+  }
+
+  .part-card-chevron {
+    margin-left: auto;
+    font-size: 15px;
+    color: var(--faint);
+  }
+
+  .part-card-name {
+    margin-bottom: 5px;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .part-card-foot {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .part-card-range {
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .part-card-learned {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--faint);
+  }
+
+  .part-card-track {
+    display: block;
+    height: 2px;
+    margin-top: 10px;
+    background: var(--track);
+  }
+
+  .part-card-fill {
+    display: block;
+    height: 2px;
+    background: var(--ink);
+  }
+
+  /* ══ 03 / 16 / 18 · Part — Articles ════════════════════════════════════ */
+  body[data-mscreen="part"] .panel {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  body[data-mscreen="part"] .mobile-topbar,
+  body[data-mscreen="part"] .part-head,
+  body[data-mscreen="part"] .part-note {
+    padding-left: var(--m-gutter);
+    padding-right: var(--m-gutter);
+  }
+
+  body[data-mscreen="part"] .mobile-topbar,
+  body[data-mscreen="part"] .part-head {
+    background: var(--page);
+  }
+
+  .part-head {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .part-head-roman {
+    margin: 0 0 2px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  .part-head-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+
+  .part-head-range {
+    margin: 0 0 2px auto;
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: var(--mid);
+    white-space: nowrap;
+  }
+
+  .part-note {
+    margin: 12px 0 0;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .part-access-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px var(--m-gutter);
+    background: var(--wash);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .part-access-copy {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  .part-access-link {
+    margin-left: auto;
+    flex: 0 0 auto;
+    font-size: 12.5px;
+    color: var(--browse-due);
+    text-decoration: none;
+  }
+
+  .part-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 56px;
+    padding: 13px var(--m-gutter);
+    border-bottom: 1px solid var(--page);
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .part-row.is-mark-hidden {
+    display: none;
+  }
+
+  .part-row.has-due {
+    background: var(--wash);
+  }
+
+  .part-row.is-preview {
+    background: var(--wash);
+  }
+
+  .part-row.is-preview .part-row-title {
+    color: var(--muted);
+  }
+
+  .part-row-num {
+    min-width: 52px;
+    padding-top: 1px;
+    flex: 0 0 auto;
+    font-size: 13px;
+    color: var(--mid);
+  }
+
+  .part-row-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .part-row-title {
+    display: block;
+    font-size: 14.5px;
+    line-height: 1.35;
+  }
+
+  .part-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 4px;
+  }
+
+  .part-row-due {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--browse-due);
+  }
+
+  .part-row-due.is-overdue {
+    color: var(--browse-mark-news);
+  }
+
+  .part-row-dot {
+    display: block;
+    width: 5px;
+    height: 5px;
+    background: currentColor;
+  }
+
+  .part-row-access {
+    font-size: 11.5px;
+    color: var(--browse-due);
+  }
+
+  .part-row-access.is-preview {
+    color: var(--faint);
+  }
+
+  .part-row-mark {
+    display: inline-flex;
+    color: var(--browse-mark-news);
+  }
+
+  .part-row-mark.browse-mark-visualise {
+    color: var(--browse-mark-visualise);
+  }
+
+  .part-row-chevron {
+    padding-top: 2px;
+    flex: 0 0 auto;
+    font-size: 14px;
+    color: var(--control-border);
+  }
+
+  .part-row.is-preview .part-row-chevron {
+    color: var(--hairline);
+  }
+
+  /* 16 · Chapters are group headers, not cards. */
+  .part-chapter-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 10px var(--m-gutter);
+    background: var(--wash);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .part-chapter-roman {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  .part-chapter-name {
+    font-size: 14.5px;
+  }
+
+  .part-chapter-range {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--faint);
+  }
+
+  /* ══ 04 · Article — reading ════════════════════════════════════════════ */
+  body[data-mscreen="article"] .article-adjacent,
+  body[data-mscreen="article"] .browse-article > .actions,
+  body[data-mscreen="article"] .browse-article > .section-title,
+  body[data-mscreen="article"] .browse-article > .checklist {
+    display: none;
+  }
+
+  body[data-mscreen="article"] .eyebrow {
+    margin: 6px 0 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    color: var(--mid);
+  }
+
+  body[data-mscreen="article"] .browse-article > .display {
+    margin: 0 0 4px;
+    font-size: 26px;
+    line-height: 1.1;
+  }
+
+  body[data-mscreen="article"] .browse-article > .lede {
+    margin: 0 0 10px;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+
+  /* The desktop meta run is one grey sentence; the phone shows the split
+     version instead so "Saved" and "Amendments" can carry colour. */
+  body[data-mscreen="article"] .browse-article-meta,
+  body[data-mscreen="article"] .eyebrow-desktop {
+    display: none;
+  }
+
+  .article-phone-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0 0 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--page);
+    font-size: 12px;
+  }
+
+  .article-phone-saved {
+    color: var(--browse-due);
+  }
+
+  .article-phone-progress {
+    color: var(--mid);
+  }
+
+  .article-phone-amend {
+    margin-left: auto;
+    color: var(--browse-due);
+    text-decoration: none;
+  }
+
+  .mobile-topbar-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 44px;
+    flex: 0 0 auto;
+    color: var(--browse-mark-news);
+  }
+
+  .mobile-topbar-mark.browse-mark-visualise {
+    color: var(--browse-mark-visualise);
+  }
+
+  body[data-mscreen="article"] .browse-article-text {
+    font-size: 19px;
+  }
+
+  /* ── Bare Act text (designs 04 and 08) ───────────────────────────────────
+     Fraunces at 400. The corpus is set at regular weight in the design; at
+     500 this face reads as a headline and swamps the page. */
+  body[data-mscreen="article"] .browse-article-text,
+  body[data-mscreen="learn"] .learn-read-text {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.68;
+    text-wrap: pretty;
+  }
+
+  /* Only once mobile.js has built the columns — without it the plain text
+     still needs pre-wrap to keep its clause breaks. */
+  .unit-text.is-bare-laid {
+    white-space: normal;
+  }
+
+  .bare-line {
+    display: flex;
+    gap: 12px;
+  }
+
+  .bare-line + .bare-line:not(.is-continuation) {
+    margin-top: 13px;
+  }
+
+  .bare-line-mark {
+    min-width: 24px;
+    flex: 0 0 auto;
+    color: var(--mid);
+  }
+
+  .bare-line-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ══ 14 · Search ═══════════════════════════════════════════════════════ */
+  body[data-mscreen="search"] .search > .eyebrow,
+  body[data-mscreen="search"] .search > .display,
+  body[data-mscreen="search"] .search .btn-accent {
+    display: none;
+  }
+
+  /* The field leads on the phone; the syntax hint follows it (design 14). */
+  body[data-mscreen="search"] .panel.search {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body[data-mscreen="search"] .search-form {
+    order: 1;
+  }
+
+  body[data-mscreen="search"] .search > .lede,
+  body[data-mscreen="search"] .search > .empty {
+    order: 2;
+  }
+
+  body[data-mscreen="search"] .search-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 0;
+    padding: 0 0 12px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .search-form-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: var(--mid);
+  }
+
+  body[data-mscreen="search"] .search-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 16px;
+    color: var(--ink);
+  }
+
+  body[data-mscreen="search"] .search-form input:focus {
+    outline: none;
+  }
+
+  .search-cancel {
+    flex: 0 0 auto;
+    font-size: 13.5px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  body[data-mscreen="search"] .search > .lede {
+    margin: 14px 0 0;
+    font-size: 12.5px;
+    color: var(--faint);
+  }
+
+  /* ══ 19 · Revisions ════════════════════════════════════════════════════ */
+  body[data-mscreen="revisions"] .calendar-header,
+  body[data-mscreen="revisions"] .calendar-summary,
+  body[data-mscreen="revisions"] .calendar-legend,
+  body[data-mscreen="revisions"] .calendar-grid {
+    display: none;
+  }
+
+  body[data-mscreen="revisions"] .panel.calendar {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .revisions-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px var(--m-gutter) 0;
+  }
+
+  .revisions-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+  }
+
+  .revisions-month {
+    margin: 0 0 0 auto;
+    font-size: 12px;
+    color: var(--mid);
+  }
+
+  .revisions-week {
+    display: flex;
+    gap: 5px;
+    padding: 14px var(--m-gutter);
+    background: var(--page);
+  }
+
+  .revisions-day {
+    flex: 1;
+    padding: 7px 0 6px;
+    text-align: center;
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+  }
+
+  .revisions-day.is-today {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--on-accent);
+  }
+
+  .revisions-dow {
+    margin: 0;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--mid);
+  }
+
+  .revisions-day.is-today .revisions-dow {
+    color: inherit;
+  }
+
+  .revisions-daynum {
+    margin: 2px 0 0;
+    font-family: var(--font-display);
+    font-size: 16px;
+  }
+
+  .revisions-day-mark {
+    display: block;
+    width: 14px;
+    height: 2px;
+    margin: 5px auto 0;
+    background: transparent;
+  }
+
+  .revisions-day-mark.is-scheduled {
+    background: var(--browse-due);
+  }
+
+  .revisions-day-mark.is-today {
+    background: var(--on-accent);
+  }
+
+  .revisions-eyebrow {
+    margin: 0;
+    padding: 14px var(--m-gutter) 8px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--mid);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .revisions-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 11px var(--m-gutter);
+    border-bottom: 1px solid var(--page);
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .revisions-row.is-done {
+    opacity: 0.55;
+  }
+
+  .revisions-row-dot {
+    display: block;
+    width: 5px;
+    height: 5px;
+    flex: 0 0 auto;
+    background: var(--browse-due);
+  }
+
+  .revisions-row.is-overdue .revisions-row-dot {
+    background: var(--browse-mark-news);
+  }
+
+  .revisions-row-copy {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .revisions-row-title {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 16px;
+  }
+
+  .revisions-row-meta {
+    display: block;
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .revisions-row.is-overdue .revisions-row-meta {
+    color: var(--browse-mark-news);
+  }
+
+  .revisions-row.is-done .revisions-row-meta {
+    color: var(--browse-due);
+  }
+
+  .revisions-row-mark {
+    font-size: 13px;
+    color: var(--control-border);
+  }
+
+  .revisions-row.is-done .revisions-row-mark {
+    color: var(--browse-due);
+  }
+
+  .revisions-empty {
+    margin: 0;
+    padding: 0 var(--m-gutter) 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .revisions-rung {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 40px;
+    margin: 0 var(--m-gutter);
+    border-bottom: 1px solid var(--page);
+  }
+
+  .revisions-rung-label {
+    min-width: 50px;
+    font-size: 12.5px;
+    color: var(--mid);
+  }
+
+  .revisions-rung-track {
+    flex: 1;
+    height: 2px;
+    background: var(--track);
+  }
+
+  .revisions-rung-fill {
+    display: block;
+    height: 2px;
+    background: var(--ink);
+  }
+
+  .revisions-rung-count {
+    min-width: 30px;
+    text-align: right;
+    font-size: 12.5px;
+  }
+
+  .revisions-note {
+    margin: 12px var(--m-gutter) 0;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--faint);
+    text-wrap: pretty;
+  }
+
+  /* ══ 20 · Settings ═════════════════════════════════════════════════════ */
+  body[data-mscreen="settings"] .settings > .display {
+    margin: 0 0 14px;
+    font-size: 22px;
+  }
+
+  body[data-mscreen="settings"] .settings > .lede {
+    display: none;
+  }
+
+  .settings-account-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .settings-account-avatar {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    object-fit: cover;
+  }
+
+  .settings-account-avatar.is-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ink);
+    color: var(--on-accent);
+    font-family: var(--font-display);
+    font-size: 16px;
+  }
+
+  .settings-account-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .settings-account-name {
+    font-size: 15px;
+  }
+
+  .settings-account-status {
+    font-size: 12px;
+    color: var(--mid);
+  }
+
+  .settings-account-chevron {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--control-border);
+  }
+
+  body[data-mscreen="settings"] .section-title {
+    margin: 18px 0 8px;
+    font-family: var(--font-body);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  /* ══ 05–13 · Learn ═════════════════════════════════════════════════════
+     One page, two phone states. `data-mobile-view` decides which. */
+  body[data-mscreen="learn"] .learn-badge-row,
+  body[data-mscreen="learn"] .learn-title,
+  body[data-mscreen="learn"] .learn-sub,
+  body[data-mscreen="learn"] .mode-tabs,
+  body[data-mscreen="learn"] .methods-tracker,
+  body[data-mscreen="learn"] .session-row,
+  body[data-mscreen="learn"] .ve-band,
+  body[data-mscreen="learn"] .learn-amend-note {
+    display: none;
+  }
+
+  /* The deck is the hub, so the page reorders around it: chrome, deck, the
+     other clauses, then the open panel. Source order still serves desktop. */
+  body[data-mscreen="learn"] .learn {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body[data-mscreen="learn"] .learn > * {
+    order: 5;
+  }
+
+  body[data-mscreen="learn"] .guest-learn-banner,
+  body[data-mscreen="learn"] .claim-panel {
+    order: 0;
+  }
+
+  body[data-mscreen="learn"] .learn-mode-bar,
+  body[data-mscreen="learn"] .learn-deck-head {
+    order: 1;
+  }
+
+  body[data-mscreen="learn"] .session-track {
+    order: 2;
+  }
+
+  body[data-mscreen="learn"] .learn-deck-toast {
+    order: 3;
+  }
+
+  body[data-mscreen="learn"] .learn-deck {
+    order: 4;
+  }
+
+  body[data-mscreen="learn"] .learn-deck-dots {
+    order: 5;
+  }
+
+  body[data-mscreen="learn"] .sibling-rail {
+    order: 6;
+  }
+
+  body[data-mscreen="learn"] .learn-body {
+    order: 7;
+  }
+
+  body[data-mscreen="learn"] .learn-footer {
+    order: 8;
+  }
+
+  /* — Deck state (05, 07) — */
+  .learn[data-mobile-view="mode"] .learn-deck-head,
+  .learn[data-mobile-view="mode"] .learn-deck,
+  .learn[data-mobile-view="mode"] .learn-deck-dots,
+  .learn[data-mobile-view="mode"] .learn-deck-toast,
+  .learn[data-mobile-view="mode"] .sibling-rail,
+  .learn[data-mobile-view="mode"] .learn-footer {
+    display: none;
+  }
+
+  .learn[data-mobile-view="deck"] .learn-mode-bar,
+  .learn[data-mobile-view="deck"] .learn-body,
+  .learn[data-mobile-view="deck"] .session-track {
+    display: none;
+  }
+
+  .learn-deck-head {
+    padding: 0 0 10px;
+  }
+
+  .learn-deck-title-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .learn-deck-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 500;
+  }
+
+  .learn-deck-sub {
+    margin: 3px 0 0;
+    font-size: 12.5px;
+    color: var(--mid);
+  }
+
+  .learn-deck-count {
+    margin: 0 0 3px auto;
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: var(--mid);
+  }
+
+  .learn-deck-track {
+    height: 2px;
+    margin-top: 12px;
+    background: var(--track);
+  }
+
+  .learn-deck-fill {
+    height: 2px;
+    background: var(--ink);
+  }
+
+  /* Design 07: finishing a mode returns here and says so. */
+  .learn-deck-toast[hidden] {
+    display: none;
+  }
+
+  .learn-deck-toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 0;
+    padding: 12px 14px;
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    border-left: 2px solid var(--browse-due);
+    font-size: 13.5px;
+  }
+
+  .learn-deck {
+    display: flex;
+    gap: 12px;
+    margin: 14px calc(var(--m-gutter) * -1) 0;
+    padding: 0 var(--m-gutter);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .learn-deck::-webkit-scrollbar {
+    display: none;
+  }
+
+  .learn-deck-card {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    width: min(330px, calc(100vw - var(--m-gutter) * 2 - 24px));
+    padding: 16px 16px 0;
+    border: 1px solid var(--hairline);
+    background: var(--paper);
+    color: var(--ink);
+    text-decoration: none;
+    scroll-snap-align: start;
+  }
+
+  .learn-deck-card.is-locked {
+    opacity: 0.65;
+  }
+
+  .learn-deck-card-eyebrow {
+    margin-bottom: 8px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--mid);
+  }
+
+  .learn-deck-card-title {
+    margin-bottom: 4px;
+    font-family: var(--font-display);
+    font-size: 23px;
+    font-weight: 500;
+  }
+
+  .learn-deck-card-lede {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .learn-deck-card-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 52px;
+    margin: auto -16px 0;
+    padding: 0 16px;
+    border-top: 1px solid var(--hairline);
+    font-size: 14px;
+  }
+
+  .learn-deck-card-state {
+    color: var(--muted);
+  }
+
+  .learn-deck-card.is-done .learn-deck-card-state {
+    color: var(--browse-due);
+  }
+
+  .learn-deck-card-open {
+    margin-left: auto;
+    font-weight: 500;
+  }
+
+  .learn-deck-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 18px 0 0;
+  }
+
+  .learn-deck-dot {
+    display: block;
+    width: 8px;
+    height: 3px;
+    background: var(--control-border);
+  }
+
+  .learn-deck-dot.is-done {
+    background: var(--browse-due);
+  }
+
+  .learn-deck-dot.is-current {
+    width: 18px;
+    background: var(--ink);
+  }
+
+  body[data-mscreen="learn"] .sibling-rail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 24px 0 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .learn[data-mobile-view="deck"] .sibling-rail::before {
+    content: "Other clauses";
+    flex: 1 0 100%;
+    margin-bottom: -2px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  /* Done / Again close the deck, not a mode. */
+  .learn[data-mobile-view="deck"] .learn-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hairline);
+  }
+
+  /* styles.css pins these to the viewport for the old single-page Learn; the
+     deck already owns the bottom of the screen, so put them back in flow. */
+  .learn[data-mobile-view="deck"] .learn-actions {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 9px;
+    padding: 0;
+    border-top: 0;
+    background: transparent;
+  }
+
+  .learn[data-mobile-view="deck"] .learn-meta,
+  .learn[data-mobile-view="deck"] .learn-action-reset {
+    order: 2;
+    min-width: 0;
+  }
+
+  .learn[data-mobile-view="deck"] .learn-actions form,
+  .learn[data-mobile-view="deck"] .learn-actions .btn {
+    width: 100%;
+  }
+
+  .learn[data-mobile-view="deck"] .learn-actions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    font-size: 15px;
+  }
+
+  .learn[data-mobile-view="deck"] .learn-meta {
+    font-size: 11.5px;
+    color: var(--faint);
+  }
+
+  /* — Mode state (06, 08–13) — a session owns the whole screen, tab bar
+     included. `:has` covers the server-rendered load; the body class is what
+     mobile.js toggles when the deck opens a card without a navigation. */
+  body[data-mscreen="learn"]:has(.learn[data-mobile-view="mode"]) .mobile-tabbar,
+  body[data-mscreen="learn"].is-mode-view .mobile-tabbar {
+    display: none;
+  }
+
+  .learn-mode-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0 8px;
+    border-bottom: 1px solid var(--page);
+  }
+
+  .learn-mode-bar-name {
+    margin: 0 auto;
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  body[data-mscreen="learn"] .session-track {
+    height: 2px;
+    margin: 0 calc(var(--m-gutter) * -1);
+    background: var(--track);
+  }
+
+  body[data-mscreen="learn"] .learn-body {
+    padding-top: 20px;
+  }
+
+  body[data-mscreen="learn"] .learn-stem,
+  body[data-mscreen="learn"] .learn-hint,
+  body[data-mscreen="learn"] .learn-type-lede,
+  body[data-mscreen="learn"] .learn-test-lede {
+    font-size: 12.5px;
+    color: var(--mid);
+  }
+
+  /* Every reading surface in a session is Fraunces 400 at the design's size;
+     only labels and card titles take 500. */
+  body[data-mscreen="learn"] .learn-read-text {
+    font-size: 20px;
+    line-height: 1.7;
+  }
+
+  body[data-mscreen="learn"] .learn-cloze-text,
+  body[data-mscreen="learn"] .learn-recite-text,
+  body[data-mscreen="learn"] .learn-type-diff {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 2.2;
+    text-wrap: pretty;
+  }
+
+  body[data-mscreen="learn"] .learn-recite-text {
+    line-height: 1.7;
+  }
+
+  body[data-mscreen="learn"] .learn-type-diff {
+    font-size: 18px;
+    line-height: 1.9;
+  }
+
+  body[data-mscreen="learn"] .learn-letters-text {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    line-height: 2.3;
+    letter-spacing: 0.22em;
+  }
+
+  /* The mode action bar. `Next` is the black CTA and carries the deck
+     forward; the mode's own controls sit beside it as secondaries — moved in
+     by mobile.js, so each keeps the handler app.js bound to it. */
+  .learn[data-mobile-view="mode"] .learn-mode-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0));
+    background: var(--paper);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .learn[data-mobile-view="deck"] .learn-mode-nav {
+    display: none;
+  }
+
+  .learn-mode-next {
+    /* Grows twice as fast as any secondary and never wraps — "4 methods left"
+       is a long label and it is the one that must stay readable. */
+    flex: 2 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    padding: 0 16px;
+    white-space: nowrap;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .learn-mode-next:disabled {
+    border-color: var(--done-locked-bg);
+    background: var(--done-locked-bg);
+    color: var(--done-locked-fg);
+    cursor: default;
+  }
+
+  /* Secondaries: whatever the open mode brought with it. */
+  .learn-mode-nav .learn-cloze-controls,
+  .learn-mode-nav .learn-letters-controls,
+  .learn-mode-nav .learn-recite-controls {
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 9px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .learn-mode-nav .learn-cloze-btn,
+  .learn-mode-nav .learn-letters-btn,
+  .learn-mode-nav .learn-letters-speak,
+  .learn-mode-nav .learn-letters-check,
+  .learn-mode-nav .learn-recite-toggle,
+  .learn-mode-nav .learn-recite-peek,
+  .learn-mode-nav .learn-type-check,
+  .learn-mode-nav .learn-test-submit {
+    /* Secondaries give way first: they shrink and ellipsize, Next does not.
+       display:block + line-height is what makes text-overflow work on a
+       button while still centring the label vertically. */
+    display: block;
+    flex: 0 1 auto;
+    min-width: 0;
+    height: 48px;
+    margin: 0;
+    padding: 0 14px;
+    border: 1px solid var(--control-border);
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    line-height: 46px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+
+  .learn-mode-nav .learn-cloze-status,
+  .learn-mode-nav .learn-letters-hint,
+  .learn-mode-nav .learn-recite-hint {
+    display: none;
+  }
+
+  .learn[data-mobile-view="mode"] .learn-read-controls {
+    display: none;
+  }
+
+  /* mobile.js lifts these out of the action bar to the top of the panel. */
+  .learn-mode-status {
+    display: block;
+    order: 1;
+    margin: 0 0 18px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--mid);
+  }
+
+  .learn-mode-status[hidden] {
+    display: none;
+  }
+
+  .learn-mode-status.learn-recite-status,
+  .learn-mode-status.learn-letters-status {
+    color: var(--browse-due);
+  }
+
+  /* Ordering needs a flex panel, but styles.css hides inactive panels with
+     `display: none` at lower specificity — so name the open panel explicitly
+     rather than every .learn-body, or all six render at once. */
+  .learn[data-mobile-view="mode"][data-mode="read"] .learn-panel-read,
+  .learn[data-mobile-view="mode"][data-mode="cloze"] .learn-panel-cloze,
+  .learn[data-mobile-view="mode"][data-mode="letters"] .learn-panel-letters,
+  .learn[data-mobile-view="mode"][data-mode="type"] .learn-panel-type,
+  .learn[data-mobile-view="mode"][data-mode="recite"] .learn-panel-recite,
+  .learn[data-mobile-view="mode"][data-mode="test"] .learn-panel-test {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .learn[data-mobile-view="mode"] .learn-body > * {
+    order: 3;
+  }
+
+  .learn[data-mobile-view="mode"] .learn-panel-read .learn-hint {
+    order: 1;
+    margin: 0 0 20px;
+    font-size: 12.5px;
+    color: var(--mid);
+  }
+
+  .learn[data-mobile-view="mode"] .learn-type-stats {
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .learn[data-mobile-view="mode"] .learn-panel-cloze,
+  .learn[data-mobile-view="mode"] .learn-panel-letters,
+  .learn[data-mobile-view="mode"] .learn-panel-type,
+  .learn[data-mobile-view="mode"] .learn-panel-recite,
+  .learn[data-mobile-view="mode"] .learn-panel-test,
+  .learn[data-mobile-view="mode"] .learn-panel-read {
+    padding-bottom: 24px;
+  }
+
+  /* 12 · Test — the desktop fieldset frame collides with its own legend at
+     this width; the phone reads the question, then the options, as rows. */
+  body[data-mscreen="learn"] .learn-test-q {
+    margin: 0 0 22px;
+    padding: 0;
+    border: 0;
+  }
+
+  body[data-mscreen="learn"] .learn-test-legend {
+    padding: 0;
+    margin-bottom: 16px;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 400;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  body[data-mscreen="learn"] .learn-test-opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    margin-bottom: 9px;
+    padding: 13px 12px;
+    border: 1px solid var(--hairline);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  body[data-mscreen="learn"] .learn-test-opt:has(input:checked) {
+    border-color: var(--ink);
+    background: var(--wash);
+  }
+
+  .learn-read-controls {
+    margin-top: 20px;
+  }
+
+  .learn-read-done {
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    font: inherit;
+  }
+
+  /* 13 · locked mode — the notice replaces the session, actions pinned. */
+  body[data-mscreen="learn"] .locked-mode {
+    padding-top: 26px;
+  }
+
+  body[data-mscreen="learn"] .locked-mode-title {
+    font-family: var(--font-display);
+    font-size: 23px;
+    font-weight: 500;
+    line-height: 1.25;
+  }
+
+  body[data-mscreen="learn"] .locked-mode-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  body[data-mscreen="learn"] .locked-mode-actions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+  }
+
+  /* 07b · the quote already exists as the completion affirmation; the phone
+     gives it the whole screen. This is the design's one emphatic surface and
+     it is dark in both themes — inverting it per-theme would turn it into a
+     white flash for dark-mode users, so the four colours are local to this
+     block rather than taken from the page tokens. */
+  body[data-mscreen="learn"] .rtc-affirmation {
+    padding: 0;
+  }
+
+  body[data-mscreen="learn"] .rtc-affirmation-card {
+    --quote-fg: #f2f2f0;
+    --quote-dim: #9a9a9a;
+    --quote-rule: #333333;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+    width: 100%;
+    min-height: 100vh;
+    padding: 0 26px;
+    border: 0;
+    background: #141414;
+    color: var(--quote-fg);
+  }
+
+  body[data-mscreen="learn"] .rtc-affirmation-card > * {
+    margin: 0;
+  }
+
+  body[data-mscreen="learn"] .rtc-affirmation-quote {
+    font-size: 26px;
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: 0;
+    color: var(--quote-fg);
+    text-wrap: pretty;
+  }
+
+  body[data-mscreen="learn"] .rtc-affirmation-attr {
+    color: var(--quote-dim);
+  }
+
+  body[data-mscreen="learn"] .rtc-affirmation-ledger {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--quote-rule);
+    font-size: 12.5px;
+    color: var(--quote-fg);
+  }
+
+  body[data-mscreen="learn"] .rtc-affirmation-ledger > :last-child {
+    margin-left: auto;
+    text-align: right;
+    color: var(--quote-dim);
+  }
+
+  body[data-mscreen="learn"] .rtc-affirmation-actions {
+    display: block;
+    padding: 0;
+  }
+
+  body[data-mscreen="learn"] .rtc-affirmation-continue {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    border: 0;
+    background: var(--quote-fg);
+    color: #141414;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  body[data-mscreen="learn"] .rtc-affirmation-esc,
+  body[data-mscreen="learn"] .rtc-affirmation-hold {
+    display: none;
+  }
+}
+
+/* Desktop keeps the deck out of the way entirely. */
+@media (min-width: 561px) {
+  .learn-mode-bar,
+  .learn-mode-nav,
+  .learn-deck-head,
+  .learn-deck,
+  .learn-deck-dots,
+  .learn-deck-toast,
+  .learn-read-controls,
+  .mobile-topbar,
+  .mobile-screen-head,
+  .mobile-actionbar,
+  .mobile-sheet,
+  .dash-upcoming,
+  .browse-part-rail,
+  .revisions-mobile,
+  .settings-account-row,
+  .search-form-icon,
+  .search-cancel,
+  .dash-greeting-search {
+    display: none;
+  }
+
+  .dash-avatar-link {
+    display: contents;
+  }
+}

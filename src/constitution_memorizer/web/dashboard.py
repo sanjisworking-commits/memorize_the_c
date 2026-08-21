@@ -184,6 +184,47 @@ def continue_mode_line(engine: ReminderEngine, unit: LearningUnit) -> tuple[str,
     return line, pct
 
 
+def _upcoming_day_label(when: date, today: date) -> str:
+    """Tomorrow / weekday / "Mon 25" — the phone's Upcoming card headings."""
+    delta = (when - today).days
+    if delta == 1:
+        return "Tomorrow"
+    if delta < 7:
+        return when.strftime("%A")
+    return when.strftime("%a %-d")
+
+
+def upcoming_revisions(
+    engine: ReminderEngine,
+    *,
+    as_of: date | None = None,
+    limit: int = 3,
+) -> list[dict[str, str]]:
+    """The next scheduled revisions after today, soonest first."""
+    today = as_of or date.today()
+    rows = [
+        row
+        for row in engine.list_all_progress()
+        if row.next_revision is not None and row.next_revision > today
+    ]
+    rows.sort(key=lambda r: (r.next_revision, r.learning_unit_id))
+    out: list[dict[str, str]] = []
+    for row in rows[:limit]:
+        unit = engine.get_unit(row.learning_unit_id)
+        if unit is None:
+            continue
+        assert row.next_revision is not None
+        out.append(
+            {
+                "when": _upcoming_day_label(row.next_revision, today),
+                "title": unit.display_title,
+                "rung": f"Day {row.interval_days if row.interval_days > 0 else 1}",
+                "href": f"/learn/{row.learning_unit_id}",
+            }
+        )
+    return out
+
+
 def build_dashboard_context(
     eng: ReminderEngine,
     *,
@@ -253,4 +294,5 @@ def build_dashboard_context(
         "continue_pct": cont_pct,
         "strip": strip,
         "recent": recent,
+        "upcoming": upcoming_revisions(eng, as_of=today),
     }

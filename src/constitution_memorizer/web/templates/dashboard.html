@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block mobile_screen %}today{% endblock %}
 {% block content %}
 {% set state = dashboard_state|default('ok') %}
 {% set initials = (display_label[:1] if display_label else 'L')|upper %}
@@ -44,15 +45,20 @@
 
   {% else %}
   <header class="dash-greeting">
+    <a class="dash-avatar-link" href="/settings" aria-label="Settings">
     {% if user.avatar_url %}
     <img class="dash-avatar" src="{{ user.avatar_url }}" alt="" width="52" height="52">
     {% else %}
     <span class="dash-avatar dash-avatar-fallback" aria-hidden="true">{{ initials }}</span>
     {% endif %}
+    </a>
     <div>
       <h1 class="display dash-hello">{{ greeting }}</h1>
       <p class="dash-subtext">{{ subtext }}</p>
     </div>
+    <a class="mobile-icon-btn dash-greeting-search" href="/search" aria-label="Search">
+      <svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"></circle><path d="M12.6 12.6 17 17"></path></svg>
+    </a>
     {% if access and access.enabled and access.is_free %}
     <span class="dash-access-chip" title="Your first three Articles stay yours permanently">
       {% if access.legacy_over_cap %}Free · {{ access.claimed_count }} saved Articles{% else %}Free · {{ access.claimed_count }}/3 Articles{% endif %}
@@ -173,6 +179,24 @@
       <p class="dash-strip-label">Revisions done</p>
     </div>
   </section>
+
+  {% if upcoming %}
+  <section class="dash-upcoming" aria-label="Upcoming revisions">
+    <header class="dash-upcoming-head">
+      <h2 class="dash-eyebrow">Upcoming</h2>
+      <a class="dash-upcoming-all" href="/calendar">All</a>
+    </header>
+    <div class="dash-upcoming-rail">
+      {% for row in upcoming %}
+      <a class="dash-upcoming-card" href="{{ row.href }}">
+        <span class="dash-upcoming-when">{{ row.when }}</span>
+        <span class="dash-upcoming-title">{{ row.title }}</span>
+        <span class="dash-upcoming-rung">{{ row.rung }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 
   <div class="dash-bottom">
     <section class="dash-card dash-secondary dash-activity">

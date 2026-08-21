@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="/static/styles.css?v=main29">
   <link rel="stylesheet" href="/static/visual-explainer.css?v=ve1">
   {% if onboarding_status|default('') == 'active' %}
-  <link rel="stylesheet" href="/static/onboarding.css?v=ob4">
+  <link rel="stylesheet" href="/static/onboarding.css?v=ob5">
   {% endif %}
   <link rel="icon" href="/static/main_logo.png" type="image/png">
 </head>
@@ -222,7 +222,7 @@
   <script src="/static/visual-explainer.js?v=ve2" defer></script>
   <script src="/static/auth.js?v=main5" defer></script>
   {% if onboarding_status|default('') == 'active' %}
-  <script src="/static/onboarding.js?v=ob10" defer></script>
+  <script src="/static/onboarding.js?v=ob11" defer></script>
   {% endif %}
   {% if multiuser_enabled|default(false) or (current_user and path.startswith('/browse/article/')) %}
   {% if current_user and report_turnstile_enabled|default(false) %}

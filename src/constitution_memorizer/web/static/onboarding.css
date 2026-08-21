@@ -402,12 +402,25 @@ html.rtc-anim .ob-success .ob-stagger-4 { animation: obStagger 300ms cubic-bezie
 html.rtc-anim .ob-success .ob-stagger-5 { animation: obStagger 300ms cubic-bezier(0.22, 1, 0.36, 1) 400ms both; }
 html.rtc-anim .ob-success .ob-progress-fill { animation: obLine 620ms cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: left center; }
 
-/* ── narrow screens: the card still travels with the highlight — only
-   the checklist gives way (no room beside the content) ───────────── */
+/* ── desktop-only for now: the phone UI gets its own tour design later.
+   The script never boots below 820px; this also hides a tour whose
+   desktop window was narrowed mid-session ───────────────────────── */
 @media (max-width: 820px) {
-  .ob-guide { width: 320px; }
+  .ob-guide,
   .ob-list,
-  .ob-pill { display: none; }
+  .ob-pill,
+  .ob-success,
+  .ob-intro-backdrop,
+  .ob-connector {
+    display: none !important;
+  }
+  .ob-target {
+    outline: none !important;
+    animation: none !important;
+  }
+  .ob-quiet {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

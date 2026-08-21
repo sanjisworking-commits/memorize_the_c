@@ -5,8 +5,8 @@ opening the tab. Spoken Letters and /quiz-only Test must not inherit those
 rows. unit_modes_seen is current-cycle state, so this only affects cycles
 in progress at rollout.
 
-Revision ID: 20260820_0010
-Revises: 20260819_0009
+Revision ID: 20260821_0011
+Revises: 20260820_0010
 Create Date: 2026-08-20
 """
 
@@ -14,8 +14,8 @@ from __future__ import annotations
 
 from alembic import op
 
-revision = "20260820_0010"
-down_revision = "20260819_0009"
+revision = "20260821_0011"
+down_revision = "20260820_0010"
 branch_labels = None
 depends_on = None
 

@@ -11,6 +11,7 @@
   --accent-hover: #000000;
   --destructive: #b42318;
   --destructive-deep: #8f1b12;
+  --letters-correct: #4c63b6;
   --browse-due: #0e7569;
   --browse-mark-news: #b45309;
   --browse-mark-visualise: #0e7569;
@@ -56,6 +57,7 @@ html[data-theme="dark"] {
   --accent-hover: #ffffff;
   --destructive: #b42318;
   --destructive-deep: #8f1b12;
+  --letters-correct: #8b9be0;
   --browse-due: #2a9d8f;
   --browse-mark-news: #d97706;
   --browse-mark-visualise: #2a9d8f;
@@ -1147,6 +1149,92 @@ html[data-theme="dark"] .theme-toggle {
   letter-spacing: 0.08em;
 }
 
+.learn-letters-cue {
+  display: inline;
+}
+
+.learn-letters-cue.is-listening {
+  color: var(--muted);
+}
+
+.learn-letters-cue.is-correct {
+  color: var(--letters-correct);
+  font-weight: 700;
+}
+
+.learn-letters-cue.is-wrong {
+  color: var(--destructive);
+  font-weight: 700;
+}
+
+.learn-letters-cue.is-structural {
+  color: var(--muted);
+  font-weight: inherit;
+}
+
+.learn-letters-status {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.learn-letters-status.is-listening {
+  color: var(--ink);
+}
+
+.learn-letters-status.is-error {
+  color: var(--destructive);
+}
+
+.learn-letters-speak,
+.learn-letters-check,
+.learn-letters-check-text {
+  background: none;
+  border: 1px solid var(--ink);
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.learn-letters-speak.is-active {
+  background: var(--ink);
+  color: var(--on-accent);
+}
+
+.learn-letters-fallback {
+  margin-top: 16px;
+}
+
+.learn-letters-fallback-lede {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.learn-letters-manual {
+  display: block;
+  width: 100%;
+  max-width: 36em;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink);
+  resize: vertical;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .learn-letters-cue.is-listening {
+    animation: letters-listen 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes letters-listen {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 .learn-letters-text.is-full {
   font-family: inherit;
   font-size: 18px;
@@ -1160,6 +1248,33 @@ html[data-theme="dark"] .theme-toggle {
   align-items: center;
   gap: 10px;
   margin-top: 20px;
+}
+
+/* Voice vs plain-view switch (Speak it / Just read) */
+.learn-letters-viewswitch {
+  display: inline-flex;
+  gap: 0;
+  margin: 0 0 14px;
+  border: 1px solid var(--hairline);
+}
+
+.learn-letters-view-btn {
+  padding: 6px 14px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.learn-letters-view-btn + .learn-letters-view-btn {
+  border-left: 1px solid var(--hairline);
+}
+
+.learn-letters-view-btn.is-active {
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .learn-letters-btn {
@@ -3591,6 +3706,9 @@ html[data-theme="dark"] {
 }
 
 .auth-rail-quote {
+  /* Pinned: Fraunces now ships a 400 instance for the phone
+     Bare Act text, and this rule wants the old semibold. */
+  font-weight: 500;
   margin: auto 0 0;
   padding: 0;
   border: 0;
@@ -3806,6 +3924,9 @@ html[data-theme="dark"] {
 }
 
 .otp-cell {
+  /* Pinned: Fraunces now ships a 400 instance for the phone
+     Bare Act text, and this rule wants the old semibold. */
+  font-weight: 500;
   width: 44px;
   height: 52px;
   text-align: center;
@@ -5658,6 +5779,22 @@ html.rtc-anim .rtc-not-confirmed {
 .settings-access-line a {
   color: inherit;
   text-decoration: underline;
+}
+
+/* Getting-started tour replay (shown once the tour is skipped/completed) */
+.settings-tour-replay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+}
+
+.settings-tour-replay-label {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .access-block {

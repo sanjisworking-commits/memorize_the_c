@@ -1,7 +1,52 @@
 {% extends "base.html" %}
 {% block title %}{{ calendar.title }} · Calendar{% endblock %}
+{% block mobile_screen %}revisions{% endblock %}
 {% block content %}
 <section class="panel calendar">
+  {% if revisions %}
+  {# Design 19: the month grid does not survive 390 px, so the phone gets the
+     same data as a week strip, today's list, and the interval ladder. #}
+  <div class="revisions-mobile">
+    <div class="revisions-head">
+      <h1 class="revisions-title">Revisions</h1>
+      <p class="revisions-month">{{ revisions.month_label }}</p>
+    </div>
+    <div class="revisions-week">
+      {% for day in revisions.week %}
+      <div class="revisions-day{% if day.is_today %} is-today{% endif %}">
+        <p class="revisions-dow">{{ day.dow }}</p>
+        <p class="revisions-daynum">{{ day.day }}</p>
+        <span class="revisions-day-mark{% if day.is_today %} is-today{% elif day.has_revision %} is-scheduled{% endif %}" aria-hidden="true"></span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <p class="revisions-eyebrow">{{ revisions.today_label }}</p>
+    {% for row in revisions.rows %}
+    <a class="revisions-row is-{{ row.state }}" href="{{ row.href }}">
+      <span class="revisions-row-dot" aria-hidden="true"></span>
+      <span class="revisions-row-copy">
+        <span class="revisions-row-title">{{ row.title }}</span>
+        <span class="revisions-row-meta">{{ row.meta }}</span>
+      </span>
+      <span class="revisions-row-mark" aria-hidden="true">{% if row.state == 'done' %}✓{% else %}›{% endif %}</span>
+    </a>
+    {% else %}
+    <p class="revisions-empty">Nothing due today. Recall will ask again when a unit is actually due.</p>
+    {% endfor %}
+
+    <p class="revisions-eyebrow">The ladder</p>
+    {% for rung in revisions.ladder %}
+    <div class="revisions-rung">
+      <span class="revisions-rung-label">{{ rung.label }}</span>
+      <span class="revisions-rung-track" aria-hidden="true"><span class="revisions-rung-fill" style="width: {{ rung.percent }}%"></span></span>
+      <span class="revisions-rung-count">{{ rung.count }}</span>
+    </div>
+    {% endfor %}
+    <p class="revisions-note">Recall schedules revision for you — 1 → 3 → 7 → 15 → 30 → 60 days.</p>
+  </div>
+  {% endif %}
+
   <div class="calendar-header">
     <h1 class="display calendar-title">{{ calendar.title }}</h1>
     <div class="calendar-nav" aria-label="Month navigation">

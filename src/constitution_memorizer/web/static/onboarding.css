@@ -1,0 +1,442 @@
+/* First-login onboarding tour (design: First-Login Onboarding.dc.html).
+   Loaded only while onboarding_status == "active". A motion layer over the
+   real pages — nothing here changes what the pages themselves render.
+   Motion tokens: micro 140ms ease-out · normal 240–260ms · guide 320–380ms ·
+   stage 460–520ms · progress 620ms — all on cubic-bezier(0.22,1,0.36,1). */
+
+@keyframes obTargetIn {
+  0% { outline-color: rgba(14, 117, 105, 0); outline-offset: 7px; transform: none; }
+  45% { outline-color: rgba(14, 117, 105, 1); outline-offset: 3px; transform: scale(1.015); }
+  100% { outline-color: rgba(14, 117, 105, 1); outline-offset: 3px; transform: none; }
+}
+@keyframes obFadeUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes obStagger { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes obCheckDraw { from { stroke-dashoffset: 14; } to { stroke-dashoffset: 0; } }
+@keyframes obConnector { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes obLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes obRung { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ── spotlight on the current target ─────────────────────────────── */
+.ob-target {
+  outline: 2px solid var(--browse-due) !important;
+  outline-offset: 3px !important;
+  border-radius: 5px;
+  position: relative;
+  z-index: 2;
+}
+html.rtc-anim .ob-target {
+  animation: obTargetIn 460ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+/* siblings settle back while a target is lit */
+.ob-quiet { opacity: 0.45; transition: opacity 260ms ease-out; }
+
+/* ── first-login intro: blank the page behind the prompt ─────────── */
+.ob-intro-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--page);
+  z-index: 33;
+}
+html.rtc-anim .ob-intro-backdrop {
+  animation: obFadeUp 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-name: obIntroFade;
+}
+@keyframes obIntroFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── the travelling guide card ───────────────────────────────────── */
+.ob-guide {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 352px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  z-index: 35;
+}
+.ob-guide.is-wide { width: 400px; }
+.ob-guide.is-centered { left: 50% !important; top: 18vh !important; transform: translateX(-50%) !important; }
+
+.ob-connector { position: relative; height: 26px; margin-left: 26px; }
+.ob-connector-line {
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 0;
+  width: 1px;
+  background: var(--control-border);
+  transform-origin: bottom center;
+}
+.ob-connector-dot {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  background: var(--browse-due);
+}
+html.rtc-anim .ob-connector-line { animation: obConnector 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+html.rtc-anim .ob-connector-dot { animation: obFadeUp 220ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both; }
+
+.ob-card {
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+html.rtc-anim .ob-card { animation: obFadeUp 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.ob-progress { height: 2px; background: var(--track); }
+.ob-progress-fill {
+  height: 2px;
+  width: 0;
+  background: var(--browse-due);
+  transition: width 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ob-content {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 15px 17px 16px;
+  transition: opacity 170ms ease-out, transform 170ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ob-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ob-eyebrow {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ob-eyebrow.is-check { color: var(--browse-due); }
+.ob-eyebrow svg { flex: 0 0 auto; overflow: visible; }
+html.rtc-anim .ob-eyebrow path { animation: obCheckDraw 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ob-head-meta { display: inline-flex; align-items: center; gap: 10px; }
+.ob-step {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--faint);
+}
+.ob-close {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: -2px -2px 0 0;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--faint);
+  cursor: pointer;
+  transition: color 140ms ease-out;
+}
+.ob-close:hover { color: var(--ink); }
+.ob-close:focus-visible { outline: 2px solid var(--browse-due); outline-offset: 2px; }
+
+.ob-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: pretty;
+}
+.ob-body {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.ob-note {
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--ink);
+  background: var(--wash);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* revision ladder — Day 1 → 3 → 7 → 15 → 30 → 60 */
+.ob-ladder { position: relative; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--hairline); }
+.ob-ladder-rule {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 26px;
+  height: 1px;
+  background: var(--hairline);
+  transform-origin: left center;
+}
+html.rtc-anim .ob-ladder-rule { animation: obLine 760ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ob-ladder-row { position: relative; display: flex; align-items: flex-start; justify-content: space-between; }
+.ob-rung { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+html.rtc-anim .ob-rung { animation: obRung 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ob-rung-dot { width: 9px; height: 9px; background: var(--paper); border: 1px solid var(--control-border); }
+.ob-rung-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ob-rung.is-first .ob-rung-dot { background: var(--browse-due); border-color: var(--browse-due); }
+.ob-rung.is-first .ob-rung-label { color: var(--browse-due); }
+.ob-ladder-note { margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: var(--faint); }
+
+.ob-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 4px; }
+.ob-btn-back {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0.55rem 0.2rem;
+  margin-right: auto;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 140ms ease-out;
+}
+.ob-btn-back:hover { color: var(--ink); }
+.ob-btn-primary {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 0;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--on-accent);
+  transition: transform 140ms ease-out, filter 160ms ease-out;
+}
+.ob-btn-primary:hover { filter: brightness(0.88); transform: translateY(-1px); }
+.ob-btn-primary:active { transform: scale(0.985); }
+.ob-btn-secondary {
+  appearance: none;
+  border: 1px solid var(--control-border);
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+  color: var(--ink);
+  transition: transform 140ms ease-out, border-color 160ms ease-out;
+}
+.ob-btn-secondary:hover { border-color: var(--ink); transform: translateY(-1px); }
+.ob-btn-secondary:active { transform: scale(0.985); }
+.ob-btn-primary:focus-visible,
+.ob-btn-secondary:focus-visible,
+.ob-btn-back:focus-visible { outline: 2px solid var(--browse-due); outline-offset: 2px; }
+
+/* ── Getting-started checklist ───────────────────────────────────── */
+.ob-list {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 238px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--paper);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  z-index: 34;
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+.ob-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 13px 9px;
+  border-bottom: 1px solid var(--hairline);
+}
+.ob-list-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ob-list-meta { display: inline-flex; align-items: center; gap: 8px; }
+.ob-list-count { font-family: var(--font-mono); font-size: 10.5px; color: var(--faint); }
+.ob-list-collapse {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0 0 0 2px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--faint);
+  cursor: pointer;
+}
+.ob-list-collapse:hover { color: var(--ink); }
+.ob-goals {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 10px 13px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ob-goal-marker {
+  position: absolute;
+  left: 13px;
+  width: 2px;
+  background: var(--browse-due);
+  transition: top 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out;
+}
+.ob-goal {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-left: 8px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--faint);
+  transition: color 300ms ease-out;
+}
+.ob-goal.is-active { color: var(--ink); font-weight: 700; }
+.ob-goal.is-done { color: var(--muted); font-weight: 400; }
+.ob-goal-mark {
+  flex: 0 0 auto;
+  width: 12px;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--faint);
+  transition: color 200ms ease-out;
+}
+.ob-goal.is-active .ob-goal-mark { color: var(--ink); }
+.ob-goal svg { flex: 0 0 auto; margin-top: 2px; overflow: visible; }
+html.rtc-anim .ob-goal path { animation: obCheckDraw 300ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ob-list-foot { display: flex; justify-content: flex-end; padding: 2px 13px 10px; }
+.ob-skip-link {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--faint);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ob-skip-link:hover { color: var(--ink); }
+
+.ob-pill {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  z-index: 34;
+}
+.ob-pill:hover { border-color: var(--ink); color: var(--ink); }
+.ob-pill-dot { width: 6px; height: 6px; background: var(--browse-due); }
+.ob-pill-count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--faint);
+}
+
+/* ── success card ────────────────────────────────────────────────── */
+.ob-success {
+  position: fixed;
+  left: 50%;
+  top: 16vh;
+  transform: translateX(-50%);
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  z-index: 36;
+}
+.ob-success .ob-card { box-shadow: 0 2px 14px rgba(0, 0, 0, 0.07); }
+.ob-success-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--browse-due);
+}
+html.rtc-anim .ob-success .ob-stagger-1 { animation: obStagger 300ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both; }
+html.rtc-anim .ob-success .ob-stagger-2 { animation: obStagger 300ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both; }
+html.rtc-anim .ob-success .ob-stagger-3 { animation: obStagger 300ms cubic-bezier(0.22, 1, 0.36, 1) 240ms both; }
+html.rtc-anim .ob-success .ob-stagger-4 { animation: obStagger 300ms cubic-bezier(0.22, 1, 0.36, 1) 320ms both; }
+html.rtc-anim .ob-success .ob-stagger-5 { animation: obStagger 300ms cubic-bezier(0.22, 1, 0.36, 1) 400ms both; }
+html.rtc-anim .ob-success .ob-progress-fill { animation: obLine 620ms cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: left center; }
+
+/* ── desktop-only for now: the phone UI gets its own tour design later.
+   The script never boots below 820px; this also hides a tour whose
+   desktop window was narrowed mid-session ───────────────────────── */
+@media (max-width: 820px) {
+  .ob-guide,
+  .ob-list,
+  .ob-pill,
+  .ob-success,
+  .ob-intro-backdrop,
+  .ob-connector {
+    display: none !important;
+  }
+  .ob-target {
+    outline: none !important;
+    animation: none !important;
+  }
+  .ob-quiet {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-target,
+  .ob-card,
+  .ob-connector-line,
+  .ob-connector-dot,
+  .ob-ladder-rule,
+  .ob-rung,
+  .ob-eyebrow path,
+  .ob-goal path,
+  .ob-success * {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+  .ob-content,
+  .ob-progress-fill,
+  .ob-goal-marker { transition-duration: 1ms !important; }
+}

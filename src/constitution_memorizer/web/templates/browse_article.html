@@ -1,15 +1,46 @@
 {% extends "base.html" %}
 {% block title %}Article {{ article.article_number }} · Browse{% endblock %}
+{% block mobile_screen %}article{% endblock %}
 {% block content %}
+{% set has_part = article.part_number and article.part_number != "UNKNOWN" %}
+{% set part_url = '/browse/part/' ~ (article.part_number|lower|replace(' ', '-')|replace('.', '')) if has_part else '/browse' %}
 <section class="panel browse-article">
+  {# Phone top bar (design 04): back to the Part, the Article's own marks, then
+     everything else behind the more sheet. #}
+  <div class="mobile-topbar">
+    <a class="mobile-back" href="{{ part_url }}">← {% if has_part %}Part {{ article.part_number }}{% else %}Browse{% endif %}</a>
+    {% for key in article_marks|default(()) %}
+    <span class="mobile-topbar-mark browse-mark-{{ key }}" aria-hidden="true">
+      {% if key == 'news' %}
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.25" y="3.25" width="13.5" height="9.5"></rect><path d="M1.25 6.25h13.5"></path><rect x="3.25" y="8" width="4" height="3.25"></rect><path d="M9 8.5h3.75M9 10.75h3.75"></path></svg>
+      {% elif key == 'visualise' %}
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5.5" y="0.75" width="5" height="3.5"></rect><rect x="0.75" y="11.75" width="5" height="3.5"></rect><rect x="10.25" y="11.75" width="5" height="3.5"></rect><path d="M8 4.25v3.25M3.25 11.75V7.5h9.5v4.25"></path></svg>
+      {% endif %}
+    </span>
+    {% endfor %}
+    <button type="button" class="mobile-icon-btn mobile-more" data-sheet-open="article-sheet" aria-label="More about this Article">⋯</button>
+  </div>
+
   <p class="eyebrow">
-    Browse
-    {% if article.part_number and article.part_number != "UNKNOWN" %}· Part {{ article.part_number }}{% endif %}
+    <span class="eyebrow-desktop">Browse{% if has_part %} · Part {{ article.part_number }}{% endif %}</span>
+    <span class="eyebrow-phone">{% if has_part %}Part {{ article.part_number }}{% if part_title %} · {{ part_title }}{% endif %}{% else %}Browse{% endif %}</span>
   </p>
   <h1 class="display">Article {{ article.article_number }}</h1>
   {% if article.title %}<p class="lede">{{ article.title }}</p>{% endif %}
   {% if article.amendment_meta %}
   <p class="browse-article-meta">{{ article.amendment_meta }}</p>
+  {% endif %}
+  {% if phone_meta %}
+  {# Design 04's meta row, minus the "N of 6 modes · revision in N days" half:
+     that needs per-unit progress, and this page is deliberately built without
+     a bulk progress read. The two states worth acting on carry colour. #}
+  <p class="article-phone-meta">
+    {% if phone_meta.saved %}<span class="article-phone-saved">Saved</span>{% endif %}
+    <span class="article-phone-progress">{{ phone_meta.progress_line }}</span>
+    {% if phone_meta.amendment_count %}
+    <a class="article-phone-amend" href="#amendment-history">Amendments</a>
+    {% endif %}
+  </p>
   {% endif %}
 
   <nav class="article-adjacent" aria-label="Adjacent articles">
@@ -46,7 +77,7 @@
   {% endif %}
 
   {% if article.amendments is not none and article.amendments|length > 0 %}
-  <section class="amendment-history" aria-label="Amendment history">
+  <section class="amendment-history" id="amendment-history" aria-label="Amendment history">
     <h2 class="amendment-history-title">Amendment history</h2>
     <p class="amendment-history-lede">How this article changed since 1950 — you memorize the current wording.</p>
     <div class="amendment-timeline">
@@ -64,7 +95,7 @@
   {% endif %}
 
   {% if judicial_evolution and judicial_evolution.has_entries %}
-  <section class="judicial-evolution" aria-labelledby="judicial-evolution-title">
+  <section class="judicial-evolution" id="judicial-evolution" aria-labelledby="judicial-evolution-title">
     <h2 class="judicial-evolution-title" id="judicial-evolution-title">
       {{ judicial_evolution.section_title }}
     </h2>
@@ -82,6 +113,7 @@
 
   <section
     class="explain-back"
+    id="explain-back"
     data-gloss-article="{{ article.article_number }}"
     aria-label="Explain it back"
   >
@@ -128,6 +160,47 @@
     ><span aria-hidden="true">⚑</span><span class="report-issue-label">Report an issue</span></button>
     {% endif %}
   </p>
+
+  {% if article.learn_units %}
+  <div class="mobile-actionbar">
+    <a class="btn mobile-action-primary" href="/learn/{{ article.learn_units[0].id }}">Learn this Article</a>
+  </div>
+  {% endif %}
+
+  {# Design 21: everything below the Bare Act text, reachable without scrolling
+     past it. The rows jump to the sections already on the page. #}
+  <div class="mobile-sheet" id="article-sheet" hidden data-sheet>
+    <div class="mobile-sheet-scrim" data-sheet-close></div>
+    <div class="mobile-sheet-panel" role="dialog" aria-modal="true" aria-label="More">
+      {% if article.amendments is not none and article.amendments|length > 0 %}
+      <a class="mobile-sheet-link" href="#amendment-history" data-sheet-close>
+        Amendment history<span class="mobile-sheet-link-count">{{ article.amendments|length }}</span>
+      </a>
+      {% endif %}
+      {% if judicial_evolution and judicial_evolution.has_entries %}
+      <a class="mobile-sheet-link" href="#judicial-evolution" data-sheet-close>Judicial evolution</a>
+      {% endif %}
+      <a class="mobile-sheet-link" href="#explain-back" data-sheet-close>Explain it back</a>
+      {% with ve = visual_explainer(article.article_number) %}
+      {% if ve %}
+      <a class="mobile-sheet-link" href="#explain-back" data-sheet-close data-mobile-ve>
+        Visual explainer
+        <span class="mobile-sheet-link-icon browse-mark-visualise">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="5.5" y="0.75" width="5" height="3.5"></rect><rect x="0.75" y="11.75" width="5" height="3.5"></rect><rect x="10.25" y="11.75" width="5" height="3.5"></rect><path d="M8 4.25v3.25M3.25 11.75V7.5h9.5v4.25"></path></svg>
+        </span>
+      </a>
+      {% endif %}
+      {% endwith %}
+      {% if current_user %}
+      <button
+        type="button"
+        class="mobile-sheet-link is-destructive"
+        data-report-open
+        data-article-number="{{ article.article_number }}"
+      >Report an issue</button>
+      {% endif %}
+    </div>
+  </div>
 </section>
 {% if is_guest|default(false) %}
 {% include "partials/guest_modal.html" %}

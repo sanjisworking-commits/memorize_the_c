@@ -296,7 +296,8 @@ def test_open_invalidates_legacy_gated_modes(tmp_path: Path):
     _pre_gating_db(db)
 
     conn = open_progress_db(db)
-    assert _modes_for(conn, "article-1") == {"read", "letters"}
+    # v1 wipes cloze/type/recite/card; v2 wipes visit-generated letters/test.
+    assert _modes_for(conn, "article-1") == {"read"}
     conn.close()
 
 
@@ -307,16 +308,20 @@ def test_invalidation_marker_preserves_new_gated_marks(tmp_path: Path):
     conn = open_progress_db(db)
     repo = ProgressRepository(conn)
     repo.mark_mode_seen(UID, "article-1", "cloze")
+    repo.mark_mode_seen(UID, "article-1", "letters")
     repo.mark_mode_seen(UID, "article-1", "test")
     conn.close()
 
     conn = open_progress_db(db)
-    assert _modes_for(conn, "article-1") == {"read", "letters", "cloze", "test"}
+    assert _modes_for(conn, "article-1") == {"read", "cloze", "letters", "test"}
     conn.close()
 
 
 def test_invalidation_helper_is_idempotent(tmp_path: Path):
-    from constitution_memorizer.progress.db import _invalidate_legacy_gated_modes
+    from constitution_memorizer.progress.db import (
+        _invalidate_legacy_gated_modes,
+        _invalidate_legacy_letters_test_auto_seen,
+    )
 
     db = tmp_path / "progress.db"
     _pre_gating_db(db)
@@ -324,7 +329,38 @@ def test_invalidation_helper_is_idempotent(tmp_path: Path):
     conn = open_progress_db(db)
     _invalidate_legacy_gated_modes(conn)
     _invalidate_legacy_gated_modes(conn)
-    assert _modes_for(conn, "article-1") == {"read", "letters"}
+    _invalidate_legacy_letters_test_auto_seen(conn)
+    _invalidate_legacy_letters_test_auto_seen(conn)
+    assert _modes_for(conn, "article-1") == {"read"}
+    conn.close()
+
+
+def test_v2_wipes_letters_and_test_keeps_earned_gated(tmp_path: Path):
+    """v1 already applied; leftover visit-generated letters/test must still go."""
+    from constitution_memorizer.progress.db import (
+        SCHEMA_SQL,
+        _GATED_MODES_MARKER_KEY,
+    )
+
+    db = tmp_path / "progress.db"
+    conn = sqlite3.connect(db)
+    conn.executescript(SCHEMA_SQL)
+    conn.executemany(
+        "INSERT INTO unit_modes_seen VALUES (?, ?, ?, '2026-08-10T00:00:00+00:00')",
+        [
+            (UID, "article-1", mode)
+            for mode in ("read", "cloze", "letters", "type", "recite", "test")
+        ],
+    )
+    conn.execute(
+        "INSERT INTO app_settings VALUES (?, ?, '1', '2026-08-10T00:00:00+00:00')",
+        (UID, _GATED_MODES_MARKER_KEY),
+    )
+    conn.commit()
+    conn.close()
+
+    conn = open_progress_db(db)
+    assert _modes_for(conn, "article-1") == {"read", "cloze", "type", "recite"}
     conn.close()
 
 

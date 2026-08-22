@@ -33,13 +33,17 @@ def test_recite_panel_has_voice_and_map_markup(client: TestClient):
     assert "data-recite-extras" in html
     assert "data-recite-status" in html
     assert "Speak the Bare Act aloud" in html
+    assert "data-recite-toggle" in html
+    assert "data-recite-peek" in html
     assert "Hold to peek" in html
     assert "data-recite-fallback" in html
     assert "data-recite-manual" in html
     assert "data-recite-check" in html
     assert "Check accuracy" in html
     assert "recall_align.js?v=sprint22" in html
-    assert "app.js?v=main26" in html
+    assert "speech_client.js?v=speech2" in html
+    assert "app.js?v=main31" in html
+    assert "app.js?v=main26" not in html
 
 
 def test_recite_css_map_and_listening_styles(client: TestClient):
@@ -53,20 +57,30 @@ def test_recite_css_map_and_listening_styles(client: TestClient):
     assert ".learn-recite-fallback" in text
 
 
-def test_recite_js_wires_speech_recognition_and_align(client: TestClient):
+def test_recite_js_wires_speech_client_and_align(client: TestClient):
     js = client.get("/static/app.js?v=main3")
     assert js.status_code == 200
     text = js.text
-    assert "SpeechRecognition" in text
-    assert "webkitSpeechRecognition" in text
+    assert "SpeechRecognition" not in text
+    assert "webkitSpeechRecognition" not in text
+    assert "RecallSpeech" in text
     assert "RecallAlign" in text
     assert "alignText" in text
     assert "Accuracy map" in text
-    assert "en-IN" in text
     assert "microphone access" in text
-    assert 'err === "network"' in text
-    assert "Speech service unreachable" in text
     assert "abortForServiceFailure" in text
+    assert 'mode: "recite"' in text
+
+
+def test_speech_client_js_served(client: TestClient):
+    js = client.get("/static/speech_client.js?v=speech2")
+    assert js.status_code == 200
+    text = js.text
+    assert "RecallSpeech" in text
+    assert "/speech/transcribe" in text
+    assert "MediaRecorder" in text
+    assert "from_index" in text
+    assert "expected" not in text.lower() or "no expected" in text.lower()
 
 
 def test_recall_align_js_served(client: TestClient):

@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitType
+from constitution_memorizer.progress.repository import LEARN_MODES
 from constitution_memorizer.progress.scheduler import ReminderEngine
 from constitution_memorizer.schemas import Article, ConstitutionDocument
 from constitution_memorizer.utils.identifiers import (
@@ -816,11 +817,152 @@ def build_article_view(
     return ArticleBrowseView(
         article_number=article_number,
         title=learn_units[0].title if learn_units else None,
-        part_number=None,
+        # No reviewed Bare Act to read the Part off — the Part seed that drives
+        # Browse knows it, and the phone's back link needs it.
+        part_number=_roman_from_seed(article_number, load_browse_parts_seed()),
         status="unknown",
         full_text=full_text,
         learn_units=learn_units,
         amendments=amendments_list,
         amendment_meta=meta,
         show_unamended=show_unamended,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Part drill-down (mobile designs 02 / 03 / 16). The phone browses Part-first,
+# so the Parts index needs a progress summary per Part and each Part needs its
+# own page; both read the same `browse_parts_sections` view-model.
+# ─────────────────────────────────────────────────────────────────────────────
+
+PART_SLUG_TRANSLATION = str.maketrans({" ": "-", ".": "", "/": "-"})
+
+
+def part_slug(part_number: str) -> str:
+    """URL-safe Part token — 'IV A' → 'iv-a'."""
+    return str(part_number).strip().lower().translate(PART_SLUG_TRANSLATION)
+
+
+def part_href(part_number: str) -> str:
+    return f"/browse/part/{part_slug(part_number)}"
+
+
+@dataclass(frozen=True)
+class PartProgressSummary:
+    learned: int
+    total: int
+    percent: int
+    due_count: int
+    label: str
+
+
+def _section_cards(section: BrowsePartSection) -> list[BrowseArticleCard]:
+    cards = list(section.cards)
+    for chapter in section.chapters:
+        cards.extend(chapter.cards)
+    return cards
+
+
+def part_progress_summary(
+    engine: ReminderEngine,
+    section: BrowsePartSection,
+    *,
+    today: date | None = None,
+    continue_id: str | None = None,
+) -> PartProgressSummary:
+    """'3 of 4 learned' + the due count shown on each Part card."""
+    from constitution_memorizer.web.progress_stats import (  # noqa: PLC0415
+        article_mastery_state,
+    )
+
+    today = today or date.today()
+    cards = _section_cards(section)
+    learned = 0
+    for card in cards:
+        state = article_mastery_state(
+            engine, card.article_number, today=today, continue_id=continue_id
+        )
+        if state in ("mastered", "learning"):
+            learned += 1
+    total = len(cards)
+    percent = int(round(100 * learned / total)) if total else 0
+    due_count = sum(card.due_count for card in cards)
+    if not total:
+        label = "—"
+    elif learned == 0:
+        label = "Not started"
+    else:
+        label = f"{learned} of {total} learned"
+    return PartProgressSummary(
+        learned=learned,
+        total=total,
+        percent=percent,
+        due_count=due_count,
+        label=label,
+    )
+
+
+def part_title_from_seed(part_number: str | None) -> str | None:
+    """Part title by roman numeral, read only from the Part seed.
+
+    Deliberately does not go through ``browse_parts_sections``: the Article
+    page must not touch bulk progress just to label its back link, and that
+    builder pulls due counts for every Article in the Constitution.
+    """
+    if not part_number:
+        return None
+    wanted = str(part_number).strip().upper()
+    for row in load_browse_parts_seed():
+        if str(row.get("roman", "")).strip().upper() == wanted:
+            title = str(row.get("title", "")).strip()
+            return title or None
+    return None
+
+
+def find_part_section(
+    sections: list[BrowsePartSection],
+    slug: str,
+) -> BrowsePartSection | None:
+    wanted = part_slug(slug)
+    for section in sections:
+        if part_slug(section.part_number) == wanted:
+            return section
+    return None
+
+
+@dataclass(frozen=True)
+class ArticlePhoneMeta:
+    """The meta line under an Article title on the phone (design 04).
+
+    Reads nothing that costs a database roundtrip. The Article page is the
+    busiest authenticated surface and deliberately avoids bulk progress —
+    ``build_amendment_meta`` returns early for the same reason — so this line
+    carries only the saved marker, the unit count and the amendment link.
+
+    The design also shows "N of 6 modes · revision in N days" here. That needs
+    per-unit progress, which on this page means one bulk read; it is left out
+    rather than spent silently.
+    """
+
+    saved: bool
+    unit_count: int
+    amendment_count: int
+
+    @property
+    def progress_line(self) -> str:
+        if not self.unit_count:
+            return "Not yet mapped to clauses"
+        return f"{self.unit_count} clause{'s' if self.unit_count != 1 else ''} to learn"
+
+
+def article_phone_meta(
+    learn_units: list[LearningUnit],
+    *,
+    saved: bool = False,
+    amendment_count: int = 0,
+) -> ArticlePhoneMeta:
+    return ArticlePhoneMeta(
+        saved=saved,
+        unit_count=len(learn_units),
+        amendment_count=amendment_count,
     )

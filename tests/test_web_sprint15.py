@@ -30,9 +30,16 @@ def test_learn_enables_letters_tab_and_panel_markup(client: TestClient):
     assert "learn-panel-letters" in html
     assert "data-letters-text=" in html
     assert "data-letters-toggle" in html
+    assert "data-letters-speak" in html
+    assert "data-letters-check" in html
+    assert "data-letters-display" in html
+    assert "data-letters-manual" in html
     assert "Show full text" in html
-    assert "Recite from the initials, then check yourself." in html
-    assert "app.js?v=main26" in html
+    assert "Check phrase" in html
+    assert "Use the first letters." in html
+    assert "speech_client.js?v=speech2" in html
+    assert "app.js?v=main31" in html
+    assert "speech_align.js" not in html
 
 
 def test_letters_mode_query_param_renders_letters_active(client: TestClient):
@@ -54,17 +61,37 @@ def test_letters_css_drives_panel_and_initials_styles(client: TestClient):
     assert "ui-monospace" in text
     assert "letter-spacing: 0.08em" in text
     assert ".learn-letters-text.is-full" in text
+    assert ".learn-letters-cue.is-correct" in text
+    assert ".learn-letters-cue.is-wrong" in text
+    assert ".learn-letters-cue.is-listening" in text
+    assert ".learn-letters-cue.is-structural" in text
+    assert "--letters-correct" in text
+    assert "prefers-reduced-motion" in text
 
 
 def test_letters_js_builds_initials_like_prototype(client: TestClient):
     js = client.get("/static/app.js?v=main3")
     assert js.status_code == 200
     text = js.text
-    assert "toInitials" in text
+    assert "initialsFor" in text
+    assert "earliestUnresolvedIndex" in text
+    assert "fromIndex" in text
+    assert "applyAlignment" in text
     assert "Back to initials" in text
     assert "Show full text" in text
+    assert "Checking…" in text
+    assert "RecallSpeech" in text
+    assert "webkitSpeechRecognition" not in text
+    assert "SpeechRecognition" not in text
+    assert "markModeAttempted" in text
+    assert 'markModeAttempted("letters")' in text
+    assert 'markModeAttempted("test")' not in text
+    assert "is-correct" in text
+    assert "is-wrong" in text
+    assert "is-listening" in text
+    assert "isStructuralLettersToken" in text
+    assert "is-structural" in text
     assert r"/^[A-Za-z]/" in text or "/^[A-Za-z]/" in text
-    assert "\\u2002" in text or "\u2002" in text
 
 
 def test_letters_shows_stem_for_subclause(client: TestClient):

@@ -443,13 +443,12 @@ def test_done_flags_sync_pending(tmp_path: Path) -> None:
     fake.calendar_exists = False
     _connect(client, fake)
     # Complete a unit through the app (all six modes then Done).
-    for mode in ("read", "cloze", "letters", "type", "recite", "test"):
-        client.get(f"/learn/clause-1?mode={mode}")
+    client.get("/learn/clause-1")
+    for mode in ("cloze", "letters", "type", "recite"):
+        client.post(f"/learn/clause-1/seen", data={"mode": mode})
     from tests.quiz_helpers import submit_quiz
 
     submit_quiz(client, MINI_UNITS, "clause-1")
-    for mode in ("cloze", "type", "recite"):
-        client.post(f"/learn/clause-1/seen", data={"mode": mode})
     resp = client.post(
         "/learn/clause-1/done",
         data={"modes": "read,cloze,letters,type,recite,test", "claim_article": "1"},

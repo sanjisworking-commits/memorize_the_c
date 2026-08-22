@@ -1,7 +1,7 @@
 """Helpers for completing Learn modes in tests.
 
-Test is auto-seen (visit or POST /seen). submit_quiz still grades the
-optional quiz against the server's seeded (unit, cycle) questions.
+Cloze/Letters/Type/Recite complete via POST /seen.
+Test completes only via POST /quiz.
 """
 
 from __future__ import annotations
@@ -13,8 +13,7 @@ from pathlib import Path
 from constitution_memorizer.learning.schemas import LearningUnit, LearningUnitsDocument
 from constitution_memorizer.web.quiz import build_quiz
 
-# All six modes accept /seen; Test is also marked by GET ?mode=test.
-SEEN_MODES = ("read", "cloze", "letters", "type", "recite", "test")
+SEEN_MODES = ("read", "cloze", "letters", "type", "recite")
 
 
 def load_units(units_path: Path | str) -> dict[str, LearningUnit]:
@@ -54,7 +53,7 @@ def submit_quiz(client, units_path: Path | str, unit_id: str, cycle: int | None 
 
 
 def complete_all_modes(client, units_path: Path | str, unit_id: str):
-    """Mark every learn mode complete via /seen (Test is auto-seen).
+    """Mark every learn mode complete: /seen for five modes, /quiz for Test.
 
     Entitlement-locked modes bounce with 403 mode_locked — that's the
     server refusing to record them, which is exactly what cap-reached
@@ -65,4 +64,6 @@ def complete_all_modes(client, units_path: Path | str, unit_id: str):
         resp = client.post(f"/learn/{unit_id}/seen", data={"mode": mode})
         assert resp.status_code in (200, 403), (mode, resp.status_code)
         last = resp
-    return last
+    quiz = submit_quiz(client, units_path, unit_id)
+    assert quiz.status_code in (200, 400, 403), quiz.status_code
+    return last if quiz.status_code != 200 else quiz

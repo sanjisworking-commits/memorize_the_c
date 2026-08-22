@@ -4,8 +4,42 @@
     {
       "name": "admin-dev",
       "runtimeExecutable": ".venv/bin/python",
-      "runtimeArgs": ["scripts/dev_admin_server.py", "--port", "8899"],
+      "runtimeArgs": [
+        "scripts/dev_admin_server.py",
+        "--port",
+        "8899"
+      ],
       "port": 8899
+    },
+    {
+      "name": "speech-dev",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": [
+        "scripts/dev_entitlements_server.py",
+        "--port",
+        "8899"
+      ],
+      "port": 8899
+    },
+    {
+      "name": "onboarding-dev",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": [
+        "scripts/dev_entitlements_server.py",
+        "--port",
+        "8901"
+      ],
+      "port": 8901
+    },
+    {
+      "name": "mobile-dev",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": [
+        "scripts/dev_entitlements_server.py",
+        "--port",
+        "8905"
+      ],
+      "port": 8905
     }
   ]
 }

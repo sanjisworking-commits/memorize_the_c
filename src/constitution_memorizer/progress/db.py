@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 # deleted at rollout ('card' is retired outright, never renamed to 'test').
 _GATED_MODES_MARKER_KEY = "gated_modes_invalidated_v1"
 _LEGACY_GATED_MODES = ("cloze", "type", "recite", "card")
+# v2: Letters and Test were still auto-seen on GET after v1. Those visit
+# rows are not proof of spoken Letters or a graded quiz.
+_GATED_MODES_V2_MARKER_KEY = "gated_modes_invalidated_v2"
+_LEGACY_AUTO_SEEN_GATED_MODES = ("letters", "test")
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS learning_unit_progress (
@@ -369,6 +373,7 @@ def _migrate_legacy(conn: sqlite3.Connection) -> None:
     # Must run before this function's own commit — init_db returns right
     # after _migrate_legacy, so a later call would be left uncommitted.
     _invalidate_legacy_gated_modes(conn)
+    _invalidate_legacy_letters_test_auto_seen(conn)
     _migrate_ladder_day15(conn)
     conn.commit()
 
@@ -438,6 +443,38 @@ def _invalidate_legacy_gated_modes(conn: sqlite3.Connection) -> None:
         ),
     )
     logger.info("Invalidated legacy gated-mode seen rows (strict migration)")
+
+
+def _invalidate_legacy_letters_test_auto_seen(conn: sqlite3.Connection) -> None:
+    """Delete visit-generated letters/test marks (idempotent, one-shot).
+
+    After v1, Letters and Test were still auto-seen on GET. Spoken Letters
+    and /quiz-only Test must not inherit those rows. A v2 marker keeps
+    reruns from wiping marks earned under the new gates.
+    """
+    marker = conn.execute(
+        "SELECT 1 FROM app_settings WHERE user_id = ? AND key = ?",
+        (str(LOCAL_USER_ID), _GATED_MODES_V2_MARKER_KEY),
+    ).fetchone()
+    if marker is not None:
+        return
+    placeholders = ", ".join("?" for _ in _LEGACY_AUTO_SEEN_GATED_MODES)
+    conn.execute(
+        f"DELETE FROM unit_modes_seen WHERE mode IN ({placeholders})",
+        _LEGACY_AUTO_SEEN_GATED_MODES,
+    )
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO app_settings (user_id, key, value, updated_at)
+        VALUES (?, ?, '1', ?)
+        """,
+        (
+            str(LOCAL_USER_ID),
+            _GATED_MODES_V2_MARKER_KEY,
+            datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        ),
+    )
+    logger.info("Invalidated legacy letters/test auto-seen rows (v2)")
 
 
 def _rebuild_unit_modes_seen(conn: sqlite3.Connection) -> None:
@@ -618,6 +655,7 @@ def init_db(conn: sqlite3.Connection) -> None:
         _ensure_profile_identity_columns(conn)
         conn.executescript(SCHEMA_SQL)
         _invalidate_legacy_gated_modes(conn)
+        _invalidate_legacy_letters_test_auto_seen(conn)
         _migrate_ladder_day15(conn)
     finally:
         conn.execute("PRAGMA foreign_keys = ON")

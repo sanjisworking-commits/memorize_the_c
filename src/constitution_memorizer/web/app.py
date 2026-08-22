@@ -67,7 +67,9 @@ from constitution_memorizer.progress.repository import (
     AUTO_SEEN_MODES_SET,
     LEARN_MODES,
     LEARN_MODES_SET,
+    ONBOARDING_KEY,
     VALID_NOTIFICATION_FREQUENCIES,
+    VALID_ONBOARDING_STATUSES,
     VALID_THEMES,
     SplitMode,
 )
@@ -90,16 +92,26 @@ from constitution_memorizer.web.request_context import (
 from constitution_memorizer.web.amendments import get_article_amendments, load_amendments
 from constitution_memorizer.web.browse import (
     adjacent_article_numbers,
+    article_phone_meta,
     BROWSE_MARKS_BY_KEY,
+    marks_for_article,
+    parse_news_articles,
     browse_due_total,
     browse_parts_sections,
+    find_part_section,
+    part_href,
+    part_progress_summary,
+    part_title_from_seed,
     present_browse_marks,
     build_article_view,
     list_article_numbers,
     load_reviewed_document,
 )
 from constitution_memorizer.web.explainers import explainer_asset_path, visual_explainer
-from constitution_memorizer.web.calendar_view import build_calendar_month
+from constitution_memorizer.web.calendar_view import (
+    build_calendar_month,
+    build_revisions_view,
+)
 from constitution_memorizer.web.completion import (
     build_completion,
     caught_up_quote,
@@ -268,6 +280,7 @@ def create_app(
     admin_repo=None,
     calendar_store=None,
     gcal_transport=None,
+    speech_provider=None,
 ) -> FastAPI:
     """Create the learning UI app bound to concrete unit/progress paths."""
     root = Path.cwd()
@@ -410,6 +423,18 @@ def create_app(
         bound = getattr(request.state, "bound_engine", None) or app.state.engine
         return bound.get_theme()
 
+    def _onboarding_for_request(request: Request) -> str:
+        # Tour is a signed-in, multiuser surface only. Absent setting = "".
+        if not app.state.multiuser_enabled:
+            return ""
+        if getattr(request.state, "current_user", None) is None:
+            return ""
+        bound = getattr(request.state, "bound_engine", None)
+        if bound is None:
+            return ""
+        value = bound.get_setting(ONBOARDING_KEY) or ""
+        return value if value in VALID_ONBOARDING_STATUSES else ""
+
     def _due_for_request(request: Request) -> int:
         if getattr(request.state, "is_guest", False) or getattr(
             request.state, "current_user", None
@@ -428,6 +453,7 @@ def create_app(
             lambda request: {
                 "app_name": "Recall the C",
                 "theme_preference": _theme_for_request(request),
+                "onboarding_status": _onboarding_for_request(request),
                 "browse_due_total": _due_for_request(request),
                 "current_user": getattr(request.state, "current_user", None),
                 "is_guest": bool(
@@ -593,6 +619,18 @@ def create_app(
         )
     app.state.gcal_transport = gcal_transport
 
+    from constitution_memorizer.speech.deepgram import DeepgramSpeechProvider
+    from constitution_memorizer.speech.limits import SpeechRateLimiter
+    from constitution_memorizer.speech.provider import UnavailableSpeechProvider
+
+    if speech_provider is not None:
+        app.state.speech_provider = speech_provider
+    elif (settings.deepgram_api_key or "").strip():
+        app.state.speech_provider = DeepgramSpeechProvider(settings.deepgram_api_key)
+    else:
+        app.state.speech_provider = UnavailableSpeechProvider()
+    app.state.speech_rate_limiter = SpeechRateLimiter()
+
     if admin_repo is not None:
         app.state.admin_repo = admin_repo
     elif use_postgres:
@@ -667,8 +705,10 @@ def create_app(
     app.include_router(create_admin_router(templates))
 
     from constitution_memorizer.calendar_sync.routes import router as gcal_router
+    from constitution_memorizer.speech.routes import router as speech_router
 
     app.include_router(gcal_router)
+    app.include_router(speech_router)
 
     def _engine() -> ReminderEngine:
         bound = bound_engine.get()
@@ -888,8 +928,8 @@ def create_app(
         else:
             # Locked modes are never recorded as seen; unclaimed Articles keep
             # mode visits provisional (client-tracked) until claimed on Done.
-            # Gated modes (cloze/type/recite) are never marked by a GET —
-            # they report their completed attempt via /seen.
+            # Gated modes are never marked by a GET — they report via /seen
+            # (or /quiz for Test).
             if (
                 mode_locked
                 or not learn_lock.can_persist_modes_seen
@@ -1033,11 +1073,14 @@ def create_app(
             raise HTTPException(status_code=404, detail="Learning unit not found")
         if mode not in LEARN_MODES:
             raise HTTPException(status_code=400, detail="Invalid learn mode")
-        # Trust model: for cloze/type/recite the client reports a completed
-        # attempt and the server takes its word (no leaderboard, nothing to
-        # win by cheating; recall_align.py exists if server-side verification
-        # is ever wanted). Test is auto-seen on tab visit (like Read/Letters);
-        # a graded /quiz submit may also mark it, which is idempotent.
+        if mode == "test":
+            return JSONResponse(
+                {"ok": False, "error": "quiz_required", "mode": "test"},
+                status_code=400,
+            )
+        # Trust model: for cloze/letters/type/recite the client reports a
+        # completed attempt and the server takes its word (no leaderboard).
+        # Test is /quiz-only — never recorded here.
         # Locked modes must never be recorded as seen (UI lock is not trusted).
         access = resolve_learn_access(request, eng, unit.article_number)
         if access.is_locked(mode):
@@ -1059,7 +1102,7 @@ def create_app(
 
     @app.post("/learn/{unit_id}/quiz")
     async def learn_quiz(request: Request, unit_id: str) -> JSONResponse:
-        """Grade a Test-mode submission. Test is also auto-seen on tab visit."""
+        """Grade a Test-mode submission. Test is marked only through this route."""
         eng = _engine()
         unit = eng.get_unit(unit_id)
         if unit is None:
@@ -1435,15 +1478,63 @@ def create_app(
         parts_source = "reviewed" if app.state.reviewed is not None else "units-seed"
         access = access_summary(request, eng)
         claimed = set(access.claimed_articles) if access.enabled else set()
+        # Phone Browse is Part-first (design 02): each Part card carries its own
+        # progress and due count, and opens a Part page instead of scrolling.
+        today = date.today()
+        cont_id = continue_unit_id(eng, as_of=today)
+        part_cards = [
+            {
+                "section": section,
+                "href": part_href(section.part_number),
+                "summary": part_progress_summary(
+                    eng, section, today=today, continue_id=cont_id
+                ),
+            }
+            for section in sections
+        ]
         started = time.perf_counter()
         response = templates.TemplateResponse(
             request,
             "browse_index.html",
             {
                 "sections": sections,
+                "part_cards": part_cards,
                 "has_reviewed": app.state.reviewed is not None,
                 "parts_source": parts_source,
                 "present_marks": present_browse_marks(sections),
+                "access": access,
+                "claimed_articles": claimed,
+            },
+        )
+        record_request_timing("template", started)
+        return response
+
+    @app.get("/browse/part/{part_slug}", response_class=HTMLResponse)
+    async def browse_part(request: Request, part_slug: str) -> HTMLResponse:
+        """One Part, Articles as rows (mobile designs 03 / 16 / 18)."""
+        eng = _engine()
+        if not getattr(request.state, "is_guest", False):
+            eng.bootstrap_request(include_news=True)
+        started = time.perf_counter()
+        sections = browse_parts_sections(eng, app.state.reviewed)
+        record_request_timing("browse_build", started)
+        section = find_part_section(sections, part_slug)
+        if section is None:
+            raise HTTPException(status_code=404, detail="Part not found")
+        access = access_summary(request, eng)
+        claimed = set(access.claimed_articles) if access.enabled else set()
+        today = date.today()
+        cont_id = continue_unit_id(eng, as_of=today)
+        started = time.perf_counter()
+        response = templates.TemplateResponse(
+            request,
+            "browse_part.html",
+            {
+                "section": section,
+                "summary": part_progress_summary(
+                    eng, section, today=today, continue_id=cont_id
+                ),
+                "present_marks": present_browse_marks([section]),
                 "access": access,
                 "claimed_articles": claimed,
             },
@@ -1487,6 +1578,23 @@ def create_app(
             notes=notes,
             unit_id=f"browse-article-{view.article_number}",
         )
+        # Phone header (design 04): the Part by name, the saved / progress /
+        # amendments meta line, and the Article's own marks in the top bar.
+        access = access_summary(request, eng)
+        claimed = set(access.claimed_articles) if access.enabled else set()
+        part_title = (
+            part_title_from_seed(view.part_number)
+            if str(view.part_number or "").upper() != "UNKNOWN"
+            else None
+        )
+        phone_meta = article_phone_meta(
+            view.learn_units,
+            saved=view.article_number in claimed,
+            amendment_count=len(view.amendments or ()),
+        )
+        in_news = view.article_number in parse_news_articles(
+            eng.get_news_articles_raw()
+        )
         record_request_timing("article_build", started)
         started = time.perf_counter()
         response = templates.TemplateResponse(
@@ -1501,6 +1609,12 @@ def create_app(
                 "judicial_evolution": judicial,
                 "annotated_text": annotated_text,
                 "has_text_annotations": bool(browse_anns),
+                "part_title": part_title,
+                "phone_meta": phone_meta,
+                "article_marks": marks_for_article(
+                    view.article_number, in_news=in_news
+                ),
+                "access": access,
             },
         )
         record_request_timing("template", started)
@@ -1576,10 +1690,17 @@ def create_app(
         if not is_guest:
             eng.bootstrap_request()
         view = build_calendar_month(eng, year=y, month=m, today=today)
+        # The phone shows this month's data as a week strip + today + ladder
+        # (design 19); only meaningful for the current month.
+        revisions = (
+            build_revisions_view(eng, today=today)
+            if (y, m) == (today.year, today.month)
+            else None
+        )
         return templates.TemplateResponse(
             request,
             "calendar.html",
-            {"calendar": view},
+            {"calendar": view, "revisions": revisions},
         )
 
     @app.get("/progress", response_class=HTMLResponse)
@@ -2112,6 +2233,55 @@ def create_app(
             eng.set_notification_frequency(notification_frequency)  # type: ignore[arg-type]
         eng.set_news_articles_raw(news_articles)
         return RedirectResponse(url="/settings?saved=1", status_code=303)
+
+    @app.get("/onboarding/state")
+    async def onboarding_state_get(request: Request) -> JSONResponse:
+        """Current tour status — lets a stale cached page (back button) check
+        whether the tour is really still active before booting the layer."""
+        if not app.state.multiuser_enabled:
+            raise HTTPException(status_code=404, detail="Not Found")
+        user = getattr(request.state, "current_user", None)
+        if user is None:
+            return JSONResponse(
+                {"ok": False, "error": "sign_in_required"}, status_code=401
+            )
+        value = _engine().get_setting(ONBOARDING_KEY) or ""
+        if value not in VALID_ONBOARDING_STATUSES:
+            value = ""
+        return JSONResponse({"ok": True, "status": value})
+
+    @app.post("/onboarding/state")
+    async def onboarding_state(
+        request: Request,
+        status: str = Form(...),
+        csrf_token: str = Form(""),
+    ):
+        """Advance or replay the first-login tour (signed-in, multiuser only).
+
+        The tour layer (onboarding.js) posts skipped/completed as same-origin
+        XHR; the Settings "Replay the tour" form posts active with CSRF.
+        """
+        if not app.state.multiuser_enabled:
+            raise HTTPException(status_code=404, detail="Not Found")
+        user = getattr(request.state, "current_user", None)
+        if user is None:
+            if wants_json(request):
+                return JSONResponse(
+                    {"ok": False, "error": "sign_in_required"}, status_code=401
+                )
+            return RedirectResponse(url="/login?next=/settings", status_code=303)
+        if status not in VALID_ONBOARDING_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid onboarding status")
+        if not wants_json(request) and (
+            request.cookies.get("rtc_csrf") != csrf_token
+        ):
+            return RedirectResponse(url="/settings", status_code=303)
+        _engine().set_setting(ONBOARDING_KEY, status)
+        if wants_json(request):
+            return JSONResponse({"ok": True, "status": status})
+        # Replaying from Settings lands where the tour starts.
+        dest = "/dashboard" if status == "active" else "/settings"
+        return RedirectResponse(url=dest, status_code=303)
 
     @app.get("/api/explainers/{article_id}")
     async def explainer_svg(request: Request, article_id: str) -> FileResponse:

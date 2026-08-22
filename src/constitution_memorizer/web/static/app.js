@@ -3,7 +3,7 @@
   // Mirrors the canonical partition in progress/repository.py — keep in sync.
   const LEARN_MODES = new Set(["read", "cloze", "letters", "type", "recite", "test"]);
   // Auto-seen modes check on tab visit; the rest gate on a completed attempt.
-  const AUTO_SEEN_MODES = new Set(["read", "letters", "test"]);
+  const AUTO_SEEN_MODES = new Set(["read"]);
   const MOTION_KEY = "cm-motion";
   const SOUND_KEY = "cm-completion-sound";
   const DONE_SOUND_SRC = "/static/completion-done.mp3";
@@ -258,47 +258,566 @@
     };
   }
 
-  function initLetters(panel) {
+  function initLetters(panel, onComplete) {
     if (!panel) {
       return null;
     }
 
     const display = panel.querySelector("[data-letters-display]");
     const toggle = panel.querySelector("[data-letters-toggle]");
+    const speakBtn = panel.querySelector("[data-letters-speak]");
+    const checkBtn = panel.querySelector("[data-letters-check]");
+    const statusEl = panel.querySelector("[data-letters-status]");
+    const fallbackEl = panel.querySelector("[data-letters-fallback]");
+    const manualEl = panel.querySelector("[data-letters-manual]");
+    const checkTextBtn = panel.querySelector("[data-letters-check-text]");
     const source = panel.getAttribute("data-letters-text") || "";
-    const initials = toInitials(source);
+    const words = source.trim() ? source.trim().split(/\s+/) : [];
+    const learnRoot = panel.closest(".learn");
+    const unitId = learnRoot ? learnRoot.getAttribute("data-unit-id") || "" : "";
+    const speech = window.RecallSpeech;
     let full = panel.getAttribute("data-letters-full") === "true";
+    const correctWordIndexes = new Set();
+    const cueState = words.map(() => "neutral");
+    let completed = false;
+    let recording = null;
+    let live = null;
+    let inFlight = false;
+    let abortController = null;
 
-    function render() {
+    function isStructuralLettersToken(word) {
+      const raw = String(word || "").trim();
+      if (!raw) {
+        return true;
+      }
+      if (/^[\(\[]?\d+[A-Za-z]?[\)\]]?\.?$/.test(raw)) {
+        return true;
+      }
+      if (/^\(\d+\)\([A-Za-z]\)$/.test(raw)) {
+        return true;
+      }
+      if (/^\([A-Za-z]\)$/.test(raw)) {
+        return true;
+      }
+      if (/^\([ivxlcdmIVXLCDM]+\)$/.test(raw)) {
+        return true;
+      }
+      if (/^[-–—−•·.,;:()/\[\]]+$/.test(raw)) {
+        return true;
+      }
+      return !/[A-Za-z]/.test(raw);
+    }
+
+    function earliestUnresolvedIndex() {
+      for (let i = 0; i < words.length; i += 1) {
+        if (isStructuralLettersToken(words[i])) {
+          continue;
+        }
+        if (!correctWordIndexes.has(i)) {
+          return i;
+        }
+      }
+      return words.length;
+    }
+
+    function setHidden(el, hidden) {
+      if (!el) {
+        return;
+      }
+      el.hidden = hidden;
+    }
+
+    function showStatus(message, kind) {
+      if (!statusEl) {
+        return;
+      }
+      statusEl.textContent = message || "";
+      statusEl.classList.toggle("is-listening", kind === "listening");
+      statusEl.classList.toggle("is-error", kind === "error");
+      setHidden(statusEl, !message);
+    }
+
+    function showFallback(show) {
+      setHidden(fallbackEl, !show);
+    }
+
+    function cueClass(index) {
+      if (isStructuralLettersToken(words[index])) {
+        return "learn-letters-cue is-structural";
+      }
+      if (cueState[index] === "correct") {
+        return "learn-letters-cue is-correct";
+      }
+      if (cueState[index] === "wrong") {
+        return "learn-letters-cue is-wrong";
+      }
+      if (cueState[index] === "listening") {
+        return "learn-letters-cue is-listening";
+      }
+      return "learn-letters-cue";
+    }
+
+    function initialsFor(word) {
+      const match = word.match(/^[A-Za-z]/);
+      if (!match) {
+        return word;
+      }
+      const punct = word.replace(/[A-Za-z]+/g, "").replace(/[^.,;\u2014()]/g, "");
+      return match[0] + punct;
+    }
+
+    function renderCues() {
       if (!display) {
         return;
       }
-      display.textContent = full ? source : initials;
+      display.replaceChildren();
       display.classList.toggle("is-full", full);
       display.classList.toggle("is-initials", !full);
       panel.setAttribute("data-letters-full", full ? "true" : "false");
+      words.forEach((word, index) => {
+        const span = document.createElement("span");
+        span.className = cueClass(index);
+        span.setAttribute("data-index", String(index));
+        span.textContent = (full ? word : initialsFor(word)) + (index < words.length - 1 ? "\u2002" : "");
+        display.appendChild(span);
+      });
       if (toggle) {
         toggle.textContent = full ? "Back to initials" : "Show full text";
         toggle.setAttribute("aria-pressed", full ? "true" : "false");
       }
     }
 
+    function clearListening() {
+      for (let i = 0; i < cueState.length; i += 1) {
+        if (cueState[i] === "listening") {
+          cueState[i] = correctWordIndexes.has(i) ? "correct" : "neutral";
+        }
+      }
+    }
+
+    function markListeningWindow() {
+      const start = earliestUnresolvedIndex();
+      let marked = 0;
+      for (let i = start; i < words.length && marked < 8; i += 1) {
+        if (isStructuralLettersToken(words[i])) {
+          continue;
+        }
+        // Never clobber a red (wrong) cue — it stays red until the word
+        // is finally spoken correctly and the match flips it blue.
+        if (cueState[i] !== "correct" && cueState[i] !== "wrong") {
+          cueState[i] = "listening";
+        }
+        marked += 1;
+      }
+    }
+
+    function maybeComplete() {
+      if (completed || !words.length) {
+        return;
+      }
+      let speakable = 0;
+      for (let i = 0; i < words.length; i += 1) {
+        if (isStructuralLettersToken(words[i])) {
+          continue;
+        }
+        speakable += 1;
+        if (!correctWordIndexes.has(i)) {
+          return;
+        }
+      }
+      if (!speakable) {
+        return;
+      }
+      completed = true;
+      if (onComplete) {
+        onComplete();
+      }
+    }
+
+    function applyAlignment(alignment) {
+      if (!Array.isArray(alignment)) {
+        return;
+      }
+      alignment.forEach((item) => {
+        const index = item && typeof item.index === "number" ? item.index : -1;
+        if (index < 0 || index >= words.length) {
+          return;
+        }
+        if (isStructuralLettersToken(words[index])) {
+          return;
+        }
+        if (correctWordIndexes.has(index)) {
+          cueState[index] = "correct";
+          return;
+        }
+        if (item.status === "match") {
+          correctWordIndexes.add(index);
+          cueState[index] = "correct";
+        } else if (item.status === "substitute") {
+          cueState[index] = "wrong";
+        }
+      });
+      maybeComplete();
+    }
+
+    function failInfra(message) {
+      clearListening();
+      showStatus(message, "error");
+      showFallback(true);
+      renderCues();
+    }
+
+    async function submitBlob(blob) {
+      if (!speech || !unitId) {
+        failInfra("Speech recognition is temporarily unavailable. Try again or use the fallback.");
+        return;
+      }
+      inFlight = true;
+      abortController = new AbortController();
+      try {
+        const payload = await speech.transcribe({
+          unitId,
+          mode: "letters",
+          blob,
+          fromIndex: earliestUnresolvedIndex(),
+          signal: abortController.signal,
+        });
+        clearListening();
+        applyAlignment(payload.alignment || []);
+        showStatus("Continue from the first letter that is not yet blue.", null);
+        showFallback(false);
+        renderCues();
+      } catch (err) {
+        const code = err && err.code ? err.code : "";
+        if (code === "unavailable" || code === "timeout" || code === "provider_error") {
+          failInfra("Speech recognition is temporarily unavailable. Try again or use the fallback.");
+        } else if (code === "empty") {
+          failInfra("I didn't catch that — try the word again.");
+        } else if (code === "rate_limited") {
+          failInfra("Speech recognition is temporarily unavailable. Try again or use the fallback.");
+        } else {
+          failInfra("Speech recognition is temporarily unavailable. Try again or use the fallback.");
+        }
+      } finally {
+        inFlight = false;
+        abortController = null;
+      }
+    }
+
+    function enterListeningUi(label, hint) {
+      markListeningWindow();
+      showStatus(hint, "listening");
+      if (speakBtn) {
+        speakBtn.classList.add("is-active");
+        speakBtn.textContent = "Listening…";
+      }
+      if (checkBtn) {
+        checkBtn.textContent = label;
+      }
+      setHidden(checkBtn, false);
+      renderCues();
+    }
+
+    function exitListeningUi() {
+      if (speakBtn) {
+        speakBtn.classList.remove("is-active");
+        speakBtn.textContent = "▸ Start";
+      }
+      if (checkBtn) {
+        checkBtn.textContent = "Check phrase";
+      }
+      setHidden(checkBtn, true);
+    }
+
+    async function startLegacySpeak() {
+      try {
+        recording = await speech.startRecording();
+        enterListeningUi(
+          "Check phrase",
+          "Listening… speak a short phrase, then check.",
+        );
+      } catch (_err) {
+        recording = null;
+        failInfra("Microphone permission is needed for spoken Letters.");
+      }
+    }
+
+    async function startSpeak() {
+      if (!speech || !speech.isSupported()) {
+        failInfra("Microphone permission is needed for spoken Letters.");
+        if (speakBtn) {
+          speakBtn.disabled = true;
+        }
+        return;
+      }
+      // Live word-by-word mode first: letters turn blue as you speak.
+      if (typeof speech.startLive === "function" && unitId) {
+        try {
+          live = await speech.startLive({
+            unitId,
+            fromIndex: earliestUnresolvedIndex(),
+            onUpdate(payload) {
+              clearListening();
+              applyAlignment(payload.alignment || []);
+              markListeningWindow();
+              renderCues();
+            },
+            onEnd(code) {
+              live = null;
+              clearListening();
+              exitListeningUi();
+              renderCues();
+              if (code && code !== "cancelled") {
+                showStatus(
+                  "Live listening ended — press Start to continue, or use the fallback.",
+                  "error",
+                );
+                showFallback(true);
+              } else {
+                showStatus(
+                  completed
+                    ? "All letters recalled."
+                    : "Continue from the first letter that is not yet blue.",
+                  null,
+                );
+              }
+            },
+          });
+          enterListeningUi(
+            "Stop",
+            "Listening — correct letters turn blue as you speak.",
+          );
+          return;
+        } catch (err) {
+          live = null;
+          const code = err && err.code ? err.code : "";
+          if (code === "mode_locked" || code === "rate_limited") {
+            failInfra("Speech recognition is temporarily unavailable. Try again or use the fallback.");
+            return;
+          }
+          // Mic granted but live plumbing failed → quietly fall back to
+          // the record-then-check flow (unavailable/socket/unsupported).
+        }
+      }
+      await startLegacySpeak();
+    }
+
+    async function checkPhrase() {
+      if (live) {
+        // Live mode: Stop just ends the stream; alignment already painted.
+        const session = live;
+        try {
+          session.stop();
+        } catch (_err) {
+          /* ignore */
+        }
+        return;
+      }
+      if (!recording || inFlight) {
+        return;
+      }
+      const session = recording;
+      recording = null;
+      if (speakBtn) {
+        speakBtn.classList.remove("is-active");
+        speakBtn.textContent = "▸ Start";
+      }
+      setHidden(checkBtn, true);
+      showStatus("Checking…", "listening");
+      let blob;
+      try {
+        blob = await session.stop();
+      } catch (_err) {
+        failInfra("Speech recognition is temporarily unavailable. Try again or use the fallback.");
+        return;
+      }
+      if (!blob || !blob.size) {
+        failInfra("I didn't catch that — try the word again.");
+        return;
+      }
+      await submitBlob(blob);
+    }
+
+    async function submitTyped() {
+      const typed = manualEl ? manualEl.value.trim() : "";
+      if (!typed) {
+        showStatus("Type the next words, then check.", "error");
+        return;
+      }
+      if (!speech) {
+        failInfra("Speech recognition is temporarily unavailable. Try again or use the fallback.");
+        return;
+      }
+      inFlight = true;
+      try {
+        const payload = await speech.transcribe({
+          unitId,
+          mode: "letters",
+          text: typed,
+          fromIndex: earliestUnresolvedIndex(),
+        });
+        applyAlignment(payload.alignment || []);
+        if (manualEl) {
+          manualEl.value = "";
+        }
+        showStatus("Continue from the first letter that is not yet blue.", null);
+        renderCues();
+      } catch (_err) {
+        failInfra("Speech recognition is temporarily unavailable. Try again or use the fallback.");
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    // Voice vs plain view: "Speak it" is the interactive spoken test;
+    // "Just read" restores the original passive first-letter recall (no
+    // mic). The choice sticks per browser and plain view still counts the
+    // method (server trust model: client reports letters attempts).
+    const viewButtons = Array.from(
+      panel.querySelectorAll("[data-letters-view-set]"),
+    );
+    const hintEl = panel.querySelector(".learn-letters-hint");
+    const VIEW_KEY = "cm-letters-view";
+    let view = "voice";
+    try {
+      if (localStorage.getItem(VIEW_KEY) === "plain") {
+        view = "plain";
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+    let plainCounted = false;
+
+    function applyView() {
+      const plain = view === "plain";
+      panel.setAttribute("data-letters-view", view);
+      if (plain) {
+        if (live) {
+          try {
+            live.cancel();
+          } catch (_e) {
+            /* ignore */
+          }
+          live = null;
+        }
+        if (recording) {
+          try {
+            recording.cancel();
+          } catch (_e) {
+            /* ignore */
+          }
+          recording = null;
+        }
+        clearListening();
+        exitListeningUi();
+        showStatus("", null);
+        showFallback(false);
+        renderCues();
+        if (!plainCounted && onComplete) {
+          plainCounted = true;
+          onComplete();
+        }
+      }
+      setHidden(speakBtn, plain);
+      if (plain) {
+        setHidden(checkBtn, true);
+      }
+      if (hintEl) {
+        hintEl.textContent = plain
+          ? "Recall each word from its first letter. Show full text to verify."
+          : "Use the first letters. Speak the words — correct letters turn blue as you go.";
+      }
+      viewButtons.forEach((btn) => {
+        const active = btn.getAttribute("data-letters-view-set") === view;
+        btn.classList.toggle("is-active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+
+    viewButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = btn.getAttribute("data-letters-view-set") === "plain"
+          ? "plain"
+          : "voice";
+        if (next === view) {
+          return;
+        }
+        view = next;
+        try {
+          localStorage.setItem(VIEW_KEY, view);
+        } catch (_e) {
+          /* ignore */
+        }
+        applyView();
+      });
+    });
+
     if (toggle) {
       toggle.addEventListener("click", () => {
         full = !full;
-        render();
+        renderCues();
         if (full) {
           scrollToElement(display);
         }
       });
     }
+    if (speakBtn) {
+      speakBtn.addEventListener("click", () => {
+        if (recording) {
+          return;
+        }
+        startSpeak();
+      });
+    }
+    if (checkBtn) {
+      checkBtn.addEventListener("click", () => {
+        checkPhrase();
+      });
+    }
+    if (checkTextBtn) {
+      checkTextBtn.addEventListener("click", () => {
+        submitTyped();
+      });
+    }
 
-    render();
+    renderCues();
+    applyView();
 
     return {
       reset() {
+        if (abortController) {
+          abortController.abort();
+          abortController = null;
+        }
+        if (recording) {
+          try {
+            recording.cancel();
+          } catch (_err) {
+            /* ignore */
+          }
+          recording = null;
+        }
+        if (live) {
+          try {
+            live.cancel();
+          } catch (_err) {
+            /* ignore */
+          }
+          live = null;
+        }
+        inFlight = false;
         full = false;
-        render();
+        for (let i = 0; i < cueState.length; i += 1) {
+          cueState[i] = correctWordIndexes.has(i) ? "correct" : "neutral";
+        }
+        if (speakBtn) {
+          speakBtn.classList.remove("is-active");
+          speakBtn.textContent = "▸ Start";
+          speakBtn.disabled = false;
+        }
+        setHidden(checkBtn, true);
+        showStatus("", null);
+        renderCues();
       },
     };
   }
@@ -407,16 +926,15 @@
     const statsEl = panel.querySelector("[data-recite-stats]");
     const extrasEl = panel.querySelector("[data-recite-extras]");
     const source = panel.getAttribute("data-recite-text") || "";
-
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    const speech = window.RecallSpeech;
+    const learnRoot = panel.closest(".learn");
+    const unitId = learnRoot ? learnRoot.getAttribute("data-unit-id") || "" : "";
 
     let recOn = false;
     let peeking = false;
-    let recognition = null;
-    let finalTranscript = "";
-    let interimTranscript = "";
-    let unsupported = !SpeechRecognition;
+    let recording = null;
+    let abortController = null;
+    let unsupported = !(speech && speech.isSupported());
     let stopping = false;
 
     function setHidden(el, hidden) {
@@ -434,8 +952,6 @@
     }
 
     function clearResults() {
-      finalTranscript = "";
-      interimTranscript = "";
       if (transcriptEl) {
         transcriptEl.textContent = "";
         transcriptEl.classList.remove("is-live");
@@ -467,22 +983,6 @@
       statusEl.classList.toggle("is-listening", kind === "listening");
       statusEl.classList.toggle("is-error", kind === "error");
       setHidden(statusEl, !message);
-    }
-
-    function renderTranscriptLive() {
-      const combined = (finalTranscript + " " + interimTranscript).trim();
-      if (!transcriptEl) {
-        return;
-      }
-      if (!combined) {
-        setHidden(transcriptEl, true);
-        transcriptEl.textContent = "";
-        transcriptEl.classList.remove("is-live");
-        return;
-      }
-      transcriptEl.classList.add("is-live");
-      transcriptEl.textContent = combined;
-      setHidden(transcriptEl, false);
     }
 
     function renderAccuracyMap(spokenText, labelPrefix) {
@@ -529,143 +1029,121 @@
       }
     }
 
-    function stopRecognition() {
-      if (recognition) {
+    function stopRecording() {
+      if (abortController) {
+        abortController.abort();
+        abortController = null;
+      }
+      if (recording) {
         try {
-          recognition.onresult = null;
-          recognition.onerror = null;
-          recognition.onend = null;
-          recognition.abort();
+          recording.cancel();
         } catch (_err) {
-          try {
-            recognition.stop();
-          } catch (_err2) {
-            /* ignore */
-          }
+          /* ignore */
         }
-        recognition = null;
+        recording = null;
       }
     }
 
     function abortForServiceFailure(message) {
       recOn = false;
       stopping = true;
-      stopRecognition();
+      stopRecording();
       stopping = false;
       render();
       showStatus(message, "error");
       showFallback(true);
     }
 
-    function finishRecite() {
+    async function finishRecite() {
       stopping = true;
       recOn = false;
-      stopRecognition();
-      stopping = false;
-      const spoken = (finalTranscript + " " + interimTranscript).trim();
-      finalTranscript = spoken;
-      interimTranscript = "";
+      const session = recording;
+      recording = null;
       render();
-      if (spoken) {
+      if (!session) {
+        stopping = false;
+        abortForServiceFailure(
+          "No speech captured. Check your connection, or type what you recited below.",
+        );
+        return;
+      }
+      showStatus("Checking…", "listening");
+      let blob;
+      try {
+        blob = await session.stop();
+      } catch (_err) {
+        stopping = false;
+        abortForServiceFailure(
+          "Speech recognition is temporarily unavailable. Type what you recited below.",
+        );
+        return;
+      }
+      if (!blob || !blob.size || !speech) {
+        stopping = false;
+        abortForServiceFailure(
+          "No speech captured. Check your connection, or type what you recited below.",
+        );
+        return;
+      }
+      abortController = new AbortController();
+      try {
+        const payload = await speech.transcribe({
+          unitId,
+          mode: "recite",
+          blob,
+          signal: abortController.signal,
+        });
+        const spoken = (payload.transcript || "").trim();
+        if (!spoken) {
+          abortForServiceFailure(
+            "No speech captured. Check your connection, or type what you recited below.",
+          );
+          return;
+        }
         showStatus("Accuracy map from your recital.", null);
         showFallback(false);
         renderAccuracyMap(spoken, "Heard");
-        // A completed non-empty recitation counts — no accuracy threshold.
         if (onComplete) {
           onComplete();
         }
-      } else {
-        showStatus(
-          "No speech captured. Check your connection, or type what you recited below.",
-          "error",
-        );
-        clearResults();
-        setHidden(statusEl, false);
-        showFallback(true);
+      } catch (err) {
+        const code = err && err.code ? err.code : "";
+        if (code === "mode_locked") {
+          abortForServiceFailure("Recite is part of full Recall access.");
+        } else {
+          abortForServiceFailure(
+            "Speech recognition is temporarily unavailable. Type what you recited below.",
+          );
+        }
+      } finally {
+        abortController = null;
+        stopping = false;
       }
     }
 
-    function startRecognition() {
+    async function startRecognition() {
       clearResults();
-      finalTranscript = "";
-      interimTranscript = "";
-      recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-      // Prefer Indian English for Bare Act wording; browsers fall back if missing.
-      recognition.lang = "en-IN";
-
-      recognition.onresult = (event) => {
-        let interim = "";
-        for (let i = event.resultIndex; i < event.results.length; i += 1) {
-          const piece = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript = (finalTranscript + " " + piece).trim();
-          } else {
-            interim += piece;
-          }
-        }
-        interimTranscript = interim.trim();
-        renderTranscriptLive();
-      };
-
-      recognition.onerror = (event) => {
-        const err = event && event.error ? event.error : "error";
-        if (err === "aborted") {
-          return;
-        }
-        if (err === "not-allowed" || err === "service-not-allowed") {
-          unsupported = true;
-          abortForServiceFailure(
-            "Voice recite needs Chrome or Edge with microphone access.",
-          );
-          if (toggle) {
-            toggle.disabled = true;
-          }
-          return;
-        }
-        if (err === "no-speech") {
-          // Benign while continuous; keep listening.
-          showStatus("Listening… speak the Bare Act aloud.", "listening");
-          return;
-        }
-        if (err === "network" || err === "audio-capture") {
-          // Chrome's Web Speech API needs reachability to its cloud speech
-          // service. Without it, stop cleanly and offer manual check.
-          abortForServiceFailure(
-            err === "network"
-              ? "Speech service unreachable (network). Chrome needs internet access to its speech servers — or type what you recited below."
-              : "Microphone capture failed. Type what you recited below, or check mic permissions.",
-          );
-          return;
-        }
-        abortForServiceFailure(
-          "Speech recognition failed (" +
-            err +
-            "). Type what you recited below.",
+      if (!speech || !speech.isSupported()) {
+        unsupported = true;
+        recOn = false;
+        showStatus(
+          "Voice recite needs a browser with microphone access.",
+          "error",
         );
-      };
-
-      recognition.onend = () => {
-        if (stopping || !recOn) {
-          return;
+        if (toggle) {
+          toggle.disabled = true;
         }
-        // Chrome often ends continuous sessions early — restart while active.
-        try {
-          recognition.start();
-        } catch (_err) {
-          finishRecite();
-        }
-      };
-
+        showFallback(true);
+        render();
+        return;
+      }
       try {
-        recognition.start();
+        recording = await speech.startRecording();
         showStatus("Listening… speak the Bare Act aloud.", "listening");
       } catch (_err) {
         unsupported = true;
         recOn = false;
-        recognition = null;
+        recording = null;
         showStatus(
           "Voice recite needs Chrome or Edge with microphone access.",
           "error",
@@ -701,7 +1179,7 @@
 
     if (unsupported) {
       showStatus(
-        "Voice recite needs Chrome or Edge with microphone access.",
+        "Voice recite needs a browser with microphone access.",
         "error",
       );
       if (toggle) {
@@ -734,7 +1212,6 @@
         }
         showStatus("Accuracy map from your text.", null);
         renderAccuracyMap(spoken, "Entered");
-        // Manual fallback with non-empty text also completes the attempt.
         if (onComplete) {
           onComplete();
         }
@@ -778,14 +1255,14 @@
         stopping = true;
         recOn = false;
         peeking = false;
-        stopRecognition();
+        stopRecording();
         stopping = false;
         clearResults();
         if (!unsupported) {
           showStatus("", null);
         } else {
           showStatus(
-            "Voice recite needs Chrome or Edge with microphone access.",
+            "Voice recite needs a browser with microphone access.",
             "error",
           );
           showFallback(true);
@@ -794,6 +1271,7 @@
       },
     };
   }
+
 
   function initTest(panel, onGraded) {
     if (!panel) {
@@ -1194,21 +1672,6 @@
     const typePanel = learn.querySelector('[data-learn-panel="type"]');
     const recitePanel = learn.querySelector('[data-learn-panel="recite"]');
     const testPanel = learn.querySelector('[data-learn-panel="test"]');
-    // Gated modes report a completed attempt through markModeAttempted (or the
-    // graded quiz payload); auto-seen modes are marked on tab visit instead.
-    const cloze = initCloze(clozePanel, function () {
-      markModeAttempted("cloze");
-    });
-    const letters = initLetters(lettersPanel);
-    const typeMode = initType(typePanel, function () {
-      markModeAttempted("type");
-    });
-    const recite = initRecite(recitePanel, function () {
-      markModeAttempted("recite");
-    });
-    const testMode = initTest(testPanel, function (payload) {
-      applyQuizPayload(payload);
-    });
     const doneBtn = document.getElementById("learn-done-btn");
 
     const MODE_LABELS = {
@@ -1283,6 +1746,29 @@
     }
     const inFlight = new Set();
     let serverDoneUnlocked = learn.dataset.doneUnlocked === "true";
+
+    // Gated modes report a completed attempt through markModeAttempted (or the
+    // graded quiz payload); auto-seen modes are marked on tab visit instead.
+    //
+    // These run last on purpose: initLetters fires its callback during init
+    // when the saved view is "Just read", and markModeAttempted reads the
+    // consts above. Constructed any earlier, that first callback throws a
+    // temporal-dead-zone error and takes the whole Learn page down.
+    const cloze = initCloze(clozePanel, function () {
+      markModeAttempted("cloze");
+    });
+    const letters = initLetters(lettersPanel, function () {
+      markModeAttempted("letters");
+    });
+    const typeMode = initType(typePanel, function () {
+      markModeAttempted("type");
+    });
+    const recite = initRecite(recitePanel, function () {
+      markModeAttempted("recite");
+    });
+    const testMode = initTest(testPanel, function (payload) {
+      applyQuizPayload(payload);
+    });
 
     function requiredVisitedCount(visited) {
       let count = 0;
@@ -1433,14 +1919,24 @@
       }
     }
 
-    // A graded /quiz may also mark Test; visit already does via AUTO_SEEN.
+    // Test is /quiz-only. Never mark it from a tab visit or markModeAttempted.
     function applyQuizPayload(payload) {
-      if (isGuest) {
-        markModeAttempted("test");
+      if (!payload || payload.ok !== true) {
         return;
       }
-      if (payload && payload.persisted === false) {
-        markModeAttempted("test");
+      if (isGuest) {
+        guestVisitedModes.add("test");
+        applyTabMarks(guestVisitedModes);
+        applyTracker(guestVisitedModes);
+        maybeUnlockLocalDone();
+        return;
+      }
+      if (payload.persisted === false) {
+        provisionalModes.add("test");
+        saveProvisional();
+        applyTabMarks(visitedUnion());
+        applyTracker(visitedUnion());
+        maybeUnlockLocalDone();
         return;
       }
       applySeenPayload(payload);
@@ -1976,6 +2472,14 @@
       btn.classList.remove("is-rtc-saving");
       btn.classList.add("is-rtc-saved");
       btn.textContent = "Saved";
+      // First-login tour: the guide narrates this moment and immediately
+      // leads on to Calendar → Settings, so the quote affirmation would
+      // block the remaining steps. Skip it; a brief "Saved" beat is enough.
+      if (document.body.getAttribute("data-onboarding") === "active") {
+        await wait(motionEnabled() ? 350 : 60);
+        window.location.assign(cleanDoneParam(payload.next_url));
+        return;
+      }
       const soundP = soundEnabled() ? playCompletionSound() : Promise.resolve();
       await wait(motionEnabled() ? 120 : 0);
       const modal = buildAffirmationEl(payload);

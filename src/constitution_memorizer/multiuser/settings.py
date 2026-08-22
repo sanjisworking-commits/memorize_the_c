@@ -139,6 +139,10 @@ class MultiUserSettings(BaseSettings):
     gcal_client_secret: str = Field(default="", alias="GCAL_CLIENT_SECRET")
     gcal_token_key: str = Field(default="", alias="GCAL_TOKEN_KEY")
 
+    # Deepgram Nova-3 for Letters/Recite. Missing key → app still starts;
+    # speech routes return unavailable and the UI offers typed fallback.
+    deepgram_api_key: str = Field(default="", alias="DEEPGRAM_API_KEY")
+
     legal_entity_name: str = Field(default="", alias="LEGAL_ENTITY_NAME")
     legal_business_address: str = Field(default="", alias="LEGAL_BUSINESS_ADDRESS")
     legal_jurisdiction: str = Field(default="", alias="LEGAL_JURISDICTION")

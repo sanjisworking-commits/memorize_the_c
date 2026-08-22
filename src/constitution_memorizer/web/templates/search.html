@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Search · {{ app_name|default('Recall the C') }}{% endblock %}
+{% block mobile_screen %}search{% endblock %}
 {% block content %}
 <section class="panel search">
   <p class="eyebrow">Jump</p>
@@ -8,8 +9,12 @@
 
   <form class="search-form" method="get" action="/search">
     <label class="sr-only" for="q">Query</label>
+    <span class="search-form-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8.5" cy="8.5" r="5.5"></circle><path d="M12.6 12.6 17 17"></path></svg>
+    </span>
     <input id="q" name="q" type="search" value="{{ q }}" placeholder="20(2)" autofocus autocomplete="off">
     <button type="submit" class="btn btn-accent">Go</button>
+    <a class="search-cancel" href="/browse">Cancel</a>
   </form>
 
   {% if hit and not hit.redirect_url %}
